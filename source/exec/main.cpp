@@ -2,79 +2,11 @@
 #include <vector>
 #include <unordered_map>
 #include <optional>
+#include <filesystem>
 
-#include "wrapped.hpp"
+#include "types.hpp"
 
-// Math vector types
-template <typename T, size_t N>
-struct vector {
-	T data[N];
-};
-
-template <typename T>
-struct vector <T, 2> {
-	union {
-		T data[2];
-		struct {
-			T x;
-			T y;
-		};
-	};
-};
-
-template <typename T>
-struct vector <T, 3> {
-	union {
-		T data[3];
-		struct {
-			T x;
-			T y;
-			T z;
-		};
-	};
-};
-
-template <typename T, size_t N>
-inline bool operator==(const vector <T, N> &A, const vector <T, N> &B)
-{
-	for (size_t i = 0; i < N; i++) {
-		if (A.data[i] == B.data[i])
-			return true;
-	}
-
-	return false;
-}
-
-template <typename T, size_t N>
-struct std::hash <vector <T, N>> {
-	size_t operator()(const ::vector <T, N> &v) const
-	{
-		auto h = hash <float> ();
-
-		size_t x = 0;
-		for (size_t i = 0; i < N; i++)
-			x ^= h(v.data[i]);
-
-		return x;
-	}
-};
-
-using float2 = vector <float, 2>;
-using float3 = vector <float, 3>;
-
-using int3 = vector <int32_t, 3>;
-using int4 = vector <int32_t, 4>;
-
-template <typename T>
-using buffer = std::vector <T>;
-
-template <typename T>
-using property = jvl::wrapped::hash_table <std::string, T>;
-
-using typed_buffer = jvl::wrapped::variant <
-	buffer <float3>, buffer <float2>,
-	buffer <int3>, buffer <int4>
->;
+namespace jvl {
 
 struct Mesh {
 	// Vertex property keys
@@ -132,24 +64,28 @@ struct TriangleMesh {
 	}
 };
 
+// Constructed when loading a scene from a path
+struct Preset {
+	std::vector <Mesh> geometry;
+	std::filesystem::path path;
+
+	// TODO: materials as well
+
+	static std::optional <Preset> from(const std::filesystem::path &);
+};
+
+}
+
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
 #include <fmt/std.h>
 #include <fmt/printf.h>
 
-#include <filesystem>
-
-// Constructed when loading a scene from a path
-struct Preset : std::vector <Mesh> {
-	std::filesystem::path path;
-};
-
 template <>
 struct std::hash <tinyobj::index_t>
 {
-	size_t operator()(const tinyobj::index_t &k) const
-	{
+	size_t operator()(const tinyobj::index_t &k) const {
 		auto h = hash <int> ();
 		return ((h(k.vertex_index) ^ (h(k.normal_index) << 1)) >> 1) ^ (h(k.texcoord_index) << 1);
 	}
@@ -165,12 +101,12 @@ inline bool operator==(const tinyobj::index_t &a, const tinyobj::index_t &b)
 
 }
 
-int main(int argc, char *argv[])
-{
-	assert(argc >= 2);
+namespace jvl {
 
-	std::filesystem::path path = argv[1];
-	fmt::println("path to scene: {}", path);
+std::optional <Preset> Preset::from(const std::filesystem::path &path)
+{
+	Preset preset;
+	preset.path = path;
 
 	tinyobj::ObjReader reader;
 	tinyobj::ObjReaderConfig reader_config;
@@ -287,4 +223,20 @@ int main(int argc, char *argv[])
 		auto tmesh = TriangleMesh::from(mesh).value();
 		fmt::println("triangle mesh: {} vertices, {} faces", tmesh.positions.size(), tmesh.triangles.size());
 	}
+
+	return preset;
+}
+
+}
+
+#include "transform.hpp"
+
+int main(int argc, char *argv[])
+{
+	assert(argc >= 2);
+
+	std::filesystem::path path = argv[1];
+	fmt::println("path to scene: {}", path);
+
+	jvl::Preset::from(path);
 }

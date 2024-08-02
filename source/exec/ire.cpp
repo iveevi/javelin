@@ -1,371 +1,23 @@
+#include <cassert>
 #include <cstdio>
 #include <cstring>
 #include <functional>
-#include <type_traits>
-#include <variant>
-#include <stack>
-#include <vector>
-#include <cassert>
 #include <map>
+#include <stack>
 #include <string>
+#include <type_traits>
+#include <unordered_set>
+#include <variant>
+#include <vector>
 
 #include <fmt/format.h>
 
-namespace op {
+#include "ire/op.hpp"
+#include "wrapped_types.hpp"
 
-struct General;
+namespace jvl::ire {
 
-struct Global {
-	int type;
-	int binding;
-
-	enum {
-		layout_in,
-		layout_out
-	} qualifier;
-};
-
-enum PrimitiveType {
-	bad,
-	boolean,
-	i32,
-	f32,
-	vec4,
-};
-
-struct TypeField {
-	// If the current field is a
-	// primitive, then item != BAD
-	PrimitiveType item;
-
-	// Otherwise it is a nested struct
-	int down;
-
-	// Next field
-	int next;
-};
-
-struct Primitive {
-	PrimitiveType type;
-	union {
-		bool b;
-		int idata[4];
-		float fdata[4];
-	};
-};
-
-struct Swizzle {
-	enum Kind {
-		x, y, z, w,
-		xy
-	} type;
-
-	constexpr Swizzle(Kind t) : type(t) {}
-};
-
-struct Cmp {
-	int a;
-	int b;
-	enum {
-		eq, neq,
-	} type;
-};
-
-struct List {
-	int item;
-	int next;
-};
-
-struct Construct {
-	int type;
-	int args;
-};
-
-struct Store {
-	int dst;
-	int src;
-};
-
-struct Load {
-	int src;
-};
-
-struct Cond {
-	int cond;
-	int failto;
-};
-
-struct Elif : Cond {};
-
-struct End {};
-
-using _general_base = std::variant <
-	Global,
-	TypeField,
-	Primitive,
-	Swizzle,
-	Cmp,
-	Construct,
-	List,
-	Store,
-	Load,
-	Cond,
-	Elif,
-	End
->;
-
-struct General : _general_base {
-	using _general_base::_general_base;
-};
-
-// Type translation
-static const char *type_table[] = {
-	"<BAD>", "bool", "int", "float", "vec4"
-};
-
-struct _dump_dispatcher {
-	const char* resolve(const PrimitiveType &t) {
-		return type_table[t];
-	}
-
-	void operator()(const Global &global) {
-		static const char *qualifier_table[] = {
-			"layout input",
-			"layout output"
-		};
-
-		printf("global: %%%d = (%s, %d)", global.type,
-			qualifier_table[global.qualifier], global.binding);
-	}
-
-	void operator()(const TypeField &t) {
-		printf("type: ");
-		if (t.item != bad)
-			printf("%s", resolve(t.item));
-		else
-			printf("%d", t.down);
-
-		printf(" -> ");
-		if (t.next >= 0)
-			printf("%d", t.next);
-		else
-			printf("(nil)");
-	}
-
-	void operator()(const Primitive &p) {
-		printf("primitive: %s = ", resolve(p.type));
-
-		switch (p.type) {
-		case i32:
-			printf("%d", p.idata[0]);
-			break;
-		case vec4:
-			printf("(%.2f, %.2f, %.2f, %.2f)",
-					p.fdata[0],
-					p.fdata[1],
-					p.fdata[2],
-					p.fdata[3]);
-			break;
-		default:
-			printf("?");
-			break;
-		}
-	}
-
-	void operator()(const List &list) {
-		printf("list: %%%d -> ", list.item);
-		if (list.next >= 0)
-			printf("%%%d", list.next);
-		else
-			printf("(nil)");
-	}
-
-	void operator()(const Construct &ctor) {
-		printf("construct: %%%d = %%%d", ctor.type, ctor.args);
-	}
-
-	void operator()(const Store &store) {
-		printf("store %%%d -> %%%d", store.src, store.dst);
-	}
-
-	void operator()(const Load &load) {
-		printf("load %%%d", load.src);
-	}
-
-	void operator()(const Cmp &cmp) {
-		const char *cmp_table[] = { "=", "!=" };
-		printf("cmp %%%d %s %%%d", cmp.a, cmp_table[cmp.type], cmp.b);
-	}
-
-	void operator()(const Cond &cond) {
-		printf("cond %%%d -> %%%d", cond.cond, cond.failto);
-	}
-
-	void operator()(const Elif &elif) {
-		if (elif.cond >= 0)
-			printf("elif %%%d -> %%%d", elif.cond, elif.failto);
-		else
-			printf("elif (nil) -> %%%d", elif.failto);
-	}
-
-	void operator()(const End &) {
-		printf("end");
-	}
-
-	template <typename T>
-	void operator()(const T &) {
-		printf("<?>");
-	}
-};
-
-struct _typeof_dispatcher {
-	op::General *pool;
-
-	// TODO: cache system here as well
-
-	// TODO: needs to be persistent handle structs later
-	const char *resolve(const PrimitiveType type) {
-		return type_table[type];
-	}
-
-	std::string operator()(const TypeField &type) {
-		if (type.item != bad)
-			return resolve(type.item);
-		return "<?>";
-	}
-
-	std::string operator()(const Global &global) {
-		return defer(global.type);
-	}
-
-	template <typename T>
-	std::string operator()(const T &) {
-		return "<?>";
-	}
-
-	std::string defer(int index) {
-		return std::visit(*this, pool[index]);
-	}
-};
-
-struct _translate_dispatcher {
-	op::General *pool;
-	int generator = 0;
-	int indentation = 0;
-	int next_indentation = 0;
-	bool inlining = false;
-	std::map <int, std::string> symbols;
-
-	std::string operator()(const Cond &cond) {
-		next_indentation++;
-		std::string c = defer(cond.cond, true);
-		return "if (" + c + ") {";
-	}
-
-	std::string operator()(const Elif &elif) {
-		next_indentation = indentation--;
-		if (elif.cond == -1)
-			return "} else {";
-
-		std::string c = defer(elif.cond, true);
-		return "} else if (" + c + ") {";
-	}
-
-	std::string operator()(const End &) {
-		// TODO: verify which end?
-		next_indentation = indentation--;
-		return "}";
-	}
-
-	std::string operator()(const Global &global) {
-		switch (global.qualifier) {
-		case Global::layout_out:
-			return "_lout" + std::to_string(global.binding);
-		case Global::layout_in:
-			return "_lin" + std::to_string(global.binding);
-		default:
-			break;
-		}
-
-		return "<glo:?>";
-	}
-
-	std::string operator()(const Primitive &p) {
-		switch (p.type) {
-		case i32:
-			return std::to_string(p.idata[0]);
-		case vec4:
-			return "vec4("
-				+ std::to_string(p.fdata[0]) + ", "
-				+ std::to_string(p.fdata[1]) + ", "
-				+ std::to_string(p.fdata[2]) + ", "
-				+ std::to_string(p.fdata[3])
-				+ ")";
-		default:
-			break;
-		}
-
-		return "<prim:?>";
-	}
-
-	std::string operator()(const Load &load) {
-		// TODO: cache
-
-		bool inl = inlining;
-		std::string value = defer(load.src);
-		if (inl)
-			return value;
-
-		_typeof_dispatcher typer(pool);
-		std::string type = typer.defer(load.src);
-		std::string sym = "s" + std::to_string(generator++);
-		return type + " " + sym + " = " + value + ";";
-	}
-
-	std::string operator()(const Store &store) {
-		std::string lhs = defer(store.dst);
-		std::string rhs = defer(store.src);
-		return lhs + " = " + rhs + ";";
-	}
-
-	std::string operator()(const Cmp &cmp) {
-		bool inl = inlining;
-		std::string sa = defer(cmp.a, inl);
-		std::string sb = defer(cmp.b, inl);
-		switch (cmp.type) {
-		case Cmp::eq:
-			return sa + " == " + sb;
-		default:
-			break;
-		}
-
-		return "<cmp:?>";
-	}
-
-	template <typename T>
-	std::string operator()(const T &) {
-		return "<?>";
-	}
-
-	std::string defer(int index, bool inl = false) {
-		inlining = inl;
-		if (symbols.contains(index))
-			return symbols[index];
-
-		return std::visit(*this, pool[index]);
-	}
-
-	std::string eval(const op::General &general) {
-		std::string source = std::visit(*this, general) + "\n";
-		std::string space(indentation << 2, ' ');
-		indentation = next_indentation;
-		return space + source;
-	}
-};
-
-}
-
-struct IREmitter {
+struct Emitter {
 	// By default the program begins at index=0
 	op::General *pool;
 	size_t size;
@@ -374,7 +26,7 @@ struct IREmitter {
 	std::stack <int> control_flow_ends;
 	std::vector <int> main;
 
-	IREmitter() : pool(nullptr), size(0), pointer(0) {}
+	Emitter() : pool(nullptr), size(0), pointer(0) {}
 
 	void resize(size_t units) {
 		op::General *old = pool;
@@ -454,6 +106,62 @@ struct IREmitter {
 
 	// Generating GLSL source code
 	std::string generate_glsl() {
+		// TODO: mark instructions as unused (unless flags are given)
+
+		// Final generated source
+		std::string source;
+
+		// Version header
+		source += "#version 450\n";
+		source += "\n";
+
+		// Gather all necessary structs
+		wrapped::hash_table <int, std::string> struct_names;
+
+		int struct_index = 0;
+		for (int i = 0; i < pointer; i++) {
+			op::General g = pool[i];
+			if (!g.is <op::TypeField> ())
+				continue;
+
+			// TODO: skip if unused as well
+
+			op::TypeField tf = g.as <op::TypeField> ();
+			// TODO: skip if its only one primitive
+			if (tf.next == -1 && tf.down == -1)
+				continue;
+
+			// TODO: handle nested structs (down)
+
+			std::string struct_name = fmt::format("s{}_t", struct_index++);
+			struct_names[i] = struct_name;
+
+			std::string struct_source;
+			struct_source = fmt::format("struct {} {{\n", struct_name);
+
+			int field_index = 0;
+			int j = i;
+			while (j != -1) {
+				op::General g = pool[j];
+				if (!g.is <op::TypeField> ())
+					abort();
+
+				op::TypeField tf = g.as <op::TypeField> ();
+				// TODO: nested
+				// TODO: put this whole thing in a method
+
+				struct_source += fmt::format("    {} f{};\n",
+						op::type_table[tf.item],
+						field_index++);
+
+				j = tf.next;
+			}
+
+			struct_source += "};\n\n";
+
+			source += struct_source;
+		}
+
 		// Gather all global shader variables
 		std::map <int, std::string> lins;
 		std::map <int, std::string> louts;
@@ -464,30 +172,27 @@ struct IREmitter {
 				continue;
 
 			auto global = std::get <op::Global> (op);
-			auto type = std::visit(op::_typeof_dispatcher(pool), op);
+			auto type = std::visit(op::_typeof_dispatcher(pool, struct_names), op);
 			if (global.qualifier == op::Global::layout_in)
 				lins[global.binding] = type;
 			else if (global.qualifier == op::Global::layout_out)
 				louts[global.binding] = type;
 		}
 
+		// Actual translation
 		op::_translate_dispatcher tdisp;
 		tdisp.pool = pool;
-
-		std::string source;
-
-		// Version header
-		source += "#version 450\n";
-		source += "\n";
+		tdisp.struct_names = struct_names;
 
 		// Global shader variables
 		// TODO: check for vulkan target, etc
 		for (const auto &[binding, type] : lins)
-			source += fmt::format("layout (locatoon = {}) in {} _lin{};\n", binding, type, binding);
+			source += fmt::format("layout (location = {}) in {} _lin{};\n", binding, type, binding);
 		source += "\n";
 
+		// TODO: remove extra space
 		for (const auto &[binding, type] : louts)
-			source += fmt::format("layout (locatoon = {}) out {} _lout{};\n", binding, type, binding);
+			source += fmt::format("layout (location = {}) out {} _lout{};\n", binding, type, binding);
 		source += "\n";
 
 		// Main function
@@ -516,14 +221,44 @@ struct IREmitter {
 	}
 
 	// TODO: one per thread
-	static IREmitter active;
+	static thread_local Emitter active;
 };
 
-IREmitter IREmitter::active;
+thread_local Emitter Emitter::active;
 
 // Interface
+struct emit_index_t {
+	using value_type = int;
+
+	value_type id;
+
+	emit_index_t &operator=(const value_type &v) {
+		id = v;
+		return *this;
+	}
+
+	static emit_index_t null() {
+		return { .id = -1 };
+	}
+
+	bool operator==(const value_type &v) {
+		return id == v;
+	}
+
+	bool operator==(const emit_index_t &c) {
+		return id == c.id;
+	}
+};
+
 struct tagged {
-	int loc = -1;
+	mutable emit_index_t ref;
+
+	tagged(emit_index_t r = emit_index_t::null()) : ref(r) {}
+
+	[[gnu::always_inline]]
+	bool cached() const {
+		return ref != -1;
+	}
 };
 
 // Way to upcast C++ primitives into a workable type
@@ -535,7 +270,7 @@ constexpr auto type_match();
 
 template <typename T>
 concept synthesizable = requires(const T &t) {
-	{ t.synthesize() } -> std::same_as <int>;
+	{ t.synthesize() } -> std::same_as <emit_index_t>;
 };
 
 template <typename T, typename ... Args>
@@ -543,15 +278,15 @@ concept callbacked = requires(T &t, const Args &...args) {
 	{ t.callback(args...) };
 };
 
+// Forward declarations
 template <typename T, size_t binding>
-struct layout_in {
-	mutable int ref = -1;
-
-	int synthesize() const {
-		if (ref >= 0)
+// TODO: tagging
+struct layout_in : tagged {
+	emit_index_t synthesize() const {
+		if (cached())
 			return ref;
 
-		auto &em = IREmitter::active;
+		auto &em = Emitter::active;
 
 		// TODO: type_match t construct a TypeField
 		op::TypeField type;
@@ -568,13 +303,17 @@ struct layout_in {
 
 		return (ref = em.emit_main(load));
 	}
+
+	operator T() {
+		return T(synthesize());
+	}
 };
 
 template <typename T, size_t binding>
 requires synthesizable <T>
 struct layout_out : T {
 	void operator=(const T &t) const {
-		auto &em = IREmitter::active;
+		auto &em = Emitter::active;
 
 		op::TypeField type;
 		type.item = type_match <T> ();
@@ -587,7 +326,7 @@ struct layout_out : T {
 
 		op::Store store;
 		store.dst = em.emit(qualifier);
-		store.src = t.synthesize();
+		store.src = t.synthesize().id;
 
 		em.emit_main(store);
 	}
@@ -598,11 +337,13 @@ template <typename T, typename Up, typename P, P payload>
 struct phantom_type;
 
 template <typename T, size_t N>
-struct swizzle_base {};
+struct swizzle_base : tagged {};
 
 // TODO: inherit from base 3 and add extras
 template <typename T>
 struct swizzle_base <T, 4> : tagged {
+	using tagged::tagged;
+
 	using payload = op::Swizzle;
 
 	template <payload p>
@@ -627,28 +368,68 @@ struct phantom_type {
 	}
 };
 
-
 template <typename T, size_t N>
-struct vec : swizzle_base <T, N> {
+struct vec_base : swizzle_base <T, N> {
 	T data[N];
-	constexpr vec() = default;
 
-	constexpr vec(T v) {
+	constexpr vec_base() = default;
+
+	constexpr vec_base(emit_index_t r) : swizzle_base <T, N> (r) {}
+
+	constexpr vec_base(T v) {
 		for (size_t i = 0; i < N; i++)
 			data[i] = v;
 	}
 
-	int synthesize() const {
-		// TODO: skip if already existing cache
+	emit_index_t synthesize() const {
+		if (this->cached())
+			return this->ref;
 
-		auto &em = IREmitter::active;
+		auto &em = Emitter::active;
 
 		op::Primitive p;
+		// TODO: fix
 		p.type = op::PrimitiveType::vec4;
 		std::memcpy(p.fdata, data, N * sizeof(T));
 
-		// TODO: only emit main if not trivial/cexpr
-		return em.emit(p);
+		return (this->ref = em.emit(p));
+	}
+};
+
+template <typename T, size_t N>
+struct vec : vec_base <T, N> {
+	using vec_base <T, N> ::vec_base;
+};
+
+template <typename T>
+struct vec <T, 4> : vec_base <T, 4> {
+	using vec_base <T, 4> ::vec_base;
+
+	vec(const vec <T, 3> &v, const float &x) {
+		auto &em = Emitter::active;
+
+		// TODO: conversion (f32 struct)
+		op::Primitive px;
+		px.type = op::f32;
+		px.fdata[0] = x;
+
+		op::List lx;
+		lx.item = em.emit(px);
+		lx.next = -1;
+
+		op::List lv;
+		lv.item = v.synthesize().id;
+		lv.next = em.emit(lx);
+
+		op::TypeField type;
+		type.item = op::vec4;
+		type.next = -1;
+
+		op::Construct ctor;
+		ctor.type = em.emit(type);
+		ctor.args = em.emit(lv);
+
+		this->ref = em.emit_main(ctor);
 	}
 };
 
@@ -656,19 +437,19 @@ template <typename T, size_t N, size_t M>
 struct mat {};
 
 template <>
-struct gltype <int> {
+struct gltype <int> : tagged {
 	int value;
-	mutable int ref = -1;
-	// TODO: value or a chain of IR on its own
 
 	gltype(int v = 0) : value(v) {}
 
-	int synthesize() const {
-		// If ref != -1...
-		auto &em = IREmitter::active;
+	emit_index_t synthesize() const {
+		if (cached())
+			return ref;
+
+		auto &em = Emitter::active;
 
 		op::Primitive p;
-		p.type = op::PrimitiveType::i32;
+		p.type = op::i32;
 		p.idata[0] = value;
 
 		return (ref = em.emit(p));
@@ -676,15 +457,14 @@ struct gltype <int> {
 };
 
 template <>
-struct gltype <bool> {
+struct gltype <bool> : tagged {
 	bool value;
-	mutable int ref = -1;
 
-	int synthesize() const {
-		if (ref >= 0)
+	emit_index_t synthesize() const {
+		if (cached())
 			return ref;
 
-		auto &em = IREmitter::active;
+		auto &em = Emitter::active;
 
 		op::Primitive t;
 		t.type = op::PrimitiveType::boolean;
@@ -696,6 +476,7 @@ struct gltype <bool> {
 // Common types
 using boolean = gltype <bool>;
 
+using vec2 = vec <float, 2>;
 using vec3 = vec <float, 3>;
 using vec4 = vec <float, 4>;
 
@@ -712,8 +493,14 @@ constexpr auto type_match()
 		return op::PrimitiveType::i32;
 	if constexpr (std::is_same_v <T, float>)
 		return op::PrimitiveType::f32;
+	if constexpr (std::is_same_v <T, vec2>)
+		return op::PrimitiveType::vec2;
+	if constexpr (std::is_same_v <T, vec3>)
+		return op::PrimitiveType::vec3;
 	if constexpr (std::is_same_v <T, vec4>)
 		return op::PrimitiveType::vec4;
+	if constexpr (std::is_same_v <T, mat4>)
+		return op::PrimitiveType::mat4;
 
 	return op::PrimitiveType::bad;
 }
@@ -722,20 +509,20 @@ template <typename T, typename U>
 requires synthesizable <T> && synthesizable <U>
 boolean operator==(const T &A, const U &B)
 {
-	auto &em = IREmitter::active;
+	auto &em = Emitter::active;
 
-	// TODO: ref mechanics
-	int a = A.synthesize();
-	int b = B.synthesize();
+	int a = A.synthesize().id;
+	int b = B.synthesize().id;
 
 	op::Cmp cmp;
 	cmp.a = a;
 	cmp.b = b;
 	cmp.type = op::Cmp::eq;
 
-	int c = em.emit(cmp);
+	emit_index_t c;
+	c = em.emit(cmp);
 
-	return boolean { .ref = c };
+	return boolean(c);
 }
 
 // Promoting to gltype
@@ -756,24 +543,24 @@ boolean operator==(const T &A, const U &B)
 // Branching emitters
 void cond(boolean b)
 {
-	auto &em = IREmitter::active;
+	auto &em = Emitter::active;
 	op::Cond branch;
-	branch.cond = b.synthesize();
+	branch.cond = b.synthesize().id;
 	em.emit_main(branch);
 }
 
 void elif(boolean b)
 {
-	auto &em = IREmitter::active;
+	auto &em = Emitter::active;
 	op::Elif branch;
-	branch.cond = b.synthesize();
+	branch.cond = b.synthesize().id;
 	em.emit_main(branch);
 }
 
 void elif()
 {
 	// Treated as an else
-	auto &em = IREmitter::active;
+	auto &em = Emitter::active;
 	op::Elif branch;
 	branch.cond = -1;
 	em.emit_main(branch);
@@ -781,27 +568,71 @@ void elif()
 
 void end()
 {
-	auto &em = IREmitter::active;
+	auto &em = Emitter::active;
 	em.emit_main(op::End());
 }
 
+struct push_constants {};
+
+struct structure {
+	template <typename T, typename ...Args>
+	static emit_index_t synthesize_type_field() {
+		static thread_local emit_index_t cached = emit_index_t::null();
+		if (cached.id != -1)
+			return cached;
+
+		auto &em = Emitter::active;
+
+		op::TypeField tf;
+		tf.item = type_match <T> ();
+		if constexpr (sizeof...(Args))
+			tf.next = synthesize_type_field <Args...> ().id;
+		else
+			tf.next = -1;
+
+		return (cached = em.emit(tf));
+	}
+
+	template <typename ...Args>
+	structure(const Args &... args) {
+		synthesize_type_field <Args...> ();
+	}
+};
+
 // Guarantees
+// TODO: debug only
 static_assert(synthesizable <vec4>);
 static_assert(synthesizable <gltype <int>>);
 static_assert(synthesizable <boolean>);
 static_assert(synthesizable <layout_in <int, 0>>);
 
-struct push_constants {};
+}
 
-struct mvp {
+using namespace jvl::ire;
+
+struct mvp : structure {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
+
+	mvp() : structure(model, view, proj) {
+		auto &em = Emitter::active;
+
+		op::Construct ctor;
+		ctor.type = structure::synthesize_type_field <mat4, mat4, mat4> ().id;
+		ctor.args = -1;
+
+		// TODO: auto tag
+		em.emit_main(ctor);
+	}
 };
 
 void vertex_shader()
 {
 	layout_in <vec3, 0> position;
+	mvp mvp;
+
+	vec4 v = vec4(position, 1);
 }
 
 void fragment_shader()
@@ -827,10 +658,10 @@ int main()
 {
 	glfwInit();
 
-	fragment_shader();
-	IREmitter::active.dump();
+	vertex_shader();
+	Emitter::active.dump();
 
-	auto source = IREmitter::active.generate_glsl();
+	auto source = Emitter::active.generate_glsl();
 
 	printf("\nGLSL:\n%s", source.c_str());
 
@@ -849,7 +680,7 @@ int main()
 		return -1;
 	}
 
-	GLuint program = glCreateShader(GL_FRAGMENT_SHADER);
+	GLuint program = glCreateShader(GL_VERTEX_SHADER);
 	const char *source_c_str = source.c_str();
 	glShaderSource(program, 1, &source_c_str, nullptr);
 	glCompileShader(program);

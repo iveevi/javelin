@@ -4,10 +4,8 @@
 #include <optional>
 #include <unordered_map>
 
-namespace jvl {
-
-// Wrapper on standard types
-namespace wrapped {
+// Wrappers on standard types
+namespace jvl::wrapped {
 
 template <typename ... Args>
 struct variant : std::variant <Args...> {
@@ -65,7 +63,5 @@ struct hash_table : std::unordered_map <K, V> {
 		return std::nullopt;
 	}
 };
-
-}
 
 }
