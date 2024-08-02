@@ -1,0 +1,6 @@
+[submodule "thirdparty/tinyobjloader"]
+	path = thirdparty/tinyobjloader
+	url = https://github.com/tinyobjloader/tinyobjloader
+[submodule "thirdparty/littlevk"]
+	path = thirdparty/littlevk
+	url = git@github.com:iveevi/littlevk.git
