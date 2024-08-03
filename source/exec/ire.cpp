@@ -3,6 +3,7 @@
 #include <cstring>
 #include <functional>
 #include <map>
+#include <ostream>
 #include <stack>
 #include <string>
 #include <type_traits>
@@ -199,7 +200,7 @@ struct Emitter {
 		source += "void main()\n";
 		source += "{\n";
 		for (int i : main)
-			source += "    " + tdisp.eval(pool[i]);
+			source += "    " + tdisp.eval(i);
 		source += "}\n";
 
 		return source;
@@ -389,7 +390,7 @@ struct vec_base : swizzle_base <T, N> {
 
 		op::Primitive p;
 		// TODO: fix
-		p.type = op::PrimitiveType::vec4;
+		p.type = op::vec4;
 		std::memcpy(p.fdata, data, N * sizeof(T));
 
 		return (this->ref = em.emit(p));
@@ -434,7 +435,41 @@ struct vec <T, 4> : vec_base <T, 4> {
 };
 
 template <typename T, size_t N, size_t M>
-struct mat {};
+struct mat_base : tagged {
+	T data[N][M];
+
+	// TODO: operator[]
+	emit_index_t synthesize() const {
+		if (this->cached())
+			return this->ref;
+
+		auto &em = Emitter::active;
+
+		// TODO: manual assignment, except for mat2x2
+
+		// TODO: instantiate all primitive types at header
+		op::TypeField tf;
+		tf.item = op::mat4;
+
+		op::Primitive p;
+		p.type = op::i32;
+		p.idata[0] = 1;
+
+		op::List l;
+		l.item = em.emit(p);
+
+		op::Construct ctor;
+		ctor.type = em.emit(tf);
+		ctor.args = em.emit(l);
+
+		return (this->ref = em.emit(ctor));
+	}
+};
+
+template <typename T, size_t N, size_t M>
+struct mat : mat_base <T, N, M> {
+	using mat_base <T, N, M> ::mat_base;
+};
 
 template <>
 struct gltype <int> : tagged {
@@ -574,63 +609,85 @@ void end()
 
 struct push_constants {};
 
-struct structure {
-	template <typename T, typename ...Args>
-	static emit_index_t synthesize_type_field() {
-		static thread_local emit_index_t cached = emit_index_t::null();
-		if (cached.id != -1)
-			return cached;
+template <typename T, typename ...Args>
+static emit_index_t synthesize_type_field() {
+	static thread_local emit_index_t cached = emit_index_t::null();
+	if (cached.id != -1)
+		return cached;
 
+	auto &em = Emitter::active;
+
+	op::TypeField tf;
+	tf.item = type_match <T> ();
+	if constexpr (sizeof...(Args))
+		tf.next = synthesize_type_field <Args...> ().id;
+	else
+		tf.next = -1;
+
+	return (cached = em.emit(tf));
+}
+
+template <typename T, typename ...Args>
+requires synthesizable <T> && (synthesizable <Args> && ...)
+int argument_list(const T &t, const Args &...args)
+{
+	auto &em = Emitter::active;
+
+	op::List l;
+	l.item = t.synthesize().id;
+
+	if constexpr (sizeof...(Args))
+		l.next = argument_list(args...);
+
+	return em.emit(l);
+}
+
+template <typename ...Args>
+requires (synthesizable <Args> && ...)
+struct structure {
+	structure(const Args &... args) {
 		auto &em = Emitter::active;
 
-		op::TypeField tf;
-		tf.item = type_match <T> ();
-		if constexpr (sizeof...(Args))
-			tf.next = synthesize_type_field <Args...> ().id;
-		else
-			tf.next = -1;
+		op::Construct ctor;
+		ctor.type = synthesize_type_field <Args...> ().id;
+		ctor.args = argument_list(args...);
 
-		return (cached = em.emit(tf));
-	}
-
-	template <typename ...Args>
-	structure(const Args &... args) {
-		synthesize_type_field <Args...> ();
+		em.emit_main(ctor);
 	}
 };
 
 // Guarantees
 // TODO: debug only
 static_assert(synthesizable <vec4>);
+
 static_assert(synthesizable <gltype <int>>);
+
 static_assert(synthesizable <boolean>);
+
 static_assert(synthesizable <layout_in <int, 0>>);
+
+static_assert(synthesizable <vec2>);
+static_assert(synthesizable <vec3>);
+static_assert(synthesizable <vec4>);
+
+static_assert(synthesizable <mat4>);
 
 }
 
 using namespace jvl::ire;
 
-struct mvp : structure {
+struct mvp : structure <mat4, mat4, mat4> {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
 
-	mvp() : structure(model, view, proj) {
-		auto &em = Emitter::active;
-
-		op::Construct ctor;
-		ctor.type = structure::synthesize_type_field <mat4, mat4, mat4> ().id;
-		ctor.args = -1;
-
-		// TODO: auto tag
-		em.emit_main(ctor);
-	}
+	using structure <mat4, mat4, mat4> ::structure;
 };
 
 void vertex_shader()
 {
 	layout_in <vec3, 0> position;
-	mvp mvp;
+	mvp mvp { mat4(), mat4(), mat4() };
 
 	vec4 v = vec4(position, 1);
 }
@@ -686,4 +743,12 @@ int main()
 	glCompileShader(program);
 
 	printf("program: %d\n", program);
+
+	int success;
+	char error_log[512];
+	glGetShaderiv(program, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		glGetShaderInfoLog(program, 512, NULL, error_log);
+		fmt::println("compilation error: {}", error_log);
+	}
 }

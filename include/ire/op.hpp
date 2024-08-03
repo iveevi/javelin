@@ -10,8 +10,8 @@
 namespace jvl::ire::op {
 
 struct Global {
-	int type;
-	int binding;
+	int type = -1;
+	int binding = -1;
 
 	enum {
 		layout_in,
@@ -33,13 +33,13 @@ enum PrimitiveType {
 struct TypeField {
 	// If the current field is a
 	// primitive, then item != BAD
-	PrimitiveType item;
+	PrimitiveType item = bad;
 
 	// Otherwise it is a nested struct
-	int down;
+	int down = -1;
 
 	// Next field
-	int next;
+	int next = -1;
 };
 
 struct Primitive {
@@ -61,35 +61,35 @@ struct Swizzle {
 };
 
 struct Cmp {
-	int a;
-	int b;
+	int a = -1;
+	int b = -1;
 	enum {
 		eq, neq,
 	} type;
 };
 
 struct List {
-	int item;
-	int next;
+	int item = -1;
+	int next = -1;
 };
 
 struct Construct {
-	int type;
-	int args;
+	int type = -1;
+	int args = -1;
 };
 
 struct Store {
-	int dst;
-	int src;
+	int dst = -1;
+	int src = -1;
 };
 
 struct Load {
-	int src;
+	int src = -1;
 };
 
 struct Cond {
-	int cond;
-	int failto;
+	int cond = -1;
+	int failto = -1;
 };
 
 struct Elif : Cond {};
@@ -216,7 +216,11 @@ struct _dump_dispatcher {
 	}
 
 	void operator()(const Construct &ctor) {
-		printf("construct: %%%d = %%%d", ctor.type, ctor.args);
+		printf("construct: %%%d = ", ctor.type);
+		if (ctor.args == -1)
+			printf("(nil)");
+		else
+			printf("%%%d", ctor.args);
 	}
 
 	void operator()(const Store &store) {
@@ -322,6 +326,7 @@ struct _translate_dispatcher {
 		// TODO: cache based on instruction address
 
 		bool inl = inlining;
+		fmt::println("load: inl={}", inl);
 		std::string value = defer(load.src);
 		if (inl)
 			return value;
@@ -396,8 +401,8 @@ struct _translate_dispatcher {
 		return std::visit(*this, pool[index]);
 	}
 
-	std::string eval(const op::General &general) {
-		std::string source = std::visit(*this, general) + "\n";
+	std::string eval(int index) {
+		std::string source = defer(index) + "\n";
 		std::string space(indentation << 2, ' ');
 		indentation = next_indentation;
 		return space + source;
