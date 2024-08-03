@@ -18,24 +18,134 @@
 
 namespace jvl::ire {
 
+// Compressing IR code sequences
+using block_atom_t = uint32_t;
+constexpr size_t block_size = (sizeof(op::General) + sizeof(block_atom_t) - 1)/sizeof(block_atom_t);
+using block_t = std::array <block_atom_t, block_size>;
+
+}
+
+bool operator==(const jvl::ire::block_t &A, const jvl::ire::block_t &B)
+{
+	for (size_t i = 0; i < jvl::ire::block_size; i++) {
+		if (A[i] != B[i])
+			return false;
+	}
+
+	return true;
+}
+
+template <>
+struct std::hash <jvl::ire::block_t> {
+	size_t operator()(const jvl::ire::block_t &b) const {
+		auto h = hash <jvl::ire::block_atom_t> ();
+
+		size_t x = 0;
+		for (size_t i = 0; i < jvl::ire::block_size; i++)
+			x ^= h(b[i]);
+
+		return x;
+	}
+};
+
+namespace jvl::ire {
+
+block_t cast_to_block(const op::General &g)
+{
+	block_t b;
+	std::memcpy(b.data(), &g, sizeof(op::General));
+	return b;
+}
+
+size_t ir_compact_deduplicate(const op::General *const source, op::General *const dst, std::unordered_set <int> &main, size_t elements)
+{
+	wrapped::hash_table <block_t, int> blocks;
+	wrapped::hash_table <int, int> reindex;
+	std::unordered_set <int> original;
+
+	// Find duplicates (binary)
+	// TODO: exception is if it is main
+	for (size_t i = 0; i < elements; i++) {
+		block_t b = cast_to_block(source[i]);
+		if (blocks.count(b)) {
+			reindex[i] = blocks[b];
+		} else {
+			reindex[i] = blocks.size();
+			blocks[b] = blocks.size();
+			original.insert(i);
+		}
+	}
+
+	// Re-synthesize
+	size_t size = 0;
+	for (size_t i = 0; i < elements; i++) {
+		if (original.count(i))
+			dst[size++] = source[i];
+	}
+
+	// Fix the main instruction indices
+	std::unordered_set <int> fixed_main;
+	for (int i : main)
+		fixed_main.insert(reindex[i]);
+
+	main = fixed_main;
+
+	// Re-index all instructions as necessary
+	// TODO: wrap the reindexer that aborts when not found (and -1 -> -1)
+	reindex[-1] = -1;
+
+	op::reindex_vd rvd(reindex);
+	for (size_t i = 0; i < size; i++) {
+		std::visit(rvd, dst[i]);
+	}
+
+	return size;
+
+	// TODO: reindex
+
+	// TODO: structure similarity (i.e. lists)
+}
+
 struct Emitter {
 	// By default the program begins at index=0
 	op::General *pool;
+	op::General *dual;
+
 	size_t size;
 	size_t pointer;
 
 	std::stack <int> control_flow_ends;
-	std::vector <int> main;
+	std::unordered_set <int> main;
 
-	Emitter() : pool(nullptr), size(0), pointer(0) {}
+	Emitter() : pool(nullptr), dual(nullptr), size(0), pointer(0) {}
+
+	void compact() {
+		pointer = ir_compact_deduplicate(pool, dual, main, pointer);
+		std::memset(pool, 0, size * sizeof(op::General));
+		std::memcpy(pool, dual, pointer * sizeof(op::General));
+	}
 
 	void resize(size_t units) {
-		op::General *old = pool;
+		size_t count = 0;
+
+		// TODO: compact IR before resizing
+		op::General *old_pool = pool;
+		op::General *old_dual = dual;
 
 		pool = new op::General[units];
-		if (old) {
-			std::memcpy(pool, old, size * sizeof(op::General));
-			delete[] old;
+		dual = new op::General[units];
+
+		std::memset(pool, 0, units * sizeof(op::General));
+		std::memset(dual, 0, units * sizeof(op::General));
+
+		if (old_pool) {
+			std::memcpy(pool, old_pool, size * sizeof(op::General));
+			delete[] old_pool;
+		}
+
+		if (old_dual) {
+			std::memcpy(dual, old_dual, size * sizeof(op::General));
+			delete[] old_dual;
 		}
 
 		size = units;
@@ -62,7 +172,7 @@ struct Emitter {
 
 	int emit_main(const op::General &op) {
 		int p = emit(op);
-		main.push_back(p);
+		main.insert(p);
 		return p;
 	}
 
@@ -99,7 +209,7 @@ struct Emitter {
 			std::get <op::Elif> (op).failto = p;
 		} else {
 			printf("op not conditional, is actually:");
-			std::visit(op::_dump_dispatcher(), op);
+			std::visit(op::dump_vd(), op);
 			printf("\n");
 			assert(false);
 		}
@@ -173,7 +283,7 @@ struct Emitter {
 				continue;
 
 			auto global = std::get <op::Global> (op);
-			auto type = std::visit(op::_typeof_dispatcher(pool, struct_names), op);
+			auto type = std::visit(op::typeof_vd(pool, struct_names), op);
 			if (global.qualifier == op::Global::layout_in)
 				lins[global.binding] = type;
 			else if (global.qualifier == op::Global::layout_out)
@@ -181,7 +291,7 @@ struct Emitter {
 		}
 
 		// Actual translation
-		op::_translate_dispatcher tdisp;
+		op::translate_vd tdisp;
 		tdisp.pool = pool;
 		tdisp.struct_names = struct_names;
 
@@ -207,6 +317,7 @@ struct Emitter {
 	}
 
 	// Printing the IR state
+	// TODO: debug only?
 	void dump() {
 		printf("GLOBALS (%4d/%4d)\n", pointer, size);
 		for (size_t i = 0; i < pointer; i++) {
@@ -216,7 +327,7 @@ struct Emitter {
 				printf("    ");
 
 			printf("[%4d]: ", i);
-			std::visit(op::_dump_dispatcher(), pool[i]);
+			std::visit(op::dump_vd(), pool[i]);
 			printf("\n");
 		}
 	}
@@ -493,6 +604,8 @@ struct gltype <int> : tagged {
 
 template <>
 struct gltype <bool> : tagged {
+	using tagged::tagged;
+
 	bool value;
 
 	emit_index_t synthesize() const {
@@ -716,6 +829,9 @@ int main()
 	glfwInit();
 
 	vertex_shader();
+
+	Emitter::active.dump();
+	Emitter::active.compact();
 	Emitter::active.dump();
 
 	auto source = Emitter::active.generate_glsl();
@@ -723,7 +839,7 @@ int main()
 	printf("\nGLSL:\n%s", source.c_str());
 
 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-	GLFWwindow* window = glfwCreateWindow(800, 800, "LearnOpenGL", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(800, 800, "Window", NULL, NULL);
 	if (window == NULL)
 	{
 		printf("failed to load glfw\n");

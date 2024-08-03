@@ -43,11 +43,11 @@ struct TypeField {
 };
 
 struct Primitive {
-	PrimitiveType type;
+	PrimitiveType type = bad;
 	union {
-		bool b;
-		int idata[4];
+		bool  b;
 		float fdata[4];
+		int   idata[4] = { 0, 0, 0, 0 };
 	};
 };
 
@@ -118,7 +118,7 @@ static const char *type_table[] = {
 	"mat4",
 };
 
-struct _typeof_dispatcher {
+struct typeof_vd {
 	op::General *pool;
 
 	const wrapped::hash_table <int, std::string> &struct_names;
@@ -155,7 +155,7 @@ struct _typeof_dispatcher {
 	}
 };
 
-struct _dump_dispatcher {
+struct dump_vd {
 	const char* resolve(const PrimitiveType &t) {
 		return type_table[t];
 	}
@@ -257,7 +257,7 @@ struct _dump_dispatcher {
 	}
 };
 
-struct _translate_dispatcher {
+struct translate_vd {
 	op::General *pool;
 	int generator = 0;
 	int indentation = 0;
@@ -331,7 +331,7 @@ struct _translate_dispatcher {
 		if (inl)
 			return value;
 
-		_typeof_dispatcher typer(pool, struct_names);
+		typeof_vd typer(pool, struct_names);
 		std::string type = typer.defer(load.src);
 		std::string sym = "s" + std::to_string(generator++);
 		return type + " " + sym + " = " + value + ";";
@@ -360,7 +360,7 @@ struct _translate_dispatcher {
 	std::string operator()(const Construct &ctor) {
 		bool inl = inlining;
 
-		_typeof_dispatcher typer(pool, struct_names);
+		typeof_vd typer(pool, struct_names);
 		std::string type = typer.defer(ctor.type);
 
 		int args = ctor.args;
@@ -407,6 +407,61 @@ struct _translate_dispatcher {
 		indentation = next_indentation;
 		return space + source;
 	}
+};
+
+struct reindex_vd {
+	wrapped::hash_table <int, int> &reindex;
+
+	// Non-reindexable
+	void operator()(Primitive &) {}
+	void operator()(Swizzle &) {}
+	void operator()(End &) {}
+
+	// Useful
+	void operator()(Global &g) {
+		g.type = reindex[g.type];
+	}
+
+	void operator()(TypeField &tf) {
+		tf.down = reindex[tf.down];
+		tf.next = reindex[tf.next];
+	}
+
+	void operator()(Cmp &cmp) {
+		cmp.a = reindex[cmp.a];
+		cmp.b = reindex[cmp.b];
+	}
+
+	void operator()(List &list) {
+		list.item = reindex[list.item];
+		list.next = reindex[list.next];
+	}
+
+	void operator()(Construct &ctor) {
+		ctor.type = reindex[ctor.type];
+		ctor.args = reindex[ctor.args];
+	}
+
+	void operator()(Store &store) {
+		store.dst = reindex[store.dst];
+		store.src = reindex[store.src];
+	}
+
+	void operator()(Load &load) {
+		load.src = reindex[load.src];
+	}
+
+	void operator()(Cond &cond) {
+		cond.cond = reindex[cond.cond];
+		cond.failto = reindex[cond.failto];
+	}
+
+	void operator()(Elif &elif) {
+		elif.cond = reindex[elif.cond];
+		elif.failto = reindex[elif.failto];
+	}
+
+	// void operator()()
 };
 
 }
