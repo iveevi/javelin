@@ -4,6 +4,8 @@
 #include <fmt/printf.h>
 #include <fmt/std.h>
 
+#include <littlevk/littlevk.hpp>
+
 #include "core/preset.hpp"
 
 namespace jvl {
@@ -13,14 +15,15 @@ struct Kernel {
 		eCPU,
 		eCUDA,
 		eVulkan,
-		eOpenGL
+		eOpenGL,
+		eMetal,
 	} backend;
 };
 
-}
+} // namespace jvl
 
-#include "core/transform.hpp"
 #include "core/aperature.hpp"
+#include "core/transform.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -30,4 +33,20 @@ int main(int argc, char *argv[])
 	fmt::println("path to scene: {}", path);
 
 	jvl::core::Preset::from(path);
+
+	//////////////////
+	// VULKAN SETUP //
+	//////////////////
+
+	// Device extensions
+	static const std::vector<const char *> EXTENSIONS{
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	};
+
+	// Load physical device
+	auto predicate = [](vk::PhysicalDevice phdev) {
+		return littlevk::physical_device_able(phdev, EXTENSIONS);
+	};
+
+	vk::PhysicalDevice phdev = littlevk::pick_physical_device(predicate);
 }

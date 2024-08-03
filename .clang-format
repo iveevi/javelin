@@ -1,0 +1,23 @@
+﻿---
+AlignConsecutiveAssignments: 'false'
+AlignConsecutiveMacros: 'true'
+AlignEscapedNewlines: Left
+AlwaysBreakTemplateDeclarations: Yes
+BreakBeforeBraces: Stroustrup
+ColumnLimit: '80'
+CompactNamespaces: 'false'
+ContinuationIndentWidth: '8'
+IndentWidth: '8'
+PointerAlignment: Right
+SortIncludes: 'true'
+SpaceAfterCStyleCast: 'true'
+SpaceAfterTemplateKeyword: 'true'
+SpaceBeforeAssignmentOperators: 'true'
+SpaceBeforeCpp11BracedList: 'true'
+SpaceBeforeCtorInitializerColon: 'true'
+SpacesInAngles: 'false'
+Standard: Auto
+TabWidth: '8'
+UseTab: Always
+
+...

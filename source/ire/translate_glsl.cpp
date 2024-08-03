@@ -49,12 +49,10 @@ std::string translate_glsl_vd::operator()(const Primitive &p)
 	case f32:
 		return std::to_string(p.fdata[0]);
 	case vec4:
-		return "vec4("
-			+ std::to_string(p.fdata[0]) + ", "
-			+ std::to_string(p.fdata[1]) + ", "
-			+ std::to_string(p.fdata[2]) + ", "
-			+ std::to_string(p.fdata[3])
-			+ ")";
+		return "vec4(" + std::to_string(p.fdata[0]) + ", " +
+		       std::to_string(p.fdata[1]) + ", " +
+		       std::to_string(p.fdata[2]) + ", " +
+		       std::to_string(p.fdata[3]) + ")";
 	default:
 		break;
 	}
@@ -111,10 +109,10 @@ std::string translate_glsl_vd::operator()(const Construct &ctor)
 	std::string value = type + "(";
 	while (args != -1) {
 		op::General g = pool[args];
-		if (!g.is <op::List> ())
+		if (!g.is<op::List>())
 			abort();
 
-		op::List l = g.as <op::List> ();
+		op::List l = g.as<op::List>();
 		value += defer(l.item, true);
 
 		if (l.next != -1)
@@ -149,4 +147,4 @@ std::string translate_glsl_vd::eval(int index)
 	return space + source;
 }
 
-}
+} // namespace jvl::ire::op

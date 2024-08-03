@@ -25,10 +25,7 @@ struct Global {
 	int type = -1;
 	int binding = -1;
 
-	enum {
-		layout_in,
-		layout_out
-	} qualifier;
+	enum { layout_in, layout_out } qualifier;
 };
 
 struct TypeField {
@@ -46,17 +43,14 @@ struct TypeField {
 struct Primitive {
 	PrimitiveType type = bad;
 	union {
-		bool  b;
+		bool b;
 		float fdata[4];
-		int   idata[4] = { 0, 0, 0, 0 };
+		int idata[4] = {0, 0, 0, 0};
 	};
 };
 
 struct Swizzle {
-	enum Kind {
-		x, y, z, w,
-		xy
-	} type;
+	enum Kind { x, y, z, w, xy } type;
 
 	constexpr Swizzle(Kind t) : type(t) {}
 };
@@ -65,7 +59,8 @@ struct Cmp {
 	int a = -1;
 	int b = -1;
 	enum {
-		eq, neq,
+		eq,
+		neq,
 	} type;
 };
 
@@ -97,51 +92,41 @@ struct Elif : Cond {};
 
 struct End {};
 
-using General = wrapped::variant <
-	Global,
-	TypeField,
-	Primitive,
-	Swizzle,
-	Cmp,
-	Construct,
-	List,
-	Store,
-	Load,
-	Cond,
-	Elif,
-	End
->;
+using General = wrapped::variant<Global, TypeField, Primitive, Swizzle, Cmp,
+				 Construct, List, Store, Load, Cond, Elif, End>;
 
 // Type translation
 static const char *type_table[] = {
-	"<BAD>", "bool", "int", "float",
-	"vec2", "vec3", "vec4",
-	"mat4",
+	"<BAD>", "bool", "int", "float", "vec2", "vec3", "vec4", "mat4",
 };
 
 // Dispatcher types (vd = variadic dispatcher)
 struct typeof_vd {
 	op::General *pool;
 
-	const wrapped::hash_table <int, std::string> &struct_names;
+	const wrapped::hash_table<int, std::string> &struct_names;
 
-	std::string operator()(const TypeField &type) {
+	std::string operator()(const TypeField &type)
+	{
 		if (type.item != bad)
 			return type_table[type.item];
 		return "<?>";
 	}
 
-	std::string operator()(const Global &global) {
+	std::string operator()(const Global &global)
+	{
 		// NOTE: this is implicit conversion
 		return defer(global.type);
 	}
 
 	template <typename T>
-	std::string operator()(const T &) {
+	std::string operator()(const T &)
+	{
 		return "<?>";
 	}
 
-	std::string defer(int index) {
+	std::string defer(int index)
+	{
 		if (struct_names.contains(index))
 			return struct_names.at(index);
 
@@ -163,7 +148,8 @@ struct dump_vd {
 	void operator()(const End &);
 
 	template <typename T>
-	void operator()(const T &) {
+	void operator()(const T &)
+	{
 		printf("<?>");
 	}
 };
@@ -176,8 +162,8 @@ struct translate_glsl_vd {
 	int next_indentation = 0;
 	bool inlining = false;
 
-	wrapped::hash_table <int, std::string> symbols;
-	wrapped::hash_table <int, std::string> struct_names;
+	wrapped::hash_table<int, std::string> symbols;
+	wrapped::hash_table<int, std::string> struct_names;
 
 	std::string operator()(const Cond &);
 	std::string operator()(const Elif &);
@@ -190,7 +176,8 @@ struct translate_glsl_vd {
 	std::string operator()(const Construct &);
 
 	template <typename T>
-	std::string operator()(const T &) {
+	std::string operator()(const T &)
+	{
 		return "<?>";
 	}
 
@@ -199,7 +186,7 @@ struct translate_glsl_vd {
 };
 
 struct reindex_vd {
-	wrapped::hash_table <int, int> &reindex;
+	wrapped::hash_table<int, int> &reindex;
 
 	void operator()(Primitive &);
 	void operator()(Swizzle &);
@@ -215,5 +202,4 @@ struct reindex_vd {
 	void operator()(Elif &);
 };
 
-}
-
+} // namespace jvl::ire::op

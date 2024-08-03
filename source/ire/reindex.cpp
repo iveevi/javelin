@@ -8,10 +8,7 @@ void reindex_vd::operator()(Swizzle &) {}
 void reindex_vd::operator()(End &) {}
 
 // Useful
-void reindex_vd::operator()(Global &g)
-{
-	g.type = reindex[g.type];
-}
+void reindex_vd::operator()(Global &g) { g.type = reindex[g.type]; }
 
 void reindex_vd::operator()(TypeField &tf)
 {
@@ -43,10 +40,7 @@ void reindex_vd::operator()(Store &store)
 	store.src = reindex[store.src];
 }
 
-void reindex_vd::operator()(Load &load)
-{
-	load.src = reindex[load.src];
-}
+void reindex_vd::operator()(Load &load) { load.src = reindex[load.src]; }
 
 void reindex_vd::operator()(Cond &cond)
 {
@@ -60,4 +54,4 @@ void reindex_vd::operator()(Elif &elif)
 	elif.failto = reindex[elif.failto];
 }
 
-}
+} // namespace jvl::ire::op

@@ -4,13 +4,11 @@ namespace jvl::ire::op {
 
 void dump_vd::operator()(const Global &global)
 {
-	static const char *qualifier_table[] = {
-		"layout input",
-		"layout output"
-	};
+	static const char *qualifier_table[] = {"layout input",
+						"layout output"};
 
 	printf("global: %%%d = (%s, %d)", global.type,
-		qualifier_table[global.qualifier], global.binding);
+	       qualifier_table[global.qualifier], global.binding);
 }
 
 void dump_vd::operator()(const TypeField &t)
@@ -40,11 +38,8 @@ void dump_vd::operator()(const Primitive &p)
 		printf("%.2f", p.fdata[0]);
 		break;
 	case vec4:
-		printf("(%.2f, %.2f, %.2f, %.2f)",
-				p.fdata[0],
-				p.fdata[1],
-				p.fdata[2],
-				p.fdata[3]);
+		printf("(%.2f, %.2f, %.2f, %.2f)", p.fdata[0], p.fdata[1],
+		       p.fdata[2], p.fdata[3]);
 		break;
 	default:
 		printf("?");
@@ -75,14 +70,11 @@ void dump_vd::operator()(const Store &store)
 	printf("store %%%d -> %%%d", store.src, store.dst);
 }
 
-void dump_vd::operator()(const Load &load)
-{
-	printf("load %%%d", load.src);
-}
+void dump_vd::operator()(const Load &load) { printf("load %%%d", load.src); }
 
 void dump_vd::operator()(const Cmp &cmp)
 {
-	const char *cmp_table[] = { "=", "!=" };
+	const char *cmp_table[] = {"=", "!="};
 	printf("cmp %%%d %s %%%d", cmp.a, cmp_table[cmp.type], cmp.b);
 }
 
@@ -99,9 +91,6 @@ void dump_vd::operator()(const Elif &elif)
 		printf("elif (nil) -> %%%d", elif.failto);
 }
 
-void dump_vd::operator()(const End &)
-{
-	printf("end");
-}
+void dump_vd::operator()(const End &) { printf("end"); }
 
-}
+} // namespace jvl::ire::op

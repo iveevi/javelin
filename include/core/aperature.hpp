@@ -20,13 +20,13 @@ constexpr T pi = 3.1415926535897932384626433832795028841971;
 template <typename T>
 constexpr T to_radians(T degrees)
 {
-	return pi <T> * degrees / T(180.0f);
+	return pi<T> * degrees / T(180.0f);
 }
 
 inline float4x4 perspective(const Aperature &apr)
 {
 	const float rad = to_radians(apr.fovy);
-	const float tan_half_fovy = std::tan(rad/2.0f);
+	const float tan_half_fovy = std::tan(rad / 2.0f);
 
 	float4x4 ret;
 	ret[0][0] = 1.0f / (apr.aspect * tan_half_fovy);
@@ -37,4 +37,4 @@ inline float4x4 perspective(const Aperature &apr)
 	return ret;
 }
 
-}
+} // namespace jvl::core
