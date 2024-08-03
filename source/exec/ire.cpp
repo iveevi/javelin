@@ -291,7 +291,7 @@ struct Emitter {
 		}
 
 		// Actual translation
-		op::translate_vd tdisp;
+		op::translate_glsl_vd tdisp;
 		tdisp.pool = pool;
 		tdisp.struct_names = struct_names;
 
