@@ -7,7 +7,7 @@ namespace jvl::core {
 struct Transform {
 	float3 translate = float3(0, 0, 0);
 	float3 scale = float3(1, 1, 1);
-	fquat rotation = fquat(1, 0, 0, 0);
+	fquat rotation = fquat(0, 0, 0, 1);
 
 	float3 forward() const {
 		constexpr float3 forwardv { 0, 0, 1 };
@@ -34,8 +34,9 @@ struct Transform {
 	float4x4 to_view_matrix() const {
 		constexpr float3 forward { 0, 0, 1 };
 		constexpr float3 up { 0, 1, 0 };
-		return look_at(translate, translate + rotation.rotate(forward),
-			       rotation.rotate(up));
+		return look_at(translate,
+			translate + rotation.rotate(forward),
+			rotation.rotate(up));
 	}
 
 	std::tuple<float3, float3, float3> axes() const {

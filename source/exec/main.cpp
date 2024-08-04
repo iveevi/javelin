@@ -27,6 +27,9 @@ struct Kernel {
 #include "core/aperature.hpp"
 #include "core/transform.hpp"
 
+#include <fmt/printf.h>
+#include <fmt/format.h>
+
 // Shader sources
 struct MVP {
 	jvl::float4x4 model;
@@ -108,14 +111,35 @@ void cursor_callback(GLFWwindow *window, double xpos, double ypos)
 	yoffset *= sensitivity;
 
 	if (mouse.left_drag) {
+		// JVL
 		jvl::float3 horizontal { 0, 1, 0 };
 		jvl::float3 vertical = transform->right();
 
-		jvl::fquat yaw = jvl::fquat::angle_axis(horizontal, xoffset);
+		jvl::fquat yaw = jvl::fquat::angle_axis(horizontal, -xoffset);
 		jvl::fquat pitch  = jvl::fquat::angle_axis(vertical, yoffset);
 
 		transform->rotation = pitch * yaw * transform->rotation;
 	}
+}
+
+std::string to_string(const jvl::float4x4 &A)
+{
+	std::string ret = "matrix[4][4] = {\n";
+	for (size_t i = 0; i < 4; i++) {
+		ret += "  {";
+		for (size_t j = 0; j < 4; j++) {
+			ret += fmt::format("{:.4f}", A[i][j]);
+			if (j < 3)
+				ret += ", ";
+		}
+
+		ret += "}";
+		if (i < 3)
+			ret += ",";
+		ret += "\n";
+	}
+
+	return ret + "}";
 }
 
 int main(int argc, char *argv[])
@@ -126,7 +150,7 @@ int main(int argc, char *argv[])
 	fmt::println("path to scene: {}", path);
 
 	auto preset = jvl::core::Preset::from(path).value();
-	auto tmesh = jvl::core::TriangleMesh::from(preset.geometry[5]).value();
+	// auto tmesh = jvl::core::TriangleMesh::from(preset.geometry[4]).value();
 
 	//////////////////
 	// VULKAN SETUP //
@@ -147,9 +171,9 @@ int main(int argc, char *argv[])
 	vk::SurfaceKHR surface;
 	littlevk::Window window;
 
-	vk::Extent2D extent { 1000, 1000 };
+	vk::Extent2D default_extent { 1000, 1000 };
 
-	std::tie(surface, window) = littlevk::surface_handles(extent, "javelin");
+	std::tie(surface, window) = littlevk::surface_handles(default_extent, "javelin");
 
 	littlevk::QueueFamilyIndices queue_family = littlevk::find_queue_families(phdev, surface);
 
@@ -193,7 +217,12 @@ int main(int argc, char *argv[])
 		command_pool,
 		vk::CommandBufferLevel::ePrimary, 2u);
 
-	auto vmesh = jvl::gfx::VulkanTriangleMesh::from(allocator, tmesh).value();
+	std::vector <jvl::gfx::VulkanTriangleMesh> vmeshes;
+	for (size_t i = 0; i < preset.geometry.size(); i++) {
+		auto tmesh = jvl::core::TriangleMesh::from(preset.geometry[i]).value();
+		auto vmesh = jvl::gfx::VulkanTriangleMesh::from(allocator, tmesh).value();
+		vmeshes.push_back(vmesh);
+	}
 
 	// Create a graphics pipeline
 	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
@@ -206,10 +235,18 @@ int main(int argc, char *argv[])
 		.with_render_pass(render_pass, 0)
 		.with_vertex_layout(vertex_layout)
 		.with_shader_bundle(bundle)
-		.with_push_constant <MVP> (vk::ShaderStageFlagBits::eVertex, 0);
+		.with_push_constant <MVP> (vk::ShaderStageFlagBits::eVertex, 0)
+		.cull_mode(vk::CullModeFlagBits::eNone);
 
 	// Syncronization primitives
 	auto sync = littlevk::present_syncronization(device, 2).unwrap(dal);
+
+	jvl::core::Aperature aperature;
+	jvl::core::Transform transform;
+
+	MVP mvp;
+	mvp.model = jvl::float4x4::identity();
+	mvp.proj = jvl::core::perspective(aperature);
 
 	auto resize = [&]() {
 		combined.resize(surface, window, swapchain);
@@ -227,21 +264,15 @@ int main(int argc, char *argv[])
 			generator.add(view, depth_buffer.view);
 
 		framebuffers = generator.unpack();
+
+		aperature.aspect = float(window.extent.width)/float(window.extent.height);
+		mvp.proj = jvl::core::perspective(aperature);
 	};
-
-	jvl::core::Aperature aperature;
-
-	jvl::core::Transform transform;
-
-	MVP mvp;
-	mvp.model = jvl::float4x4::identity();
-	mvp.proj = jvl::core::perspective(aperature);
-	// mvp.view = jvl::float4x4::identity();
 
 	auto handle_input = [&]() {
 		static float last_time = 0.0f;
 
-		constexpr float speed = 10.0f;
+		constexpr float speed = 500.0f;
 
 		float delta = speed * float(glfwGetTime() - last_time);
 		last_time = glfwGetTime();
@@ -303,9 +334,11 @@ int main(int argc, char *argv[])
 
 		cmd.pushConstants <MVP> (ppl.layout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
 
-		cmd.bindVertexBuffers(0, vmesh.vertices.buffer, { 0 });
-		cmd.bindIndexBuffer(vmesh.triangles.buffer, 0, vk::IndexType::eUint32);
-		cmd.drawIndexed(vmesh.count, 1, 0, 0, 0);
+		for (const auto &vmesh : vmeshes) {
+			cmd.bindVertexBuffers(0, vmesh.vertices.buffer, { 0 });
+			cmd.bindIndexBuffer(vmesh.triangles.buffer, 0, vk::IndexType::eUint32);
+			cmd.drawIndexed(vmesh.count, 1, 0, 0, 0);
+		}
 
 		cmd.endRenderPass();
 		cmd.end();

@@ -31,15 +31,6 @@ struct TriangleMesh {
 		if (tm.triangles.empty())
 			return std::nullopt;
 
-		fmt::println("triangle mesh>>>");
-		fmt::println("vertices:");
-		for (auto v : tm.positions)
-			fmt::println("{} {} {}", v.x, v.y, v.z);
-
-		fmt::println("triangles:");
-		for (auto v : tm.triangles)
-			fmt::println("{} {} {}", v.x, v.y, v.z);
-
 		return tm;
 	}
 };

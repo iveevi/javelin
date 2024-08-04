@@ -109,20 +109,32 @@ template <typename T, size_t N, size_t M>
 struct matrix {
 	T data[N][M];
 
-	constexpr matrix(T def = 0)
-	{
+	constexpr matrix(T def = 0) {
 		for (size_t i = 0; i < N; i++) {
 			for (size_t j = 0; j < M; j++)
 				data[i][j] = def;
 		}
 	}
 
-	inline auto operator[](size_t i) { return data[i]; }
+	matrix <T, M, N> transpose() const {
+		matrix <T, M, N> t;
+		for (size_t i = 0; i < N; i++) {
+			for (size_t j = 0; j < M; j++)
+				t.data[j][i] = data[i][j];
+		}
 
-	inline auto operator[](size_t i) const { return data[i]; }
+		return t;
+	}
 
-	static matrix identity()
-	{
+	inline auto operator[](size_t i) {
+		return data[i];
+	}
+
+	inline auto operator[](size_t i) const {
+		return data[i];
+	}
+
+	static matrix identity() {
 		matrix ret;
 
 		size_t m = std::min(N, M);
@@ -354,15 +366,16 @@ inline matrix<T, 4, 4> scale_to_mat4(const vector<T, 3> &s)
 }
 
 template <typename T>
-inline matrix<T, 4, 4> look_at(const vector<T, 3> &eye, const vector<T, 3> &center,
+inline matrix<T, 4, 4> look_at(const vector<T, 3> &eye,
+			       const vector<T, 3> &center,
 			       const vector<T, 3> &up)
 {
-	vector<T, 3> f = normalize(center - eye);
-	vector<T, 3> u = normalize(up);
-	vector<T, 3> s = normalize(cross(f, u));
+	vector <T, 3> f = normalize(center - eye);
+	vector <T, 3> u = normalize(up);
+	vector <T, 3> s = normalize(cross(f, u));
 	u = cross(s, f);
 
-	matrix<T, 4, 4> ret(1);
+	matrix <T, 4, 4> ret = matrix <T, 4, 4> ::identity();
 	ret[0][0] = s.x;
 	ret[1][0] = s.y;
 	ret[2][0] = s.z;
