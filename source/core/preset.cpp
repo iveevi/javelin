@@ -42,7 +42,7 @@ std::optional<Preset> Preset::from(const std::filesystem::path &path)
 		if (!reader.Error().empty())
 			fmt::println("tinyobj-error: {}", reader.Error());
 
-		exit(1);
+		return std::nullopt;
 	}
 
 	if (!reader.Warning().empty())
@@ -176,6 +176,8 @@ std::optional<Preset> Preset::from(const std::filesystem::path &path)
 		if (quadrilaterals.size())
 			mesh.face_properties[Mesh::quadrilateral_key] =
 				quadrilaterals;
+
+		preset.geometry.push_back(mesh);
 	}
 
 	return preset;

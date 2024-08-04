@@ -59,8 +59,7 @@ block_t cast_to_block(const op::General &g)
 	return b;
 }
 
-size_t ir_compact_deduplicate(const op::General *const source,
-			      op::General *const dst,
+size_t ir_compact_deduplicate(const op::General *const source, op::General *const dst,
 			      std::unordered_set<int> &main, size_t elements)
 {
 	wrapped::hash_table<block_t, int> blocks;
@@ -261,13 +260,11 @@ struct Emitter {
 
 			// TODO: handle nested structs (down)
 
-			std::string struct_name =
-				fmt::format("s{}_t", struct_index++);
+			std::string struct_name = fmt::format("s{}_t", struct_index++);
 			struct_names[i] = struct_name;
 
 			std::string struct_source;
-			struct_source =
-				fmt::format("struct {} {{\n", struct_name);
+			struct_source = fmt::format("struct {} {{\n", struct_name);
 
 			int field_index = 0;
 			int j = i;
@@ -281,8 +278,7 @@ struct Emitter {
 				// TODO: put this whole thing in a method
 
 				struct_source += fmt::format(
-					"    {} f{};\n",
-					op::type_table[tf.item], field_index++);
+					"    {} f{};\n", op::type_table[tf.item], field_index++);
 
 				j = tf.next;
 			}
@@ -302,8 +298,7 @@ struct Emitter {
 				continue;
 
 			auto global = std::get<op::Global>(op);
-			auto type = std::visit(
-				op::typeof_vd(pool, struct_names), op);
+			auto type = std::visit(op::typeof_vd(pool, struct_names), op);
 			if (global.qualifier == op::Global::layout_in)
 				lins[global.binding] = type;
 			else if (global.qualifier == op::Global::layout_out)
@@ -318,16 +313,14 @@ struct Emitter {
 		// Global shader variables
 		// TODO: check for vulkan target, etc
 		for (const auto &[binding, type] : lins)
-			source += fmt::format(
-				"layout (location = {}) in {} _lin{};\n",
-				binding, type, binding);
+			source += fmt::format("layout (location = {}) in {} _lin{};\n", binding,
+					      type, binding);
 		source += "\n";
 
 		// TODO: remove extra space
 		for (const auto &[binding, type] : louts)
-			source += fmt::format(
-				"layout (location = {}) out {} _lout{};\n",
-				binding, type, binding);
+			source += fmt::format("layout (location = {}) out {} _lout{};\n", binding,
+					      type, binding);
 		source += "\n";
 
 		// Main function
@@ -346,8 +339,7 @@ struct Emitter {
 	{
 		printf("GLOBALS (%4d/%4d)\n", pointer, size);
 		for (size_t i = 0; i < pointer; i++) {
-			if (std::ranges::find(main.begin(), main.end(), i) !=
-			    main.end())
+			if (std::ranges::find(main.begin(), main.end(), i) != main.end())
 				printf("[*] ");
 			else
 				printf("    ");
@@ -829,7 +821,7 @@ struct mvp : structure<mat4, mat4, mat4> {
 void vertex_shader()
 {
 	layout_in<vec3, 0> position;
-	mvp mvp{mat4(), mat4(), mat4()};
+	mvp mvp {mat4(), mat4(), mat4()};
 
 	vec4 v = vec4(position, 1);
 }
@@ -850,8 +842,8 @@ void fragment_shader()
 	// end();
 }
 
-#include <GLFW/glfw3.h>
 #include <glad/gl.h>
+#include <GLFW/glfw3.h>
 
 int main()
 {

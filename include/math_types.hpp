@@ -12,14 +12,14 @@ namespace jvl {
 
 // Math vector types
 template <typename T, size_t N>
-struct vector {
+struct vector_base {
 	T data[N];
 
 	TEMPLATE_DATA_INDEX
 };
 
 template <typename T>
-struct vector<T, 2> {
+struct vector_base <T, 2> {
 	union {
 		T data[2] = {0, 0};
 		struct {
@@ -28,13 +28,13 @@ struct vector<T, 2> {
 		};
 	};
 
-	constexpr vector(T x_ = 0, T y_ = 0) : x(x_), y(y_) {}
+	constexpr vector_base(T x_ = 0, T y_ = 0) : x(x_), y(y_) {}
 
 	TEMPLATE_DATA_INDEX
 };
 
 template <typename T>
-struct vector<T, 3> {
+struct vector_base <T, 3> {
 	union {
 		T data[3] = {0, 0, 0};
 		struct {
@@ -44,13 +44,13 @@ struct vector<T, 3> {
 		};
 	};
 
-	constexpr vector(T x_ = 0, T y_ = 0, T z_ = 0) : x(x_), y(y_), z(z_) {}
+	constexpr vector_base(T x_ = 0, T y_ = 0, T z_ = 0) : x(x_), y(y_), z(z_) {}
 
 	TEMPLATE_DATA_INDEX
 };
 
 template <typename T>
-struct vector<T, 4> {
+struct vector_base <T, 4> {
 	union {
 		T data[4] = {0, 0, 0, 0};
 		struct {
@@ -61,16 +61,25 @@ struct vector<T, 4> {
 		};
 	};
 
-	constexpr vector(T x_ = 0, T y_ = 0, T z_ = 0, T w_ = 0)
-	    : x(x_), y(y_), z(z_), w(w_)
-	{
-	}
+	constexpr vector_base(T x_ = 0, T y_ = 0, T z_ = 0, T w_ = 0) : x(x_), y(y_), z(z_), w(w_) {}
 
 	TEMPLATE_DATA_INDEX
 };
 
 template <typename T, size_t N>
-inline bool operator==(const vector<T, N> &A, const vector<T, N> &B)
+struct vector : vector_base <T, N> {
+	using vector_base <T, N> ::vector_base;
+
+	vector <T, N> &operator+=(const vector <T, N> &A) {
+		for (size_t i = 0; i < N; i++)
+			this->data[i] += A[i];
+
+		return *this;
+	}
+};
+
+template <typename T, size_t N>
+inline bool operator==(const vector <T, N> &A, const vector <T, N> &B)
 {
 	for (size_t i = 0; i < N; i++) {
 		if (A.data[i] == B.data[i])
@@ -87,7 +96,13 @@ struct quat {
 	T z = 0;
 	T w = 1;
 
-	vector<T, 3> rotate(const vector<T, 3> &) const;
+	vector <T, 3> rotate(const vector <T, 3> &) const;
+
+	static quat angle_axis(const vector <T, 3> &v, T angle) {
+		const T r = std::cos(T(0.5) * angle);
+		const vector <T, 3> s = std::sin(T(0.5) * angle) * v;
+		return { s.x, s.y, s.z, r };
+	}
 };
 
 template <typename T, size_t N, size_t M>
@@ -168,61 +183,56 @@ TEMPLATE_VECTOR_OPERATORS(-)
 TEMPLATE_MIXED_VECTOR_OPERATORS(*)
 
 template <typename T>
+quat <T> operator*(const quat <T> &A, const quat <T> &B)
+{
+	quat <T> C;
+	C.w = A.w * B.w - A.x * B.x - A.y * B.y - A.z * B.z;
+	C.x = A.w * B.x + A.x * B.w + A.y * B.z - A.z * B.y;
+	C.y = A.w * B.y + A.y * B.w + A.z * B.x - A.x * B.z;
+	C.z = A.w * B.z + A.z * B.w + A.x * B.y - A.y * B.x;
+	return C;
+}
+
+template <typename T>
 matrix<T, 4, 4> operator*(const matrix<T, 4, 4> &A, const matrix<T, 4, 4> &B)
 {
 	matrix<T, 4, 4> ret;
 
-	ret.data[0][0] =
-		A.data[0][0] * B.data[0][0] + A.data[0][1] * B.data[1][0] +
-		A.data[0][2] * B.data[2][0] + A.data[0][3] * B.data[3][0];
-	ret.data[0][1] =
-		A.data[0][0] * B.data[0][1] + A.data[0][1] * B.data[1][1] +
-		A.data[0][2] * B.data[2][1] + A.data[0][3] * B.data[3][1];
-	ret.data[0][2] =
-		A.data[0][0] * B.data[0][2] + A.data[0][1] * B.data[1][2] +
-		A.data[0][2] * B.data[2][2] + A.data[0][3] * B.data[3][2];
-	ret.data[0][3] =
-		A.data[0][0] * B.data[0][3] + A.data[0][1] * B.data[1][3] +
-		A.data[0][2] * B.data[2][3] + A.data[0][3] * B.data[3][3];
+	ret.data[0][0] = A.data[0][0] * B.data[0][0] + A.data[0][1] * B.data[1][0] +
+			 A.data[0][2] * B.data[2][0] + A.data[0][3] * B.data[3][0];
+	ret.data[0][1] = A.data[0][0] * B.data[0][1] + A.data[0][1] * B.data[1][1] +
+			 A.data[0][2] * B.data[2][1] + A.data[0][3] * B.data[3][1];
+	ret.data[0][2] = A.data[0][0] * B.data[0][2] + A.data[0][1] * B.data[1][2] +
+			 A.data[0][2] * B.data[2][2] + A.data[0][3] * B.data[3][2];
+	ret.data[0][3] = A.data[0][0] * B.data[0][3] + A.data[0][1] * B.data[1][3] +
+			 A.data[0][2] * B.data[2][3] + A.data[0][3] * B.data[3][3];
 
-	ret.data[1][0] =
-		A.data[1][0] * B.data[0][0] + A.data[1][1] * B.data[1][0] +
-		A.data[1][2] * B.data[2][0] + A.data[1][3] * B.data[3][0];
-	ret.data[1][1] =
-		A.data[1][0] * B.data[0][1] + A.data[1][1] * B.data[1][1] +
-		A.data[1][2] * B.data[2][1] + A.data[1][3] * B.data[3][1];
-	ret.data[1][2] =
-		A.data[1][0] * B.data[0][2] + A.data[1][1] * B.data[1][2] +
-		A.data[1][2] * B.data[2][2] + A.data[1][3] * B.data[3][2];
-	ret.data[1][3] =
-		A.data[1][0] * B.data[0][3] + A.data[1][1] * B.data[1][3] +
-		A.data[1][2] * B.data[2][3] + A.data[1][3] * B.data[3][3];
+	ret.data[1][0] = A.data[1][0] * B.data[0][0] + A.data[1][1] * B.data[1][0] +
+			 A.data[1][2] * B.data[2][0] + A.data[1][3] * B.data[3][0];
+	ret.data[1][1] = A.data[1][0] * B.data[0][1] + A.data[1][1] * B.data[1][1] +
+			 A.data[1][2] * B.data[2][1] + A.data[1][3] * B.data[3][1];
+	ret.data[1][2] = A.data[1][0] * B.data[0][2] + A.data[1][1] * B.data[1][2] +
+			 A.data[1][2] * B.data[2][2] + A.data[1][3] * B.data[3][2];
+	ret.data[1][3] = A.data[1][0] * B.data[0][3] + A.data[1][1] * B.data[1][3] +
+			 A.data[1][2] * B.data[2][3] + A.data[1][3] * B.data[3][3];
 
-	ret.data[2][0] =
-		A.data[2][0] * B.data[0][0] + A.data[2][1] * B.data[1][0] +
-		A.data[2][2] * B.data[2][0] + A.data[2][3] * B.data[3][0];
-	ret.data[2][1] =
-		A.data[2][0] * B.data[0][1] + A.data[2][1] * B.data[1][1] +
-		A.data[2][2] * B.data[2][1] + A.data[2][3] * B.data[3][1];
-	ret.data[2][2] =
-		A.data[2][0] * B.data[0][2] + A.data[2][1] * B.data[1][2] +
-		A.data[2][2] * B.data[2][2] + A.data[2][3] * B.data[3][2];
-	ret.data[2][3] =
-		A.data[2][0] * B.data[0][3] + A.data[2][1] * B.data[1][3] +
-		A.data[2][2] * B.data[2][3] + A.data[2][3] * B.data[3][3];
+	ret.data[2][0] = A.data[2][0] * B.data[0][0] + A.data[2][1] * B.data[1][0] +
+			 A.data[2][2] * B.data[2][0] + A.data[2][3] * B.data[3][0];
+	ret.data[2][1] = A.data[2][0] * B.data[0][1] + A.data[2][1] * B.data[1][1] +
+			 A.data[2][2] * B.data[2][1] + A.data[2][3] * B.data[3][1];
+	ret.data[2][2] = A.data[2][0] * B.data[0][2] + A.data[2][1] * B.data[1][2] +
+			 A.data[2][2] * B.data[2][2] + A.data[2][3] * B.data[3][2];
+	ret.data[2][3] = A.data[2][0] * B.data[0][3] + A.data[2][1] * B.data[1][3] +
+			 A.data[2][2] * B.data[2][3] + A.data[2][3] * B.data[3][3];
 
-	ret.data[3][0] =
-		A.data[3][0] * B.data[0][0] + A.data[3][1] * B.data[1][0] +
-		A.data[3][2] * B.data[2][0] + A.data[3][3] * B.data[3][0];
-	ret.data[3][1] =
-		A.data[3][0] * B.data[0][1] + A.data[3][1] * B.data[1][1] +
-		A.data[3][2] * B.data[2][1] + A.data[3][3] * B.data[3][1];
-	ret.data[3][2] =
-		A.data[3][0] * B.data[0][2] + A.data[3][1] * B.data[1][2] +
-		A.data[3][2] * B.data[2][2] + A.data[3][3] * B.data[3][2];
-	ret.data[3][3] =
-		A.data[3][0] * B.data[0][3] + A.data[3][1] * B.data[1][3] +
-		A.data[3][2] * B.data[2][3] + A.data[3][3] * B.data[3][3];
+	ret.data[3][0] = A.data[3][0] * B.data[0][0] + A.data[3][1] * B.data[1][0] +
+			 A.data[3][2] * B.data[2][0] + A.data[3][3] * B.data[3][0];
+	ret.data[3][1] = A.data[3][0] * B.data[0][1] + A.data[3][1] * B.data[1][1] +
+			 A.data[3][2] * B.data[2][1] + A.data[3][3] * B.data[3][1];
+	ret.data[3][2] = A.data[3][0] * B.data[0][2] + A.data[3][1] * B.data[1][2] +
+			 A.data[3][2] * B.data[2][2] + A.data[3][3] * B.data[3][2];
+	ret.data[3][3] = A.data[3][0] * B.data[0][3] + A.data[3][1] * B.data[1][3] +
+			 A.data[3][2] * B.data[2][3] + A.data[3][3] * B.data[3][3];
 
 	return ret;
 }
@@ -270,10 +280,9 @@ constexpr vector<T, 3> cross(const vector<T, 3> &A, const vector<T, 3> &B)
 template <typename T>
 vector<T, 3> quat<T>::rotate(const vector<T, 3> &v) const
 {
-	const vector<T, 3> u{x, y, z};
+	const vector<T, 3> u {x, y, z};
 
-	return 2.0f * dot(u, v) * u + (w * w - dot(u, u)) * v +
-	       2.0f * w * cross(u, v);
+	return 2.0f * dot(u, v) * u + (w * w - dot(u, u)) * v + 2.0f * w * cross(u, v);
 }
 
 // Transform related operations
@@ -345,8 +354,7 @@ inline matrix<T, 4, 4> scale_to_mat4(const vector<T, 3> &s)
 }
 
 template <typename T>
-inline matrix<T, 4, 4> look_at(const vector<T, 3> &eye,
-			       const vector<T, 3> &center,
+inline matrix<T, 4, 4> look_at(const vector<T, 3> &eye, const vector<T, 3> &center,
 			       const vector<T, 3> &up)
 {
 	vector<T, 3> f = normalize(center - eye);
@@ -371,16 +379,20 @@ inline matrix<T, 4, 4> look_at(const vector<T, 3> &eye,
 }
 
 // Aliases for practicality
-using float2 = vector<float, 2>;
-using float3 = vector<float, 3>;
+using float2 = vector <float, 2>;
+using float3 = vector <float, 3>;
 
-using int3 = vector<int32_t, 3>;
-using int4 = vector<int32_t, 4>;
+using int3 = vector <int32_t, 3>;
+using int4 = vector <int32_t, 4>;
 
-using float3x3 = matrix<float, 3, 3>;
-using float4x4 = matrix<float, 4, 4>;
+using float3x3 = matrix <float, 3, 3>;
+using float4x4 = matrix <float, 4, 4>;
 
-using fquat = quat<float>;
+using fquat = quat <float>;
+
+// Gaurantees
+static_assert(sizeof(float2) == 2 * sizeof(float));
+static_assert(sizeof(float3) == 3 * sizeof(float));
 
 } // namespace jvl
 

@@ -1,0 +1,47 @@
+#pragma once
+
+#include "mesh.hpp"
+
+#include <fmt/printf.h>
+
+namespace jvl::core {
+
+struct TriangleMesh {
+	buffer<float3> positions;
+	buffer<int3> triangles;
+
+	// TODO: additional vertex properties properties
+
+	static std::optional<TriangleMesh> from(const Mesh &m)
+	{
+		TriangleMesh tm;
+
+		if (auto opt_pos =
+			    m.vertex_properties.maybe_at(Mesh::position_key).as<buffer<float3>>())
+			tm.positions = opt_pos.value();
+		else
+			return std::nullopt;
+
+		if (auto opt_tris =
+			    m.face_properties.maybe_at(Mesh::triangle_key).as<buffer<int3>>())
+			tm.triangles = opt_tris.value();
+
+		// TODO: quadrilaterals -- append
+
+		if (tm.triangles.empty())
+			return std::nullopt;
+
+		fmt::println("triangle mesh>>>");
+		fmt::println("vertices:");
+		for (auto v : tm.positions)
+			fmt::println("{} {} {}", v.x, v.y, v.z);
+
+		fmt::println("triangles:");
+		for (auto v : tm.triangles)
+			fmt::println("{} {} {}", v.x, v.y, v.z);
+
+		return tm;
+	}
+};
+
+} // namespace jvl::core
