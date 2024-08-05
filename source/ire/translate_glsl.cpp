@@ -65,7 +65,6 @@ std::string translate_glsl_vd::operator()(const Load &load)
 	// TODO: cache based on instruction address
 
 	bool inl = inlining;
-	fmt::println("load: inl={}", inl);
 	std::string value = defer(load.src);
 	if (inl)
 		return value;

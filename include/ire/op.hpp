@@ -92,8 +92,10 @@ struct Elif : Cond {};
 
 struct End {};
 
-using General = wrapped::variant<Global, TypeField, Primitive, Swizzle, Cmp,
-				 Construct, List, Store, Load, Cond, Elif, End>;
+using General = wrapped::variant <
+	Global, TypeField, Primitive, Swizzle, Cmp,
+	Construct, List, Store, Load, Cond, Elif, End
+>;
 
 // Type translation
 static const char *type_table[] = {

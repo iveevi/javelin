@@ -7,26 +7,31 @@
 // Wrappers on standard types
 namespace jvl::wrapped {
 
-template <typename... Args>
-struct variant : std::variant<Args...> {
-	using std::variant<Args...>::variant;
+template <typename ... Args>
+struct variant : std::variant <Args...> {
+	using std::variant <Args...> ::variant;
 
 	template <typename T>
-	inline bool is()
-	{
-		return std::holds_alternative<T>(*this);
+	inline bool is() {
+		return std::holds_alternative <T> (*this);
 	}
 
 	template <typename T>
-	inline auto as()
-	{
-		return std::get<T>(*this);
+	inline auto &as() {
+		return std::get <T> (*this);
 	}
 
 	template <typename T>
-	inline auto as() const
-	{
-		return std::get<T>(*this);
+	inline const auto &as() const {
+		return std::get <T> (*this);
+	}
+
+	template <typename T>
+	inline std::optional <T> get() const {
+		if (std::holds_alternative <T> (*this))
+			return std::get <T> (*this);
+
+		return std::nullopt;
 	}
 };
 

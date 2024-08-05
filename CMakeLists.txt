@@ -31,7 +31,9 @@ add_executable(javelin
 
 add_executable(ire
 	source/exec/ire.cpp
+	source/ire/compaction.cpp
 	source/ire/dump.cpp
+	source/ire/emitter.cpp
 	source/ire/reindex.cpp
 	source/ire/translate_glsl.cpp
 	thirdparty/glad/src/gl.c)
