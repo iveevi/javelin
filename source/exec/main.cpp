@@ -9,6 +9,7 @@
 #include "core/preset.hpp"
 #include "core/triangle_mesh.hpp"
 #include "gfx/vk_triangle_mesh.hpp"
+#include "math_types.hpp"
 
 namespace jvl {
 
@@ -110,15 +111,20 @@ void cursor_callback(GLFWwindow *window, double xpos, double ypos)
 	xoffset *= sensitivity;
 	yoffset *= sensitivity;
 
+	static float pitch = 0;
+	static float yaw = 0;
+
 	if (mouse.left_drag) {
-		// JVL
 		jvl::float3 horizontal { 0, 1, 0 };
 		jvl::float3 vertical = transform->right();
 
-		jvl::fquat yaw = jvl::fquat::angle_axis(horizontal, -xoffset);
-		jvl::fquat pitch  = jvl::fquat::angle_axis(vertical, yoffset);
+		pitch -= xoffset;
+		yaw += yoffset;
 
-		transform->rotation = pitch * yaw * transform->rotation;
+		float pi_e = jvl::core::pi <float> /2 - 1e-3f;
+		yaw = std::min(pi_e, std::max(-pi_e, yaw));
+
+		transform->rotation = jvl::fquat::euler_angles(yaw, pitch, 0);
 	}
 }
 

@@ -98,6 +98,48 @@ struct quat {
 
 	vector <T, 3> rotate(const vector <T, 3> &) const;
 
+	vector <T, 3> to_euler_angles() const {
+		vector <T, 3> angles;
+
+		// roll (x-axis rotation)
+		T sinr_cosp = 2 * (w * x + y * z);
+		T cosr_cosp = 1 - 2 * (x * x + y * y);
+		angles.x = std::atan2(sinr_cosp, cosr_cosp);
+
+		// pitch (y-axis rotation)
+		double sinp = std::sqrt(1 + 2 * (w * y - x * z));
+		double cosp = std::sqrt(1 - 2 * (w * y - x * z));
+		angles.y = 2 * std::atan2(sinp, cosp) - M_PI / 2;
+
+		// yaw (z-axis rotation)
+		double siny_cosp = 2 * (w * z + x * y);
+		double cosy_cosp = 1 - 2 * (y * y + z * z);
+		angles.z = std::atan2(siny_cosp, cosy_cosp);
+
+		return angles;
+	}
+
+	static quat euler_angles(float roll, float pitch, float yaw) {
+		double cr = cos(roll * 0.5);
+		double sr = sin(roll * 0.5);
+		double cp = cos(pitch * 0.5);
+		double sp = sin(pitch * 0.5);
+		double cy = cos(yaw * 0.5);
+		double sy = sin(yaw * 0.5);
+
+		quat q;
+		q.w = cr * cp * cy + sr * sp * sy;
+		q.x = sr * cp * cy - cr * sp * sy;
+		q.y = cr * sp * cy + sr * cp * sy;
+		q.z = cr * cp * sy - sr * sp * cy;
+
+		return q;
+	}
+
+	static quat euler_angles(const vector <T, 3> &angles) {
+		return euler_angles(angles.x, angles.y, angles.z);
+	}
+
 	static quat angle_axis(const vector <T, 3> &v, T angle) {
 		const T r = std::cos(T(0.5) * angle);
 		const vector <T, 3> s = std::sin(T(0.5) * angle) * v;
@@ -198,10 +240,10 @@ template <typename T>
 quat <T> operator*(const quat <T> &A, const quat <T> &B)
 {
 	quat <T> C;
-	C.w = A.w * B.w - A.x * B.x - A.y * B.y - A.z * B.z;
 	C.x = A.w * B.x + A.x * B.w + A.y * B.z - A.z * B.y;
 	C.y = A.w * B.y + A.y * B.w + A.z * B.x - A.x * B.z;
 	C.z = A.w * B.z + A.z * B.w + A.x * B.y - A.y * B.x;
+	C.w = A.w * B.w - A.x * B.x - A.y * B.y - A.z * B.z;
 	return C;
 }
 
@@ -251,7 +293,23 @@ matrix<T, 4, 4> operator*(const matrix<T, 4, 4> &A, const matrix<T, 4, 4> &B)
 
 // Other operations
 template <typename T, size_t N>
-constexpr T dot(const vector<T, N> &A, const vector<T, N> &B)
+constexpr T length(const vector <T, N> &A)
+{
+	T l = 0;
+	for (size_t i = 0; i < N; i++)
+		l += A[i] * A[i];
+	return std::sqrt(l);
+}
+
+template <typename T>
+constexpr T length(const quat <T> &A)
+{
+	T l = A.x * A.x + A.y * A.y + A.z * A.z + A.w * A.w;
+	return std::sqrt(l);
+}
+
+template <typename T, size_t N>
+constexpr T dot(const vector <T, N> &A, const vector <T, N> &B)
 {
 	T lsq = 0;
 	for (size_t i = 0; i < N; i++)
@@ -260,23 +318,31 @@ constexpr T dot(const vector<T, N> &A, const vector<T, N> &B)
 }
 
 template <typename T, size_t N>
-constexpr vector<T, N> normalize(const vector<T, N> &v)
+constexpr vector <T, N> normalize(const vector <T, N> &v)
 {
-	T lsq = 0;
+	vector <T, N> vn = v;
+
+	T l = length(v);
 
 #pragma unroll
 	for (size_t i = 0; i < N; i++)
-		lsq += v[i] * v[i];
-
-	vector<T, N> vn = v;
-
-	lsq = std::sqrt(lsq);
-
-#pragma unroll
-	for (size_t i = 0; i < N; i++)
-		vn[i] /= lsq;
+		vn[i] /= l;
 
 	return vn;
+}
+
+template <typename T>
+constexpr quat <T> normalize(const quat <T> &q)
+{
+	quat <T> qn = q;
+
+	T l = length(q);
+	qn.x /= l;
+	qn.y /= l;
+	qn.z /= l;
+	qn.w /= l;
+
+	return qn;
 }
 
 template <typename T>
