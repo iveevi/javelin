@@ -4,3 +4,6 @@
 [submodule "thirdparty/littlevk"]
 	path = thirdparty/littlevk
 	url = git@github.com:iveevi/littlevk.git
+[submodule "thirdparty/imgui"]
+	path = thirdparty/imgui
+	url = https://github.com/ocornut/imgui

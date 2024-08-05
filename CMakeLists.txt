@@ -16,6 +16,15 @@ FetchContent_Declare(googletest
 
 FetchContent_MakeAvailable(googletest)
 
+add_library(imgui SHARED
+	thirdparty/imgui/imgui.cpp
+	thirdparty/imgui/imgui_draw.cpp
+	thirdparty/imgui/imgui_widgets.cpp
+	thirdparty/imgui/imgui_demo.cpp
+	thirdparty/imgui/imgui_tables.cpp
+	thirdparty/imgui/backends/imgui_impl_glfw.cpp
+	thirdparty/imgui/backends/imgui_impl_vulkan.cpp)
+
 add_executable(javelin
 	source/exec/main.cpp
 	source/core/preset.cpp)
@@ -33,6 +42,7 @@ add_executable(test
 include_directories(.
 	include
 	thirdparty
+	thirdparty/imgui
 	thirdparty/tinyobjloader
 	thirdparty/glad/include)
 
@@ -43,6 +53,6 @@ set(VULKAN_LIBRARY_SET
 	glslang::glslang
 	glslang::glslang-default-resource-limits)
 
-target_link_libraries(javelin fmt ${VULKAN_LIBRARY_SET})
+target_link_libraries(javelin fmt ${VULKAN_LIBRARY_SET} imgui)
 target_link_libraries(ire fmt glfw)
 target_link_libraries(test GTest::gtest_main)
