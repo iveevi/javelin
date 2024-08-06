@@ -155,12 +155,12 @@ inline vk::DescriptorSet imgui_add_vk_texture(const vk::Sampler &sampler, const 
 					   static_cast <VkImageLayout> (layout));
 }
 
-struct SurfaceHit {
+struct Intersection {
 	float time;
 	jvl::float3 normal;
 
 	// TODO: && version
-	void update(const SurfaceHit &other) {
+	void update(const Intersection &other) {
 		if (other.time < 0)
 			return;
 
@@ -170,16 +170,20 @@ struct SurfaceHit {
 		}
 	}
 
-	static SurfaceHit miss() {
-		SurfaceHit sh;
+	static Intersection miss() {
+		Intersection sh;
 		sh.time = -1;
 		return sh;
 	}
 };
 
-SurfaceHit hit_triangle(const jvl::float3 &ray, const jvl::float3 &origin, const jvl::float3 &v0, const jvl::float3 &v1, const jvl::float3 &v2)
+Intersection ray_triangle_intersection(const jvl::float3 &ray,
+		                       const jvl::float3 &origin,
+				       const jvl::float3 &v0,
+				       const jvl::float3 &v1,
+				       const jvl::float3 &v2)
 {
-	SurfaceHit sh = SurfaceHit::miss();
+	Intersection sh = Intersection::miss();
 
 	jvl::float3 e1 = v1 - v0;
 	jvl::float3 e2 = v2 - v0;
@@ -504,40 +508,46 @@ int main(int argc, char *argv[])
 		return r | g << 8 | b << 16 | 0xff000000;
 	};
 
-	// TODO: per pixel function
-	// TODO: parallel for version
-	bool complete = false;
-	auto process = [&tmeshes, rf, &fb, &tonemap, &complete]() {
-		for (size_t i = 0; i < fb.height; i++) {
-			for (size_t j = 0; j < fb.width; j++) {
-				jvl::float2 uv = { j/float(fb.width), i/float(fb.height) };
+	auto raytrace = [&tmeshes, rf, &tonemap](jvl::int2 ij, jvl::float2 uv) -> uint32_t {
+		jvl::float3 origin = rf.origin;
+		jvl::float3 ray = normalize(rf.lower_left
+				+ uv.x * rf.horizontal
+				+ (1 - uv.y) * rf.vertical
+				- rf.origin);
 
-				jvl::float3 origin = rf.origin;
-				jvl::float3 ray = normalize(rf.lower_left
-							+ uv.x * rf.horizontal
-							+ (1 - uv.y) * rf.vertical
-							- rf.origin);
+		Intersection sh = Intersection::miss();
+		for (const auto &tmesh : tmeshes) {
+			for (const jvl::int3 &t : tmesh.triangles) {
+				jvl::float3 v0 = tmesh.positions[t.x];
+				jvl::float3 v1 = tmesh.positions[t.y];
+				jvl::float3 v2 = tmesh.positions[t.z];
 
-				SurfaceHit sh = SurfaceHit::miss();
-				for (const auto &tmesh : tmeshes) {
-					for (const jvl::int3 &t : tmesh.triangles) {
-						jvl::float3 v0 = tmesh.positions[t.x];
-						jvl::float3 v1 = tmesh.positions[t.y];
-						jvl::float3 v2 = tmesh.positions[t.z];
-
-						auto sh_hit = hit_triangle(ray, origin, v0, v1, v2);
-						sh.update(sh_hit);
-					}
-				}
-
-				jvl::float3 color;
-				if (sh.time >= 0)
-					color = 0.5f + 0.5f * sh.normal;
-
-				fb[i][j] = tonemap(color);
+				auto hit = ray_triangle_intersection(ray, origin, v0, v1, v2);
+				sh.update(hit);
 			}
 		}
 
+		jvl::float3 color;
+		if (sh.time >= 0)
+			color = 0.5f + 0.5f * sh.normal;
+
+		return tonemap(color);
+	};
+
+	jvl::int2 size = { 32, 32 };
+	auto tiles = fb.tiles(size);
+
+	// TODO: parallel for version
+	bool complete = false;
+	auto process = [&fb, &raytrace, &complete, &tiles]() {
+		for (const auto &tile : tiles) {
+			fmt::println("tile: ({}, {}) -> ({}, {})",
+					tile.min.x, tile.min.y,
+					tile.max.x, tile.max.y);
+
+			fb.process_tile(raytrace, tile);
+		}
+		// fb.process(raytrace);
 		complete = true;
 	};
 
@@ -598,7 +608,6 @@ int main(int argc, char *argv[])
 		// Update framebuffer buffer and copy to the image
 		littlevk::upload(device, fb_buffer, fb.data);
 		if (complete) {
-			printf("done.\n");
 			thread.join();
 			complete = false;
 		}

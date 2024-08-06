@@ -1,11 +1,17 @@
 #pragma once
 
+#include <deque>
+#include <type_traits>
 #include <vector>
-#include <functional>
 
 #include "../../math_types.hpp"
 
 namespace jvl::gfx::cpu {
+
+struct Tile {
+	int2 min;
+	int2 max;
+};
 
 template <typename T>
 struct Framebuffer {
@@ -20,6 +26,57 @@ struct Framebuffer {
 
 	const T *const operator[](size_t i) const {
 		return &data[i * width];
+	}
+
+	// TODO: thread safe tiles (thread_queue)
+	std::deque <Tile> tiles(int2 size) const {
+		std::deque <Tile> tdq;
+
+		for (int i = 0; i < (height + size.y - 1)/size.y; i++) {
+			for (int j = 0; j < (width + size.x - 1)/size.x; j++) {
+				// TODO: fix by cropping
+				int2 ji = { j, i };
+				int2 ji_n = { j + 1, i + 1 };
+
+				Tile tile {
+					.min = ji * size,
+					.max = min(ji_n * size, int2(width, height))
+				};
+
+				tdq.push_back(tile);
+			}
+		}
+
+		return tdq;
+	}
+
+	// TODO: int2 indexing
+
+	// TODO: with input attachments as well
+	template <typename F>
+	requires std::is_same_v <std::invoke_result_t <F, int2, float2>, T>
+	void process(const F &kernel) {
+		// TODO: tile version
+		for (int i = 0; i < height; i++) {
+			for (int j = 0; j < width; j++) {
+				int2 ij { i, j };
+				float2 uv = { j/float(width), i/float(height) };
+				data[i * width + j] = kernel(ij, uv);
+			}
+		}
+	}
+
+	template <typename F>
+	requires std::is_same_v <std::invoke_result_t <F, int2, float2>, T>
+	void process_tile(const F &kernel, const Tile &tile) {
+		// TODO: tile version
+		for (int i = tile.min.y; i < tile.max.y; i++) {
+			for (int j = tile.min.x; j < tile.max.x; j++) {
+				int2 ij { i, j };
+				float2 uv = { j/float(width), i/float(height) };
+				data[i * width + j] = kernel(ij, uv);
+			}
+		}
 	}
 
 	template <typename U>

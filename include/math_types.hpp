@@ -244,6 +244,8 @@ inline bool operator==(const matrix<T, N, M> &A, const matrix<T, N, M> &B)
 
 TEMPLATE_VECTOR_OPERATORS(+)
 TEMPLATE_VECTOR_OPERATORS(-)
+TEMPLATE_VECTOR_OPERATORS(*)
+TEMPLATE_VECTOR_OPERATORS(/)
 
 TEMPLATE_MIXED_VECTOR_OPERATORS(+)
 TEMPLATE_MIXED_VECTOR_OPERATORS(-)
@@ -307,6 +309,24 @@ matrix<T, 4, 4> operator*(const matrix<T, 4, 4> &A, const matrix<T, 4, 4> &B)
 
 // Other operations
 template <typename T, size_t N>
+constexpr vector <T, N> min(const vector <T, N> &A, const vector <T, N> &B)
+{
+	vector <T, N> C;
+	for (size_t i = 0; i < N; i++)
+		C[i] = std::min(A[i], B[i]);
+	return C;
+}
+
+template <typename T, size_t N>
+constexpr vector <T, N> max(const vector <T, N> &A, const vector <T, N> &B)
+{
+	vector <T, N> C;
+	for (size_t i = 0; i < N; i++)
+		C[i] = std::max(A[i], B[i]);
+	return C;
+}
+
+template <typename T, size_t N>
 constexpr T length(const vector <T, N> &A)
 {
 	T l = 0;
@@ -360,9 +380,9 @@ constexpr quat <T> normalize(const quat <T> &q)
 }
 
 template <typename T>
-constexpr vector<T, 3> cross(const vector<T, 3> &A, const vector<T, 3> &B)
+constexpr vector<T, 3> cross(const vector <T, 3> &A, const vector <T, 3> &B)
 {
-	vector<T, 3> C;
+	vector <T, 3> C;
 	C[0] = A[1] * B[2] - A[2] * B[1];
 	C[1] = A[2] * B[0] - A[0] * B[2];
 	C[2] = A[0] * B[1] - A[1] * B[0];
@@ -370,18 +390,18 @@ constexpr vector<T, 3> cross(const vector<T, 3> &A, const vector<T, 3> &B)
 }
 
 template <typename T>
-vector<T, 3> quat<T>::rotate(const vector<T, 3> &v) const
+vector <T, 3> quat<T>::rotate(const vector <T, 3> &v) const
 {
-	const vector<T, 3> u {x, y, z};
+	const vector <T, 3> u {x, y, z};
 
 	return 2.0f * dot(u, v) * u + (w * w - dot(u, u)) * v + 2.0f * w * cross(u, v);
 }
 
 // Transform related operations
 template <typename T>
-inline matrix<T, 3, 3> rotation_to_mat3(const quat<T> &q)
+inline matrix <T, 3, 3> rotation_to_mat3(const quat <T> &q)
 {
-	matrix<T, 3, 3> ret;
+	matrix <T, 3, 3> ret;
 
 	ret.data[0][0] = 2 * (q.x * q.x + q.y * q.y) - 1;
 	ret.data[0][1] = 2 * (q.y * q.z - q.x * q.w);
@@ -474,7 +494,9 @@ inline matrix<T, 4, 4> look_at(const vector<T, 3> &eye,
 // Aliases for practicality
 using float2 = vector <float, 2>;
 using float3 = vector <float, 3>;
+using float4 = vector <float, 4>;
 
+using int2 = vector <int32_t, 2>;
 using int3 = vector <int32_t, 3>;
 using int4 = vector <int32_t, 4>;
 
