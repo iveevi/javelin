@@ -353,21 +353,27 @@ template <typename T>
 constexpr op::PrimitiveType primitive_type()
 {
 	if constexpr (std::is_same_v <T, bool>)
-		return op::PrimitiveType::boolean;
+		return op::boolean;
 	if constexpr (std::is_same_v <T, int>)
-		return op::PrimitiveType::i32;
+		return op::i32;
 	if constexpr (std::is_same_v <T, float>)
-		return op::PrimitiveType::f32;
+		return op::f32;
+	if constexpr (std::is_same_v <T, gltype <bool>>)
+		return op::boolean;
+	if constexpr (std::is_same_v <T, gltype <int>>)
+		return op::i32;
+	if constexpr (std::is_same_v <T, gltype <float>>)
+		return op::f32;
 	if constexpr (std::is_same_v <T, vec2>)
-		return op::PrimitiveType::vec2;
+		return op::vec2;
 	if constexpr (std::is_same_v <T, vec3>)
-		return op::PrimitiveType::vec3;
+		return op::vec3;
 	if constexpr (std::is_same_v <T, vec4>)
-		return op::PrimitiveType::vec4;
+		return op::vec4;
 	if constexpr (std::is_same_v <T, mat4>)
-		return op::PrimitiveType::mat4;
+		return op::mat4;
 
-	return op::PrimitiveType::bad;
+	return op::bad;
 }
 
 template <synthesizable T, synthesizable U>
@@ -464,6 +470,7 @@ struct mvp_info {
 	mat4 view;
 	mat4 proj;
 	vec3 camera;
+	f32 scalar;
 
 	// TODO: simultaenously a struct and push constant
 	// mvp_info(bool stationary = false) {
@@ -474,20 +481,36 @@ struct mvp_info {
 	// }
 
 	auto layout() {
-		return uniform_layout(model, view, proj, camera);
+		return uniform_layout(model, view, proj, camera, scalar);
 	}
 };
 
 void vertex_shader()
 {
-	layout_in <vec3, 0> position;
-
-	push_constants <mvp_info> mvp;
-
-	vec4 v = vec4(mvp.camera, 1);
+	layout_in <boolean, 0> flag;
 
 	f32 x = 2.335f;
-	vec4 w = vec4(mvp.camera, x);
+	cond(flag);
+		x = 1.618f;
+	elif();
+		x = 0.618f;
+	end();
+
+	layout_out <f32, 0> out;
+
+	out = x;
+
+	// TODO: warnings for the unused sections
+
+	// layout_in <vec3, 0> position;
+	//
+	// push_constants <mvp_info> mvp;
+	//
+	// vec4 v = vec4(mvp.camera, 1);
+	//
+	// f32 x = 2.335f;
+	// x = mvp.scalar;
+	// vec4 w = vec4(mvp.camera, x);
 }
 
 void fragment_shader()
@@ -497,6 +520,7 @@ void fragment_shader()
 
 	fragment = vec4(1.0);
 	fragment.x = 1.0f;
+
 	// cond(flag == 0);
 	// 	fragment = vec4(1.0);
 	// elif(flag == 1);

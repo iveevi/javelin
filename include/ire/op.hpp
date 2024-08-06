@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <fmt/printf.h>
+#include <unordered_set>
 
 #include "wrapped_types.hpp"
 
@@ -152,35 +153,10 @@ struct dump_vd {
 	}
 };
 
-struct translate_glsl_vd {
-	op::General *pool;
-
-	int generator = 0;
-	int indentation = 0;
-	int next_indentation = 0;
-	bool inlining = false;
-
-	wrapped::hash_table<int, std::string> symbols;
-	wrapped::hash_table<int, std::string> struct_names;
-
-	std::string operator()(const Cond &);
-	std::string operator()(const Elif &);
-	std::string operator()(const End &);
-	std::string operator()(const Global &);
-	std::string operator()(const Primitive &);
-	std::string operator()(const Load &);
-	std::string operator()(const Store &);
-	std::string operator()(const Cmp &);
-	std::string operator()(const Construct &);
-
-	template <typename T>
-	std::string operator()(const T &) {
-		return "<?>";
-	}
-
-	std::string defer(int, bool = false);
-	std::string eval(int);
-};
+std::string synthesize_glsl_body(const General *const,
+		                 const wrapped::hash_table <int, std::string> &,
+		                 const std::unordered_set <int> &,
+				 size_t);
 
 struct reindex_vd {
 	wrapped::reindex reindexer;

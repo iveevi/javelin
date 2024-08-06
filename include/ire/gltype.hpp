@@ -52,9 +52,23 @@ struct gltype : tagged {
 
 	T value;
 
-	gltype(const T &v = T()) : tagged(), value(v) {}
+	gltype(const T &v = T()) : tagged(), value(v) {
+		synthesize();
+	}
 
 	// TODO: operator= semantics
+	gltype &operator=(const T &v) {
+		// At this point we are required to have storage for this
+		auto &em = Emitter::active;
+		em.mark_used(ref.id, true);
+
+		op::Store store;
+		store.dst = ref.id;
+		store.src = translate_primitive(v);
+		em.emit_main(store);
+
+		return *this;
+	}
 
 	emit_index_t synthesize() const {
 		if (cached())

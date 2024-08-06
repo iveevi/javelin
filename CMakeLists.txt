@@ -37,7 +37,7 @@ add_executable(ire
 	source/ire/dump.cpp
 	source/ire/emitter.cpp
 	source/ire/reindex.cpp
-	source/ire/translate_glsl.cpp
+	source/ire/synthesize_glsl.cpp
 	thirdparty/glad/src/gl.c)
 
 add_executable(test

@@ -13,7 +13,7 @@ struct variant : std::variant <Args...> {
 	using std::variant <Args...> ::variant;
 
 	template <typename T>
-	inline bool is() {
+	inline bool is() const {
 		return std::holds_alternative <T> (*this);
 	}
 

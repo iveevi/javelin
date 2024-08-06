@@ -230,10 +230,10 @@ std::string Emitter::generate_glsl()
 	}
 
 	// Actual translation
-	op::translate_glsl_vd tdisp;
+	// op::translate_glsl_vd tdisp;
 	// TODO: pass in the set of synthesized values
-	tdisp.pool = pool;
-	tdisp.struct_names = struct_names;
+	// tdisp.pool = pool;
+	// tdisp.struct_names = struct_names;
 
 	// Global shader variables
 	for (const auto &[binding, type] : lins)
@@ -262,13 +262,25 @@ std::string Emitter::generate_glsl()
 	// Main function
 	source += "void main()\n";
 	source += "{\n";
-	for (int i : synthesized) {
-		// Types have already been synthesized if necessary
-		if (pool[i].is <op::TypeField> ())
-			continue;
-
-		source += "    " + tdisp.eval(i);
-	}
+	source += op::synthesize_glsl_body(pool, struct_names, synthesized, pointer);
+	// for (int i  = 0; i < pointer; i++) {
+	// 	if (!synthesized.count(i))
+	// 		continue;
+	//
+	// 	op::General g = pool[i];
+	//
+	// 	if (auto cond = g.get <op::Cond> ()) {
+	// 		source += "<cond>\n";
+	// 	} else {
+	// 		source += "<?>\n";
+	// 	}
+	//
+	// 	// Types have already been synthesized if necessary
+	// 	// if (pool[i].is <op::TypeField> ())
+	// 	// 	continue;
+	// 	//
+	// 	// source += "    " + tdisp.eval(i);
+	// }
 	source += "}\n";
 
 	return source;
