@@ -174,6 +174,7 @@ std::string Emitter::generate_glsl()
 	// Gather all global shader variables
 	std::map <int, std::string> lins;
 	std::map <int, std::string> louts;
+	std::string push_constant;
 
 	for (int i = 0; i < pointer; i++) {
 		auto op = pool[i];
@@ -186,6 +187,8 @@ std::string Emitter::generate_glsl()
 			lins[global.binding] = type;
 		else if (global.qualifier == op::Global::layout_out)
 			louts[global.binding] = type;
+		else if (global.qualifier == op::Global::push_constant)
+			push_constant = type;
 	}
 
 	// Actual translation
@@ -194,17 +197,28 @@ std::string Emitter::generate_glsl()
 	tdisp.struct_names = struct_names;
 
 	// Global shader variables
-	// TODO: check for vulkan target, etc
 	for (const auto &[binding, type] : lins)
 		source += fmt::format("layout (location = {}) in {} _lin{};\n", binding,
 				      type, binding);
-	source += "\n";
 
-	// TODO: remove extra space
+	if (lins.size())
+		source += "\n";
+
 	for (const auto &[binding, type] : louts)
 		source += fmt::format("layout (location = {}) out {} _lout{};\n", binding,
 				      type, binding);
-	source += "\n";
+
+	if (louts.size())
+		source += "\n";
+
+	// TODO: check for vulkan or opengl, etc
+	if (push_constant.size()) {
+		source += "layout (push_constant) uniform constants\n";
+		source += "{\n";
+		source += "     " + push_constant + " _pc;\n";
+		source += "}\n";
+		source += "\n";
+	}
 
 	// Main function
 	source += "void main()\n";

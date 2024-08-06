@@ -78,6 +78,38 @@ concept callbacked = requires(T &t, const Args &...args) {
 	};
 };
 
+struct __uniform_layout_key {};
+
+template <typename ... Args>
+requires (sizeof...(Args) > 0)
+struct uniform_layout {
+	std::array <tagged *, sizeof...(Args)> fields;
+
+	template <typename T, typename ... UArgs>
+	[[gnu::always_inline]]
+	void __init(int index, T &t, UArgs &... uargs) {
+		// TODO: how to deal with nested structs?
+		fields[index] = &static_cast <tagged &> (t);
+		if constexpr (sizeof...(uargs) > 0)
+			__init(index + 1, uargs...);
+	}
+
+	uniform_layout(Args &... args) {
+		__init(0, args...);
+	}
+
+	__uniform_layout_key key() const {
+		return {};
+	}
+};
+
+template <typename T>
+concept uniform_compatible = requires {
+	{
+		T().layout().key()
+	} -> std::same_as <__uniform_layout_key>;
+};
+
 // Forward declarations
 template <typename T, size_t binding>
 struct layout_in : tagged {
@@ -127,6 +159,90 @@ struct layout_out : T {
 		store.src = t.synthesize().id;
 
 		em.emit_main(store);
+	}
+};
+
+// TODO: layout qualifiers for structs?
+
+template <typename T, typename ... Args>
+emit_index_t synthesize_type_fields()
+{
+	static thread_local emit_index_t cached = emit_index_t::null();
+	if (cached.id != -1)
+		return cached;
+
+	auto &em = Emitter::active;
+
+	op::TypeField tf;
+	tf.item = type_match <T> ();
+	if constexpr (sizeof...(Args))
+		tf.next = synthesize_type_fields <Args...> ().id;
+	else
+		tf.next = -1;
+
+	return (cached = em.emit(tf));
+}
+
+template <typename ... Args>
+emit_index_t synthesize_type_fields(const uniform_layout <Args...> &args)
+{
+	return synthesize_type_fields <Args...> ();
+}
+
+template <synthesizable T, synthesizable ... Args>
+int argument_list(const T &t, const Args &...args)
+{
+	auto &em = Emitter::active;
+
+	op::List l;
+	l.item = t.synthesize().id;
+
+	if constexpr (sizeof...(Args))
+		l.next = argument_list(args...);
+
+	return em.emit(l);
+}
+
+template <synthesizable ... Args>
+requires (sizeof...(Args) > 0)
+void structure(const Args &... args)
+{
+	auto &em = Emitter::active;
+
+	op::Construct ctor;
+	ctor.type = synthesize_type_fields <Args...> ().id;
+	ctor.args = argument_list(args...);
+
+	em.emit_main(ctor);
+}
+
+template <uniform_compatible T>
+struct push_constants : T {
+	emit_index_t ref = emit_index_t::null();
+
+	// TODO: handle operator= disabling
+
+	template <typename ... Args>
+	push_constants(const Args &... args) : T(args...) {
+		auto &em = Emitter::active;
+
+		auto uniform_layout = this->layout();
+
+		op::Global global;
+		global.type = synthesize_type_fields(uniform_layout).id;
+		global.binding = -1;
+		global.qualifier = op::Global::push_constant;
+
+		ref = em.emit(global);
+
+		for (size_t i = 0; i < uniform_layout.fields.size(); i++) {
+			op::Load load;
+			load.src = ref.id;
+			load.idx = i;
+			uniform_layout.fields[i]->ref = em.emit(load);
+		}
+
+		// TODO: uncached type which clears each time
 	}
 };
 
@@ -402,83 +518,6 @@ void end()
 	em.emit_main(op::End());
 }
 
-struct __uniform_layout_key {};
-
-template <typename ... Args>
-requires (sizeof...(Args) > 0)
-struct uniform_layout {
-	std::array <tagged *, sizeof...(Args)> fields;
-
-	template <typename T, typename ... UArgs>
-	[[gnu::always_inline]]
-	void __init(int index, T &t, UArgs &... uargs) {
-		// TODO: how to deal with nested structs?
-		fields[index] = &static_cast <tagged &> (t);
-		if constexpr (sizeof...(uargs) > 0)
-			__init(index + 1, uargs...);
-	}
-
-	uniform_layout(Args &... args) {
-		__init(0, args...);
-	}
-
-	__uniform_layout_key key() const {
-		return {};
-	}
-};
-
-template <typename T, typename ... Args>
-emit_index_t synthesize_type_fields()
-{
-	static thread_local emit_index_t cached = emit_index_t::null();
-	if (cached.id != -1)
-		return cached;
-
-	auto &em = Emitter::active;
-
-	op::TypeField tf;
-	tf.item = type_match <T> ();
-	if constexpr (sizeof...(Args))
-		tf.next = synthesize_type_fields <Args...> ().id;
-	else
-		tf.next = -1;
-
-	return (cached = em.emit(tf));
-}
-
-template <typename ... Args>
-emit_index_t synthesize_type_fields(const uniform_layout <Args...> &args)
-{
-	return synthesize_type_fields <Args...> ();
-}
-
-template <synthesizable T, synthesizable ... Args>
-int argument_list(const T &t, const Args &...args)
-{
-	auto &em = Emitter::active;
-
-	op::List l;
-	l.item = t.synthesize().id;
-
-	if constexpr (sizeof...(Args))
-		l.next = argument_list(args...);
-
-	return em.emit(l);
-}
-
-template <synthesizable ... Args>
-requires (sizeof...(Args) > 0)
-void __struct(const Args &... args)
-{
-	auto &em = Emitter::active;
-
-	op::Construct ctor;
-	ctor.type = synthesize_type_fields <Args...> ().id;
-	ctor.args = argument_list(args...);
-
-	em.emit_main(ctor);
-}
-
 // TODO: core.hpp header for main glsl functionality
 // then std.hpp for additional features
 
@@ -509,53 +548,16 @@ struct mvp_info {
 	mat4 proj;
 	vec3 camera;
 
+	// TODO: simultaenously a struct and push constant
 	// mvp_info(bool stationary = false) {
 	// 	if (stationary)
-	// 		__struct(view, proj);
+	// 		structure(view, proj);
 	// 	else
-	// 		__struct(model, view, proj);
+	// 		structure(model, view, proj);
 	// }
 
 	auto layout() {
 		return uniform_layout(model, view, proj, camera);
-	}
-};
-
-template <typename T>
-concept uniform_compatible = requires {
-	{
-		T().layout().key()
-	} -> std::same_as <__uniform_layout_key>;
-};
-
-// template <uniform_compatible T>
-template <uniform_compatible T>
-struct push_constants : T {
-	emit_index_t ref = emit_index_t::null();
-
-	// TODO: handle operator= disabling
-
-	template <typename ... Args>
-	push_constants(const Args &... args) : T(args...) {
-		auto &em = Emitter::active;
-
-		auto uniform_layout = this->layout();
-
-		op::Global global;
-		global.type = synthesize_type_fields(uniform_layout).id;
-		global.binding = -1;
-		global.qualifier = op::Global::push_constant;
-
-		ref = em.emit(global);
-
-		for (size_t i = 0; i < uniform_layout.fields.size(); i++) {
-			op::Load load;
-			load.src = ref.id;
-			load.idx = i;
-			uniform_layout.fields[i]->ref = em.emit(load);
-		}
-
-		// TODO: uncached type which clears each time
 	}
 };
 
