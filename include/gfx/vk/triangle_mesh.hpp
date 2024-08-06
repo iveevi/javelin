@@ -2,20 +2,20 @@
 
 #include <littlevk/littlevk.hpp>
 
-#include "../types.hpp"
-#include "../core/triangle_mesh.hpp"
+#include "../../types.hpp"
+#include "../../core/triangle_mesh.hpp"
 
-namespace jvl::gfx {
+namespace jvl::gfx::vulkan {
 
-struct VulkanTriangleMesh {
+struct TriangleMesh {
 	littlevk::Buffer vertices;
 	littlevk::Buffer triangles;
 	size_t count;
 
 	// property<littlevk::Buffer> attributes;
 
-	static std::optional <VulkanTriangleMesh> from(littlevk::LinkedDeviceAllocator <> &allocator, const core::TriangleMesh &tmesh) {
-		VulkanTriangleMesh vmesh;
+	static std::optional <TriangleMesh> from(littlevk::LinkedDeviceAllocator <> &allocator, const core::TriangleMesh &tmesh) {
+		TriangleMesh vmesh;
 
 		vmesh.count = 3 * tmesh.triangles.size();
 		std::tie(vmesh.vertices, vmesh.triangles) = allocator
@@ -26,4 +26,4 @@ struct VulkanTriangleMesh {
 	}
 };
 
-}
+} // namespace jvl::gfx::vulkan

@@ -10,12 +10,15 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_vulkan.h>
 #include <imgui/backends/imgui_impl_glfw.h>
+#include <vulkan/vulkan_enums.hpp>
 
+#include "constants.hpp"
 #include "core/aperature.hpp"
 #include "core/preset.hpp"
 #include "core/transform.hpp"
 #include "core/triangle_mesh.hpp"
-#include "gfx/vk_triangle_mesh.hpp"
+#include "gfx/cpu/framebuffer.hpp"
+#include "gfx/vk/triangle_mesh.hpp"
 #include "math_types.hpp"
 
 // Shader sources
@@ -65,8 +68,12 @@ void main()
 struct {
 	jvl::float2 min;
 	jvl::float2 max;
+	bool active;
 
 	bool contains(const jvl::float2 &v) const {
+		if (!active)
+			return false;
+
 		return (min.x <= v.x) && (v.x <= max.x)
 			&& (min.y <= v.y) && (v.y <= max.y);
 	}
@@ -134,31 +141,94 @@ void cursor_callback(GLFWwindow *window, double xpos, double ypos)
 		pitch -= xoffset;
 		yaw += yoffset;
 
-		float pi_e = jvl::core::pi <float> /2 - 1e-3f;
+		float pi_e = jvl::pi <float> / 2.0f - 1e-3f;
 		yaw = std::min(pi_e, std::max(-pi_e, yaw));
 
 		transform->rotation = jvl::fquat::euler_angles(yaw, pitch, 0);
 	}
 }
 
-std::string to_string(const jvl::float4x4 &A)
+inline vk::DescriptorSet imgui_add_vk_texture(const vk::Sampler &sampler, const vk::ImageView &view, const vk::ImageLayout &layout)
 {
-	std::string ret = "matrix[4][4] = {\n";
-	for (size_t i = 0; i < 4; i++) {
-		ret += "  {";
-		for (size_t j = 0; j < 4; j++) {
-			ret += fmt::format("{:.4f}", A[i][j]);
-			if (j < 3)
-				ret += ", ";
-		}
+	return ImGui_ImplVulkan_AddTexture(static_cast <VkSampler> (sampler),
+			                   static_cast <VkImageView> (view),
+					   static_cast <VkImageLayout> (layout));
+}
 
-		ret += "}";
-		if (i < 3)
-			ret += ",";
-		ret += "\n";
+struct SurfaceHit {
+	float time;
+	jvl::float3 normal;
+
+	// TODO: && version
+	void update(const SurfaceHit &other) {
+		if (other.time < 0)
+			return;
+
+		if (time < 0 || time > other.time) {
+			time = other.time;
+			normal = other.normal;
+		}
 	}
 
-	return ret + "}";
+	static SurfaceHit miss() {
+		SurfaceHit sh;
+		sh.time = -1;
+		return sh;
+	}
+};
+
+SurfaceHit hit_triangle(const jvl::float3 &ray, const jvl::float3 &origin, const jvl::float3 &v0, const jvl::float3 &v1, const jvl::float3 &v2)
+{
+	SurfaceHit sh = SurfaceHit::miss();
+
+	jvl::float3 e1 = v1 - v0;
+	jvl::float3 e2 = v2 - v0;
+	jvl::float3 p = cross(ray, e2);
+
+	float a = dot(e1, p);
+	if (std::abs(a) < 1e-6)
+		return sh;
+
+	float f = 1.0 / a;
+	jvl::float3 s = origin - v0;
+	float u = f * dot(s, p);
+
+	if (u < 0.0 || u > 1.0)
+		return sh;
+
+	jvl::float3 q = cross(s, e1);
+	float v = f * dot(ray, q);
+
+	if (v < 0.0 || u + v > 1.0)
+		return sh;
+
+	float t = f * dot(e2, q);
+	if (t > 0.00001) {
+		sh.time = t;
+		// sh.p = origin + t * ray;
+		// sh.b = float3 {1 - u - v, u, v};
+
+		// if (triangle.has_uvs)
+		// 	sh.uv = uv0 * sh.b.x + triangle.uv1 * sh.b.y + triangle.uv2 * sh.b.z;
+		// else
+		// 	sh.uv = Vector2 { sh.b.y, sh.b.z };
+
+		sh.normal = normalize(cross(e1, e2));
+		// if (dot(sh.ng, ray) > 0) {
+		// 	sh.ng = -sh.ng;
+		// 	sh.backfacing = true;
+		// }
+		//
+		// if (triangle.has_normals) {
+		// 	sh.ns = triangle.n0 * sh.b.x + triangle.n1 * sh.b.y + triangle.n2 * sh.b.z;
+		// 	if (dot(sh.ns, ray) > 0)
+		// 		sh.ns = -sh.ns;
+		// } else {
+		// 	sh.ns = sh.ng;
+		// }
+	}
+
+	return sh;
 }
 
 int main(int argc, char *argv[])
@@ -189,7 +259,7 @@ int main(int argc, char *argv[])
 	vk::SurfaceKHR surface;
 	littlevk::Window window;
 
-	vk::Extent2D default_extent { 1000, 1000 };
+	vk::Extent2D default_extent { 1920, 1080 };
 
 	std::tie(surface, window) = littlevk::surface_handles(default_extent, "javelin");
 
@@ -264,10 +334,14 @@ int main(int argc, char *argv[])
 		command_pool,
 		vk::CommandBufferLevel::ePrimary, 2u);
 
-	std::vector <jvl::gfx::VulkanTriangleMesh> vmeshes;
+	std::vector <jvl::core::TriangleMesh> tmeshes;
+	std::vector <jvl::gfx::vulkan::TriangleMesh> vmeshes;
+
 	for (size_t i = 0; i < preset.geometry.size(); i++) {
 		auto tmesh = jvl::core::TriangleMesh::from(preset.geometry[i]).value();
-		auto vmesh = jvl::gfx::VulkanTriangleMesh::from(allocator, tmesh).value();
+		tmeshes.push_back(tmesh);
+
+		auto vmesh = jvl::gfx::vulkan::TriangleMesh::from(allocator, tmesh).value();
 		vmeshes.push_back(vmesh);
 	}
 
@@ -324,10 +398,8 @@ int main(int argc, char *argv[])
 
 		vk::Sampler sampler = littlevk::SamplerAssembler(device, dal);
 		for (const littlevk::Image &image : render_color_targets) {
-			vk::DescriptorSet dset = ImGui_ImplVulkan_AddTexture(
-				static_cast <VkSampler> (sampler),
-				static_cast <VkImageView> (image.view),
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			vk::DescriptorSet dset = imgui_add_vk_texture(sampler, image.view,
+					vk::ImageLayout::eShaderReadOnlyOptimal);
 
 			imgui_descriptors.push_back(dset);
 		}
@@ -379,11 +451,8 @@ int main(int argc, char *argv[])
 		export_render_targets_to_imgui();
 
 		auto transition = [&](const vk::CommandBuffer &cmd) {
-			for (auto &image : render_color_targets) {
-				littlevk::transition(cmd, image,
-						vk::ImageLayout::eUndefined,
-						vk::ImageLayout::ePresentSrcKHR);
-			}
+			for (auto &image : render_color_targets)
+				image.transition(cmd, vk::ImageLayout::ePresentSrcKHR);
 		};
 
 		// TODO: linked queue pool
@@ -396,7 +465,7 @@ int main(int argc, char *argv[])
 	auto handle_input = [&]() {
 		static float last_time = 0.0f;
 
-		constexpr float speed = 500.0f;
+		constexpr float speed = 50.0f;
 
 		float delta = speed * float(glfwGetTime() - last_time);
 		last_time = glfwGetTime();
@@ -424,7 +493,78 @@ int main(int argc, char *argv[])
 	glfwSetMouseButtonCallback(window.handle, button_callback);
 	glfwSetCursorPosCallback(window.handle, cursor_callback);
 
+	auto fb = jvl::gfx::cpu::Framebuffer <uint32_t> ::from(100, 200);
+	auto rf = jvl::core::rayframe(aperature, transform);
+
+	auto tonemap = [](const jvl::float3 &rgb) -> uint32_t {
+		// TODO: r g b a components with a union
+		uint32_t r = 255 * rgb.x;
+		uint32_t g = 255 * rgb.y;
+		uint32_t b = 255 * rgb.z;
+		return r | g << 8 | b << 16 | 0xff000000;
+	};
+
+	// TODO: per pixel function
+	// TODO: parallel for version
+	bool complete = false;
+	auto process = [&tmeshes, rf, &fb, &tonemap, &complete]() {
+		for (size_t i = 0; i < fb.height; i++) {
+			for (size_t j = 0; j < fb.width; j++) {
+				jvl::float2 uv = { j/float(fb.width), i/float(fb.height) };
+
+				jvl::float3 origin = rf.origin;
+				jvl::float3 ray = normalize(rf.lower_left
+							+ uv.x * rf.horizontal
+							+ (1 - uv.y) * rf.vertical
+							- rf.origin);
+
+				SurfaceHit sh = SurfaceHit::miss();
+				for (const auto &tmesh : tmeshes) {
+					for (const jvl::int3 &t : tmesh.triangles) {
+						jvl::float3 v0 = tmesh.positions[t.x];
+						jvl::float3 v1 = tmesh.positions[t.y];
+						jvl::float3 v2 = tmesh.positions[t.z];
+
+						auto sh_hit = hit_triangle(ray, origin, v0, v1, v2);
+						sh.update(sh_hit);
+					}
+				}
+
+				jvl::float3 color;
+				if (sh.time >= 0)
+					color = 0.5f + 0.5f * sh.normal;
+
+				fb[i][j] = tonemap(color);
+			}
+		}
+
+		complete = true;
+	};
+
+	littlevk::Buffer fb_buffer;
+	littlevk::Image fb_image;
+
+	std::tie(fb_buffer, fb_image) = allocator
+		.buffer(fb.data, vk::BufferUsageFlagBits::eTransferSrc)
+		.image(vk::Extent2D { fb.width, fb.height },
+			vk::Format::eR8G8B8A8Unorm,
+			vk::ImageUsageFlagBits::eSampled
+				| vk::ImageUsageFlagBits::eTransferDst,
+			vk::ImageAspectFlagBits::eColor);
+
+	littlevk::submit_now(device, command_pool, graphics_queue,
+		[&](const vk::CommandBuffer &cmd) {
+			fb_image.transition(cmd, vk::ImageLayout::eTransferDstOptimal);
+			littlevk::copy_buffer_to_image(cmd, fb_image, fb_buffer, vk::ImageLayout::eTransferDstOptimal);
+			fb_image.transition(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
+		});
+
+	vk::Sampler sampler = littlevk::SamplerAssembler(device, dal);
+	vk::DescriptorSet cpu_fb_dset = imgui_add_vk_texture(sampler, fb_image.view,
+			vk::ImageLayout::eShaderReadOnlyOptimal);
+
 	// TODO: dynamic render pass
+	std::thread thread(process);
 
 	uint32_t frame = 0;
         while (true) {
@@ -454,6 +594,18 @@ int main(int argc, char *argv[])
 
 		const auto &render_rpbi = littlevk::default_rp_begin_info <2>
 			(render_pass, framebuffers[op.index], window);
+
+		// Update framebuffer buffer and copy to the image
+		littlevk::upload(device, fb_buffer, fb.data);
+		if (complete) {
+			printf("done.\n");
+			thread.join();
+			complete = false;
+		}
+
+		fb_image.transition(cmd, vk::ImageLayout::eTransferDstOptimal);
+		littlevk::copy_buffer_to_image(cmd, fb_image, fb_buffer, vk::ImageLayout::eTransferDstOptimal);
+		fb_image.transition(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
 
 		cmd.beginRenderPass(render_rpbi, vk::SubpassContents::eInline);
 		{
@@ -491,8 +643,9 @@ int main(int argc, char *argv[])
 			}
 
 			if (ImGui::Begin("Preview")) {
-				ImVec2 size = ImGui::GetContentRegionAvail();
+				viewport_region.active = ImGui::IsWindowFocused();
 
+				ImVec2 size = ImGui::GetContentRegionAvail();
 				ImGui::Image(imgui_descriptors[frame], size);
 
 				ImVec2 viewport = ImGui::GetItemRectSize();
@@ -503,6 +656,13 @@ int main(int argc, char *argv[])
 
 				viewport_region.min = { min.x, min.y };
 				viewport_region.max = { max.x, max.y };
+
+				ImGui::End();
+			}
+
+			if (ImGui::Begin("Framebuffer")) {
+				ImVec2 size = ImGui::GetContentRegionAvail();
+				ImGui::Image(cpu_fb_dset, size);
 
 				ImGui::End();
 			}

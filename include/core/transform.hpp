@@ -39,7 +39,7 @@ struct Transform {
 			rotation.rotate(up));
 	}
 
-	std::tuple<float3, float3, float3> axes() const {
+	std::tuple <float3, float3, float3> axes() const {
 		// X is horizontal
 		// Y is vertical
 		// Z is front/back

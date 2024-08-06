@@ -44,7 +44,11 @@ struct vector_base <T, 3> {
 		};
 	};
 
-	constexpr vector_base(T x_ = 0, T y_ = 0, T z_ = 0) : x(x_), y(y_), z(z_) {}
+	constexpr vector_base(T x_ = 0, T y_ = 0, T z_ = 0)
+			: x(x_), y(y_), z(z_) {}
+
+	constexpr vector_base(const vector_base <T, 2> &v, T z_ = 0)
+			: x(v.x), y(v.y), z(z_) {}
 
 	TEMPLATE_DATA_INDEX
 };
@@ -70,11 +74,19 @@ template <typename T, size_t N>
 struct vector : vector_base <T, N> {
 	using vector_base <T, N> ::vector_base;
 
-	vector <T, N> &operator+=(const vector <T, N> &A) {
+	vector &operator+=(const vector &A) {
 		for (size_t i = 0; i < N; i++)
 			this->data[i] += A[i];
 
 		return *this;
+	}
+
+	vector operator-() const {
+		vector vn;
+		for (size_t i = 0; i < N; i++)
+			vn[i] = -this->data[i];
+
+		return vn;
 	}
 };
 
@@ -202,7 +214,6 @@ inline bool operator==(const matrix<T, N, M> &A, const matrix<T, N, M> &B)
 
 // Arithmetic operators
 // TODO: headers
-
 #define TEMPLATE_VECTOR_OPERATORS(op)                                          \
 	template <typename T, size_t N>                                        \
 	vector<T, N> operator op(const vector<T, N> &A, const vector<T, N> &B) \
@@ -234,7 +245,10 @@ inline bool operator==(const matrix<T, N, M> &A, const matrix<T, N, M> &B)
 TEMPLATE_VECTOR_OPERATORS(+)
 TEMPLATE_VECTOR_OPERATORS(-)
 
+TEMPLATE_MIXED_VECTOR_OPERATORS(+)
+TEMPLATE_MIXED_VECTOR_OPERATORS(-)
 TEMPLATE_MIXED_VECTOR_OPERATORS(*)
+TEMPLATE_MIXED_VECTOR_OPERATORS(/)
 
 template <typename T>
 quat <T> operator*(const quat <T> &A, const quat <T> &B)
