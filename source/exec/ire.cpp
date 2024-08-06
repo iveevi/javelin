@@ -1,4 +1,6 @@
+#include <array>
 #include <cassert>
+#include <concepts>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -37,11 +39,21 @@ struct emit_index_t {
 
 struct tagged {
 	mutable emit_index_t ref;
+	mutable bool immutable;
 
-	tagged(emit_index_t r = emit_index_t::null()) : ref(r) {}
+	tagged(emit_index_t r = emit_index_t::null())
+			: ref(r), immutable(false) {}
 
-	[[gnu::always_inline]] bool cached() const {
+	[[gnu::always_inline]]
+	bool cached() const {
 		return ref != -1;
+	}
+
+	int synthesize() const {
+		if (!cached())
+			abort();
+
+		return ref.id;
 	}
 };
 
@@ -56,10 +68,10 @@ template <typename T>
 concept synthesizable = requires(const T &t) {
 	{
 		t.synthesize()
-	} -> std::same_as<emit_index_t>;
+	} -> std::same_as <emit_index_t>;
 };
 
-template <typename T, typename... Args>
+template <typename T, typename ... Args>
 concept callbacked = requires(T &t, const Args &...args) {
 	{
 		t.callback(args...)
@@ -68,10 +80,8 @@ concept callbacked = requires(T &t, const Args &...args) {
 
 // Forward declarations
 template <typename T, size_t binding>
-// TODO: tagging
 struct layout_in : tagged {
-	emit_index_t synthesize() const
-	{
+	emit_index_t synthesize() const {
 		if (cached())
 			return ref;
 
@@ -79,41 +89,41 @@ struct layout_in : tagged {
 
 		// TODO: type_match t construct a TypeField
 		op::TypeField type;
-		type.item = type_match<T>();
+		type.item = type_match <T> ();
 		type.next = -1;
 
-		op::Global qualifier;
-		qualifier.type = em.emit(type);
-		qualifier.binding = binding;
-		qualifier.qualifier = op::Global::layout_in;
+		op::Global global;
+		global.type = em.emit(type);
+		global.binding = binding;
+		global.qualifier = op::Global::layout_in;
 
 		op::Load load;
-		load.src = em.emit(qualifier);
+		load.src = em.emit(global);
 
 		return (ref = em.emit_main(load));
 	}
 
-	operator T() { return T(synthesize()); }
+	operator T() {
+		return T(synthesize());
+	}
 };
 
-template <typename T, size_t binding>
-	requires synthesizable<T>
+template <synthesizable T, size_t binding>
 struct layout_out : T {
-	void operator=(const T &t) const
-	{
+	void operator=(const T &t) const {
 		auto &em = Emitter::active;
 
 		op::TypeField type;
-		type.item = type_match<T>();
+		type.item = type_match <T> ();
 		type.next = -1;
 
-		op::Global qualifier;
-		qualifier.type = em.emit(type);
-		qualifier.binding = binding;
-		qualifier.qualifier = op::Global::layout_out;
+		op::Global global;
+		global.type = em.emit(type);
+		global.binding = binding;
+		global.qualifier = op::Global::layout_out;
 
 		op::Store store;
-		store.dst = em.emit(qualifier);
+		store.dst = em.emit(global);
 		store.src = t.synthesize().id;
 
 		em.emit_main(store);
@@ -121,7 +131,6 @@ struct layout_out : T {
 };
 
 template <typename T, typename Up, typename P, P payload>
-// requires callbacked <Up>
 struct phantom_type;
 
 template <typename T, size_t N>
@@ -129,7 +138,7 @@ struct swizzle_base : tagged {};
 
 // TODO: inherit from base 3 and add extras
 template <typename T>
-struct swizzle_base<T, 4> : tagged {
+struct swizzle_base <T, 4> : tagged {
 	using tagged::tagged;
 
 	using payload = op::Swizzle;
@@ -137,7 +146,9 @@ struct swizzle_base<T, 4> : tagged {
 	template <payload p>
 	using phantom = phantom_type<T, swizzle_base<T, 4>, payload, p>;
 
-	void callback(const payload &payload) { printf("callback!!\n"); }
+	void callback(const payload &payload) {
+		printf("callback!!\n");
+	}
 
 	phantom<payload::x> x;
 	phantom<payload::y> y;
@@ -147,8 +158,7 @@ struct swizzle_base<T, 4> : tagged {
 
 template <typename T, typename Up, typename P, P payload>
 struct phantom_type {
-	T operator=(const T &v)
-	{
+	T operator=(const T &v) {
 		printf("assigned to!\n");
 		((Up *) this)->callback(payload);
 		return v;
@@ -156,21 +166,19 @@ struct phantom_type {
 };
 
 template <typename T, size_t N>
-struct vec_base : swizzle_base<T, N> {
+struct vec_base : swizzle_base <T, N> {
 	T data[N];
 
 	constexpr vec_base() = default;
 
-	constexpr vec_base(emit_index_t r) : swizzle_base<T, N>(r) {}
+	constexpr vec_base(emit_index_t r) : swizzle_base <T, N> (r) {}
 
-	constexpr vec_base(T v)
-	{
+	constexpr vec_base(T v) {
 		for (size_t i = 0; i < N; i++)
 			data[i] = v;
 	}
 
-	emit_index_t synthesize() const
-	{
+	emit_index_t synthesize() const {
 		if (this->cached())
 			return this->ref;
 
@@ -186,16 +194,15 @@ struct vec_base : swizzle_base<T, N> {
 };
 
 template <typename T, size_t N>
-struct vec : vec_base<T, N> {
-	using vec_base<T, N>::vec_base;
+struct vec : vec_base <T, N> {
+	using vec_base <T, N> ::vec_base;
 };
 
 template <typename T>
-struct vec<T, 4> : vec_base<T, 4> {
-	using vec_base<T, 4>::vec_base;
+struct vec <T, 4> : vec_base <T, 4> {
+	using vec_base <T, 4> ::vec_base;
 
-	vec(const vec<T, 3> &v, const float &x)
-	{
+	vec(const vec <T, 3> &v, const float &x) {
 		auto &em = Emitter::active;
 
 		// TODO: conversion (f32 struct)
@@ -330,8 +337,7 @@ constexpr auto type_match()
 	return op::PrimitiveType::bad;
 }
 
-template <typename T, typename U>
-	requires synthesizable<T> && synthesizable<U>
+template <synthesizable T, synthesizable U>
 boolean operator==(const T &A, const U &B)
 {
 	auto &em = Emitter::active;
@@ -351,21 +357,20 @@ boolean operator==(const T &A, const U &B)
 }
 
 // Promoting to gltype
-template <typename T, typename U>
-	requires synthesizable<T>
+template <synthesizable T, typename U>
 boolean operator==(const T &A, const U &B)
 {
-	return A == gltype<U>(B);
+	return A == gltype <U> (B);
 }
 
-template <typename T, typename U>
-	requires synthesizable<U>
+template <typename T, synthesizable U>
 boolean operator==(const T &A, const U &B)
 {
-	return gltype<T>(A) == B;
+	return gltype <T> (A) == B;
 }
 
 // Branching emitters
+// TODO: control flow header
 void cond(boolean b)
 {
 	auto &em = Emitter::active;
@@ -397,10 +402,33 @@ void end()
 	em.emit_main(op::End());
 }
 
-struct push_constants {};
+struct __uniform_layout_key {};
 
-template <typename T, typename... Args>
-static emit_index_t synthesize_type_field()
+template <typename ... Args>
+requires (sizeof...(Args) > 0)
+struct uniform_layout {
+	std::array <tagged *, sizeof...(Args)> fields;
+
+	template <typename T, typename ... UArgs>
+	[[gnu::always_inline]]
+	void __init(int index, T &t, UArgs &... uargs) {
+		// TODO: how to deal with nested structs?
+		fields[index] = &static_cast <tagged &> (t);
+		if constexpr (sizeof...(uargs) > 0)
+			__init(index + 1, uargs...);
+	}
+
+	uniform_layout(Args &... args) {
+		__init(0, args...);
+	}
+
+	__uniform_layout_key key() const {
+		return {};
+	}
+};
+
+template <typename T, typename ... Args>
+emit_index_t synthesize_type_fields()
 {
 	static thread_local emit_index_t cached = emit_index_t::null();
 	if (cached.id != -1)
@@ -409,17 +437,22 @@ static emit_index_t synthesize_type_field()
 	auto &em = Emitter::active;
 
 	op::TypeField tf;
-	tf.item = type_match<T>();
+	tf.item = type_match <T> ();
 	if constexpr (sizeof...(Args))
-		tf.next = synthesize_type_field<Args...>().id;
+		tf.next = synthesize_type_fields <Args...> ().id;
 	else
 		tf.next = -1;
 
 	return (cached = em.emit(tf));
 }
 
-template <typename T, typename... Args>
-requires synthesizable <T> && (synthesizable <Args> && ...)
+template <typename ... Args>
+emit_index_t synthesize_type_fields(const uniform_layout <Args...> &args)
+{
+	return synthesize_type_fields <Args...> ();
+}
+
+template <synthesizable T, synthesizable ... Args>
 int argument_list(const T &t, const Args &...args)
 {
 	auto &em = Emitter::active;
@@ -433,29 +466,31 @@ int argument_list(const T &t, const Args &...args)
 	return em.emit(l);
 }
 
-struct structure {
-	template <typename... Args>
-	requires(synthesizable <Args> && ...)
-	structure(const Args &...args) {
-		auto &em = Emitter::active;
+template <synthesizable ... Args>
+requires (sizeof...(Args) > 0)
+void __struct(const Args &... args)
+{
+	auto &em = Emitter::active;
 
-		op::Construct ctor;
-		ctor.type = synthesize_type_field <Args...> ().id;
-		ctor.args = argument_list(args...);
+	op::Construct ctor;
+	ctor.type = synthesize_type_fields <Args...> ().id;
+	ctor.args = argument_list(args...);
 
-		em.emit_main(ctor);
-	}
-};
+	em.emit_main(ctor);
+}
+
+// TODO: core.hpp header for main glsl functionality
+// then std.hpp for additional features
 
 // Guarantees
 // TODO: debug only
 static_assert(synthesizable <vec4>);
 
-static_assert(synthesizable <gltype<int>>);
+static_assert(synthesizable <gltype <int>>);
 
 static_assert(synthesizable <boolean>);
 
-static_assert(synthesizable <layout_in<int, 0>>);
+static_assert(synthesizable <layout_in <int, 0>>);
 
 static_assert(synthesizable <vec2>);
 static_assert(synthesizable <vec3>);
@@ -467,25 +502,70 @@ static_assert(synthesizable <mat4>);
 
 using namespace jvl::ire;
 
-struct mvp : structure {
+// TODO: nested structs
+struct mvp_info {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
+	vec3 camera;
 
-	using structure::structure;
-	// mvp() : structure(model, view, proj) {}
-	// using structure <mat4, mat4, mat4> ::structure;
+	// mvp_info(bool stationary = false) {
+	// 	if (stationary)
+	// 		__struct(view, proj);
+	// 	else
+	// 		__struct(model, view, proj);
+	// }
+
+	auto layout() {
+		return uniform_layout(model, view, proj, camera);
+	}
+};
+
+template <typename T>
+concept uniform_compatible = requires {
+	{
+		T().layout().key()
+	} -> std::same_as <__uniform_layout_key>;
+};
+
+// template <uniform_compatible T>
+template <uniform_compatible T>
+struct push_constants : T {
+	emit_index_t ref = emit_index_t::null();
+
+	// TODO: handle operator= disabling
+
+	template <typename ... Args>
+	push_constants(const Args &... args) : T(args...) {
+		auto &em = Emitter::active;
+
+		auto uniform_layout = this->layout();
+
+		op::Global global;
+		global.type = synthesize_type_fields(uniform_layout).id;
+		global.binding = -1;
+		global.qualifier = op::Global::push_constant;
+
+		ref = em.emit(global);
+
+		for (size_t i = 0; i < uniform_layout.fields.size(); i++) {
+			op::Load load;
+			load.src = ref.id;
+			load.idx = i;
+			uniform_layout.fields[i]->ref = em.emit(load);
+		}
+
+		// TODO: uncached type which clears each time
+	}
 };
 
 void vertex_shader()
 {
 	layout_in <vec3, 0> position;
-	mvp mvp { mat4(), mat4(), mat4() };
-	// mvp mvp;
 
-	// push_constants <mvp> mvp;
+	push_constants <mvp_info> mvp;
 
-	vec4 v = vec4(position, 1);
+	vec4 v = vec4(mvp.camera, 1);
 }
 
 void fragment_shader()

@@ -33,6 +33,8 @@ std::string translate_glsl_vd::operator()(const Global &global)
 		return "_lout" + std::to_string(global.binding);
 	case Global::layout_in:
 		return "_lin" + std::to_string(global.binding);
+	case Global::push_constant:
+		return "_pc";
 	default:
 		break;
 	}
@@ -66,13 +68,18 @@ std::string translate_glsl_vd::operator()(const Load &load)
 
 	bool inl = inlining;
 	std::string value = defer(load.src);
-	if (inl)
-		return value;
 
-	typeof_vd typer(pool, struct_names);
-	std::string type = typer.defer(load.src);
+	// TODO: instead of inline/not-inline, upgrade instructions to main...
+	std::string access = "";
+	if (load.idx != -1)
+		access = fmt::format(".f{}", load.idx);
+
+	if (inl)
+		return value + access;
+
+	std::string type = type_name(pool, struct_names, load.src, load.idx);
 	std::string sym = "s" + std::to_string(generator++);
-	return type + " " + sym + " = " + value + ";";
+	return type + " " + sym + " = " + value + access + ";";
 }
 
 std::string translate_glsl_vd::operator()(const Store &store)
@@ -101,8 +108,7 @@ std::string translate_glsl_vd::operator()(const Construct &ctor)
 {
 	bool inl = inlining;
 
-	typeof_vd typer(pool, struct_names);
-	std::string type = typer.defer(ctor.type);
+	std::string type = type_name(pool, struct_names, ctor.type, -1);
 
 	int args = ctor.args;
 	std::string value = type + "(";

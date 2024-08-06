@@ -2,6 +2,7 @@
 #include <map>
 
 #include "ire/emitter.hpp"
+#include "ire/op.hpp"
 
 namespace jvl::ire {
 
@@ -176,11 +177,11 @@ std::string Emitter::generate_glsl()
 
 	for (int i = 0; i < pointer; i++) {
 		auto op = pool[i];
-		if (!std::holds_alternative<op::Global>(op))
+		if (!op.is <op::Global> ())
 			continue;
 
-		auto global = std::get<op::Global>(op);
-		auto type = std::visit(op::typeof_vd(pool, struct_names), op);
+		auto global = std::get <op::Global> (op);
+		auto type = op::type_name(pool, struct_names, i, -1);
 		if (global.qualifier == op::Global::layout_in)
 			lins[global.binding] = type;
 		else if (global.qualifier == op::Global::layout_out)

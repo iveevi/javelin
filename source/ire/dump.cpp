@@ -4,11 +4,16 @@ namespace jvl::ire::op {
 
 void dump_vd::operator()(const Global &global)
 {
-	static const char *qualifier_table[] = {"layout input",
-						"layout output"};
+	static const char *qualifier_table[] = {
+		"layout input",
+		"layout output",
+		"push_constant"
+	};
 
-	printf("global: %%%d = (%s, %d)", global.type,
-	       qualifier_table[global.qualifier], global.binding);
+	fmt::print("global: %{} = ({}, {})",
+		global.type,
+		qualifier_table[global.qualifier],
+		global.binding);
 }
 
 void dump_vd::operator()(const TypeField &t)
@@ -16,8 +21,10 @@ void dump_vd::operator()(const TypeField &t)
 	printf("type: ");
 	if (t.item != bad)
 		printf("%s", type_table[t.item]);
-	else
+	else if (t.down != -1)
 		printf("%%%d", t.down);
+	else
+		printf("<BAD>");
 
 	printf(" -> ");
 	if (t.next >= 0)
@@ -70,7 +77,10 @@ void dump_vd::operator()(const Store &store)
 	printf("store %%%d -> %%%d", store.src, store.dst);
 }
 
-void dump_vd::operator()(const Load &load) { printf("load %%%d", load.src); }
+void dump_vd::operator()(const Load &load)
+{
+	printf("load %%%d #%d", load.src, load.idx);
+}
 
 void dump_vd::operator()(const Cmp &cmp)
 {

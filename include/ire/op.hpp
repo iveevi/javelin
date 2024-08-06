@@ -25,7 +25,11 @@ struct Global {
 	int type = -1;
 	int binding = -1;
 
-	enum { layout_in, layout_out } qualifier;
+	enum {
+		layout_in,
+		layout_out,
+		push_constant
+	} qualifier;
 };
 
 struct TypeField {
@@ -81,6 +85,7 @@ struct Store {
 
 struct Load {
 	int src = -1;
+	int idx = -1; // Arrays or structures
 };
 
 struct Cond {
@@ -103,38 +108,26 @@ static const char *type_table[] = {
 };
 
 // Dispatcher types (vd = variadic dispatcher)
-struct typeof_vd {
-	op::General *pool;
-
-	const wrapped::hash_table<int, std::string> &struct_names;
-
-	std::string operator()(const TypeField &type)
-	{
-		if (type.item != bad)
-			return type_table[type.item];
-		return "<?>";
-	}
-
-	std::string operator()(const Global &global)
-	{
-		// NOTE: this is implicit conversion
-		return defer(global.type);
-	}
-
-	template <typename T>
-	std::string operator()(const T &)
-	{
-		return "<?>";
-	}
-
-	std::string defer(int index)
-	{
-		if (struct_names.contains(index))
+inline std::string type_name(const General *const pool, const wrapped::hash_table <int, std::string> &struct_names, int index, int field)
+{
+	if (struct_names.contains(index)) {
+		if (field == -1)
 			return struct_names.at(index);
 
-		return std::visit(*this, pool[index]);
+		index -= std::max(0, field);
+		field = 0;
 	}
-};
+
+	General g = pool[index];
+	if (auto global = g.get <Global> ()) {
+		return type_name(pool, struct_names, global->type, field);
+	} else if (auto tf = g.get <TypeField> ()) {
+		if (tf->item != bad)
+			return type_table[tf->item];
+	}
+
+	return "<BAD>";
+}
 
 struct dump_vd {
 	void operator()(const Global &);
