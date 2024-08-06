@@ -1,6 +1,5 @@
 #pragma once
 
-#include "gtest/gtest.h"
 #include <cmath>
 
 #include "transform.hpp"

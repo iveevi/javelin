@@ -10,59 +10,26 @@
 
 #include "ire/op.hpp"
 #include "ire/emitter.hpp"
+#include "ire/gltype.hpp"
+#include "ire/tagged.hpp"
 
 namespace jvl::ire {
 
-// Interface
-struct emit_index_t {
-	using value_type = int;
-
-	value_type id;
-
-	emit_index_t &operator=(const value_type &v) {
-		id = v;
-		return *this;
-	}
-
-	static emit_index_t null() {
-		return {.id = -1};
-	}
-
-	bool operator==(const value_type &v) {
-		return id == v;
-	}
-
-	bool operator==(const emit_index_t &c) {
-		return id == c.id;
-	}
-};
-
-struct tagged {
-	mutable emit_index_t ref;
-	mutable bool immutable;
-
-	tagged(emit_index_t r = emit_index_t::null())
-			: ref(r), immutable(false) {}
-
-	[[gnu::always_inline]]
-	bool cached() const {
-		return ref != -1;
-	}
-
-	int synthesize() const {
-		if (!cached())
-			abort();
-
-		return ref.id;
-	}
-};
-
-// Way to upcast C++ primitives into a workable type
 template <typename T>
-struct gltype {};
+constexpr op::PrimitiveType primitive_type();
 
 template <typename T>
-constexpr auto type_match();
+int type_field()
+{
+	auto &em = Emitter::active;
+
+	// TODO: for all types
+	op::TypeField type;
+	type.item = primitive_type <T> ();
+	type.next = -1;
+
+	return em.emit(type);
+}
 
 template <typename T>
 concept synthesizable = requires(const T &t) {
@@ -119,13 +86,8 @@ struct layout_in : tagged {
 
 		auto &em = Emitter::active;
 
-		// TODO: type_match t construct a TypeField
-		op::TypeField type;
-		type.item = type_match <T> ();
-		type.next = -1;
-
 		op::Global global;
-		global.type = em.emit(type);
+		global.type = type_field <T> ();
 		global.binding = binding;
 		global.qualifier = op::Global::layout_in;
 
@@ -145,12 +107,8 @@ struct layout_out : T {
 	void operator=(const T &t) const {
 		auto &em = Emitter::active;
 
-		op::TypeField type;
-		type.item = type_match <T> ();
-		type.next = -1;
-
 		op::Global global;
-		global.type = em.emit(type);
+		global.type = type_field <T> ();
 		global.binding = binding;
 		global.qualifier = op::Global::layout_out;
 
@@ -174,7 +132,7 @@ emit_index_t synthesize_type_fields()
 	auto &em = Emitter::active;
 
 	op::TypeField tf;
-	tf.item = type_match <T> ();
+	tf.item = primitive_type <T> ();
 	if constexpr (sizeof...(Args))
 		tf.next = synthesize_type_fields <Args...> ().id;
 	else
@@ -260,20 +218,21 @@ struct swizzle_base <T, 4> : tagged {
 	using payload = op::Swizzle;
 
 	template <payload p>
-	using phantom = phantom_type<T, swizzle_base<T, 4>, payload, p>;
+	using phantom = phantom_type <T, swizzle_base <T, 4>, payload, p>;
 
 	void callback(const payload &payload) {
 		printf("callback!!\n");
 	}
 
-	phantom<payload::x> x;
-	phantom<payload::y> y;
-	phantom<payload::z> z;
-	phantom<payload::w> w;
+	phantom <payload::x> x;
+	phantom <payload::y> y;
+	phantom <payload::z> z;
+	phantom <payload::w> w;
 };
 
 template <typename T, typename Up, typename P, P payload>
 struct phantom_type {
+	// TODO: return a gltype
 	T operator=(const T &v) {
 		printf("assigned to!\n");
 		((Up *) this)->callback(payload);
@@ -318,16 +277,11 @@ template <typename T>
 struct vec <T, 4> : vec_base <T, 4> {
 	using vec_base <T, 4> ::vec_base;
 
-	vec(const vec <T, 3> &v, const float &x) {
+	vec(const vec <T, 3> &v, const gltype <T> &x) {
 		auto &em = Emitter::active;
 
-		// TODO: conversion (f32 struct)
-		op::Primitive px;
-		px.type = op::f32;
-		px.fdata[0] = x;
-
 		op::List lx;
-		lx.item = em.emit(px);
+		lx.item = x.synthesize().id;
 		lx.next = -1;
 
 		op::List lv;
@@ -382,46 +336,9 @@ struct mat : mat_base <T, N, M> {
 	using mat_base <T, N, M> ::mat_base;
 };
 
-template <>
-struct gltype <int> : tagged {
-	int value;
-
-	gltype(int v = 0) : value(v) {}
-
-	emit_index_t synthesize() const {
-		if (cached())
-			return ref;
-
-		auto &em = Emitter::active;
-
-		op::Primitive p;
-		p.type = op::i32;
-		p.idata[0] = value;
-
-		return (ref = em.emit(p));
-	}
-};
-
-template <>
-struct gltype <bool> : tagged {
-	using tagged::tagged;
-
-	bool value;
-
-	emit_index_t synthesize() const {
-		if (cached())
-			return ref;
-
-		auto &em = Emitter::active;
-
-		op::Primitive t;
-		t.type = op::PrimitiveType::boolean;
-
-		return (ref = em.emit(t));
-	}
-};
-
 // Common types
+using i32 = gltype <int>;
+using f32 = gltype <float>;
 using boolean = gltype <bool>;
 
 using vec2 = vec <float, 2>;
@@ -433,7 +350,7 @@ using mat4 = mat <float, 4, 4>;
 
 // Type matching
 template <typename T>
-constexpr auto type_match()
+constexpr op::PrimitiveType primitive_type()
 {
 	if constexpr (std::is_same_v <T, bool>)
 		return op::PrimitiveType::boolean;
@@ -568,6 +485,9 @@ void vertex_shader()
 	push_constants <mvp_info> mvp;
 
 	vec4 v = vec4(mvp.camera, 1);
+
+	f32 x = 2.335f;
+	vec4 w = vec4(mvp.camera, x);
 }
 
 void fragment_shader()
