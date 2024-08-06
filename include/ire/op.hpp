@@ -108,7 +108,10 @@ static const char *type_table[] = {
 };
 
 // Dispatcher types (vd = variadic dispatcher)
-inline std::string type_name(const General *const pool, const wrapped::hash_table <int, std::string> &struct_names, int index, int field)
+inline std::string type_name(const General *const pool,
+		             const wrapped::hash_table <int, std::string> &struct_names,
+			     int index,
+			     int field)
 {
 	if (struct_names.contains(index)) {
 		if (field == -1)
@@ -171,8 +174,7 @@ struct translate_glsl_vd {
 	std::string operator()(const Construct &);
 
 	template <typename T>
-	std::string operator()(const T &)
-	{
+	std::string operator()(const T &) {
 		return "<?>";
 	}
 
@@ -181,7 +183,7 @@ struct translate_glsl_vd {
 };
 
 struct reindex_vd {
-	wrapped::hash_table<int, int> &reindex;
+	wrapped::reindex reindexer;
 
 	void operator()(Primitive &);
 	void operator()(Swizzle &);

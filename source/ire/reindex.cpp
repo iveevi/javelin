@@ -8,50 +8,56 @@ void reindex_vd::operator()(Swizzle &) {}
 void reindex_vd::operator()(End &) {}
 
 // Useful
-void reindex_vd::operator()(Global &g) { g.type = reindex[g.type]; }
+void reindex_vd::operator()(Global &g)
+{
+	g.type = reindexer[g.type];
+}
 
 void reindex_vd::operator()(TypeField &tf)
 {
-	tf.down = reindex[tf.down];
-	tf.next = reindex[tf.next];
+	tf.down = reindexer[tf.down];
+	tf.next = reindexer[tf.next];
 }
 
 void reindex_vd::operator()(Cmp &cmp)
 {
-	cmp.a = reindex[cmp.a];
-	cmp.b = reindex[cmp.b];
+	cmp.a = reindexer[cmp.a];
+	cmp.b = reindexer[cmp.b];
 }
 
 void reindex_vd::operator()(List &list)
 {
-	list.item = reindex[list.item];
-	list.next = reindex[list.next];
+	list.item = reindexer[list.item];
+	list.next = reindexer[list.next];
 }
 
 void reindex_vd::operator()(Construct &ctor)
 {
-	ctor.type = reindex[ctor.type];
-	ctor.args = reindex[ctor.args];
+	ctor.type = reindexer[ctor.type];
+	ctor.args = reindexer[ctor.args];
 }
 
 void reindex_vd::operator()(Store &store)
 {
-	store.dst = reindex[store.dst];
-	store.src = reindex[store.src];
+	store.dst = reindexer[store.dst];
+	store.src = reindexer[store.src];
 }
 
-void reindex_vd::operator()(Load &load) { load.src = reindex[load.src]; }
+void reindex_vd::operator()(Load &load)
+{
+	load.src = reindexer[load.src];
+}
 
 void reindex_vd::operator()(Cond &cond)
 {
-	cond.cond = reindex[cond.cond];
-	cond.failto = reindex[cond.failto];
+	cond.cond = reindexer[cond.cond];
+	cond.failto = reindexer[cond.failto];
 }
 
 void reindex_vd::operator()(Elif &elif)
 {
-	elif.cond = reindex[elif.cond];
-	elif.failto = reindex[elif.failto];
+	elif.cond = reindexer[elif.cond];
+	elif.failto = reindexer[elif.failto];
 }
 
 } // namespace jvl::ire::op

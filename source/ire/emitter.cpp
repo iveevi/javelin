@@ -3,6 +3,7 @@
 
 #include "ire/emitter.hpp"
 #include "ire/op.hpp"
+#include "wrapped_types.hpp"
 
 namespace jvl::ire {
 
@@ -10,9 +11,12 @@ Emitter::Emitter() : pool(nullptr), dual(nullptr), size(0), pointer(0) {}
 
 void Emitter::compact()
 {
-	pointer = detail::ir_compact_deduplicate(pool, dual, main, pointer);
+	wrapped::reindex reindexer;
+	std::tie(pointer, reindexer) = detail::ir_compact_deduplicate(pool, dual, pointer);
 	std::memset(pool, 0, size * sizeof(op::General));
 	std::memcpy(pool, dual, pointer * sizeof(op::General));
+	synthesized = reindexer(synthesized);
+	used = reindexer(used);
 }
 
 void Emitter::resize(size_t units)
@@ -42,6 +46,36 @@ void Emitter::resize(size_t units)
 	size = units;
 }
 
+// Dead code elimination
+void Emitter::mark_used(int index, bool syn)
+{
+	if (index == -1)
+		return;
+
+	used.insert(index);
+
+	op::General g = pool[index];
+	if (auto ctor = g.get <op::Construct> ()) {
+		mark_used(ctor->type, true);
+		mark_used(ctor->args, true);
+	} else if (auto list = g.get <op::List> ()) {
+		mark_used(list->item, false);
+		mark_used(list->next, false);
+		syn = false;
+	} else if (auto load = g.get <op::Load> ()) {
+		mark_used(load->src, true);
+	} else if (auto global = g.get <op::Global> ()) {
+		mark_used(global->type, true);
+		syn = false;
+	} else if (auto tf = g.get <op::TypeField> ()) {
+		mark_used(tf->down, false);
+		mark_used(tf->next, false);
+	}
+
+	if (syn)
+		synthesized.insert(index);
+}
+
 // Emitting instructions during function invocation
 int Emitter::emit(const op::General &op)
 {
@@ -66,7 +100,8 @@ int Emitter::emit(const op::General &op)
 int Emitter::emit_main(const op::General &op)
 {
 	int p = emit(op);
-	main.insert(p);
+	synthesized.insert(p);
+	mark_used(p, true);
 	return p;
 }
 
@@ -126,17 +161,20 @@ std::string Emitter::generate_glsl()
 	source += "\n";
 
 	// Gather all necessary structs
-	wrapped::hash_table<int, std::string> struct_names;
+	wrapped::hash_table <int, std::string> struct_names;
 
 	int struct_index = 0;
 	for (int i = 0; i < pointer; i++) {
+		if (!synthesized.contains(i))
+			continue;
+
 		op::General g = pool[i];
-		if (!g.is<op::TypeField>())
+		if (!g.is <op::TypeField>())
 			continue;
 
 		// TODO: skip if unused as well
 
-		op::TypeField tf = g.as<op::TypeField>();
+		op::TypeField tf = g.as <op::TypeField>();
 		// TODO: skip if its only one primitive
 		if (tf.next == -1 && tf.down == -1)
 			continue;
@@ -193,6 +231,7 @@ std::string Emitter::generate_glsl()
 
 	// Actual translation
 	op::translate_glsl_vd tdisp;
+	// TODO: pass in the set of synthesized values
 	tdisp.pool = pool;
 	tdisp.struct_names = struct_names;
 
@@ -223,8 +262,13 @@ std::string Emitter::generate_glsl()
 	// Main function
 	source += "void main()\n";
 	source += "{\n";
-	for (int i : main)
+	for (int i : synthesized) {
+		// Types have already been synthesized if necessary
+		if (pool[i].is <op::TypeField> ())
+			continue;
+
 		source += "    " + tdisp.eval(i);
+	}
 	source += "}\n";
 
 	return source;
@@ -236,12 +280,17 @@ void Emitter::dump()
 {
 	printf("GLOBALS (%4d/%4d)\n", pointer, size);
 	for (size_t i = 0; i < pointer; i++) {
-		if (std::ranges::find(main.begin(), main.end(), i) != main.end())
-			printf("[*] ");
+		if (synthesized.contains(i))
+			printf("S");
 		else
-			printf("    ");
+			printf(" ");
 
-		printf("[%4d]: ", i);
+		if (used.contains(i))
+			printf("U");
+		else
+			printf(" ");
+
+		printf(" [%4d]: ", i);
 		std::visit(op::dump_vd(), pool[i]);
 		printf("\n");
 	}

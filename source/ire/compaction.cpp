@@ -1,6 +1,7 @@
 #include <array>
 
 #include "ire/emitter.hpp"
+#include "wrapped_types.hpp"
 
 // Compressing IR code sequences
 using block_atom_t = uint32_t;
@@ -44,24 +45,21 @@ block_t cast_to_block(const op::General &g)
 	return b;
 }
 
-size_t ir_compact_deduplicate(const op::General *const source,
-		              op::General *const dst,
-			      std::unordered_set <int> &main,
-			      size_t elements)
+std::tuple <size_t, wrapped::reindex>
+ir_compact_deduplicate(const op::General *const source, op::General *const dst, size_t elements)
 {
-	wrapped::hash_table<block_t, int> blocks;
-	wrapped::hash_table<int, int> reindex;
-	std::unordered_set<int> original;
+	wrapped::hash_table <block_t, int> blocks;
+	std::unordered_set <int> original;
+	wrapped::reindex reindexer;
 
 	// Find duplicates (binary)
 	// TODO: exception is if it is main
 	for (size_t i = 0; i < elements; i++) {
 		block_t b = cast_to_block(source[i]);
 		if (blocks.count(b)) {
-			reindex[i] = blocks[b];
-		}
-		else {
-			reindex[i] = blocks.size();
+			reindexer[i] = blocks[b];
+		} else {
+			reindexer[i] = blocks.size();
 			blocks[b] = blocks.size();
 			original.insert(i);
 		}
@@ -74,23 +72,12 @@ size_t ir_compact_deduplicate(const op::General *const source,
 			dst[size++] = source[i];
 	}
 
-	// Fix the main instruction indices
-	std::unordered_set<int> fixed_main;
-	for (int i : main)
-		fixed_main.insert(reindex[i]);
-
-	main = fixed_main;
-
 	// Re-index all instructions as necessary
-	// TODO: wrap the reindexer that aborts when not found (and -1 -> -1)
-	reindex[-1] = -1;
-
-	op::reindex_vd rvd(reindex);
-	for (size_t i = 0; i < size; i++) {
+	op::reindex_vd rvd(reindexer);
+	for (size_t i = 0; i < size; i++)
 		std::visit(rvd, dst[i]);
-	}
 
-	return size;
+	return { size, reindexer };
 
 	// TODO: structure similarity (i.e. lists)
 }

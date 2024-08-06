@@ -4,6 +4,7 @@
 #include <unordered_set>
 
 #include "op.hpp"
+#include "wrapped_types.hpp"
 
 namespace jvl::ire {
 
@@ -16,13 +17,17 @@ struct Emitter {
 	size_t pointer;
 
 	std::stack <int> control_flow_ends;
-	std::unordered_set <int> main;
+	std::unordered_set <int> used;
+	std::unordered_set <int> synthesized;
 
 	Emitter();
 
 	// Resizing and compaction
 	void compact();
 	void resize(size_t);
+
+	// Dead code elimination
+	void mark_used(int, bool);
 
 	// Emitting instructions during function invocation
 	int emit(const op::General &);
@@ -45,8 +50,8 @@ struct Emitter {
 
 namespace detail {
 
-size_t ir_compact_deduplicate(const op::General *const, op::General *const,
-			      std::unordered_set <int> &, size_t);
+std::tuple <size_t, wrapped::reindex>
+ir_compact_deduplicate(const op::General *const, op::General *const, size_t);
 
 } // namespace detail
 

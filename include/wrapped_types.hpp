@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 #include <variant>
 
 // Wrappers on standard types
@@ -40,13 +41,12 @@ struct optional : std::optional<T> {
 	using std::optional<T>::optional;
 };
 
-template <typename... Args>
-struct optional<variant<Args...>> : std::optional<variant<Args...>> {
-	using std::optional<variant<Args...>>::optional;
+template <typename ... Args>
+struct optional <variant <Args...>> : std::optional <variant <Args...>> {
+	using std::optional <variant <Args...>> ::optional;
 
 	template <typename T>
-	inline optional<T> as()
-	{
+	inline optional <T> as() {
 		if (this->has_value())
 			return (this->value()).template as<T>();
 
@@ -55,23 +55,40 @@ struct optional<variant<Args...>> : std::optional<variant<Args...>> {
 };
 
 template <typename K, typename V>
-struct hash_table : std::unordered_map<K, V> {
-	using std::unordered_map<K, V>::unordered_map;
+struct hash_table : std::unordered_map <K, V> {
+	using std::unordered_map <K, V> ::unordered_map;
 
-	optional<V> maybe_at(const K &k)
-	{
+	optional <V> maybe_at(const K &k) {
 		if (this->count(k))
 			return this->operator[](k);
 
 		return std::nullopt;
 	}
 
-	optional<V> maybe_at(const K &k) const
-	{
+	optional <V> maybe_at(const K &k) const {
 		if (this->count(k))
 			return this->at(k);
 
 		return std::nullopt;
+	}
+};
+
+struct reindex : std::unordered_map <int, int> {
+	reindex() : std::unordered_map <int, int> { { -1, -1 } } {}
+
+	int operator()(int i) {
+		if (contains(i))
+			return operator[](i);
+
+		return -1;
+	}
+
+	std::unordered_set <int> operator()(std::unordered_set <int> &set) {
+		std::unordered_set <int> replace;
+		for (int i : set)
+			replace.insert(operator()(i));
+
+		return replace;
 	}
 };
 
