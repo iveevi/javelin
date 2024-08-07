@@ -2,9 +2,10 @@
 
 namespace jvl::ire::op {
 
+// TODO: single function
+
 // Non-reindexable
 void reindex_vd::operator()(Primitive &) {}
-void reindex_vd::operator()(Swizzle &) {}
 void reindex_vd::operator()(End &) {}
 
 // Useful
@@ -46,6 +47,11 @@ void reindex_vd::operator()(Store &store)
 void reindex_vd::operator()(Load &load)
 {
 	load.src = reindexer[load.src];
+}
+
+void reindex_vd::operator()(Swizzle &swizzle)
+{
+	swizzle.src = reindexer[swizzle.src];
 }
 
 void reindex_vd::operator()(Cond &cond)

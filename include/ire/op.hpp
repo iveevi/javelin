@@ -12,13 +12,19 @@ namespace jvl::ire::op {
 
 enum PrimitiveType {
 	bad,
-	boolean,
-	i32,
-	f32,
-	vec2,
-	vec3,
-	vec4,
-	mat4,
+	boolean, i32, f32,
+	vec2, vec3, vec4,
+	ivec2, ivec3, ivec4,
+	mat2, mat3, mat4,
+};
+
+// Type translation
+static const char *type_table[] = {
+	"<BAD>",
+	"bool", "int", "float",
+	"vec2", "vec3", "vec4",
+	"ivec2", "ivec3", "ivec4",
+	"mat2", "mat3", "mat4",
 };
 
 // Atomic types
@@ -55,9 +61,15 @@ struct Primitive {
 };
 
 struct Swizzle {
-	enum Kind { x, y, z, w, xy } type;
+	enum Kind {
+		x, y, z, w, xy
+	} type;
 
-	constexpr Swizzle(Kind t) : type(t) {}
+	static constexpr const char *swizzle_name[] = {
+		"x", "y", "z", "w", "xy"
+	};
+
+	int src = -1;
 };
 
 struct Cmp {
@@ -103,11 +115,6 @@ using General = wrapped::variant <
 	Construct, List, Store, Load, Cond, Elif, End
 >;
 
-// Type translation
-static const char *type_table[] = {
-	"<BAD>", "bool", "int", "float", "vec2", "vec3", "vec4", "mat4",
-};
-
 // Dispatcher types (vd = variadic dispatcher)
 inline std::string type_name(const General *const pool,
 		             const wrapped::hash_table <int, std::string> &struct_names,
@@ -141,6 +148,7 @@ struct dump_vd {
 	void operator()(const Construct &);
 	void operator()(const Store &);
 	void operator()(const Load &);
+	void operator()(const Swizzle &);
 	void operator()(const Cmp &);
 	void operator()(const Cond &);
 	void operator()(const Elif &);
@@ -162,7 +170,6 @@ struct reindex_vd {
 	wrapped::reindex reindexer;
 
 	void operator()(Primitive &);
-	void operator()(Swizzle &);
 	void operator()(End &);
 	void operator()(Global &);
 	void operator()(TypeField &);
@@ -171,6 +178,7 @@ struct reindex_vd {
 	void operator()(Construct &);
 	void operator()(Store &);
 	void operator()(Load &);
+	void operator()(Swizzle &);
 	void operator()(Cond &);
 	void operator()(Elif &);
 };

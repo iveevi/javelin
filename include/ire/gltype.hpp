@@ -56,7 +56,6 @@ struct gltype : tagged {
 		synthesize();
 	}
 
-	// TODO: operator= semantics
 	gltype &operator=(const T &v) {
 		// At this point we are required to have storage for this
 		auto &em = Emitter::active;
@@ -65,6 +64,19 @@ struct gltype : tagged {
 		op::Store store;
 		store.dst = ref.id;
 		store.src = translate_primitive(v);
+		em.emit_main(store);
+
+		return *this;
+	}
+
+	gltype &operator=(const gltype &v) {
+		// At this point we are required to have storage for this
+		auto &em = Emitter::active;
+		em.mark_used(ref.id, true);
+
+		op::Store store;
+		store.dst = ref.id;
+		store.src = v.synthesize().id;
 		em.emit_main(store);
 
 		return *this;

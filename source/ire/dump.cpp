@@ -2,6 +2,7 @@
 
 namespace jvl::ire::op {
 
+// TODO: single function
 void dump_vd::operator()(const Global &global)
 {
 	static const char *qualifier_table[] = {
@@ -80,6 +81,11 @@ void dump_vd::operator()(const Store &store)
 void dump_vd::operator()(const Load &load)
 {
 	printf("load %%%d #%d", load.src, load.idx);
+}
+
+void dump_vd::operator()(const Swizzle &swizzle)
+{
+	printf("swizzle %%%d #%s", swizzle.src, Swizzle::swizzle_name[swizzle.type]);
 }
 
 void dump_vd::operator()(const Cmp &cmp)

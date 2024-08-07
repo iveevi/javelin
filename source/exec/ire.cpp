@@ -31,13 +31,6 @@ int type_field()
 	return em.emit(type);
 }
 
-template <typename T>
-concept synthesizable = requires(const T &t) {
-	{
-		t.synthesize()
-	} -> std::same_as <emit_index_t>;
-};
-
 template <typename T, typename ... Args>
 concept callbacked = requires(T &t, const Args &...args) {
 	{
@@ -77,51 +70,6 @@ concept uniform_compatible = requires {
 	} -> std::same_as <__uniform_layout_key>;
 };
 
-// Forward declarations
-template <typename T, size_t binding>
-struct layout_in : tagged {
-	emit_index_t synthesize() const {
-		if (cached())
-			return ref;
-
-		auto &em = Emitter::active;
-
-		op::Global global;
-		global.type = type_field <T> ();
-		global.binding = binding;
-		global.qualifier = op::Global::layout_in;
-
-		op::Load load;
-		load.src = em.emit(global);
-
-		return (ref = em.emit_main(load));
-	}
-
-	operator T() {
-		return T(synthesize());
-	}
-};
-
-template <synthesizable T, size_t binding>
-struct layout_out : T {
-	void operator=(const T &t) const {
-		auto &em = Emitter::active;
-
-		op::Global global;
-		global.type = type_field <T> ();
-		global.binding = binding;
-		global.qualifier = op::Global::layout_out;
-
-		op::Store store;
-		store.dst = em.emit(global);
-		store.src = t.synthesize().id;
-
-		em.emit_main(store);
-	}
-};
-
-// TODO: layout qualifiers for structs?
-
 template <typename T, typename ... Args>
 emit_index_t synthesize_type_fields()
 {
@@ -146,6 +94,123 @@ emit_index_t synthesize_type_fields(const uniform_layout <Args...> &args)
 {
 	return synthesize_type_fields <Args...> ();
 }
+
+// For the default 'incompatible' types
+template <typename T, size_t binding>
+struct layout_in {
+	static_assert(!std::is_same_v <T, T>,
+		"Unsupported type for layout_in");
+};
+
+template <gltype_complatible T, size_t binding>
+struct layout_in <T, binding> : tagged {
+	emit_index_t synthesize() const {
+		if (cached())
+			return ref;
+
+		auto &em = Emitter::active;
+
+		op::Global global;
+		global.type = type_field <T> ();
+		global.binding = binding;
+		global.qualifier = op::Global::layout_in;
+
+		op::Load load;
+		load.src = em.emit(global);
+
+		return (ref = em.emit_main(load));
+	}
+
+	operator T() {
+		return T(synthesize());
+	}
+};
+
+template <uniform_compatible T, size_t binding>
+struct layout_in <T, binding> : T {
+	emit_index_t ref = emit_index_t::null();
+
+	template <typename ... Args>
+	layout_in(const Args &... args) : T(args...) {
+		auto &em = Emitter::active;
+
+		auto uniform_layout = this->layout();
+
+		op::Global global;
+		global.type = synthesize_type_fields(uniform_layout).id;
+		global.binding = binding;
+		global.qualifier = op::Global::layout_in;
+
+		ref = em.emit(global);
+
+		for (size_t i = 0; i < uniform_layout.fields.size(); i++) {
+			op::Load load;
+			load.src = ref.id;
+			load.idx = i;
+			uniform_layout.fields[i]->ref = em.emit(load);
+		}
+	}
+};
+
+// For the default 'incompatible' types
+template <typename T, size_t binding>
+struct layout_out {
+	static_assert(!std::is_same_v <T, T>,
+		"Unsupported type for layout_out");
+};
+
+template <gltype_complatible T, size_t binding>
+struct layout_out <T, binding> : tagged {
+	void operator=(const gltype <T> &t) const {
+		auto &em = Emitter::active;
+
+		op::Global global;
+		global.type = type_field <T> ();
+		global.binding = binding;
+		global.qualifier = op::Global::layout_out;
+
+		op::Store store;
+		store.dst = em.emit(global);
+		store.src = t.synthesize().id;
+
+		em.emit_main(store);
+	}
+
+	void operator=(const T &t) const {
+		auto &em = Emitter::active;
+
+		op::Global global;
+		global.type = type_field <T> ();
+		global.binding = binding;
+		global.qualifier = op::Global::layout_out;
+
+		op::Store store;
+		store.dst = em.emit(global);
+		store.src = translate_primitive(t);
+
+		em.emit_main(store);
+	}
+};
+
+template <synthesizable T, size_t binding>
+struct layout_out <T, binding> : T {
+	void operator=(const T &t) const {
+		auto &em = Emitter::active;
+
+		op::Global global;
+		global.type = type_field <T> ();
+		global.binding = binding;
+		global.qualifier = op::Global::layout_out;
+
+		op::Store store;
+		store.dst = em.emit(global);
+		store.src = t.synthesize().id;
+
+		em.emit_main(store);
+	}
+};
+
+// TODO: layout qualifiers for structs?
 
 template <synthesizable T, synthesizable ... Args>
 int argument_list(const T &t, const Args &...args)
@@ -204,102 +269,177 @@ struct push_constants : T {
 	}
 };
 
-template <typename T, typename Up, typename P, P payload>
-struct phantom_type;
-
+// Vector types
 template <typename T, size_t N>
-struct swizzle_base : tagged {};
+struct vec;
 
-// TODO: inherit from base 3 and add extras
-template <typename T>
-struct swizzle_base <T, 4> : tagged {
-	using tagged::tagged;
-
-	using payload = op::Swizzle;
-
-	template <payload p>
-	using phantom = phantom_type <T, swizzle_base <T, 4>, payload, p>;
-
-	void callback(const payload &payload) {
-		printf("callback!!\n");
-	}
-
-	phantom <payload::x> x;
-	phantom <payload::y> y;
-	phantom <payload::z> z;
-	phantom <payload::w> w;
-};
-
-template <typename T, typename Up, typename P, P payload>
-struct phantom_type {
-	// TODO: return a gltype
-	T operator=(const T &v) {
-		printf("assigned to!\n");
-		((Up *) this)->callback(payload);
-		return v;
-	}
-};
-
-template <typename T, size_t N>
-struct vec_base : swizzle_base <T, N> {
-	T data[N];
-
-	constexpr vec_base() = default;
-
-	constexpr vec_base(emit_index_t r) : swizzle_base <T, N> (r) {}
-
-	constexpr vec_base(T v) {
-		for (size_t i = 0; i < N; i++)
-			data[i] = v;
+template <gltype_complatible T, typename Up, op::Swizzle::Kind swz>
+struct swizzle_element : tagged {
+	operator gltype <T> () const {
+		return gltype <T> (synthesize());
 	}
 
 	emit_index_t synthesize() const {
 		if (this->cached())
 			return this->ref;
 
+		synthesizable auto &up = *(reinterpret_cast <const Up *> (this));
+
 		auto &em = Emitter::active;
 
-		op::Primitive p;
-		// TODO: fix
-		p.type = op::vec4;
-		std::memcpy(p.fdata, data, N * sizeof(T));
+		op::Swizzle swizzle;
+		swizzle.type = swz;
+		swizzle.src = up.synthesize().id;
 
-		return (this->ref = em.emit(p));
+		em.mark_used(swizzle.src, true);
+
+		return (this->ref = em.emit(swizzle));
+	}
+};
+
+template <gltype_complatible T, size_t N>
+requires (N >= 1 && N <= 4)
+struct swizzle_base : tagged {};
+
+template <gltype_complatible T>
+struct swizzle_base <T, 2> : tagged {
+	using self = swizzle_base <T, 2>;
+	swizzle_element <T, self, op::Swizzle::x> x;
+	swizzle_element <T, self, op::Swizzle::y> y;
+
+	// TODO: private
+	T initial[2];
+	swizzle_base(T x = T(0), T y = T(0)) {
+		initial[0] = x;
+		initial[1] = y;
+	}
+
+	emit_index_t synthesize() const {
+		if (cached())
+			return ref;
+
+		auto &em = Emitter::active;
+
+		// TODO: list method
+		op::List a2;
+		a2.item = translate_primitive(initial[1]);
+
+		op::List a1;
+		a1.item = translate_primitive(initial[0]);
+		a1.next = em.emit(a2);
+
+		// TODO: type field generator
+		op::TypeField tf;
+		tf.item = primitive_type <vec <T, 2>> ();
+
+		op::Construct ctor;
+		ctor.type = em.emit(tf);
+		ctor.args = em.emit(a1);
+
+		return (ref = em.emit(ctor));
+	}
+};
+
+template <gltype_complatible T>
+struct swizzle_base <T, 3> : tagged {
+	using self = swizzle_base <T, 3>;
+	swizzle_element <T, self, op::Swizzle::x> x;
+	swizzle_element <T, self, op::Swizzle::y> y;
+	swizzle_element <T, self, op::Swizzle::z> z;
+
+	// TODO: private
+	T initial[3];
+	swizzle_base(T x = T(0), T y = T(0), T z = T(0)) {
+		initial[0] = x;
+		initial[1] = y;
+		initial[2] = z;
+	}
+
+	emit_index_t synthesize() const {
+		if (cached())
+			return ref;
+
+		auto &em = Emitter::active;
+
+		// TODO: list method
+		op::List a3;
+		a3.item = translate_primitive(initial[0]);
+
+		op::List a2;
+		a2.item = translate_primitive(initial[1]);
+		a2.next = em.emit(a3);
+
+		op::List a1;
+		a1.item = translate_primitive(initial[2]);
+		a1.next = em.emit(a2);
+
+		// TODO: type field generator
+		op::TypeField tf;
+		tf.item = primitive_type <vec <T, 3>> ();
+
+		op::Construct ctor;
+		ctor.type = em.emit(tf);
+		ctor.args = em.emit(a1);
+
+		return (ref = em.emit(ctor));
+	}
+};
+
+template <gltype_complatible T>
+struct swizzle_base <T, 4> : tagged {
+	using self = swizzle_base <T, 4>;
+	swizzle_element <T, self, op::Swizzle::x> x;
+	swizzle_element <T, self, op::Swizzle::y> y;
+	swizzle_element <T, self, op::Swizzle::z> z;
+	swizzle_element <T, self, op::Swizzle::w> w;
+
+	// TODO: private...
+	T initial[4];
+	swizzle_base(T x = T(0), T y = T(0), T z = T(0), T w = T(0)) {
+		initial[0] = x;
+		initial[1] = y;
+		initial[2] = z;
+		initial[3] = w;
+	}
+
+	emit_index_t synthesize() const {
+		if (cached())
+			return ref;
+
+		auto &em = Emitter::active;
+
+		// TODO: list method
+		op::List a4;
+		a4.item = translate_primitive(initial[0]);
+
+		op::List a3;
+		a3.item = translate_primitive(initial[1]);
+		a3.next = em.emit(a4);
+
+		op::List a2;
+		a2.item = translate_primitive(initial[2]);
+		a2.next = em.emit(a3);
+
+		op::List a1;
+		a1.item = translate_primitive(initial[3]);
+		a1.next = em.emit(a2);
+
+		// TODO: type field generator
+		op::TypeField tf;
+		tf.item = primitive_type <vec <T, 4>> ();
+
+		op::Construct ctor;
+		ctor.type = em.emit(tf);
+		ctor.args = em.emit(a1);
+
+		return (ref = em.emit(ctor));
 	}
 };
 
 template <typename T, size_t N>
-struct vec : vec_base <T, N> {
-	using vec_base <T, N> ::vec_base;
-};
+struct vec : swizzle_base <T, N> {};
 
-template <typename T>
-struct vec <T, 4> : vec_base <T, 4> {
-	using vec_base <T, 4> ::vec_base;
-
-	vec(const vec <T, 3> &v, const gltype <T> &x) {
-		auto &em = Emitter::active;
-
-		op::List lx;
-		lx.item = x.synthesize().id;
-		lx.next = -1;
-
-		op::List lv;
-		lv.item = v.synthesize().id;
-		lv.next = em.emit(lx);
-
-		op::TypeField type;
-		type.item = op::vec4;
-		type.next = -1;
-
-		op::Construct ctor;
-		ctor.type = em.emit(type);
-		ctor.args = em.emit(lv);
-
-		this->ref = em.emit_main(ctor);
-	}
-};
-
+// Matrix types
 template <typename T, size_t N, size_t M>
 struct mat_base : tagged {
 	T data[N][M];
@@ -341,10 +481,15 @@ using i32 = gltype <int>;
 using f32 = gltype <float>;
 using boolean = gltype <bool>;
 
+using ivec2 = vec <int, 2>;
+using ivec3 = vec <int, 3>;
+using ivec4 = vec <int, 4>;
+
 using vec2 = vec <float, 2>;
 using vec3 = vec <float, 3>;
 using vec4 = vec <float, 4>;
 
+using mat2 = mat <float, 2, 2>;
 using mat3 = mat <float, 3, 3>;
 using mat4 = mat <float, 4, 4>;
 
@@ -358,18 +503,32 @@ constexpr op::PrimitiveType primitive_type()
 		return op::i32;
 	if constexpr (std::is_same_v <T, float>)
 		return op::f32;
+
 	if constexpr (std::is_same_v <T, gltype <bool>>)
 		return op::boolean;
 	if constexpr (std::is_same_v <T, gltype <int>>)
 		return op::i32;
 	if constexpr (std::is_same_v <T, gltype <float>>)
 		return op::f32;
+
 	if constexpr (std::is_same_v <T, vec2>)
 		return op::vec2;
 	if constexpr (std::is_same_v <T, vec3>)
 		return op::vec3;
 	if constexpr (std::is_same_v <T, vec4>)
 		return op::vec4;
+
+	if constexpr (std::is_same_v <T, ivec2>)
+		return op::ivec2;
+	if constexpr (std::is_same_v <T, ivec3>)
+		return op::ivec3;
+	if constexpr (std::is_same_v <T, ivec4>)
+		return op::ivec4;
+
+	if constexpr (std::is_same_v <T, mat2>)
+		return op::mat2;
+	if constexpr (std::is_same_v <T, mat3>)
+		return op::mat3;
 	if constexpr (std::is_same_v <T, mat4>)
 		return op::mat4;
 
@@ -454,6 +613,10 @@ static_assert(synthesizable <boolean>);
 
 static_assert(synthesizable <layout_in <int, 0>>);
 
+static_assert(synthesizable <ivec2>);
+static_assert(synthesizable <ivec3>);
+static_assert(synthesizable <ivec4>);
+
 static_assert(synthesizable <vec2>);
 static_assert(synthesizable <vec3>);
 static_assert(synthesizable <vec4>);
@@ -485,20 +648,28 @@ struct mvp_info {
 	}
 };
 
-void vertex_shader()
+void shader()
 {
-	layout_in <boolean, 0> flag;
+	// layout_in <mvp_info, 0> flag;
+	push_constants <mvp_info> flag;
 
-	f32 x = 2.335f;
-	cond(flag);
-		x = 1.618f;
-	elif();
-		x = 0.618f;
-	end();
+	f32 v = flag.scalar;
+	v = 1;
 
-	layout_out <f32, 0> out;
+	vec2 vec;
+	v = vec.y;
 
-	out = x;
+	// f32 x = 2.335f;
+	// cond(flag.model == 0);
+	// 	x = 1.618f;
+	// elif();
+	// 	x = 0.618f;
+	// end();
+	//
+	// layout_out <float, 0> out;
+	//
+	// out = x;
+	// out = 1.0f;
 
 	// TODO: warnings for the unused sections
 
@@ -513,23 +684,6 @@ void vertex_shader()
 	// vec4 w = vec4(mvp.camera, x);
 }
 
-void fragment_shader()
-{
-	layout_in <int, 0> flag;
-	layout_out <vec4, 0> fragment;
-
-	fragment = vec4(1.0);
-	fragment.x = 1.0f;
-
-	// cond(flag == 0);
-	// 	fragment = vec4(1.0);
-	// elif(flag == 1);
-	// 	fragment = vec4(0.5);
-	// elif();
-	// 	fragment = vec4(0.1);
-	// end();
-}
-
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
@@ -537,7 +691,7 @@ int main()
 {
 	glfwInit();
 
-	vertex_shader();
+	shader();
 
 	// Emitter::active.dump();
 	Emitter::active.compact();

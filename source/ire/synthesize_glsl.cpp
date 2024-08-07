@@ -1,4 +1,5 @@
 #include <functional>
+#include <string>
 
 #include "ire/op.hpp"
 #include "wrapped_types.hpp"
@@ -82,21 +83,36 @@ std::string synthesize_glsl_body(const General *const pool,
 	};
 
 	auto assign_to = [&](int index, const std::string &v) -> std::string {
-		// TODO: ref(index)
 		std::string stmt = fmt::format("{} = {}", ref(index), v);
 		return finish(stmt);
 	};
 
 	std::function <std::string (int)> inlined;
 	inlined = [&](int index) -> std::string {
+		// TODO: inlined check if variable already... then no need for ref
 		General g = pool[index];
 
 		if (auto prim = g.get <Primitive> ()) {
 			return glsl_primitive(*prim);
 		} else if (auto global = g.get <Global> ()) {
 			return glsl_global_ref(*global);
+		} else if (auto ctor = g.get <Construct> ()) {
+			std::string t = type_name(pool, struct_names, ctor->type, -1);
+			return t + "(" + inlined(ctor->args) + ")";
+		} else if (auto list = g.get <List> ()) {
+			std::string v = inlined(list->item);
+			if (list->next != -1)
+				v += ", " + inlined(list->next);
+
+			return v;
 		} else if (auto load = g.get <Load> ()) {
-			return inlined(load->src);
+			std::string accessor;
+			if (load->idx != -1)
+				accessor = fmt::format(".f{}", load->idx);
+			return inlined(load->src) + accessor;
+		} else if (auto swizzle = g.get <Swizzle> ()) {
+			std::string accessor = Swizzle::swizzle_name[swizzle->type];
+			return ref(swizzle->src) + "." + accessor;
 		} else if (auto cmp = g.get <Cmp> ()) {
 			return fmt::format("{} {} {}",
 					inlined(cmp->a),
@@ -129,11 +145,20 @@ std::string synthesize_glsl_body(const General *const pool,
 		} else if (g.get <End> ()) {
 			indentation--;
 			source += finish("}", false);
+		} else if (auto ctor = g.get <Construct> ()) {
+			std::string t = type_name(pool, struct_names, ctor->type, -1);
+			std::string v = t + "(" + inlined(ctor->args) + ")";
+			source += assign_new(t, v, index);
 		} else if (auto load = g.get <Load> ()) {
+			std::string accessor;
+			if (load->idx != -1)
+				accessor = fmt::format(".f{}", load->idx);
+
 			std::string t = type_name(pool, struct_names, load->src, load->idx);
-			std::string v = inlined(load->src);
+			std::string v = inlined(load->src) + accessor;
 			source += assign_new(t, v, index);
 		} else if (auto store = g.get <Store> ()) {
+			// TODO: there could be a store index chain...
 			std::string v = inlined(store->src);
 			source += assign_to(store->dst, v);
 		} else if (auto prim = g.get <Primitive> ()) {

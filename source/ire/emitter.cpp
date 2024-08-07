@@ -215,6 +215,9 @@ std::string Emitter::generate_glsl()
 	std::string push_constant;
 
 	for (int i = 0; i < pointer; i++) {
+		if (!used.count(i))
+			continue;
+
 		auto op = pool[i];
 		if (!op.is <op::Global> ())
 			continue;
@@ -229,23 +232,18 @@ std::string Emitter::generate_glsl()
 			push_constant = type;
 	}
 
-	// Actual translation
-	// op::translate_glsl_vd tdisp;
-	// TODO: pass in the set of synthesized values
-	// tdisp.pool = pool;
-	// tdisp.struct_names = struct_names;
-
 	// Global shader variables
-	for (const auto &[binding, type] : lins)
-		source += fmt::format("layout (location = {}) in {} _lin{};\n", binding,
-				      type, binding);
+	for (const auto &[binding, type] : lins) {
+		source += fmt::format("layout (location = {}) in {} _lin{};\n",
+				binding, type, binding);
+	}
 
 	if (lins.size())
 		source += "\n";
 
 	for (const auto &[binding, type] : louts)
-		source += fmt::format("layout (location = {}) out {} _lout{};\n", binding,
-				      type, binding);
+		source += fmt::format("layout (location = {}) out {} _lout{};\n",
+				binding, type, binding);
 
 	if (louts.size())
 		source += "\n";
@@ -263,24 +261,6 @@ std::string Emitter::generate_glsl()
 	source += "void main()\n";
 	source += "{\n";
 	source += op::synthesize_glsl_body(pool, struct_names, synthesized, pointer);
-	// for (int i  = 0; i < pointer; i++) {
-	// 	if (!synthesized.count(i))
-	// 		continue;
-	//
-	// 	op::General g = pool[i];
-	//
-	// 	if (auto cond = g.get <op::Cond> ()) {
-	// 		source += "<cond>\n";
-	// 	} else {
-	// 		source += "<?>\n";
-	// 	}
-	//
-	// 	// Types have already been synthesized if necessary
-	// 	// if (pool[i].is <op::TypeField> ())
-	// 	// 	continue;
-	// 	//
-	// 	// source += "    " + tdisp.eval(i);
-	// }
 	source += "}\n";
 
 	return source;

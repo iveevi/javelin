@@ -1,5 +1,6 @@
 #pragma once
 
+#include <type_traits>
 #include <cstdlib>
 
 namespace jvl::ire {
@@ -46,6 +47,13 @@ struct tagged {
 
 		return ref.id;
 	}
+};
+
+template <typename T>
+concept synthesizable = requires(const T &t) {
+	{
+		t.synthesize()
+	} -> std::same_as <emit_index_t>;
 };
 
 } // namespace jvl::ire
