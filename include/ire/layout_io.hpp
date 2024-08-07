@@ -3,6 +3,7 @@
 #include "emitter.hpp"
 #include "gltype.hpp"
 #include "uniform_layout.hpp"
+#include "type_synthesis.hpp"
 
 namespace jvl::ire {
 
@@ -32,8 +33,8 @@ struct layout_in <T, binding> : tagged {
 		return (ref = em.emit_main(load));
 	}
 
-	operator T() {
-		return T(synthesize());
+	operator gltype <T> () {
+		return gltype <T> (synthesize());
 	}
 };
 

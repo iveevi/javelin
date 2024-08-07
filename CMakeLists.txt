@@ -27,21 +27,24 @@ add_library(imgui SHARED
 	thirdparty/imgui/backends/imgui_impl_glfw.cpp
 	thirdparty/imgui/backends/imgui_impl_vulkan.cpp)
 
+add_library(jvl-ire SHARED
+	source/ire/compaction.cpp
+	source/ire/dump.cpp
+	source/ire/emitter.cpp
+	source/ire/reindex.cpp
+	source/ire/synthesize_glsl.cpp)
+
 add_executable(javelin
 	source/exec/main.cpp
 	source/core/preset.cpp)
 
 add_executable(ire
 	source/exec/ire.cpp
-	source/ire/compaction.cpp
-	source/ire/dump.cpp
-	source/ire/emitter.cpp
-	source/ire/reindex.cpp
-	source/ire/synthesize_glsl.cpp
 	thirdparty/glad/src/gl.c)
 
 add_executable(test
-	source/test/matrix.cpp)
+	source/test/ire_synthesis.cpp
+	source/test/math_matrix.cpp)
 
 include_directories(.
 	include
@@ -57,6 +60,7 @@ set(VULKAN_LIBRARY_SET
 	glslang::glslang
 	glslang::glslang-default-resource-limits)
 
+target_link_libraries(jvl-ire fmt)
 target_link_libraries(javelin fmt ${VULKAN_LIBRARY_SET} imgui)
-target_link_libraries(ire fmt glfw)
-target_link_libraries(test GTest::gtest_main)
+target_link_libraries(ire glfw jvl-ire)
+target_link_libraries(test GTest::gtest_main jvl-ire)

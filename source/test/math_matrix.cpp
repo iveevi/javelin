@@ -4,7 +4,7 @@
 
 using namespace jvl;
 
-TEST(matrix, matrix_mul_identity)
+TEST(math_matrix, multiply_identity)
 {
 	float4x4 A = float4x4::identity();
 	float4x4 B = float4x4::identity();

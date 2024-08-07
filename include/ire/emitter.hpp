@@ -23,6 +23,7 @@ struct Emitter {
 	Emitter();
 
 	// Resizing and compaction
+	void clear();
 	void compact();
 	void resize(size_t);
 

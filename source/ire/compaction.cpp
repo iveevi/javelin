@@ -35,7 +35,6 @@ struct std::hash <block_t> {
 	}
 };
 
-
 namespace jvl::ire::detail {
 
 block_t cast_to_block(const op::General &g)

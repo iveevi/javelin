@@ -9,6 +9,13 @@ namespace jvl::ire {
 
 Emitter::Emitter() : pool(nullptr), dual(nullptr), size(0), pointer(0) {}
 
+void Emitter::clear()
+{
+	pointer = 0;
+	std::memset(pool, 0, size * sizeof(op::General));
+	std::memset(dual, 0, size * sizeof(op::General));
+}
+
 void Emitter::compact()
 {
 	wrapped::reindex reindexer;
