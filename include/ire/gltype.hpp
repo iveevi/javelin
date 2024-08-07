@@ -82,7 +82,7 @@ struct gltype : tagged {
 		return *this;
 	}
 
-	emit_index_t synthesize() const {
+	cache_index_t synthesize() const {
 		if (cached())
 			return ref;
 
