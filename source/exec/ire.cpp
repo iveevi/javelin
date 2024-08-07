@@ -9,28 +9,12 @@
 #include <fmt/format.h>
 
 #include "ire/emitter.hpp"
-#include "ire/gltype.hpp"
 #include "ire/type_synthesis.hpp"
+#include "ire/util.hpp"
 
 #include "ire/core.hpp"
 
 namespace jvl::ire {
-
-// TODO: layout qualifiers for structs?
-
-template <synthesizable T, synthesizable ... Args>
-int argument_list(const T &t, const Args &...args)
-{
-	auto &em = Emitter::active;
-
-	op::List l;
-	l.item = t.synthesize().id;
-
-	if constexpr (sizeof...(Args))
-		l.next = argument_list(args...);
-
-	return em.emit(l);
-}
 
 template <synthesizable ... Args>
 requires (sizeof...(Args) > 0)
@@ -40,7 +24,7 @@ void structure(const Args &... args)
 
 	op::Construct ctor;
 	ctor.type = synthesize_type_fields <Args...> ().id;
-	ctor.args = argument_list(args...);
+	ctor.args = synthesize_list(args...);
 
 	em.emit_main(ctor);
 }
@@ -242,7 +226,7 @@ void shader()
 	f32 v = flag.scalar;
 	v = 1;
 
-	vec2 vec;
+	vec4 vec(2, 0, 1);
 	v = vec.y;
 
 	// f32 x = 2.335f;

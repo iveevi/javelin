@@ -1,15 +1,25 @@
 #pragma once
 
 #include "gltype.hpp"
+#include "tagged.hpp"
+#include "util.hpp"
 
 namespace jvl::ire {
 
 // Vector types
-template <typename T, size_t N>
+template <gltype_complatible T, size_t N>
 struct vec;
 
+template <gltype_complatible T, size_t N>
+requires (N >= 1 && N <= 4)
+struct swizzle_base : tagged {};
+
 template <gltype_complatible T, typename Up, op::Swizzle::Kind swz>
-struct swizzle_element : tagged {
+class swizzle_element : tagged {
+	Up *upper;
+
+	swizzle_element(Up *upper_) : upper(upper_) {}
+public:
 	operator gltype <T> () const {
 		return gltype <T> (synthesize());
 	}
@@ -18,33 +28,33 @@ struct swizzle_element : tagged {
 		if (this->cached())
 			return this->ref;
 
-		synthesizable auto &up = *(reinterpret_cast <const Up *> (this));
-
 		auto &em = Emitter::active;
 
 		op::Swizzle swizzle;
 		swizzle.type = swz;
-		swizzle.src = up.synthesize().id;
+		swizzle.src = upper->synthesize().id;
 
 		em.mark_used(swizzle.src, true);
 
 		return (this->ref = em.emit(swizzle));
 	}
+
+	template <gltype_complatible U, size_t N>
+	requires (N >= 1 && N <= 4)
+	friend class swizzle_base;
 };
 
-template <gltype_complatible T, size_t N>
-requires (N >= 1 && N <= 4)
-struct swizzle_base : tagged {};
-
 template <gltype_complatible T>
-struct swizzle_base <T, 2> : tagged {
+class swizzle_base <T, 2> : public tagged {
 	using self = swizzle_base <T, 2>;
+
+	T initial[2];
+public:
 	swizzle_element <T, self, op::Swizzle::x> x;
 	swizzle_element <T, self, op::Swizzle::y> y;
 
-	// TODO: private
-	T initial[2];
-	swizzle_base(T x = T(0), T y = T(0)) {
+	swizzle_base(T x = T(0), T y = T(0))
+			: x(this), y(this) {
 		initial[0] = x;
 		initial[1] = y;
 	}
@@ -55,36 +65,30 @@ struct swizzle_base <T, 2> : tagged {
 
 		auto &em = Emitter::active;
 
-		// TODO: list method
-		op::List a2;
-		a2.item = translate_primitive(initial[1]);
-
-		op::List a1;
-		a1.item = translate_primitive(initial[0]);
-		a1.next = em.emit(a2);
-
 		// TODO: type field generator
 		op::TypeField tf;
 		tf.item = primitive_type <vec <T, 2>> ();
 
 		op::Construct ctor;
 		ctor.type = em.emit(tf);
-		ctor.args = em.emit(a1);
+		ctor.args = synthesize_list(initial[0], initial[1]);
 
 		return (ref = em.emit(ctor));
 	}
 };
 
 template <gltype_complatible T>
-struct swizzle_base <T, 3> : tagged {
+class swizzle_base <T, 3> : public tagged {
 	using self = swizzle_base <T, 3>;
+
+	T initial[3];
+public:
 	swizzle_element <T, self, op::Swizzle::x> x;
 	swizzle_element <T, self, op::Swizzle::y> y;
 	swizzle_element <T, self, op::Swizzle::z> z;
 
-	// TODO: private
-	T initial[3];
-	swizzle_base(T x = T(0), T y = T(0), T z = T(0)) {
+	swizzle_base(T x = T(0), T y = T(0), T z = T(0))
+			: x(this), y(this), z(this) {
 		initial[0] = x;
 		initial[1] = y;
 		initial[2] = z;
@@ -96,41 +100,31 @@ struct swizzle_base <T, 3> : tagged {
 
 		auto &em = Emitter::active;
 
-		// TODO: list method
-		op::List a3;
-		a3.item = translate_primitive(initial[0]);
-
-		op::List a2;
-		a2.item = translate_primitive(initial[1]);
-		a2.next = em.emit(a3);
-
-		op::List a1;
-		a1.item = translate_primitive(initial[2]);
-		a1.next = em.emit(a2);
-
 		// TODO: type field generator
 		op::TypeField tf;
 		tf.item = primitive_type <vec <T, 3>> ();
 
 		op::Construct ctor;
 		ctor.type = em.emit(tf);
-		ctor.args = em.emit(a1);
+		ctor.args = synthesize_list(initial[0], initial[1], initial[2]);
 
 		return (ref = em.emit(ctor));
 	}
 };
 
 template <gltype_complatible T>
-struct swizzle_base <T, 4> : tagged {
+class swizzle_base <T, 4> : public tagged {
 	using self = swizzle_base <T, 4>;
+
+	T initial[4];
+public:
 	swizzle_element <T, self, op::Swizzle::x> x;
 	swizzle_element <T, self, op::Swizzle::y> y;
 	swizzle_element <T, self, op::Swizzle::z> z;
 	swizzle_element <T, self, op::Swizzle::w> w;
 
-	// TODO: private...
-	T initial[4];
-	swizzle_base(T x = T(0), T y = T(0), T z = T(0), T w = T(0)) {
+	swizzle_base(T x = T(0), T y = T(0), T z = T(0), T w = T(0))
+			: x(this), y(this), z(this), w(this) {
 		initial[0] = x;
 		initial[1] = y;
 		initial[2] = z;
@@ -143,35 +137,21 @@ struct swizzle_base <T, 4> : tagged {
 
 		auto &em = Emitter::active;
 
-		// TODO: list method
-		op::List a4;
-		a4.item = translate_primitive(initial[0]);
-
-		op::List a3;
-		a3.item = translate_primitive(initial[1]);
-		a3.next = em.emit(a4);
-
-		op::List a2;
-		a2.item = translate_primitive(initial[2]);
-		a2.next = em.emit(a3);
-
-		op::List a1;
-		a1.item = translate_primitive(initial[3]);
-		a1.next = em.emit(a2);
-
 		// TODO: type field generator
 		op::TypeField tf;
 		tf.item = primitive_type <vec <T, 4>> ();
 
 		op::Construct ctor;
 		ctor.type = em.emit(tf);
-		ctor.args = em.emit(a1);
+		ctor.args = synthesize_list(initial[0], initial[1], initial[2], initial[3]);
 
 		return (ref = em.emit(ctor));
 	}
 };
 
-template <typename T, size_t N>
-struct vec : swizzle_base <T, N> {};
+template <gltype_complatible T, size_t N>
+struct vec : swizzle_base <T, N> {
+	using swizzle_base <T, N> ::swizzle_base;
+};
 
 } // namespace jvl::ire
