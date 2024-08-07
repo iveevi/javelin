@@ -1,10 +1,10 @@
 #pragma once
 
-#include <deque>
 #include <type_traits>
 #include <vector>
 
 #include "../../math_types.hpp"
+#include "../../wrapped_types.hpp"
 
 namespace jvl::gfx::cpu {
 
@@ -28,9 +28,8 @@ struct Framebuffer {
 		return &data[i * width];
 	}
 
-	// TODO: thread safe tiles (thread_queue)
-	std::deque <Tile> tiles(int2 size) const {
-		std::deque <Tile> tdq;
+	wrapped::thread_safe_queue <Tile> tiles(int2 size) const {
+		wrapped::thread_safe_queue <Tile> tsq;
 
 		for (int i = 0; i < (height + size.y - 1)/size.y; i++) {
 			for (int j = 0; j < (width + size.x - 1)/size.x; j++) {
@@ -43,11 +42,11 @@ struct Framebuffer {
 					.max = min(ji_n * size, int2(width, height))
 				};
 
-				tdq.push_back(tile);
+				tsq.push(tile);
 			}
 		}
 
-		return tdq;
+		return tsq;
 	}
 
 	// TODO: int2 indexing
@@ -104,6 +103,10 @@ struct Framebuffer {
 			fb.data[i] = kernel(data[i]);
 
 		return fb;
+	}
+
+	void clear() {
+		memset(data.data(), 0, sizeof(T) * width * height);
 	}
 
 	static Framebuffer from(size_t width, size_t height) {

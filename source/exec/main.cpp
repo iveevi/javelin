@@ -10,6 +10,9 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_vulkan.h>
 #include <imgui/backends/imgui_impl_glfw.h>
+#include <mutex>
+#include <thread>
+#include <type_traits>
 #include <vulkan/vulkan_enums.hpp>
 
 #include "constants.hpp"
@@ -18,6 +21,8 @@
 #include "core/transform.hpp"
 #include "core/triangle_mesh.hpp"
 #include "gfx/cpu/framebuffer.hpp"
+#include "gfx/cpu/thread_pool.hpp"
+#include "gfx/cpu/intersection.hpp"
 #include "gfx/vk/triangle_mesh.hpp"
 #include "math_types.hpp"
 
@@ -153,86 +158,6 @@ inline vk::DescriptorSet imgui_add_vk_texture(const vk::Sampler &sampler, const 
 	return ImGui_ImplVulkan_AddTexture(static_cast <VkSampler> (sampler),
 			                   static_cast <VkImageView> (view),
 					   static_cast <VkImageLayout> (layout));
-}
-
-struct Intersection {
-	float time;
-	jvl::float3 normal;
-
-	// TODO: && version
-	void update(const Intersection &other) {
-		if (other.time < 0)
-			return;
-
-		if (time < 0 || time > other.time) {
-			time = other.time;
-			normal = other.normal;
-		}
-	}
-
-	static Intersection miss() {
-		Intersection sh;
-		sh.time = -1;
-		return sh;
-	}
-};
-
-Intersection ray_triangle_intersection(const jvl::float3 &ray,
-		                       const jvl::float3 &origin,
-				       const jvl::float3 &v0,
-				       const jvl::float3 &v1,
-				       const jvl::float3 &v2)
-{
-	Intersection sh = Intersection::miss();
-
-	jvl::float3 e1 = v1 - v0;
-	jvl::float3 e2 = v2 - v0;
-	jvl::float3 p = cross(ray, e2);
-
-	float a = dot(e1, p);
-	if (std::abs(a) < 1e-6)
-		return sh;
-
-	float f = 1.0 / a;
-	jvl::float3 s = origin - v0;
-	float u = f * dot(s, p);
-
-	if (u < 0.0 || u > 1.0)
-		return sh;
-
-	jvl::float3 q = cross(s, e1);
-	float v = f * dot(ray, q);
-
-	if (v < 0.0 || u + v > 1.0)
-		return sh;
-
-	float t = f * dot(e2, q);
-	if (t > 0.00001) {
-		sh.time = t;
-		// sh.p = origin + t * ray;
-		// sh.b = float3 {1 - u - v, u, v};
-
-		// if (triangle.has_uvs)
-		// 	sh.uv = uv0 * sh.b.x + triangle.uv1 * sh.b.y + triangle.uv2 * sh.b.z;
-		// else
-		// 	sh.uv = Vector2 { sh.b.y, sh.b.z };
-
-		sh.normal = normalize(cross(e1, e2));
-		// if (dot(sh.ng, ray) > 0) {
-		// 	sh.ng = -sh.ng;
-		// 	sh.backfacing = true;
-		// }
-		//
-		// if (triangle.has_normals) {
-		// 	sh.ns = triangle.n0 * sh.b.x + triangle.n1 * sh.b.y + triangle.n2 * sh.b.z;
-		// 	if (dot(sh.ns, ray) > 0)
-		// 		sh.ns = -sh.ns;
-		// } else {
-		// 	sh.ns = sh.ng;
-		// }
-	}
-
-	return sh;
 }
 
 int main(int argc, char *argv[])
@@ -497,7 +422,9 @@ int main(int argc, char *argv[])
 	glfwSetMouseButtonCallback(window.handle, button_callback);
 	glfwSetCursorPosCallback(window.handle, cursor_callback);
 
-	auto fb = jvl::gfx::cpu::Framebuffer <uint32_t> ::from(100, 200);
+	auto fb = jvl::gfx::cpu::Framebuffer <uint32_t> ::from(200, 200);
+	fb.clear();
+
 	auto rf = jvl::core::rayframe(aperature, transform);
 
 	auto tonemap = [](const jvl::float3 &rgb) -> uint32_t {
@@ -508,21 +435,21 @@ int main(int argc, char *argv[])
 		return r | g << 8 | b << 16 | 0xff000000;
 	};
 
-	auto raytrace = [&tmeshes, rf, &tonemap](jvl::int2 ij, jvl::float2 uv) -> uint32_t {
+	auto raytrace = [&tmeshes, &rf, &tonemap](jvl::int2 ij, jvl::float2 uv) -> uint32_t {
 		jvl::float3 origin = rf.origin;
 		jvl::float3 ray = normalize(rf.lower_left
 				+ uv.x * rf.horizontal
 				+ (1 - uv.y) * rf.vertical
 				- rf.origin);
 
-		Intersection sh = Intersection::miss();
+		jvl::gfx::cpu::Intersection sh = jvl::gfx::cpu::Intersection::miss();
 		for (const auto &tmesh : tmeshes) {
 			for (const jvl::int3 &t : tmesh.triangles) {
 				jvl::float3 v0 = tmesh.positions[t.x];
 				jvl::float3 v1 = tmesh.positions[t.y];
 				jvl::float3 v2 = tmesh.positions[t.z];
 
-				auto hit = ray_triangle_intersection(ray, origin, v0, v1, v2);
+				auto hit = jvl::gfx::cpu::ray_triangle_intersection(ray, origin, v0, v1, v2);
 				sh.update(hit);
 			}
 		}
@@ -534,22 +461,17 @@ int main(int argc, char *argv[])
 		return tonemap(color);
 	};
 
-	jvl::int2 size = { 32, 32 };
+	jvl::int2 size = { 16, 16 };
 	auto tiles = fb.tiles(size);
 
-	// TODO: parallel for version
-	bool complete = false;
-	auto process = [&fb, &raytrace, &complete, &tiles]() {
-		for (const auto &tile : tiles) {
-			fmt::println("tile: ({}, {}) -> ({}, {})",
-					tile.min.x, tile.min.y,
-					tile.max.x, tile.max.y);
-
-			fb.process_tile(raytrace, tile);
-		}
-		// fb.process(raytrace);
-		complete = true;
+	auto kernel = [&fb, &raytrace](const jvl::gfx::cpu::Tile &tile) {
+		fb.process_tile(raytrace, tile);
 	};
+
+	using thread_pool_t = jvl::gfx::cpu::fixed_function_thread_pool <jvl::gfx::cpu::Tile, decltype(kernel)>;
+	thread_pool_t thread_pool(std::thread::hardware_concurrency(), kernel);
+	thread_pool.enque(tiles);
+	thread_pool.begin();
 
 	littlevk::Buffer fb_buffer;
 	littlevk::Image fb_image;
@@ -574,7 +496,6 @@ int main(int argc, char *argv[])
 			vk::ImageLayout::eShaderReadOnlyOptimal);
 
 	// TODO: dynamic render pass
-	std::thread thread(process);
 
 	uint32_t frame = 0;
         while (true) {
@@ -607,10 +528,6 @@ int main(int argc, char *argv[])
 
 		// Update framebuffer buffer and copy to the image
 		littlevk::upload(device, fb_buffer, fb.data);
-		if (complete) {
-			thread.join();
-			complete = false;
-		}
 
 		fb_image.transition(cmd, vk::ImageLayout::eTransferDstOptimal);
 		littlevk::copy_buffer_to_image(cmd, fb_image, fb_buffer, vk::ImageLayout::eTransferDstOptimal);
@@ -646,8 +563,14 @@ int main(int argc, char *argv[])
 			ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 
 			if (ImGui::Begin("Interface")) {
-				if (ImGui::Button("Render"))
-					fmt::println("rendering...");
+				if (ImGui::Button("Render")) {
+					rf = jvl::core::rayframe(aperature, transform);
+					fb.clear();
+					thread_pool.reset();
+					thread_pool.enque(tiles);
+					thread_pool.begin();
+				}
+
 				ImGui::End();
 			}
 
