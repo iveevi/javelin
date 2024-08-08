@@ -2,68 +2,39 @@
 
 namespace jvl::ire::op {
 
-// TODO: single function
-
-// Non-reindexable
-void reindex_vd::operator()(Primitive &) {}
-void reindex_vd::operator()(End &) {}
-
-// Useful
-void reindex_vd::operator()(Global &g)
+void reindex_ir_operation(const wrapped::reindex &reindexer, General &g)
 {
-	g.type = reindexer[g.type];
-}
-
-void reindex_vd::operator()(TypeField &tf)
-{
-	tf.down = reindexer[tf.down];
-	tf.next = reindexer[tf.next];
-}
-
-void reindex_vd::operator()(Cmp &cmp)
-{
-	cmp.a = reindexer[cmp.a];
-	cmp.b = reindexer[cmp.b];
-}
-
-void reindex_vd::operator()(List &list)
-{
-	list.item = reindexer[list.item];
-	list.next = reindexer[list.next];
-}
-
-void reindex_vd::operator()(Construct &ctor)
-{
-	ctor.type = reindexer[ctor.type];
-	ctor.args = reindexer[ctor.args];
-}
-
-void reindex_vd::operator()(Store &store)
-{
-	store.dst = reindexer[store.dst];
-	store.src = reindexer[store.src];
-}
-
-void reindex_vd::operator()(Load &load)
-{
-	load.src = reindexer[load.src];
-}
-
-void reindex_vd::operator()(Swizzle &swizzle)
-{
-	swizzle.src = reindexer[swizzle.src];
-}
-
-void reindex_vd::operator()(Cond &cond)
-{
-	cond.cond = reindexer[cond.cond];
-	cond.failto = reindexer[cond.failto];
-}
-
-void reindex_vd::operator()(Elif &elif)
-{
-	elif.cond = reindexer[elif.cond];
-	elif.failto = reindexer[elif.failto];
+	if (g.is <Global> ()) {
+		reindexer(g.as <Global> ().type);
+	} else if (g.is <TypeField> ()) {
+		reindexer(g.as <TypeField> ().down);
+		reindexer(g.as <TypeField> ().next);
+	} else if (g.is <Cmp> ()) {
+		reindexer(g.as <Cmp> ().a);
+		reindexer(g.as <Cmp> ().b);
+	} else if (g.is <List> ()) {
+		reindexer(g.as <List> ().item);
+		reindexer(g.as <List> ().next);
+	} else if (g.is <Construct> ()) {
+		reindexer(g.as <Construct> ().type);
+		reindexer(g.as <Construct> ().args);
+	} else if (g.is <Store> ()) {
+		reindexer(g.as <Store> ().dst);
+		reindexer(g.as <Store> ().src);
+	} else if (g.is <Load> ()) {
+		reindexer(g.as <Load> ().src);
+	} else if (g.is <Swizzle> ()) {
+		reindexer(g.as <Swizzle> ().src);
+	} else if (g.is <Cond> ()) {
+		reindexer(g.as <Cond> ().cond);
+		reindexer(g.as <Cond> ().failto);
+	} else if (g.is <Elif> ()) {
+		reindexer(g.as <Elif> ().cond);
+		reindexer(g.as <Elif> ().failto);
+	} else if (g.is <While> ()) {
+		reindexer(g.as <While> ().cond);
+		reindexer(g.as <While> ().failto);
+	}
 }
 
 } // namespace jvl::ire::op

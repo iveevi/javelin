@@ -82,17 +82,24 @@ struct hash_table : std::unordered_map <K, V> {
 struct reindex : std::unordered_map <int, int> {
 	reindex() : std::unordered_map <int, int> { { -1, -1 } } {}
 
-	int operator()(int i) {
+	int mapped(int i) const {
 		if (contains(i))
-			return operator[](i);
+			return at(i);
 
 		return -1;
 	}
 
+	void operator()(int &i) const {
+		if (contains(i))
+			i = at(i);
+		else
+			i = -1;
+	}
+
 	std::unordered_set <int> operator()(std::unordered_set <int> &set) {
 		std::unordered_set <int> replace;
-		for (int i : set)
-			replace.insert(operator()(i));
+		for (const int i : set)
+			replace.insert(mapped(i));
 
 		return replace;
 	}

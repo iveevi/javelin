@@ -89,7 +89,9 @@ std::string synthesize_glsl_body(const General *const pool,
 
 	std::function <std::string (int)> inlined;
 	inlined = [&](int index) -> std::string {
-		// TODO: inlined check if variable already... then no need for ref
+		if (variables.count(index))
+			return variables[index];
+
 		General g = pool[index];
 
 		if (auto prim = g.get <Primitive> ()) {
@@ -114,7 +116,7 @@ std::string synthesize_glsl_body(const General *const pool,
 			std::string accessor = Swizzle::swizzle_name[swizzle->type];
 			return ref(swizzle->src) + "." + accessor;
 		} else if (auto cmp = g.get <Cmp> ()) {
-			return fmt::format("{} {} {}",
+			return fmt::format("({} {} {})",
 					inlined(cmp->a),
 					glsl_cmp(*cmp),
 					inlined(cmp->b));
@@ -130,6 +132,11 @@ std::string synthesize_glsl_body(const General *const pool,
 			std::string ifs = "if (" + v + ") {";
 			source += finish(ifs, false);
 			indentation++;
+		} else if (auto loop = g.get <While> ()) {
+			std::string v = inlined(loop->cond);
+			std::string whiles = "while (" + v + ") {";
+			source += finish(whiles, false);
+			indentation++;
 		} else if (auto elif = g.get <Elif> ()) {
 			indentation--;
 
@@ -142,9 +149,6 @@ std::string synthesize_glsl_body(const General *const pool,
 			source += finish(elifs, false);
 
 			indentation++;
-		} else if (g.get <End> ()) {
-			indentation--;
-			source += finish("}", false);
 		} else if (auto ctor = g.get <Construct> ()) {
 			std::string t = type_name(pool, struct_names, ctor->type, -1);
 			std::string v = t + "(" + inlined(ctor->args) + ")";
@@ -165,6 +169,17 @@ std::string synthesize_glsl_body(const General *const pool,
 			std::string t = type_table[prim->type];
 			std::string v = glsl_primitive(*prim);
 			source += assign_new(t, v, index);
+		} else if (auto cmp = g.get <Cmp> ()) {
+			std::string t = type_table[boolean];
+			std::string v = fmt::format("({} {} {})",
+						inlined(cmp->a),
+						glsl_cmp(*cmp),
+						inlined(cmp->b));
+
+			source += assign_new(t, v, index);
+		} else if (g.get <End> ()) {
+			indentation--;
+			source += finish("}", false);
 		} else if (g.is <TypeField> ()) {
 			// Already taken care of during type/struct synthesis
 		} else {

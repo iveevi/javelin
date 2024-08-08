@@ -1,6 +1,7 @@
 #include <array>
 
 #include "ire/emitter.hpp"
+#include "ire/op.hpp"
 #include "wrapped_types.hpp"
 
 // Compressing IR code sequences
@@ -45,20 +46,22 @@ block_t cast_to_block(const op::General &g)
 }
 
 std::tuple <size_t, wrapped::reindex>
-ir_compact_deduplicate(const op::General *const source, op::General *const dst, size_t elements)
+ir_compact_deduplicate(const op::General *const source,
+		       op::General *const dst,
+		       std::unordered_set <int> &synthesized,
+		       size_t elements)
 {
 	wrapped::hash_table <block_t, int> blocks;
 	std::unordered_set <int> original;
 	wrapped::reindex reindexer;
 
 	// Find duplicates (binary)
-	// TODO: exception is if it is main
 	for (size_t i = 0; i < elements; i++) {
 		block_t b = cast_to_block(source[i]);
-		if (blocks.count(b)) {
+		if (blocks.count(b) && !synthesized.count(i)) {
 			reindexer[i] = blocks[b];
 		} else {
-			reindexer[i] = blocks.size();
+			reindexer[i] = original.size();
 			blocks[b] = blocks.size();
 			original.insert(i);
 		}
@@ -71,10 +74,13 @@ ir_compact_deduplicate(const op::General *const source, op::General *const dst, 
 			dst[size++] = source[i];
 	}
 
+	fmt::println("reindex:");
+	for (auto [k, v] : reindexer)
+		fmt::println("  {} -> {}", k, v);
+
 	// Re-index all instructions as necessary
-	op::reindex_vd rvd(reindexer);
 	for (size_t i = 0; i < size; i++)
-		std::visit(rvd, dst[i]);
+		op::reindex_ir_operation(reindexer, dst[i]);
 
 	return { size, reindexer };
 

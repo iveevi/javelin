@@ -6,6 +6,7 @@
 #include "vector.hpp"
 #include "matrix.hpp"
 #include "aliases.hpp"
+#include "control_flow.hpp"
 
 // TODO: debug only
 #include "guarantees.hpp"

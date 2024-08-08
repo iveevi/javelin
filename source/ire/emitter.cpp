@@ -1,4 +1,5 @@
 #include <cassert>
+#include <fmt/core.h>
 #include <map>
 
 #include "ire/emitter.hpp"
@@ -19,7 +20,7 @@ void Emitter::clear()
 void Emitter::compact()
 {
 	wrapped::reindex reindexer;
-	std::tie(pointer, reindexer) = detail::ir_compact_deduplicate(pool, dual, pointer);
+	std::tie(pointer, reindexer) = detail::ir_compact_deduplicate(pool, dual, synthesized, pointer);
 	std::memset(pool, 0, size * sizeof(op::General));
 	std::memcpy(pool, dual, pointer * sizeof(op::General));
 	synthesized = reindexer(synthesized);
@@ -83,6 +84,15 @@ void Emitter::mark_used(int index, bool syn)
 		synthesized.insert(index);
 }
 
+void Emitter::mark_synthesized_underlying(int index)
+{
+	op::General g = pool[index];
+	if (auto cmp = g.get <op::Cmp> ()) {
+		mark_used(cmp->a, true);
+		mark_used(cmp->b, true);
+	}
+}
+
 // Emitting instructions during function invocation
 int Emitter::emit(const op::General &op)
 {
@@ -130,6 +140,13 @@ int Emitter::emit_main(const op::Elif &elif)
 	return p;
 }
 
+int Emitter::emit_main(const op::While &loop)
+{
+	int p = emit_main((op::General) loop);
+	control_flow_ends.push(p);
+	return p;
+}
+
 int Emitter::emit_main(const op::End &end)
 {
 	int p = emit_main((op::General) end);
@@ -147,11 +164,14 @@ void Emitter::control_flow_callback(int ref, int p)
 		op.as <op::Cond> ().failto = p;
 	} else if (op.is <op::Elif> ()) {
 		op.as <op::Elif> ().failto = p;
+	} else if (op.is <op::While> ()) {
+		op.as <op::While> ().failto = p;
 	} else {
-		printf("op not conditional, is actually:");
-		std::visit(op::dump_vd(), op);
-		printf("\n");
-		assert(false);
+		fmt::print("op not conditional, is actually:");
+			op::dump_ir_operation(op);
+		fmt::print("\n");
+
+		abort();
 	}
 }
 
@@ -277,21 +297,23 @@ std::string Emitter::generate_glsl()
 // TODO: debug only?
 void Emitter::dump()
 {
-	printf("GLOBALS (%4d/%4d)\n", pointer, size);
+	fmt::println("------------------------------");
+	fmt::println("GLOBALS ({}/{})", pointer, size);
+	fmt::println("------------------------------");
 	for (size_t i = 0; i < pointer; i++) {
 		if (synthesized.contains(i))
-			printf("S");
+			fmt::print("S");
 		else
-			printf(" ");
+			fmt::print(" ");
 
 		if (used.contains(i))
-			printf("U");
+			fmt::print("U");
 		else
-			printf(" ");
+			fmt::print(" ");
 
-		printf(" [%4d]: ", i);
-		std::visit(op::dump_vd(), pool[i]);
-		printf("\n");
+		fmt::print(" [{:4d}]: ", i);
+			op::dump_ir_operation(pool[i]);
+		fmt::print("\n");
 	}
 }
 

@@ -53,6 +53,7 @@ struct TypeField {
 
 struct Primitive {
 	PrimitiveType type = bad;
+	// TODO: decrease size since using all four is like rare (use a list instead?)
 	union {
 		bool b;
 		float fdata[4];
@@ -103,6 +104,12 @@ struct Load {
 
 struct Cond {
 	int cond = -1;
+	// TODO: is failto actually used?
+	int failto = -1;
+};
+
+struct While {
+	int cond = -1;
 	int failto = -1;
 };
 
@@ -112,7 +119,7 @@ struct End {};
 
 using General = wrapped::variant <
 	Global, TypeField, Primitive, Swizzle, Cmp,
-	Construct, List, Store, Load, Cond, Elif, End
+	Construct, List, Store, Load, Cond, Elif, While, End
 >;
 
 // Dispatcher types (vd = variadic dispatcher)
@@ -140,47 +147,16 @@ inline std::string type_name(const General *const pool,
 	return "<BAD>";
 }
 
-struct dump_vd {
-	void operator()(const Global &);
-	void operator()(const TypeField &);
-	void operator()(const Primitive &);
-	void operator()(const List &);
-	void operator()(const Construct &);
-	void operator()(const Store &);
-	void operator()(const Load &);
-	void operator()(const Swizzle &);
-	void operator()(const Cmp &);
-	void operator()(const Cond &);
-	void operator()(const Elif &);
-	void operator()(const End &);
+// Printing instructions for debugging
+void dump_ir_operation(const General &);
 
-	template <typename T>
-	void operator()(const T &)
-	{
-		printf("<?>");
-	}
-};
+// Reindexing integer elements during compaction
+void reindex_ir_operation(const wrapped::reindex &, General &);
 
+// Synthesizing GLSL source code
 std::string synthesize_glsl_body(const General *const,
 		                 const wrapped::hash_table <int, std::string> &,
 		                 const std::unordered_set <int> &,
 				 size_t);
-
-struct reindex_vd {
-	wrapped::reindex reindexer;
-
-	void operator()(Primitive &);
-	void operator()(End &);
-	void operator()(Global &);
-	void operator()(TypeField &);
-	void operator()(Cmp &);
-	void operator()(List &);
-	void operator()(Construct &);
-	void operator()(Store &);
-	void operator()(Load &);
-	void operator()(Swizzle &);
-	void operator()(Cond &);
-	void operator()(Elif &);
-};
 
 } // namespace jvl::ire::op

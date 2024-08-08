@@ -57,41 +57,7 @@ boolean operator==(const T &A, const U &B)
 	return gltype <T> (A) == B;
 }
 
-// Branching emitters
-// TODO: control flow header
-void cond(boolean b)
-{
-	auto &em = Emitter::active;
-	op::Cond branch;
-	branch.cond = b.synthesize().id;
-	em.emit_main(branch);
-}
-
-void elif (boolean b)
-{
-	auto &em = Emitter::active;
-	op::Elif branch;
-	branch.cond = b.synthesize().id;
-	em.emit_main(branch);
-}
-
-void elif ()
-{
-	// Treated as an else
-	auto &em = Emitter::active;
-	op::Elif branch;
-	branch.cond = -1;
-	em.emit_main(branch);
-}
-
-void end()
-{
-	auto &em = Emitter::active;
-	em.emit_main(op::End());
-}
-
-// TODO: core.hpp header for main glsl functionality
-// then std.hpp for additional features
+// TODO: std.hpp for additional features
 
 } // namespace jvl::ire
 
@@ -120,38 +86,23 @@ struct mvp_info {
 
 void shader()
 {
-	// layout_in <mvp_info, 0> flag;
-	push_constants <mvp_info> flag;
-
-	f32 v = flag.scalar;
-	v = 1;
-
-	vec4 vec(2, 0, 1);
-	v = vec.y;
-
-	// f32 x = 2.335f;
-	// cond(flag.model == 0);
-	// 	x = 1.618f;
-	// elif();
-	// 	x = 0.618f;
-	// end();
+	// push_constants <mvp_info> flag;
 	//
-	// layout_out <float, 0> out;
+	// f32 v = flag.scalar;
+	// v = 1;
 	//
-	// out = x;
-	// out = 1.0f;
+	// vec4 vec(2, 0, 1);
+	// v = vec.y;
+
+	f32 v = 0;
+
+	// TODO: before synthesis, demote variables to inline if they are not modified later
+	f32 i = 0;
+	loop(i == 0);
+		v = i;
+	end();
 
 	// TODO: warnings for the unused sections
-
-	// layout_in <vec3, 0> position;
-	//
-	// push_constants <mvp_info> mvp;
-	//
-	// vec4 v = vec4(mvp.camera, 1);
-	//
-	// f32 x = 2.335f;
-	// x = mvp.scalar;
-	// vec4 w = vec4(mvp.camera, x);
 }
 
 #include <glad/gl.h>
@@ -163,7 +114,6 @@ int main()
 
 	shader();
 
-	// Emitter::active.dump();
 	Emitter::active.compact();
 	Emitter::active.dump();
 
