@@ -1,27 +1,27 @@
 #pragma once
 
-#include "gltype.hpp"
+#include "primitive.hpp"
 #include "tagged.hpp"
 #include "util.hpp"
 
 namespace jvl::ire {
 
 // Vector types
-template <gltype_complatible T, size_t N>
+template <primitive_type T, size_t N>
 struct vec;
 
-template <gltype_complatible T, size_t N>
+template <primitive_type T, size_t N>
 requires (N >= 1 && N <= 4)
 struct swizzle_base : tagged {};
 
-template <gltype_complatible T, typename Up, op::Swizzle::Kind swz>
+template <primitive_type T, typename Up, op::Swizzle::Kind swz>
 class swizzle_element : tagged {
 	Up *upper;
 
 	swizzle_element(Up *upper_) : upper(upper_) {}
 public:
-	operator gltype <T> () const {
-		return gltype <T> (synthesize());
+	operator primitive_t <T> () const {
+		return primitive_t <T> (synthesize());
 	}
 
 	cache_index_t synthesize() const {
@@ -39,12 +39,12 @@ public:
 		return (this->ref = em.emit(swizzle));
 	}
 
-	template <gltype_complatible U, size_t N>
+	template <primitive_type U, size_t N>
 	requires (N >= 1 && N <= 4)
 	friend class swizzle_base;
 };
 
-template <gltype_complatible T>
+template <primitive_type T>
 class swizzle_base <T, 2> : public tagged {
 	using self = swizzle_base <T, 2>;
 
@@ -67,7 +67,7 @@ public:
 
 		// TODO: type field generator
 		op::TypeField tf;
-		tf.item = primitive_type <vec <T, 2>> ();
+		tf.item = synthesize_primitive_type <vec <T, 2>> ();
 
 		op::Construct ctor;
 		ctor.type = em.emit(tf);
@@ -77,7 +77,7 @@ public:
 	}
 };
 
-template <gltype_complatible T>
+template <primitive_type T>
 class swizzle_base <T, 3> : public tagged {
 	using self = swizzle_base <T, 3>;
 
@@ -102,7 +102,7 @@ public:
 
 		// TODO: type field generator
 		op::TypeField tf;
-		tf.item = primitive_type <vec <T, 3>> ();
+		tf.item = synthesize_primitive_type <vec <T, 3>> ();
 
 		op::Construct ctor;
 		ctor.type = em.emit(tf);
@@ -112,7 +112,7 @@ public:
 	}
 };
 
-template <gltype_complatible T>
+template <primitive_type T>
 class swizzle_base <T, 4> : public tagged {
 	using self = swizzle_base <T, 4>;
 
@@ -139,7 +139,7 @@ public:
 
 		// TODO: type field generator
 		op::TypeField tf;
-		tf.item = primitive_type <vec <T, 4>> ();
+		tf.item = synthesize_primitive_type <vec <T, 4>> ();
 
 		op::Construct ctor;
 		ctor.type = em.emit(tf);
@@ -149,7 +149,7 @@ public:
 	}
 };
 
-template <gltype_complatible T, size_t N>
+template <primitive_type T, size_t N>
 struct vec : swizzle_base <T, N> {
 	using swizzle_base <T, N> ::swizzle_base;
 };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gltype.hpp"
+#include "primitive.hpp"
 #include "layout_io.hpp"
 
 // TODO: import the aliases
@@ -8,7 +8,7 @@ namespace jvl::ire {
 
 // static_assert(synthesizable <vec4>);
 
-static_assert(synthesizable <gltype <int>>);
+static_assert(synthesizable <primitive_t <int>>);
 
 // static_assert(synthesizable <boolean>);
 

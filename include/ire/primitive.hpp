@@ -40,23 +40,23 @@ inline int translate_primitive(float f)
 }
 
 template <typename T>
-concept gltype_complatible = requires(const T &t) {
+concept primitive_type = requires(const T &t) {
 	{
 		translate_primitive(t)
 	} -> std::same_as <int>;
 };
 
-template <gltype_complatible T>
-struct gltype : tagged {
+template <primitive_type T>
+struct primitive_t : tagged {
 	using tagged::tagged;
 
 	T value;
 
-	gltype(const T &v = T()) : tagged(), value(v) {
+	primitive_t(const T &v = T()) : tagged(), value(v) {
 		synthesize();
 	}
 
-	gltype &operator=(const T &v) {
+	primitive_t &operator=(const T &v) {
 		// At this point we are required to have storage for this
 		auto &em = Emitter::active;
 		em.mark_used(ref.id, true);
@@ -69,7 +69,7 @@ struct gltype : tagged {
 		return *this;
 	}
 
-	gltype &operator=(const gltype &v) {
+	primitive_t &operator=(const primitive_t &v) {
 		// At this point we are required to have storage for this
 		auto &em = Emitter::active;
 		em.mark_used(ref.id, true);

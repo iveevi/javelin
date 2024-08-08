@@ -1,16 +1,16 @@
 #pragma once
 
 #include "type_synthesis.hpp"
-#include "gltype.hpp"
+#include "primitive.hpp"
 #include "vector.hpp"
 #include "matrix.hpp"
 
 namespace jvl::ire {
 
 // Common types
-using i32 = gltype <int>;
-using f32 = gltype <float>;
-using boolean = gltype <bool>;
+using i32 = primitive_t <int>;
+using f32 = primitive_t <float>;
+using boolean = primitive_t <bool>;
 
 using ivec2 = vec <int, 2>;
 using ivec3 = vec <int, 3>;
@@ -26,7 +26,7 @@ using mat4 = mat <float, 4, 4>;
 
 // Type matching
 template <typename T>
-constexpr op::PrimitiveType primitive_type()
+constexpr op::PrimitiveType synthesize_primitive_type()
 {
 	if constexpr (std::is_same_v <T, bool>)
 		return op::boolean;
@@ -35,11 +35,11 @@ constexpr op::PrimitiveType primitive_type()
 	if constexpr (std::is_same_v <T, float>)
 		return op::f32;
 
-	if constexpr (std::is_same_v <T, gltype <bool>>)
+	if constexpr (std::is_same_v <T, primitive_t <bool>>)
 		return op::boolean;
-	if constexpr (std::is_same_v <T, gltype <int>>)
+	if constexpr (std::is_same_v <T, primitive_t <int>>)
 		return op::i32;
-	if constexpr (std::is_same_v <T, gltype <float>>)
+	if constexpr (std::is_same_v <T, primitive_t <float>>)
 		return op::f32;
 
 	if constexpr (std::is_same_v <T, vec2>)

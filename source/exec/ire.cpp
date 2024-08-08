@@ -48,13 +48,13 @@ boolean operator==(const T &A, const U &B)
 template <synthesizable T, typename U>
 boolean operator==(const T &A, const U &B)
 {
-	return A == gltype <U> (B);
+	return A == primitive_t <U> (B);
 }
 
 template <typename T, synthesizable U>
 boolean operator==(const T &A, const U &B)
 {
-	return gltype <T> (A) == B;
+	return primitive_t <T> (A) == B;
 }
 
 // TODO: std.hpp for additional features

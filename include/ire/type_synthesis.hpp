@@ -12,20 +12,7 @@ requires (sizeof...(Args) > 0)
 struct uniform_layout;
 
 template <typename T>
-constexpr op::PrimitiveType primitive_type();
-
-template <typename T>
-int type_field()
-{
-	auto &em = Emitter::active;
-
-	// TODO: for all types
-	op::TypeField type;
-	type.item = primitive_type <T> ();
-	type.next = -1;
-
-	return em.emit(type);
-}
+constexpr op::PrimitiveType synthesize_primitive_type();
 
 template <typename T, typename ... Args>
 cache_index_t synthesize_type_fields()
@@ -37,7 +24,7 @@ cache_index_t synthesize_type_fields()
 	auto &em = Emitter::active;
 
 	op::TypeField tf;
-	tf.item = primitive_type <T> ();
+	tf.item = synthesize_primitive_type <T> ();
 	if constexpr (sizeof...(Args))
 		tf.next = synthesize_type_fields <Args...> ().id;
 	else

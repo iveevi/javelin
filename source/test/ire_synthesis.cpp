@@ -1,8 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "ire/aliases.hpp"
 #include "ire/core.hpp"
-#include "ire/gltype.hpp"
 
 using namespace jvl::ire;
 
@@ -54,7 +52,7 @@ TEST(ire_synthesis, synthesize_empty)
 
 // TEST(ire_synthesis, synthesize_layout_io)
 
-template <gltype_complatible T>
+template <primitive_type T>
 void synthesize_layout_io_inner()
 {
 	Emitter::active.clear();
@@ -75,12 +73,12 @@ void synthesize_layout_io_inner()
 	lout.qualifier = op::Global::layout_out;
 	lout.binding = 0;
 
-	op::TypeField float_type;
-	float_type.item = primitive_type <T> ();
+	op::TypeField type_field;
+	type_field.item = synthesize_primitive_type <T> ();
 
 	EXPECT_TRUE(ir_check_op_occurence(lin));
 	EXPECT_TRUE(ir_check_op_occurence(lout));
-	EXPECT_TRUE(ir_check_op_occurence(float_type, 2));
+	EXPECT_TRUE(ir_check_op_occurence(type_field, 1));
 }
 
 TEST(ire_synthesis, synthesize_layout_io_int)

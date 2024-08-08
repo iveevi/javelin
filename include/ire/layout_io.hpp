@@ -1,8 +1,8 @@
 #pragma once
 
 #include "emitter.hpp"
-#include "gltype.hpp"
-#include "ire/tagged.hpp"
+#include "primitive.hpp"
+#include "tagged.hpp"
 #include "uniform_layout.hpp"
 #include "type_synthesis.hpp"
 
@@ -21,8 +21,8 @@ using layout_in_base = std::conditional_t <synthesizable <T> || uniform_compatib
 template <typename T>
 using layout_out_base = std::conditional_t <synthesizable <T> || uniform_compatible <T>, T, __empty>;
 
-template <gltype_complatible T>
-constexpr gltype <T> upcast(const T &) { return gltype <T> (); }
+template <primitive_type T>
+constexpr primitive_t <T> upcast(const T &) { return primitive_t <T> (); }
 
 template <uniform_compatible T>
 constexpr T upcast(const T &) { return T(); }
@@ -33,7 +33,7 @@ constexpr T upcast(const T &) { return T(); }
 static_assert(std::same_as <layout_in_base <int>, tagged>);
 
 template <typename T, size_t binding>
-requires gltype_complatible <T> || synthesizable <T> || uniform_compatible <T>
+requires primitive_type <T> || synthesizable <T> || uniform_compatible <T>
 struct layout_in : layout_in_base <T> {
 	using upcast_t = decltype(upcast(T()));
 
@@ -65,14 +65,14 @@ struct layout_in : layout_in_base <T> {
 	}
 
 	cache_index_t synthesize() const
-	requires gltype_complatible <T> {
+	requires primitive_type <T> {
 		if (this->cached())
 			return this->ref;
 
 		auto &em = Emitter::active;
 
 		op::Global global;
-		global.type = type_field <T> ();
+		global.type = synthesize_type_fields <T> ().id;
 		global.binding = binding;
 		global.qualifier = op::Global::layout_in;
 
@@ -82,23 +82,23 @@ struct layout_in : layout_in_base <T> {
 		return (this->ref = em.emit_main(load));
 	}
 
-	operator gltype <T> ()
-	requires gltype_complatible <T> {
-		return gltype <T> (synthesize());
+	operator primitive_t <T> ()
+	requires primitive_type <T> {
+		return primitive_t <T> (synthesize());
 	}
 };
 
 template <typename T, size_t binding>
-requires gltype_complatible <T> || synthesizable <T> || uniform_compatible <T>
+requires primitive_type <T> || synthesizable <T> || uniform_compatible <T>
 struct layout_out : layout_out_base <T> {
 	using upcast_t = decltype(upcast(T()));
 
 	void operator=(const T &t) const
-	requires gltype_complatible <T> {
+	requires primitive_type <T> {
 		auto &em = Emitter::active;
 
 		op::Global global;
-		global.type = type_field <T> ();
+		global.type = synthesize_type_fields <T> ().id;
 		global.binding = binding;
 		global.qualifier = op::Global::layout_out;
 
@@ -113,7 +113,7 @@ struct layout_out : layout_out_base <T> {
 		auto &em = Emitter::active;
 
 		op::Global global;
-		global.type = type_field <T> ();
+		global.type = synthesize_type_fields <T> ().id;
 		global.binding = binding;
 		global.qualifier = op::Global::layout_out;
 
