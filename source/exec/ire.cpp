@@ -1,4 +1,3 @@
-#include <array>
 #include <cassert>
 #include <concepts>
 #include <cstdio>
@@ -12,6 +11,7 @@
 
 namespace jvl::ire {
 
+// TODO: with name
 template <synthesizable ... Args>
 requires (sizeof...(Args) > 0)
 void structure(const Args &... args)
@@ -63,45 +63,29 @@ boolean operator==(const T &A, const U &B)
 
 using namespace jvl::ire;
 
-// TODO: nested structs
-struct mvp_info {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	vec3 camera;
-	f32 scalar;
-
-	// TODO: simultaenously a struct and push constant
-	// mvp_info(bool stationary = false) {
-	// 	if (stationary)
-	// 		structure(view, proj);
-	// 	else
-	// 		structure(model, view, proj);
-	// }
-
-	auto layout() {
-		return uniform_layout(model, view, proj, camera, scalar);
-	}
-};
-
 void shader()
 {
-	// push_constants <mvp_info> flag;
-	//
-	// f32 v = flag.scalar;
-	// v = 1;
-	//
-	// vec4 vec(2, 0, 1);
-	// v = vec.y;
+	struct constants {
+		vec2 data;
 
-	f32 v = 0;
+		auto layout() {
+			return uniform_layout(data);
+		}
+	};
+
+	// TODO: immutability
+	layout_out <constants, 0> pc;
+
+	layout_out <int, 0> pc2;
+
+	layout_out <vec3, 0> pc3;
+
+	pc2 = 1;
+	// pc3.x = 1;
+
+	// pc.data.x = 1;
 
 	// TODO: before synthesis, demote variables to inline if they are not modified later
-	f32 i = 0;
-	loop(i == 0);
-		v = i;
-	end();
-
 	// TODO: warnings for the unused sections
 }
 
