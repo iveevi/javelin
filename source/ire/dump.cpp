@@ -73,7 +73,7 @@ void dump_ir_operation(const General &g)
 		const char *cmp_table[] = {"=", "!="};
 		fmt::print("cmp %{} {} %{}", cmp->a, cmp_table[cmp->type], cmp->b);
 	} else if (auto op = g.get <Operation> ()) {
-		fmt::print("op {} %{}", Operation::name[op->type], op->args);
+		fmt::print("op ${} %{}", Operation::name[op->type], op->args);
 	} else if (auto cond = g.get <Cond> ()) {
 		fmt::print("cond %{} -> %{}", cond->cond, cond->failto);
 	} else if (auto elif = g.get <Elif> ()) {

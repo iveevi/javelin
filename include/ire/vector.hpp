@@ -151,10 +151,13 @@ public:
 
 		atom::Construct ctor;
 		ctor.type = synthesize_type_fields <vec <T, 4>> ().id;
-		ctor.args = synthesize_list(v, initial[3]);
+		ctor.args = synthesize_list(v, x);
 
 		ref = em.emit(ctor);
 	}
+
+	swizzle_base(cache_index_t cit)
+			: tagged(cit), x(this), y(this), z(this), w(this) {}
 
 	cache_index_t synthesize() const {
 		if (cached())
@@ -176,7 +179,6 @@ struct vec : swizzle_base <T, N> {
 	using swizzle_base <T, N> ::swizzle_base;
 
 	vec &operator=(const vec &other) {
-
 		auto &em = Emitter::active;
 
 		atom::Store store;

@@ -63,6 +63,8 @@ std::string glsl_format_operation(int type, const std::vector <std::string> &arg
 	switch (type) {
 	case Operation::unary_negation:
 		return fmt::format("-{}", args[0]);
+	case Operation::multiplication:
+		return fmt::format("({} * {})", args[0], args[1]);
 	default:
 		break;
 	}

@@ -83,13 +83,21 @@ struct Cmp {
 
 struct Operation {
 	enum {
-		unary_negation
+		unary_negation,
+		addition,
+		subtraction,
+		multiplication,
+		division
 	} type;
 
 	int args = -1;
 
 	static constexpr const char *name[] = {
-		"negation"
+		"negation",
+		"addition",
+		"subtraction",
+		"multiplication",
+		"division"
 	};
 };
 

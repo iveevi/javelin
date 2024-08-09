@@ -1,9 +1,11 @@
 #pragma once
 
+#include <functional>
 #include <stack>
 #include <unordered_set>
 
 #include "atom.hpp"
+#include "tagged.hpp"
 #include "wrapped_types.hpp"
 
 namespace jvl::ire {
@@ -20,12 +22,17 @@ struct Emitter {
 	std::unordered_set <int> used;
 	std::unordered_set <int> synthesized;
 
+	std::vector <std::reference_wrapper <cache_index_t>> caches;
+
 	Emitter();
 
 	// Resizing and compaction
 	void clear();
 	void compact();
 	void resize(size_t);
+
+	// Managing the state
+	cache_index_t &persist_cache_index(cache_index_t &);
 
 	// Dead code elimination, always conservative
 	void mark_used(int, bool);

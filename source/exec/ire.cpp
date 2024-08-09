@@ -66,7 +66,7 @@ boolean operator==(const T &A, const U &B)
 
 using namespace jvl::ire;
 
-void shader()
+void vertex_shader()
 {
 	struct mvp {
 		mat4 model;
@@ -79,16 +79,36 @@ void shader()
 	};
 
 	layout_in <vec3, 0> position;
+	layout_out <vec3, 0> out_position;
 
 	push_constant <mvp> mvp;
 
-	// gl_Position = mvp.proj * vec4()
-	gl_Position = vec4(position, 0);
+	vec4 v = vec4(position, 1);
+	gl_Position = mvp.proj * (mvp.view * (mvp.model * v));
 	gl_Position.y = -gl_Position.y;
+	out_position = position;
 
 	// TODO: immutability for shader inputs
 	// TODO: before synthesis, demote variables to inline if they are not modified later
 	// TODO: warnings for the unused sections
+}
+
+void fragment_shader()
+{
+	layout_in <vec3, 0> position;
+	layout_out <vec4, 0> fragment;
+
+	fragment = vec4(1);
+
+	// layout (location = 0) out vec4 fragment;
+	//
+	// void main()
+	// {
+	// 	vec3 dU = dFdx(position);
+	// 	vec3 dV = dFdyFine(position);
+	// 	vec3 N = normalize(cross(dU, dV));
+	// 	fragment = vec4(0.5 + 0.5 * N, 1.0);
+	// }
 }
 
 #include <glad/gl.h>
@@ -98,15 +118,34 @@ int main()
 {
 	glfwInit();
 
-	shader();
+	Emitter::active.clear();
+
+	vertex_shader();
+
+	// TODO: auto kernel = jvl_emit_kernel(ftn, args...)
+	//            ^
+	//            now kernel holds the IR;
+	//            operator()(...) semantics to be dealt
+	//            with later...
+	Emitter::active.compact();
+	Emitter::active.dump();
+	Emitter::active.validate();
+
+	auto vsource = Emitter::active.generate_glsl();
+
+	printf("\nvertex shader:\n%s", vsource.c_str());
+
+	Emitter::active.clear();
+
+	fragment_shader();
 
 	Emitter::active.compact();
 	Emitter::active.dump();
 	Emitter::active.validate();
 
-	auto source = Emitter::active.generate_glsl();
+	auto fsource = Emitter::active.generate_glsl();
 
-	printf("\nGLSL:\n%s", source.c_str());
+	printf("\nfragment shader:\n%s", fsource.c_str());
 
 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 	GLFWwindow *window = glfwCreateWindow(800, 800, "Window", NULL, NULL);
@@ -123,7 +162,7 @@ int main()
 	}
 
 	GLuint program = glCreateShader(GL_VERTEX_SHADER);
-	const char *source_c_str = source.c_str();
+	const char *source_c_str = vsource.c_str();
 	glShaderSource(program, 1, &source_c_str, nullptr);
 	glCompileShader(program);
 

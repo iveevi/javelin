@@ -4,6 +4,7 @@
 
 #include "ire/emitter.hpp"
 #include "ire/atom.hpp"
+#include "ire/tagged.hpp"
 #include "wrapped_types.hpp"
 
 namespace jvl::ire {
@@ -15,6 +16,14 @@ void Emitter::clear()
 	pointer = 0;
 	std::memset(pool, 0, size * sizeof(atom::General));
 	std::memset(dual, 0, size * sizeof(atom::General));
+
+	// Reset active cache members
+	for (auto &ref : caches)
+		ref.get() = cache_index_t::null();
+
+	// Reset usages
+	used.clear();
+	synthesized.clear();
 }
 
 void Emitter::compact()
@@ -52,6 +61,13 @@ void Emitter::resize(size_t units)
 	}
 
 	size = units;
+}
+
+// State management
+cache_index_t &Emitter::persist_cache_index(cache_index_t &index)
+{
+	caches.push_back(std::ref(index));
+	return index;
 }
 
 // Dead code elimination

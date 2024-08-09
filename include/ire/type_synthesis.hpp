@@ -30,7 +30,8 @@ cache_index_t synthesize_type_fields()
 	else
 		tf.next = -1;
 
-	return (cached = em.emit(tf));
+	cached = em.emit(tf);
+	return em.persist_cache_index(cached);
 }
 
 template <typename ... Args>
