@@ -24,7 +24,4 @@ static_assert(synthesizable <layout_in <int, 0>>);
 //
 // static_assert(synthesizable <mat4>);
 
-// TODO: custom variant for IR which is smaller...
-static_assert(sizeof(atom::General) == 32);
-
 } // namespace jvl::ire

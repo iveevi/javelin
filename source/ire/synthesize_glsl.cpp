@@ -28,32 +28,14 @@ std::string glsl_primitive(const Primitive &p)
 {
 	switch (p.type) {
 	case i32:
-		return fmt::format("{}", p.idata[0]);
+		return fmt::format("{}", p.idata);
 	case f32:
-		return fmt::format("{}", p.fdata[0]);
-	case vec4:
-		return fmt::format("vec4({}, {}, {}, {})",
-				p.fdata[0],
-				p.fdata[1],
-				p.fdata[2],
-				p.fdata[3]);
+		return fmt::format("{}", p.fdata);
 	default:
 		break;
 	}
 
 	return "<prim:?>";
-}
-
-std::string glsl_cmp(const Cmp &cmp)
-{
-	switch (cmp.type) {
-	case Cmp::eq:
-		return "==";
-	default:
-		break;
-	}
-
-	return "<cmp:?>";
 }
 
 std::string glsl_format_operation(int type, const std::vector <std::string> &args)
@@ -80,7 +62,7 @@ std::string glsl_format_operation(int type, const std::vector <std::string> &arg
 
 std::string synthesize_glsl_body(const General *const pool,
 		                 const wrapped::hash_table <int, std::string> &struct_names,
-		                 const std::unordered_set <int> &synthesized,
+		                 const std::unordered_set <index_t> &synthesized,
 				 size_t size)
 {
 	wrapped::hash_table <int, std::string> variables;
@@ -189,11 +171,6 @@ std::string synthesize_glsl_body(const General *const pool,
 		} else if (auto swizzle = g.get <Swizzle> ()) {
 			std::string accessor = Swizzle::name[swizzle->type];
 			return ref(swizzle->src) + "." + accessor;
-		} else if (auto cmp = g.get <Cmp> ()) {
-			return fmt::format("({} {} {})",
-					inlined(cmp->a),
-					glsl_cmp(*cmp),
-					inlined(cmp->b));
 		} else if (auto op = g.get <Operation> ()) {
 			return glsl_format_operation(op->type, arglist(op->args));
 		} else if (auto intr = g.get <Intrinsic> ()) {
@@ -252,14 +229,6 @@ std::string synthesize_glsl_body(const General *const pool,
 		} else if (auto prim = g.get <Primitive> ()) {
 			std::string t = type_table[prim->type];
 			std::string v = glsl_primitive(*prim);
-			source += assign_new(t, v, index);
-		} else if (auto cmp = g.get <Cmp> ()) {
-			std::string t = type_table[boolean];
-			std::string v = fmt::format("({} {} {})",
-						inlined(cmp->a),
-						glsl_cmp(*cmp),
-						inlined(cmp->b));
-
 			source += assign_new(t, v, index);
 		} else if (auto intr = g.get <Intrinsic> ()) {
 			auto args = arglist(intr->args);

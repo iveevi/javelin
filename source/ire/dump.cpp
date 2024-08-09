@@ -35,15 +35,10 @@ void dump_ir_operation(const General &g)
 
 		switch (p->type) {
 		case i32:
-			fmt::print("{}", p->idata[0]);
+			fmt::print("{}", p->idata);
 			break;
 		case f32:
-			fmt::print("{:.2f}", p->fdata[0]);
-			break;
-		case vec4:
-			fmt::print("({:.2f}, {:.2f}, {:.2f}, {:.2f})",
-				p->fdata[0], p->fdata[1],
-				p->fdata[2], p->fdata[3]);
+			fmt::print("{:.2f}", p->fdata);
 			break;
 		default:
 			fmt::print("?");
@@ -69,9 +64,6 @@ void dump_ir_operation(const General &g)
 		fmt::print("swizzle %{} #{}",
 				swizzle->src,
 				Swizzle::name[swizzle->type]);
-	} else if (auto cmp = g.get <Cmp> ()) {
-		const char *cmp_table[] = {"=", "!="};
-		fmt::print("cmp %{} {} %{}", cmp->a, cmp_table[cmp->type], cmp->b);
 	} else if (auto op = g.get <Operation> ()) {
 		fmt::print("op ${} %{}", Operation::name[op->type], op->args);
 	} else if (auto intr = g.get <Intrinsic> ()) {

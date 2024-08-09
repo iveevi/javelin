@@ -38,10 +38,9 @@ boolean operator==(const T &A, const U &B)
 	int a = A.synthesize().id;
 	int b = B.synthesize().id;
 
-	atom::Cmp cmp;
-	cmp.a = a;
-	cmp.b = b;
-	cmp.type = atom::Cmp::eq;
+	atom::Operation cmp;
+	cmp.args = synthesize_list(a, b);
+	cmp.type = atom::Operation::equals;
 
 	cache_index_t c;
 	c = em.emit(cmp);

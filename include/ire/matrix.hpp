@@ -25,7 +25,7 @@ struct mat_base : tagged {
 
 		atom::Primitive p;
 		p.type = atom::i32;
-		p.idata[0] = 1;
+		p.idata = 1;
 
 		atom::List l;
 		l.item = em.emit(p);

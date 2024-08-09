@@ -12,7 +12,7 @@ inline int translate_primitive(bool b)
 
 	atom::Primitive p;
 	p.type = atom::boolean;
-	p.idata[0] = b;
+	p.idata = b;
 
 	return em.emit(p);
 }
@@ -23,7 +23,7 @@ inline int translate_primitive(int i)
 
 	atom::Primitive p;
 	p.type = atom::i32;
-	p.idata[0] = i;
+	p.idata = i;
 
 	return em.emit(p);
 }
@@ -34,7 +34,7 @@ inline int translate_primitive(float f)
 
 	atom::Primitive p;
 	p.type = atom::f32;
-	p.fdata[0] = f;
+	p.fdata = f;
 
 	return em.emit(p);
 }

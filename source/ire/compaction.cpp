@@ -47,15 +47,15 @@ block_t cast_to_block(const atom::General &g)
 	return b;
 }
 
-std::tuple <size_t, wrapped::reindex>
+std::tuple <size_t, wrapped::reindex <atom::index_t>>
 ir_compact_deduplicate(const atom::General *const source,
 		       atom::General *const dst,
-		       std::unordered_set <int> &synthesized,
+		       std::unordered_set <atom::index_t> &synthesized,
 		       size_t elements)
 {
-	wrapped::hash_table <block_t, int> blocks;
-	std::unordered_set <int> original;
-	wrapped::reindex reindexer;
+	wrapped::hash_table <block_t, atom::index_t> blocks;
+	std::unordered_set <atom::index_t> original;
+	wrapped::reindex <atom::index_t> reindexer;
 
 	// Find duplicates (binary)
 	for (size_t i = 0; i < elements; i++) {

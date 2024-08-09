@@ -18,9 +18,9 @@ struct Emitter {
 	size_t size;
 	size_t pointer;
 
-	std::stack <int> control_flow_ends;
-	std::unordered_set <int> used;
-	std::unordered_set <int> synthesized;
+	std::stack <atom::index_t> control_flow_ends;
+	std::unordered_set <atom::index_t> used;
+	std::unordered_set <atom::index_t> synthesized;
 
 	std::vector <std::reference_wrapper <cache_index_t>> caches;
 
@@ -64,10 +64,10 @@ struct Emitter {
 
 namespace detail {
 
-std::tuple <size_t, wrapped::reindex>
+std::tuple <size_t, wrapped::reindex <atom::index_t>>
 ir_compact_deduplicate(const atom::General *const,
 		       atom::General *const,
-		       std::unordered_set <int> &,
+		       std::unordered_set <atom::index_t> &,
 		       size_t);
 
 } // namespace detail

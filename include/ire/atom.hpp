@@ -7,7 +7,9 @@
 
 namespace jvl::ire::atom {
 
-enum PrimitiveType {
+using index_t = int16_t;
+
+enum PrimitiveType : int8_t {
 	bad,
 	boolean, i32, f32,
 	vec2, vec3, vec4,
@@ -26,10 +28,10 @@ static const char *type_table[] = {
 
 // Atomic types
 struct Global {
-	int type = -1;
-	int binding = -1;
+	index_t type = -1;
+	index_t binding = -1;
 
-	enum {
+	enum : int8_t {
 		layout_in,
 		layout_out,
 		push_constant,
@@ -43,42 +45,31 @@ struct TypeField {
 	PrimitiveType item = bad;
 
 	// Otherwise it is a nested struct
-	int down = -1;
+	index_t down = -1;
 
 	// Next field
-	int next = -1;
+	index_t next = -1;
 };
 
 struct Primitive {
 	PrimitiveType type = bad;
-	// TODO: decrease size since using all four is like rare (use a list instead?)
 	union {
 		bool b;
-		float fdata[4];
-		int idata[4] = {0, 0, 0, 0};
+		float fdata;
+		int idata;
 	};
 };
 
 struct Swizzle {
-	enum Kind {
+	enum Kind : int8_t {
 		x, y, z, w, xy
 	} type;
 
-	int src = -1;
+	index_t src = -1;
 
 	static constexpr const char *name[] = {
 		"x", "y", "z", "w", "xy"
 	};
-};
-
-// TODO: merge with Operation
-struct Cmp {
-	int a = -1;
-	int b = -1;
-	enum {
-		eq,
-		neq,
-	} type;
 };
 
 struct Operation {
@@ -87,56 +78,62 @@ struct Operation {
 		addition,
 		subtraction,
 		multiplication,
-		division
+		division,
+		equals,
+		not_equals
 	} type;
 
-	int args = -1;
-	int ret = -1;
+	index_t args = -1;
+	index_t ret = -1;
 
 	static constexpr const char *name[] = {
 		"negation",
 		"addition",
 		"subtraction",
 		"multiplication",
-		"division"
+		"division",
+		"equals",
+		"not_equals"
 	};
 };
 
+#pragma pack(push, 1)
 struct Intrinsic {
-	const char *name;
-	int args = -1;
-	int ret = -1;
+	const char *name = nullptr;
+	index_t args = -1;
+	index_t ret = -1;
 };
+#pragma pack(pop)
 
 struct List {
-	int item = -1;
-	int next = -1;
+	index_t item = -1;
+	index_t next = -1;
 };
 
 struct Construct {
-	int type = -1;
-	int args = -1;
+	index_t type = -1;
+	index_t args = -1;
 };
 
 struct Store {
-	int dst = -1;
-	int src = -1;
+	index_t dst = -1;
+	index_t src = -1;
 };
 
 struct Load {
-	int src = -1;
-	int idx = -1; // Arrays or structures
+	index_t src = -1;
+	index_t idx = -1; // Arrays or structures
 };
 
 struct Cond {
-	int cond = -1;
+	index_t cond = -1;
 	// TODO: is failto actually used?
-	int failto = -1;
+	index_t failto = -1;
 };
 
 struct While {
-	int cond = -1;
-	int failto = -1;
+	index_t cond = -1;
+	index_t failto = -1;
 };
 
 struct Elif : Cond {};
@@ -144,9 +141,25 @@ struct Elif : Cond {};
 struct End {};
 
 using General = wrapped::variant <
-	Global, TypeField, Primitive, Swizzle, Cmp, Operation,
+	Global, TypeField, Primitive, Swizzle, Operation,
 	Construct, Intrinsic, List, Store, Load, Cond, Elif, While, End
 >;
+
+static_assert(sizeof(Global)    == 6);
+static_assert(sizeof(TypeField) == 6);
+static_assert(sizeof(Primitive) == 8);
+static_assert(sizeof(Swizzle)   == 4);
+static_assert(sizeof(Operation) == 8);
+static_assert(sizeof(Intrinsic) == 12);
+static_assert(sizeof(List)      == 4);
+static_assert(sizeof(Construct) == 4);
+static_assert(sizeof(Store)     == 4);
+static_assert(sizeof(Load)      == 4);
+static_assert(sizeof(Cond)      == 4);
+static_assert(sizeof(While)     == 4);
+static_assert(sizeof(Elif)      == 4);
+static_assert(sizeof(End)       == 1);
+static_assert(sizeof(General)   == 16);
 
 // Dispatcher types (vd = variadic dispatcher)
 inline std::string type_name(const General *const pool,
@@ -177,12 +190,12 @@ inline std::string type_name(const General *const pool,
 void dump_ir_operation(const General &);
 
 // Reindexing integer elements during compaction
-void reindex_ir_operation(const wrapped::reindex &, General &);
+void reindex_ir_operation(const wrapped::reindex <index_t> &, General &);
 
 // Synthesizing GLSL source code
 std::string synthesize_glsl_body(const General *const,
 		                 const wrapped::hash_table <int, std::string> &,
-		                 const std::unordered_set <int> &,
+		                 const std::unordered_set <atom::index_t> &,
 				 size_t);
 
 } // namespace jvl::ire::atom

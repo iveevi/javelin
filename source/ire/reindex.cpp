@@ -2,16 +2,13 @@
 
 namespace jvl::ire::atom {
 
-void reindex_ir_operation(const wrapped::reindex &reindexer, General &g)
+void reindex_ir_operation(const wrapped::reindex <index_t> &reindexer, General &g)
 {
 	if (g.is <Global> ()) {
 		reindexer(g.as <Global> ().type);
 	} else if (g.is <TypeField> ()) {
 		reindexer(g.as <TypeField> ().down);
 		reindexer(g.as <TypeField> ().next);
-	} else if (g.is <Cmp> ()) {
-		reindexer(g.as <Cmp> ().a);
-		reindexer(g.as <Cmp> ().b);
 	} else if (g.is <Operation> ()) {
 		reindexer(g.as <Operation> ().args);
 	} else if (g.is <List> ()) {

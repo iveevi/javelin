@@ -79,26 +79,28 @@ struct hash_table : std::unordered_map <K, V> {
 };
 
 // Reindexing map
-struct reindex : std::unordered_map <int, int> {
-	reindex() : std::unordered_map <int, int> { { -1, -1 } } {}
+template <typename T>
+requires std::is_integral_v <T>
+struct reindex : std::unordered_map <T, T> {
+	reindex() : std::unordered_map <T, T> { { -1, -1 } } {}
 
-	int mapped(int i) const {
-		if (contains(i))
-			return at(i);
+	int mapped(T i) const {
+		if (this->contains(i))
+			return this->at(i);
 
 		return -1;
 	}
 
-	void operator()(int &i) const {
-		if (contains(i))
-			i = at(i);
+	void operator()(T &i) const {
+		if (this->contains(i))
+			i = this->at(i);
 		else
 			i = -1;
 	}
 
-	std::unordered_set <int> operator()(std::unordered_set <int> &set) {
-		std::unordered_set <int> replace;
-		for (const int i : set)
+	std::unordered_set <T> operator()(std::unordered_set <T> &set) {
+		std::unordered_set <T> replace;
+		for (const T &i : set)
 			replace.insert(mapped(i));
 
 		return replace;

@@ -28,7 +28,7 @@ void Emitter::clear()
 
 void Emitter::compact()
 {
-	wrapped::reindex reindexer;
+	wrapped::reindex <atom::index_t> reindexer;
 	std::tie(pointer, reindexer) = detail::ir_compact_deduplicate(pool, dual, synthesized, pointer);
 	std::memset(pool, 0, size * sizeof(atom::General));
 	std::memcpy(pool, dual, pointer * sizeof(atom::General));
@@ -111,10 +111,8 @@ void Emitter::mark_used(int index, bool syn)
 void Emitter::mark_synthesized_underlying(int index)
 {
 	atom::General g = pool[index];
-	if (auto cmp = g.get <atom::Cmp> ()) {
-		mark_used(cmp->a, true);
-		mark_used(cmp->b, true);
-	}
+	if (auto op = g.get <atom::Operation> ())
+		mark_synthesized_underlying(op->args);
 }
 
 // Emitting instructions during function invocation
