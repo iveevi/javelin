@@ -63,8 +63,14 @@ std::string glsl_format_operation(int type, const std::vector <std::string> &arg
 	switch (type) {
 	case Operation::unary_negation:
 		return fmt::format("-{}", args[0]);
+	case Operation::addition:
+		return fmt::format("({} * {})", args[0], args[1]);
+	case Operation::subtraction:
+		return fmt::format("({} * {})", args[0], args[1]);
 	case Operation::multiplication:
 		return fmt::format("({} * {})", args[0], args[1]);
+	case Operation::division:
+		return fmt::format("({} / {})", args[0], args[1]);
 	default:
 		break;
 	}
@@ -79,6 +85,9 @@ std::string synthesize_glsl_body(const General *const pool,
 {
 	wrapped::hash_table <int, std::string> variables;
 
+	std::function <std::string (int)> inlined;
+	std::function <std::string (int)> ref;
+
 	int indentation = 1;
 	auto finish = [&](const std::string &s, bool semicolon = true) {
 		return std::string(indentation << 2, ' ') + s + (semicolon ? ";" : "") + "\n";
@@ -92,7 +101,6 @@ std::string synthesize_glsl_body(const General *const pool,
 		return finish(stmt);
 	};
 
-	std::function <std::string (int)> ref;
 	ref = [&](int index) -> std::string {
 		General g = pool[index];
 		if (auto global = g.get <Global> ()) {
@@ -120,7 +128,40 @@ std::string synthesize_glsl_body(const General *const pool,
 		return finish(stmt);
 	};
 
-	std::function <std::string (int)> inlined;
+	auto strargs = [](const std::vector <std::string> &args) -> std::string {
+		std::string ret;
+		ret += "(";
+		for (size_t i = 0; i < args.size(); i++) {
+			ret += args[i];
+			if (i + 1 < args.size())
+				ret += ", ";
+		}
+
+		ret += ")";
+		return ret;
+	};
+
+	auto arglist = [&](int start) -> std::vector <std::string> {
+		std::vector <std::string> args;
+
+		int l = start;
+		while (l != -1) {
+			General h = pool[l];
+			if (!h.is <List> ())
+				abort();
+
+			List list = h.as <List> ();
+			if (list.item == -1)
+				abort();
+
+			args.push_back(inlined(list.item));
+
+			l = list.next;
+		}
+
+		return args;
+	};
+
 	inlined = [&](int index) -> std::string {
 		if (variables.count(index))
 			return variables[index];
@@ -154,24 +195,10 @@ std::string synthesize_glsl_body(const General *const pool,
 					glsl_cmp(*cmp),
 					inlined(cmp->b));
 		} else if (auto op = g.get <Operation> ()) {
-			std::vector <std::string> args;
-
-			int l = op->args;
-			while (l != -1) {
-				General h = pool[l];
-				if (!h.is <List> ())
-					abort();
-
-				List list = h.as <List> ();
-				if (list.item == -1)
-					abort();
-
-				args.push_back(inlined(list.item));
-
-				l = list.next;
-			}
-
-			return glsl_format_operation(op->type, args);
+			return glsl_format_operation(op->type, arglist(op->args));
+		} else if (auto intr = g.get <Intrinsic> ()) {
+			auto args = arglist(intr->args);
+			return intr->name + strargs(args);
 		} else {
 			fmt::println("not sure how to inline atom:");
 			dump_ir_operation(g);
@@ -233,6 +260,11 @@ std::string synthesize_glsl_body(const General *const pool,
 						glsl_cmp(*cmp),
 						inlined(cmp->b));
 
+			source += assign_new(t, v, index);
+		} else if (auto intr = g.get <Intrinsic> ()) {
+			auto args = arglist(intr->args);
+			std::string t = type_name(pool, struct_names, intr->ret, -1);
+			std::string v = intr->name + strargs(args);
 			source += assign_new(t, v, index);
 		} else if (g.get <End> ()) {
 			indentation--;

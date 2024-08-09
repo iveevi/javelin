@@ -100,6 +100,8 @@ void Emitter::mark_used(int index, bool syn)
 		mark_used(tf->next, false);
 	} else if (auto op = g.get <atom::Operation> ()) {
 		mark_used(op->args, false);
+	} else if (auto intr = g.get <atom::Intrinsic> ()) {
+		mark_used(intr->args, false);
 	}
 
 	if (syn)

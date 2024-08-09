@@ -7,9 +7,11 @@
 
 #include <fmt/format.h>
 
+#include "ire/atom.hpp"
 #include "ire/core.hpp"
 #include "ire/tagged.hpp"
 #include "ire/uniform_layout.hpp"
+#include "ire/util.hpp"
 #include "ire/vector.hpp"
 
 namespace jvl::ire {
@@ -93,22 +95,87 @@ void vertex_shader()
 	// TODO: warnings for the unused sections
 }
 
+template <typename T, size_t N>
+vec <T, N> dFdx(const vec <T, N> &v)
+{
+	static const char name[] = "dFdx";
+
+	auto &em = Emitter::active;
+
+	atom::Intrinsic intr;
+	intr.name = name;
+	intr.args = synthesize_list(v);
+	intr.ret = synthesize_type_fields <vec <T, N>> ().id;
+
+	cache_index_t cit;
+	cit = em.emit_main(intr);
+
+	return cit;
+}
+
+template <typename T, size_t N>
+vec <T, N> dFdy(const vec <T, N> &v)
+{
+	static const char name[] = "dFdy";
+
+	auto &em = Emitter::active;
+
+	atom::Intrinsic intr;
+	intr.name = name;
+	intr.args = synthesize_list(v);
+	intr.ret = synthesize_type_fields <vec <T, N>> ().id;
+
+	cache_index_t cit;
+	cit = em.emit_main(intr);
+
+	return cit;
+}
+
+template <typename T>
+vec <T, 3> cross(const vec <T, 3> &v, const vec <T, 3> &w)
+{
+	static const char name[] = "cross";
+
+	auto &em = Emitter::active;
+
+	atom::Intrinsic intr;
+	intr.name = name;
+	intr.args = synthesize_list(v, w);
+	intr.ret = synthesize_type_fields <vec <T, 3>> ().id;
+
+	cache_index_t cit;
+	cit = em.emit_main(intr);
+
+	return cit;
+}
+
+template <typename T, size_t N>
+vec <T, N> normalize(const vec <T, N> &v)
+{
+	static const char name[] = "normalize";
+
+	auto &em = Emitter::active;
+
+	atom::Intrinsic intr;
+	intr.name = name;
+	intr.args = synthesize_list(v);
+	intr.ret = synthesize_type_fields <vec <T, N>> ().id;
+
+	cache_index_t cit;
+	cit = em.emit_main(intr);
+
+	return cit;
+}
+
 void fragment_shader()
 {
 	layout_in <vec3, 0> position;
 	layout_out <vec4, 0> fragment;
 
-	fragment = vec4(1);
-
-	// layout (location = 0) out vec4 fragment;
-	//
-	// void main()
-	// {
-	// 	vec3 dU = dFdx(position);
-	// 	vec3 dV = dFdyFine(position);
-	// 	vec3 N = normalize(cross(dU, dV));
-	// 	fragment = vec4(0.5 + 0.5 * N, 1.0);
-	// }
+	vec3 dU = dFdx(position);
+	vec3 dV = dFdy(position);
+	vec3 N = normalize(cross(dU, dV));
+	fragment = vec4(0.5f + 0.5f * N, 1);
 }
 
 #include <glad/gl.h>

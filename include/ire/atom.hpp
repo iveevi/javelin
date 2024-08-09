@@ -91,6 +91,7 @@ struct Operation {
 	} type;
 
 	int args = -1;
+	int ret = -1;
 
 	static constexpr const char *name[] = {
 		"negation",
@@ -99,6 +100,12 @@ struct Operation {
 		"multiplication",
 		"division"
 	};
+};
+
+struct Intrinsic {
+	const char *name;
+	int args = -1;
+	int ret = -1;
 };
 
 struct List {
@@ -138,7 +145,7 @@ struct End {};
 
 using General = wrapped::variant <
 	Global, TypeField, Primitive, Swizzle, Cmp, Operation,
-	Construct, List, Store, Load, Cond, Elif, While, End
+	Construct, Intrinsic, List, Store, Load, Cond, Elif, While, End
 >;
 
 // Dispatcher types (vd = variadic dispatcher)

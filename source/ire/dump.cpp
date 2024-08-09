@@ -50,7 +50,7 @@ void dump_ir_operation(const General &g)
 			break;
 		}
 	} else if (auto list = g.get <List> ()) {
-		fmt::print("list: {} -> ", list->item);
+		fmt::print("list: %{} -> ", list->item);
 		if (list->next >= 0)
 			fmt::print("%{}", list->next);
 		else
@@ -74,6 +74,8 @@ void dump_ir_operation(const General &g)
 		fmt::print("cmp %{} {} %{}", cmp->a, cmp_table[cmp->type], cmp->b);
 	} else if (auto op = g.get <Operation> ()) {
 		fmt::print("op ${} %{}", Operation::name[op->type], op->args);
+	} else if (auto intr = g.get <Intrinsic> ()) {
+		fmt::print("intr ${} %{} -> %{}", intr->name, intr->args, intr->ret);
 	} else if (auto cond = g.get <Cond> ()) {
 		fmt::print("cond %{} -> %{}", cond->cond, cond->failto);
 	} else if (auto elif = g.get <Elif> ()) {

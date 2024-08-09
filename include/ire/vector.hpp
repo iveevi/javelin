@@ -83,6 +83,9 @@ public:
 		initial[1] = y;
 	}
 
+	swizzle_base(cache_index_t cit)
+			: tagged(cit), x(this), y(this) {}
+
 	cache_index_t synthesize() const {
 		if (cached())
 			return ref;
@@ -113,6 +116,9 @@ public:
 		initial[1] = y;
 		initial[2] = z;
 	}
+
+	swizzle_base(cache_index_t cit)
+			: tagged(cit), x(this), y(this), z(this) {}
 
 	cache_index_t synthesize() const {
 		if (cached())
