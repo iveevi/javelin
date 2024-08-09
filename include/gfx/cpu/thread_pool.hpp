@@ -20,7 +20,10 @@ requires std::same_as <std::invoke_result_t <F, T>, void>
 void worker_loop(const F &kernel, wrapped::thread_safe_queue <T> &queue, worker_status &status)
 {
 	// TODO: sleep
-	while (!status.begin) {}
+	while (!status.begin) {
+		if (status.kill)
+			return;
+	}
 
 	while (!status.kill) {
 		T item;

@@ -1,3 +1,4 @@
+#include <cstddef>
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
@@ -63,12 +64,12 @@ std::optional <Preset> Preset::from(const std::filesystem::path &path)
 		std::unordered_map <float3, int32_t> position_map;
 		std::unordered_map <tinyobj::index_t, int32_t> index_map;
 
-		// tinyobj::shape_t;
+		const tinyobj::shape_t &shape = shapes[s];
 
 		// Loop over faces (polygon)
 		size_t index_offset = 0;
-		for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
-			size_t fv = size_t(shapes[s].mesh.num_face_vertices[f]);
+		for (size_t f = 0; f < shape.mesh.num_face_vertices.size(); f++) {
+			size_t fv = size_t(shape.mesh.num_face_vertices[f]);
 
 			// Triangles or quadrilaterals
 			int32_t indices[4] { -1, -1, -1, -1 };
@@ -128,10 +129,8 @@ std::optional <Preset> Preset::from(const std::filesystem::path &path)
 			index_offset += fv;
 		}
 
-		fmt::println("size: {} vertices, {} normals, {} uvs",
-			     positions.size(), normals.size(), uvs.size());
-		fmt::println("size: {} tris, {} quads", triangles.size(),
-			     quadrilaterals.size());
+		fmt::println("  size: {} vertices, {} normals, {} uvs", positions.size(), normals.size(), uvs.size());
+		fmt::println("  size: {} tris, {} quads", triangles.size(), quadrilaterals.size());
 
 		Mesh mesh;
 
@@ -150,6 +149,23 @@ std::optional <Preset> Preset::from(const std::filesystem::path &path)
 			mesh.face_properties[Mesh::quadrilateral_key] = quadrilaterals;
 
 		preset.geometry.push_back(mesh);
+	}
+
+	auto to_float3 = [](const tinyobj::real_t *const values) {
+		return float3(values[0], values[1], values[2]);
+	};
+
+	for (auto &material : materials) {
+		Material m;
+		m.values["brdf"] = Phong::id;
+		m.values["ambient"] = to_float3(material.ambient);
+		m.values["diffuse"] = to_float3(material.ambient);
+		m.values["specular"] = to_float3(material.ambient);
+		m.values["emission"] = to_float3(material.emission);
+		m.values["roughness"] = material.roughness;
+		fmt::println("MATERIAL>>>");
+		fmt::println("  roughness: {}", material.roughness);
+		preset.materials.push_back(m);
 	}
 
 	return preset;

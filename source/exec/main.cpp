@@ -470,8 +470,6 @@ int main(int argc, char *argv[])
 
 	using thread_pool_t = jvl::gfx::cpu::fixed_function_thread_pool <jvl::gfx::cpu::Tile, decltype(kernel)>;
 	thread_pool_t thread_pool(std::thread::hardware_concurrency(), kernel);
-	thread_pool.enque(tiles);
-	thread_pool.begin();
 
 	littlevk::Buffer fb_buffer;
 	littlevk::Image fb_image;

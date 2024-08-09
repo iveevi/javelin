@@ -1,5 +1,7 @@
 #include <array>
 
+#include <fmt/printf.h>
+
 #include "ire/emitter.hpp"
 #include "ire/op.hpp"
 #include "wrapped_types.hpp"

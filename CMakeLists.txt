@@ -7,16 +7,21 @@ project(javelin C CXX)
 add_compile_options(-fconcepts-diagnostics-depth=3)
 
 find_package(Vulkan REQUIRED)
-find_package(glslang REQUIRED)
 find_package(glfw3 REQUIRED)
 
 include(FetchContent)
 
+# Google testing library
 FetchContent_Declare(googletest
 	GIT_REPOSITORY https://github.com/google/googletest.git
-	GIT_TAG origin/main)
-
+	GIT_TAG main)
 FetchContent_MakeAvailable(googletest)
+
+# Fmt printing library
+FetchContent_Declare(fmt
+	GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+	GIT_TAG master)
+FetchContent_MakeAvailable(fmt)
 
 add_library(imgui SHARED
 	thirdparty/imgui/imgui.cpp
@@ -27,7 +32,7 @@ add_library(imgui SHARED
 	thirdparty/imgui/backends/imgui_impl_glfw.cpp
 	thirdparty/imgui/backends/imgui_impl_vulkan.cpp)
 
-add_library(jvl-ire SHARED
+add_library(jvl-ire STATIC
 	source/ire/compaction.cpp
 	source/ire/dump.cpp
 	source/ire/emitter.cpp
@@ -57,10 +62,10 @@ set(VULKAN_LIBRARY_SET
 	glfw
 	Vulkan::Vulkan
 	SPIRV
-	glslang::glslang
-	glslang::glslang-default-resource-limits)
+	glslang
+	glslang-default-resource-limits)
 
-target_link_libraries(jvl-ire fmt)
-target_link_libraries(javelin fmt ${VULKAN_LIBRARY_SET} imgui)
-target_link_libraries(ire glfw jvl-ire)
+target_link_libraries(jvl-ire fmt::fmt)
+target_link_libraries(javelin fmt::fmt ${VULKAN_LIBRARY_SET} imgui)
+target_link_libraries(ire glfw fmt::fmt jvl-ire)
 target_link_libraries(test GTest::gtest_main jvl-ire)

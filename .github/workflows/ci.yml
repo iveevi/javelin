@@ -15,11 +15,18 @@ jobs:
     steps:
       - name: dependencies
         run: |
-          sudo apt install -y cmake
+          sudo apt update
+          sudo apt install -y cmake libvulkan1 libglfw3-dev glslang-dev glslang-tools libfmt-dev
       - uses: actions/checkout@v3
         with:
           submodules: 'true'
           fetch-depth: '0'
+      - name: dump
+        run: |
+          ls /usr/include/ | grep glslang
+          ls /usr/include/glslang
+          ls /usr/lib/cmake/gl*
+          ls /usr/lib/libglslang*
       - name: build
         run: |
           cmake -B build .
