@@ -1,0 +1,15 @@
+import core;
+
+@core.vertex
+ftn vertex_shader(vec3 position, vec3 color) -> (vec3)
+{
+	using core.vertex_intrinsic.gl_Position;
+	gl_Position = vec4(position, 1.0);
+	return color;
+}
+
+@core.fragment
+ftn fragment_shader(vec3 color) -> (vec4)
+{
+	return vec4(color, 1.0);
+}

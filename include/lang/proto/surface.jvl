@@ -1,0 +1,46 @@
+import core;
+
+@core.vertex
+ftn vertex_shader(vec3 position, vec3 color) -> (vec3)
+{
+	using core.vertex_intrinsic.gl_Position;
+	gl_Position = vec4(position, 1.0);
+	return color;
+}
+
+@core.fragment
+ftn fragment_shader(vec3 color) -> (vec4)
+{
+	return vec4(color, 1.0);
+}
+
+ftn main() -> void
+{
+	ivec2 size { 1920, 1080 };
+
+	core.Window window = core.Window(size);
+
+	auto pipeline = core.GraphicsPipeline(vertex_shader, fragment_shader);
+
+	core.Framebuffer framebuffer;
+
+	auto color_target = core.DeviceImage(size, core.format.RGBA_32F);
+	framebuffer.attach(color_target);
+
+	core.Buffer(vec2) vertices {
+		{ 0, 0 },
+		{ 1, 0 },
+		{ 0, 1 },
+	};
+
+	core.DeviceBuffer vertex_buffer = vertices.upload();
+
+	while (window.is_open()) {
+		window.poll_events();
+
+		framebuffer.clear();
+		pipeline.run(framebuffer);
+
+		window.present(framebuffer);
+	}
+}
