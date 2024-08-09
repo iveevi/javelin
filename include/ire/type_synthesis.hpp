@@ -1,6 +1,6 @@
 #pragma once
 
-#include "op.hpp"
+#include "atom.hpp"
 #include "tagged.hpp"
 #include "emitter.hpp"
 
@@ -12,7 +12,7 @@ requires (sizeof...(Args) > 0)
 struct uniform_layout;
 
 template <typename T>
-constexpr op::PrimitiveType synthesize_primitive_type();
+constexpr atom::PrimitiveType synthesize_primitive_type();
 
 template <typename T, typename ... Args>
 cache_index_t synthesize_type_fields()
@@ -23,7 +23,7 @@ cache_index_t synthesize_type_fields()
 
 	auto &em = Emitter::active;
 
-	op::TypeField tf;
+	atom::TypeField tf;
 	tf.item = synthesize_primitive_type <T> ();
 	if constexpr (sizeof...(Args))
 		tf.next = synthesize_type_fields <Args...> ().id;

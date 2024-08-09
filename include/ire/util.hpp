@@ -9,7 +9,7 @@ int synthesize_list(const T &t, const Args &... args)
 {
 	auto &em = Emitter::active;
 
-	op::List l;
+	atom::List l;
 	l.item = primitive_t <T> (t).synthesize().id;
 
 	if constexpr (sizeof...(args))
@@ -23,7 +23,7 @@ int synthesize_list(const T &t, const Args &... args)
 {
 	auto &em = Emitter::active;
 
-	op::List l;
+	atom::List l;
 	l.item = t.synthesize().id;
 
 	if constexpr (sizeof...(args))

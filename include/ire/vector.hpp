@@ -19,7 +19,7 @@ struct swizzle_base : tagged {};
 struct __gl_Position_t;
 
 // Swizzle element
-template <primitive_type T, typename Up, op::Swizzle::Kind swz>
+template <primitive_type T, typename Up, atom::Swizzle::Kind swz>
 class swizzle_element : tagged {
 	Up *upper;
 
@@ -35,7 +35,7 @@ public:
 
 		auto &em = Emitter::active;
 
-		op::Swizzle swizzle;
+		atom::Swizzle swizzle;
 		swizzle.type = swz;
 		swizzle.src = upper->synthesize().id;
 
@@ -47,7 +47,7 @@ public:
 	swizzle_element &operator=(const primitive_t <T> &v) {
 		auto &em = Emitter::active;
 
-		op::Store store;
+		atom::Store store;
 		store.src = v.synthesize().id;
 		store.dst = synthesize().id;
 
@@ -74,8 +74,8 @@ class swizzle_base <T, 2> : public tagged {
 
 	T initial[2];
 public:
-	swizzle_element <T, self, op::Swizzle::x> x;
-	swizzle_element <T, self, op::Swizzle::y> y;
+	swizzle_element <T, self, atom::Swizzle::x> x;
+	swizzle_element <T, self, atom::Swizzle::y> y;
 
 	swizzle_base(T x = T(0), T y = T(0))
 			: x(this), y(this) {
@@ -89,7 +89,7 @@ public:
 
 		auto &em = Emitter::active;
 
-		op::Construct ctor;
+		atom::Construct ctor;
 		ctor.type = synthesize_type_fields <vec <T, 2>> ().id;
 		ctor.args = synthesize_list(initial[0], initial[1]);
 
@@ -103,9 +103,9 @@ class swizzle_base <T, 3> : public tagged {
 
 	T initial[3];
 public:
-	swizzle_element <T, self, op::Swizzle::x> x;
-	swizzle_element <T, self, op::Swizzle::y> y;
-	swizzle_element <T, self, op::Swizzle::z> z;
+	swizzle_element <T, self, atom::Swizzle::x> x;
+	swizzle_element <T, self, atom::Swizzle::y> y;
+	swizzle_element <T, self, atom::Swizzle::z> z;
 
 	swizzle_base(T x = T(0), T y = T(0), T z = T(0))
 			: x(this), y(this), z(this) {
@@ -119,7 +119,7 @@ public:
 			return ref;
 
 		auto &em = Emitter::active;
-		op::Construct ctor;
+		atom::Construct ctor;
 		ctor.type = synthesize_type_fields <vec <T, 3>> ().id;
 		ctor.args = synthesize_list(initial[0], initial[1], initial[2]);
 
@@ -133,10 +133,10 @@ class swizzle_base <T, 4> : public tagged {
 
 	T initial[4];
 public:
-	swizzle_element <T, self, op::Swizzle::x> x;
-	swizzle_element <T, self, op::Swizzle::y> y;
-	swizzle_element <T, self, op::Swizzle::z> z;
-	swizzle_element <T, self, op::Swizzle::w> w;
+	swizzle_element <T, self, atom::Swizzle::x> x;
+	swizzle_element <T, self, atom::Swizzle::y> y;
+	swizzle_element <T, self, atom::Swizzle::z> z;
+	swizzle_element <T, self, atom::Swizzle::w> w;
 
 	swizzle_base(T x = T(0), T y = T(0), T z = T(0), T w = T(0))
 			: x(this), y(this), z(this), w(this) {
@@ -152,7 +152,7 @@ public:
 
 		auto &em = Emitter::active;
 
-		op::Construct ctor;
+		atom::Construct ctor;
 		ctor.type = synthesize_type_fields <vec <T, 4>> ().id;
 		ctor.args = synthesize_list(initial[0], initial[1], initial[2], initial[3]);
 
@@ -169,7 +169,7 @@ struct vec : swizzle_base <T, N> {
 
 		auto &em = Emitter::active;
 
-		op::Store store;
+		atom::Store store;
 		store.dst = this->synthesize().id;
 		store.src = other.synthesize().id;
 
@@ -185,21 +185,21 @@ struct __gl_Position_t {
 
 	// TODO: macros to include all swizzles
 	// TODO: zero storage swizzle members
-	swizzle_element <float, self, op::Swizzle::x> x;
-	swizzle_element <float, self, op::Swizzle::y> y;
-	swizzle_element <float, self, op::Swizzle::z> z;
-	swizzle_element <float, self, op::Swizzle::w> w;
+	swizzle_element <float, self, atom::Swizzle::x> x;
+	swizzle_element <float, self, atom::Swizzle::y> y;
+	swizzle_element <float, self, atom::Swizzle::z> z;
+	swizzle_element <float, self, atom::Swizzle::w> w;
 
 	__gl_Position_t() : x(this), y(this), z(this), w(this) {}
 
 	const __gl_Position_t &operator=(const vec <float, 4> &other) const {
 		auto &em = Emitter::active;
 
-		op::Global global;
+		atom::Global global;
 		global.type = synthesize_type_fields <vec <float, 4>> ().id;
-		global.qualifier = op::Global::glsl_vertex_intrinsic_gl_Position;
+		global.qualifier = atom::Global::glsl_vertex_intrinsic_gl_Position;
 
-		op::Store store;
+		atom::Store store;
 		store.dst = em.emit(global);
 		store.src = other.synthesize().id;
 
@@ -211,9 +211,9 @@ struct __gl_Position_t {
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
 
-		op::Global global;
+		atom::Global global;
 		global.type = synthesize_type_fields <vec <float, 4>> ().id;
-		global.qualifier = op::Global::glsl_vertex_intrinsic_gl_Position;
+		global.qualifier = atom::Global::glsl_vertex_intrinsic_gl_Position;
 
 		cache_index_t cit;
 		return (cit = em.emit_main(global));

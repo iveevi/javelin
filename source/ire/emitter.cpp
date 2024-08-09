@@ -3,7 +3,7 @@
 #include <map>
 
 #include "ire/emitter.hpp"
-#include "ire/op.hpp"
+#include "ire/atom.hpp"
 #include "wrapped_types.hpp"
 
 namespace jvl::ire {
@@ -13,16 +13,16 @@ Emitter::Emitter() : pool(nullptr), dual(nullptr), size(0), pointer(0) {}
 void Emitter::clear()
 {
 	pointer = 0;
-	std::memset(pool, 0, size * sizeof(op::General));
-	std::memset(dual, 0, size * sizeof(op::General));
+	std::memset(pool, 0, size * sizeof(atom::General));
+	std::memset(dual, 0, size * sizeof(atom::General));
 }
 
 void Emitter::compact()
 {
 	wrapped::reindex reindexer;
 	std::tie(pointer, reindexer) = detail::ir_compact_deduplicate(pool, dual, synthesized, pointer);
-	std::memset(pool, 0, size * sizeof(op::General));
-	std::memcpy(pool, dual, pointer * sizeof(op::General));
+	std::memset(pool, 0, size * sizeof(atom::General));
+	std::memcpy(pool, dual, pointer * sizeof(atom::General));
 	synthesized = reindexer(synthesized);
 	used = reindexer(used);
 }
@@ -32,22 +32,22 @@ void Emitter::resize(size_t units)
 	size_t count = 0;
 
 	// TODO: compact IR before resizing
-	op::General *old_pool = pool;
-	op::General *old_dual = dual;
+	atom::General *old_pool = pool;
+	atom::General *old_dual = dual;
 
-	pool = new op::General[units];
-	dual = new op::General[units];
+	pool = new atom::General[units];
+	dual = new atom::General[units];
 
-	std::memset(pool, 0, units * sizeof(op::General));
-	std::memset(dual, 0, units * sizeof(op::General));
+	std::memset(pool, 0, units * sizeof(atom::General));
+	std::memset(dual, 0, units * sizeof(atom::General));
 
 	if (old_pool) {
-		std::memcpy(pool, old_pool, size * sizeof(op::General));
+		std::memcpy(pool, old_pool, size * sizeof(atom::General));
 		delete[] old_pool;
 	}
 
 	if (old_dual) {
-		std::memcpy(dual, old_dual, size * sizeof(op::General));
+		std::memcpy(dual, old_dual, size * sizeof(atom::General));
 		delete[] old_dual;
 	}
 
@@ -62,27 +62,27 @@ void Emitter::mark_used(int index, bool syn)
 
 	used.insert(index);
 
-	op::General g = pool[index];
-	if (auto ctor = g.get <op::Construct> ()) {
+	atom::General g = pool[index];
+	if (auto ctor = g.get <atom::Construct> ()) {
 		mark_used(ctor->type, true);
 		mark_used(ctor->args, true);
-	} else if (auto list = g.get <op::List> ()) {
+	} else if (auto list = g.get <atom::List> ()) {
 		mark_used(list->item, false);
 		mark_used(list->next, false);
 		syn = false;
-	} else if (auto load = g.get <op::Load> ()) {
+	} else if (auto load = g.get <atom::Load> ()) {
 		mark_used(load->src, true);
-	} else if (auto store = g.get <op::Store> ()) {
+	} else if (auto store = g.get <atom::Store> ()) {
 		mark_used(store->src, false);
 		mark_used(store->dst, false);
 		syn = false;
-	} else if (auto global = g.get <op::Global> ()) {
+	} else if (auto global = g.get <atom::Global> ()) {
 		mark_used(global->type, true);
 		syn = false;
-	} else if (auto tf = g.get <op::TypeField> ()) {
+	} else if (auto tf = g.get <atom::TypeField> ()) {
 		mark_used(tf->down, false);
 		mark_used(tf->next, false);
-	} else if (auto op = g.get <op::Operation> ()) {
+	} else if (auto op = g.get <atom::Operation> ()) {
 		mark_used(op->args, false);
 	}
 
@@ -92,15 +92,15 @@ void Emitter::mark_used(int index, bool syn)
 
 void Emitter::mark_synthesized_underlying(int index)
 {
-	op::General g = pool[index];
-	if (auto cmp = g.get <op::Cmp> ()) {
+	atom::General g = pool[index];
+	if (auto cmp = g.get <atom::Cmp> ()) {
 		mark_used(cmp->a, true);
 		mark_used(cmp->b, true);
 	}
 }
 
 // Emitting instructions during function invocation
-int Emitter::emit(const op::General &op)
+int Emitter::emit(const atom::General &op)
 {
 	if (pointer >= size) {
 		if (size == 0)
@@ -120,7 +120,7 @@ int Emitter::emit(const op::General &op)
 	return pointer++;
 }
 
-int Emitter::emit_main(const op::General &op)
+int Emitter::emit_main(const atom::General &op)
 {
 	int p = emit(op);
 	synthesized.insert(p);
@@ -128,16 +128,16 @@ int Emitter::emit_main(const op::General &op)
 	return p;
 }
 
-int Emitter::emit_main(const op::Cond &cond)
+int Emitter::emit_main(const atom::Cond &cond)
 {
-	int p = emit_main((op::General) cond);
+	int p = emit_main((atom::General) cond);
 	control_flow_ends.push(p);
 	return p;
 }
 
-int Emitter::emit_main(const op::Elif &elif)
+int Emitter::emit_main(const atom::Elif &elif)
 {
-	int p = emit_main((op::General) elif);
+	int p = emit_main((atom::General) elif);
 	assert(control_flow_ends.size());
 	auto ref = control_flow_ends.top();
 	control_flow_ends.pop();
@@ -146,16 +146,16 @@ int Emitter::emit_main(const op::Elif &elif)
 	return p;
 }
 
-int Emitter::emit_main(const op::While &loop)
+int Emitter::emit_main(const atom::While &loop)
 {
-	int p = emit_main((op::General) loop);
+	int p = emit_main((atom::General) loop);
 	control_flow_ends.push(p);
 	return p;
 }
 
-int Emitter::emit_main(const op::End &end)
+int Emitter::emit_main(const atom::End &end)
 {
-	int p = emit_main((op::General) end);
+	int p = emit_main((atom::General) end);
 	assert(control_flow_ends.size());
 	auto ref = control_flow_ends.top();
 	control_flow_ends.pop();
@@ -166,15 +166,15 @@ int Emitter::emit_main(const op::End &end)
 void Emitter::control_flow_callback(int ref, int p)
 {
 	auto &op = pool[ref];
-	if (op.is <op::Cond> ()) {
-		op.as <op::Cond> ().failto = p;
-	} else if (op.is <op::Elif> ()) {
-		op.as <op::Elif> ().failto = p;
-	} else if (op.is <op::While> ()) {
-		op.as <op::While> ().failto = p;
+	if (op.is <atom::Cond> ()) {
+		op.as <atom::Cond> ().failto = p;
+	} else if (op.is <atom::Elif> ()) {
+		op.as <atom::Elif> ().failto = p;
+	} else if (op.is <atom::While> ()) {
+		op.as <atom::While> ().failto = p;
 	} else {
 		fmt::print("op not conditional, is actually:");
-			op::dump_ir_operation(op);
+			atom::dump_ir_operation(op);
 		fmt::print("\n");
 
 		abort();
@@ -194,19 +194,19 @@ void Emitter::validate() const
 		if (!used.contains(i))
 			continue;
 
-		op::General g = pool[i];
-		if (!g.is <op::Global>())
+		atom::General g = pool[i];
+		if (!g.is <atom::Global>())
 			continue;
 
-		op::Global global = g.as <op::Global> ();
-		if (global.qualifier == op::Global::layout_in) {
+		atom::Global global = g.as <atom::Global> ();
+		if (global.qualifier == atom::Global::layout_in) {
 			int type = global.type;
 			int binding = global.binding;
 			if (inputs.count(binding) && inputs[binding] != type)
 				fmt::println("JVL (error): layout in type conflict with binding #{}", binding);
 			else
 				inputs[binding] = type;
-		} else if (global.qualifier == op::Global::layout_out) {
+		} else if (global.qualifier == atom::Global::layout_out) {
 			int type = global.type;
 			int binding = global.binding;
 			if (outputs.count(binding) && outputs[binding] != type)
@@ -237,11 +237,11 @@ std::string Emitter::generate_glsl()
 		if (!synthesized.contains(i))
 			continue;
 
-		op::General g = pool[i];
-		if (!g.is <op::TypeField>())
+		atom::General g = pool[i];
+		if (!g.is <atom::TypeField>())
 			continue;
 
-		op::TypeField tf = g.as <op::TypeField>();
+		atom::TypeField tf = g.as <atom::TypeField>();
 		if (tf.next == -1 && tf.down == -1)
 			continue;
 
@@ -256,16 +256,16 @@ std::string Emitter::generate_glsl()
 		int field_index = 0;
 		int j = i;
 		while (j != -1) {
-			op::General g = pool[j];
-			if (!g.is<op::TypeField>())
+			atom::General g = pool[j];
+			if (!g.is<atom::TypeField>())
 				abort();
 
-			op::TypeField tf = g.as<op::TypeField>();
+			atom::TypeField tf = g.as<atom::TypeField>();
 			// TODO: nested
 			// TODO: put this whole thing in a method
 
 			struct_source += fmt::format(
-				"    {} f{};\n", op::type_table[tf.item], field_index++);
+				"    {} f{};\n", atom::type_table[tf.item], field_index++);
 
 			j = tf.next;
 		}
@@ -285,16 +285,16 @@ std::string Emitter::generate_glsl()
 			continue;
 
 		auto op = pool[i];
-		if (!op.is <op::Global> ())
+		if (!op.is <atom::Global> ())
 			continue;
 
-		auto global = std::get <op::Global> (op);
-		auto type = op::type_name(pool, struct_names, i, -1);
-		if (global.qualifier == op::Global::layout_in)
+		auto global = std::get <atom::Global> (op);
+		auto type = atom::type_name(pool, struct_names, i, -1);
+		if (global.qualifier == atom::Global::layout_in)
 			lins[global.binding] = type;
-		else if (global.qualifier == op::Global::layout_out)
+		else if (global.qualifier == atom::Global::layout_out)
 			louts[global.binding] = type;
-		else if (global.qualifier == op::Global::push_constant)
+		else if (global.qualifier == atom::Global::push_constant)
 			push_constant = type;
 	}
 
@@ -326,7 +326,7 @@ std::string Emitter::generate_glsl()
 	// Main function
 	source += "void main()\n";
 	source += "{\n";
-	source += op::synthesize_glsl_body(pool, struct_names, synthesized, pointer);
+	source += atom::synthesize_glsl_body(pool, struct_names, synthesized, pointer);
 	source += "}\n";
 
 	return source;
@@ -351,7 +351,7 @@ void Emitter::dump()
 			fmt::print(" ");
 
 		fmt::print(" [{:4d}]: ", i);
-			op::dump_ir_operation(pool[i]);
+			atom::dump_ir_operation(pool[i]);
 		fmt::print("\n");
 	}
 }

@@ -17,15 +17,15 @@ struct push_constant : T {
 
 		auto uniform_layout = this->layout();
 
-		op::Global global;
+		atom::Global global;
 		global.type = synthesize_type_fields(uniform_layout).id;
 		global.binding = -1;
-		global.qualifier = op::Global::push_constant;
+		global.qualifier = atom::Global::push_constant;
 
 		ref = em.emit(global);
 
 		for (size_t i = 0; i < uniform_layout.fields.size(); i++) {
-			op::Load load;
+			atom::Load load;
 			load.src = ref.id;
 			load.idx = i;
 			uniform_layout.fields[i]->ref = em.emit(load);

@@ -49,15 +49,15 @@ struct layout_in : layout_in_base <T> {
 
 		auto uniform_layout = this->layout();
 
-		op::Global global;
+		atom::Global global;
 		global.type = synthesize_type_fields(uniform_layout).id;
 		global.binding = binding;
-		global.qualifier = op::Global::layout_in;
+		global.qualifier = atom::Global::layout_in;
 
 		whole_ref = em.emit(global);
 
 		for (size_t i = 0; i < uniform_layout.fields.size(); i++) {
-			op::Load load;
+			atom::Load load;
 			load.src = whole_ref.id;
 			load.idx = i;
 			uniform_layout.fields[i]->ref = em.emit(load);
@@ -71,12 +71,12 @@ struct layout_in : layout_in_base <T> {
 
 		auto &em = Emitter::active;
 
-		op::Global global;
+		atom::Global global;
 		global.type = synthesize_type_fields <T> ().id;
 		global.binding = binding;
-		global.qualifier = op::Global::layout_in;
+		global.qualifier = atom::Global::layout_in;
 
-		op::Load load;
+		atom::Load load;
 		load.src = em.emit(global);
 
 		return (this->ref = em.emit_main(load));
@@ -103,10 +103,10 @@ struct layout_out : layout_out_base <T> {
 	requires synthesizable <T> {
 		auto &em = Emitter::active;
 
-		op::Global global;
+		atom::Global global;
 		global.type = synthesize_type_fields <T> ().id;
 		global.binding = binding;
-		global.qualifier = op::Global::layout_out;
+		global.qualifier = atom::Global::layout_out;
 
 		this->ref = em.emit(global);
 	}
@@ -118,15 +118,15 @@ struct layout_out : layout_out_base <T> {
 
 		auto uniform_layout = this->layout();
 
-		op::Global global;
+		atom::Global global;
 		global.type = synthesize_type_fields(uniform_layout).id;
 		global.binding = binding;
-		global.qualifier = op::Global::layout_out;
+		global.qualifier = atom::Global::layout_out;
 
 		whole_ref = em.emit(global);
 
 		for (size_t i = 0; i < uniform_layout.fields.size(); i++) {
-			op::Load load;
+			atom::Load load;
 			load.src = whole_ref.id;
 			load.idx = i;
 			uniform_layout.fields[i]->ref = em.emit(load);
@@ -137,12 +137,12 @@ struct layout_out : layout_out_base <T> {
 	requires primitive_type <T> {
 		auto &em = Emitter::active;
 
-		op::Global global;
+		atom::Global global;
 		global.type = synthesize_type_fields <T> ().id;
 		global.binding = binding;
-		global.qualifier = op::Global::layout_out;
+		global.qualifier = atom::Global::layout_out;
 
-		op::Store store;
+		atom::Store store;
 		store.dst = em.emit(global);
 		store.src = translate_primitive(t);
 
@@ -154,12 +154,12 @@ struct layout_out : layout_out_base <T> {
 	layout_out &operator=(const upcast_t &t) {
 		auto &em = Emitter::active;
 
-		op::Global global;
+		atom::Global global;
 		global.type = synthesize_type_fields <T> ().id;
 		global.binding = binding;
-		global.qualifier = op::Global::layout_out;
+		global.qualifier = atom::Global::layout_out;
 
-		op::Store store;
+		atom::Store store;
 		store.dst = em.emit(global);
 		store.src = t.synthesize().id;
 

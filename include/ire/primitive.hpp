@@ -10,8 +10,8 @@ inline int translate_primitive(bool b)
 {
 	auto &em = Emitter::active;
 
-	op::Primitive p;
-	p.type = op::boolean;
+	atom::Primitive p;
+	p.type = atom::boolean;
 	p.idata[0] = b;
 
 	return em.emit(p);
@@ -21,8 +21,8 @@ inline int translate_primitive(int i)
 {
 	auto &em = Emitter::active;
 
-	op::Primitive p;
-	p.type = op::i32;
+	atom::Primitive p;
+	p.type = atom::i32;
 	p.idata[0] = i;
 
 	return em.emit(p);
@@ -32,8 +32,8 @@ inline int translate_primitive(float f)
 {
 	auto &em = Emitter::active;
 
-	op::Primitive p;
-	p.type = op::f32;
+	atom::Primitive p;
+	p.type = atom::f32;
 	p.fdata[0] = f;
 
 	return em.emit(p);
@@ -59,12 +59,12 @@ struct primitive_t : tagged {
 	primitive_t operator-() const {
 		auto &em = Emitter::active;
 
-		op::List list;
+		atom::List list;
 		list.item = synthesize().id;
 
-		op::Operation neg;
+		atom::Operation neg;
 		neg.args = em.emit(list);
-		neg.type = op::Operation::unary_negation;
+		neg.type = atom::Operation::unary_negation;
 
 		cache_index_t cit;
 		cit = em.emit(neg);
@@ -76,7 +76,7 @@ struct primitive_t : tagged {
 		auto &em = Emitter::active;
 		em.mark_used(ref.id, true);
 
-		op::Store store;
+		atom::Store store;
 		store.dst = ref.id;
 		store.src = translate_primitive(v);
 		em.emit_main(store);
@@ -89,7 +89,7 @@ struct primitive_t : tagged {
 		auto &em = Emitter::active;
 		em.mark_used(ref.id, true);
 
-		op::Store store;
+		atom::Store store;
 		store.dst = ref.id;
 		store.src = v.synthesize().id;
 		em.emit_main(store);

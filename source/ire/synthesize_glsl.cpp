@@ -1,10 +1,10 @@
 #include <functional>
 #include <string>
 
-#include "ire/op.hpp"
+#include "ire/atom.hpp"
 #include "wrapped_types.hpp"
 
-namespace jvl::ire::op {
+namespace jvl::ire::atom {
 
 std::string glsl_global_ref(const Global &global)
 {
@@ -255,4 +255,4 @@ std::string synthesize_glsl_body(const General *const pool,
 	return source;
 }
 
-} // namespace jvl::ire::op
+} // namespace jvl::ire::atom

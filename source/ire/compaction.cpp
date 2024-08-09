@@ -3,13 +3,13 @@
 #include <fmt/printf.h>
 
 #include "ire/emitter.hpp"
-#include "ire/op.hpp"
+#include "ire/atom.hpp"
 #include "wrapped_types.hpp"
 
 // Compressing IR code sequences
 using block_atom_t = uint32_t;
 
-constexpr size_t block_size = (sizeof(jvl::ire::op::General)
+constexpr size_t block_size = (sizeof(jvl::ire::atom::General)
 				+ sizeof(block_atom_t) - 1)
 				/ sizeof(block_atom_t);
 
@@ -40,16 +40,16 @@ struct std::hash <block_t> {
 
 namespace jvl::ire::detail {
 
-block_t cast_to_block(const op::General &g)
+block_t cast_to_block(const atom::General &g)
 {
 	block_t b;
-	std::memcpy(b.data(), &g, sizeof(op::General));
+	std::memcpy(b.data(), &g, sizeof(atom::General));
 	return b;
 }
 
 std::tuple <size_t, wrapped::reindex>
-ir_compact_deduplicate(const op::General *const source,
-		       op::General *const dst,
+ir_compact_deduplicate(const atom::General *const source,
+		       atom::General *const dst,
 		       std::unordered_set <int> &synthesized,
 		       size_t elements)
 {
@@ -78,7 +78,7 @@ ir_compact_deduplicate(const op::General *const source,
 
 	// Re-index all instructions as necessary
 	for (size_t i = 0; i < size; i++)
-		op::reindex_ir_operation(reindexer, dst[i]);
+		atom::reindex_ir_operation(reindexer, dst[i]);
 
 	return { size, reindexer };
 

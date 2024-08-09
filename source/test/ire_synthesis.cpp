@@ -5,31 +5,31 @@
 using namespace jvl::ire;
 
 // Checking that certain operations appear in IR
-bool ir_cmp_op(const op::General &ref, const op::General &g)
+bool ir_cmp_op(const atom::General &ref, const atom::General &g)
 {
 	if (ref.index() != g.index())
 		return false;
 
-	if (auto g_global = g.get <op::Global> ()) {
-		auto ref_global = ref.get <op::Global> ();
+	if (auto g_global = g.get <atom::Global> ()) {
+		auto ref_global = ref.get <atom::Global> ();
 		// TODO: recursive check if not -max
 		return (ref_global->qualifier == g_global->qualifier)
 			&& (ref_global->binding == ref_global->binding);
 	}
 
-	if (auto g_global = g.get <op::TypeField> ()) {
-		auto ref_global = ref.get <op::TypeField> ();
+	if (auto g_global = g.get <atom::TypeField> ()) {
+		auto ref_global = ref.get <atom::TypeField> ();
 		return (ref_global->item == g_global->item);
 	}
 
 	return false;
 }
 
-bool ir_check_op_occurence(const op::General &g, int occurence = 1)
+bool ir_check_op_occurence(const atom::General &g, int occurence = 1)
 {
 	int count = 0;
 	for (size_t i = 0; i < Emitter::active.pointer; i++) {
-		op::General g_ref = Emitter::active.pool[i];
+		atom::General g_ref = Emitter::active.pool[i];
 		if (ir_cmp_op(g_ref, g))
 			count++;
 	}
@@ -65,15 +65,15 @@ void synthesize_layout_io_inner()
 
 	shader();
 
-	op::Global lin;
-	lin.qualifier = op::Global::layout_in;
+	atom::Global lin;
+	lin.qualifier = atom::Global::layout_in;
 	lin.binding = 0;
 
-	op::Global lout;
-	lout.qualifier = op::Global::layout_out;
+	atom::Global lout;
+	lout.qualifier = atom::Global::layout_out;
 	lout.binding = 0;
 
-	op::TypeField type_field;
+	atom::TypeField type_field;
 	type_field.item = synthesize_primitive_type <T> ();
 
 	EXPECT_TRUE(ir_check_op_occurence(lin));

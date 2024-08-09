@@ -1,15 +1,11 @@
 #pragma once
 
-// TODO: remove
-#include <iostream>
-
 #include <fmt/printf.h>
 #include <unordered_set>
 
 #include "wrapped_types.hpp"
 
-// TODO: refactor to atom
-namespace jvl::ire::op {
+namespace jvl::ire::atom {
 
 enum PrimitiveType {
 	bad,
@@ -174,4 +170,4 @@ std::string synthesize_glsl_body(const General *const,
 		                 const std::unordered_set <int> &,
 				 size_t);
 
-} // namespace jvl::ire::op
+} // namespace jvl::ire::atom

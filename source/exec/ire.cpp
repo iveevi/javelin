@@ -21,7 +21,7 @@ void structure(const Args &... args)
 {
 	auto &em = Emitter::active;
 
-	op::Construct ctor;
+	atom::Construct ctor;
 	ctor.type = synthesize_type_fields <Args...> ().id;
 	ctor.args = synthesize_list(args...);
 
@@ -36,10 +36,10 @@ boolean operator==(const T &A, const U &B)
 	int a = A.synthesize().id;
 	int b = B.synthesize().id;
 
-	op::Cmp cmp;
+	atom::Cmp cmp;
 	cmp.a = a;
 	cmp.b = b;
-	cmp.type = op::Cmp::eq;
+	cmp.type = atom::Cmp::eq;
 
 	cache_index_t c;
 	c = em.emit(cmp);

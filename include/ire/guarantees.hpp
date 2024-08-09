@@ -24,6 +24,6 @@ static_assert(synthesizable <layout_in <int, 0>>);
 //
 // static_assert(synthesizable <mat4>);
 
-static_assert(sizeof(op::General) == 24);
+static_assert(sizeof(atom::General) == 24);
 
 } // namespace jvl::ire

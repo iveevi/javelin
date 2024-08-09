@@ -1,6 +1,8 @@
 #pragma once
 
 #include "tagged.hpp"
+#include "atom.hpp"
+#include "emitter.hpp"
 
 namespace jvl::ire {
 
@@ -18,17 +20,17 @@ struct mat_base : tagged {
 
 		// TODO: manual assignment, except for mat2x2
 		// TODO: instantiate all primitive types at header
-		op::TypeField tf;
-		tf.item = op::mat4;
+		atom::TypeField tf;
+		tf.item = atom::mat4;
 
-		op::Primitive p;
-		p.type = op::i32;
+		atom::Primitive p;
+		p.type = atom::i32;
 		p.idata[0] = 1;
 
-		op::List l;
+		atom::List l;
 		l.item = em.emit(p);
 
-		op::Construct ctor;
+		atom::Construct ctor;
 		ctor.type = em.emit(tf);
 		ctor.args = em.emit(l);
 

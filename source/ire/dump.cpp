@@ -1,6 +1,6 @@
-#include "ire/op.hpp"
+#include "ire/atom.hpp"
 
-namespace jvl::ire::op {
+namespace jvl::ire::atom {
 
 void dump_ir_operation(const General &g)
 {
@@ -90,4 +90,4 @@ void dump_ir_operation(const General &g)
 	}
 }
 
-} // namespace jvl::ire::op
+} // namespace jvl::ire::atom
