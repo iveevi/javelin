@@ -76,12 +76,13 @@ void shader()
 	// TODO: immutability
 	layout_out <constants, 0> pc;
 
-	layout_out <int, 0> pc2;
+	layout_out <int, 1> pc2;
 
-	layout_out <vec3, 0> pc3;
+	layout_out <vec3, 2> pc3;
 
 	pc2 = 1;
-	// pc3.x = 1;
+	pc3 = vec3(1, 0, 2);
+	pc3.x = 1;
 
 	// pc.data.x = 1;
 
@@ -100,6 +101,7 @@ int main()
 
 	Emitter::active.compact();
 	Emitter::active.dump();
+	Emitter::active.validate();
 
 	auto source = Emitter::active.generate_glsl();
 

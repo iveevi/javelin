@@ -40,6 +40,18 @@ public:
 		return (this->ref = em.emit(swizzle));
 	}
 
+	swizzle_element &operator=(const primitive_t <T> &v) {
+		auto &em = Emitter::active;
+
+		op::Store store;
+		store.src = v.synthesize().id;
+		store.dst = synthesize().id;
+
+		em.emit_main(store);
+
+		return *this;
+	}
+
 	template <primitive_type U, size_t N>
 	requires (N >= 1 && N <= 4)
 	friend class swizzle_base;
@@ -67,7 +79,7 @@ public:
 		auto &em = Emitter::active;
 
 		op::Construct ctor;
-		ctor.type = synthesize_type_fields <vec <T, 2>> ();
+		ctor.type = synthesize_type_fields <vec <T, 2>> ().id;
 		ctor.args = synthesize_list(initial[0], initial[1]);
 
 		return (ref = em.emit(ctor));
@@ -97,7 +109,7 @@ public:
 
 		auto &em = Emitter::active;
 		op::Construct ctor;
-		ctor.type = synthesize_type_fields <vec <T, 3>> ();
+		ctor.type = synthesize_type_fields <vec <T, 3>> ().id;
 		ctor.args = synthesize_list(initial[0], initial[1], initial[2]);
 
 		return (ref = em.emit(ctor));
@@ -130,7 +142,7 @@ public:
 		auto &em = Emitter::active;
 
 		op::Construct ctor;
-		ctor.type = synthesize_type_fields <vec <T, 4>> ();
+		ctor.type = synthesize_type_fields <vec <T, 4>> ().id;
 		ctor.args = synthesize_list(initial[0], initial[1], initial[2], initial[3]);
 
 		return (ref = em.emit(ctor));
@@ -140,6 +152,19 @@ public:
 template <primitive_type T, size_t N>
 struct vec : swizzle_base <T, N> {
 	using swizzle_base <T, N> ::swizzle_base;
+
+	vec &operator=(const vec &other) {
+
+		auto &em = Emitter::active;
+
+		op::Store store;
+		store.dst = this->synthesize().id;
+		store.src = other.synthesize().id;
+
+		em.emit_main(store);
+
+		return *this;
+	}
 };
 
 } // namespace jvl::ire

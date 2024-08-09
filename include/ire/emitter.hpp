@@ -42,6 +42,10 @@ struct Emitter {
 
 	void control_flow_callback(int, int);
 
+	// Validating IR
+	// TODO: pass stage
+	void validate() const;
+
 	// Generating GLSL source code
 	std::string generate_glsl();
 

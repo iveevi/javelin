@@ -76,10 +76,6 @@ ir_compact_deduplicate(const op::General *const source,
 			dst[size++] = source[i];
 	}
 
-	fmt::println("reindex:");
-	for (auto [k, v] : reindexer)
-		fmt::println("  {} -> {}", k, v);
-
 	// Re-index all instructions as necessary
 	for (size_t i = 0; i < size; i++)
 		op::reindex_ir_operation(reindexer, dst[i]);

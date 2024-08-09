@@ -93,7 +93,21 @@ requires primitive_type <T> || synthesizable <T> || uniform_compatible <T>
 struct layout_out : layout_out_base <T> {
 	using upcast_t = decltype(upcast(T()));
 
-	void operator=(const T &t) const
+	layout_out() = default;
+
+	layout_out()
+	requires synthesizable <T> {
+		auto &em = Emitter::active;
+
+		op::Global global;
+		global.type = synthesize_type_fields <T> ().id;
+		global.binding = binding;
+		global.qualifier = op::Global::layout_out;
+
+		this->ref = em.emit(global);
+	}
+
+	layout_out &operator=(const T &t)
 	requires primitive_type <T> {
 		auto &em = Emitter::active;
 
@@ -107,9 +121,11 @@ struct layout_out : layout_out_base <T> {
 		store.src = translate_primitive(t);
 
 		em.emit_main(store);
+
+		return *this;
 	}
 
-	void operator=(const upcast_t &t) const {
+	layout_out &operator=(const upcast_t &t) {
 		auto &em = Emitter::active;
 
 		op::Global global;
@@ -122,6 +138,8 @@ struct layout_out : layout_out_base <T> {
 		store.src = t.synthesize().id;
 
 		em.emit_main(store);
+
+		return *this;
 	}
 };
 

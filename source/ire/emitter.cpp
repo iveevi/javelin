@@ -179,6 +179,42 @@ void Emitter::control_flow_callback(int ref, int p)
 	}
 }
 
+// Validating IR
+void Emitter::validate() const
+{
+	// Phase 1: Verify that layout IOs are consistent
+	// TODO: recursive IR cmp
+
+	wrapped::hash_table <int, int> inputs;
+	wrapped::hash_table <int, int> outputs;
+
+	for (int i = 0; i < pointer; i++) {
+		if (!used.contains(i))
+			continue;
+
+		op::General g = pool[i];
+		if (!g.is <op::Global>())
+			continue;
+
+		op::Global global = g.as <op::Global> ();
+		if (global.qualifier == op::Global::layout_in) {
+			int type = global.type;
+			int binding = global.binding;
+			if (inputs.count(binding) && inputs[binding] != type)
+				fmt::println("JVL (error): layout in type conflict with binding #{}", binding);
+			else
+				inputs[binding] = type;
+		} else if (global.qualifier == op::Global::layout_out) {
+			int type = global.type;
+			int binding = global.binding;
+			if (outputs.count(binding) && outputs[binding] != type)
+				fmt::println("JVL (error): layout out type conflict with binding #{}", binding);
+			else
+				outputs[binding] = type;
+		}
+	}
+}
+
 // Generating GLSL source code
 std::string Emitter::generate_glsl()
 {
@@ -203,10 +239,7 @@ std::string Emitter::generate_glsl()
 		if (!g.is <op::TypeField>())
 			continue;
 
-		// TODO: skip if unused as well
-
 		op::TypeField tf = g.as <op::TypeField>();
-		// TODO: skip if its only one primitive
 		if (tf.next == -1 && tf.down == -1)
 			continue;
 

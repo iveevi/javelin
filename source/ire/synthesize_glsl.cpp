@@ -74,10 +74,19 @@ std::string synthesize_glsl_body(const General *const pool,
 		return finish(stmt);
 	};
 
-	auto ref = [&](int index) -> std::string {
+	std::function <std::string (int)> ref;
+	ref = [&](int index) -> std::string {
 		General g = pool[index];
-		if (auto global = g.get <Global> ())
+		if (auto global = g.get <Global> ()) {
 			return glsl_global_ref(*global);
+		} else if (auto swizzle = g.get <Swizzle> ()) {
+			std::string accessor = Swizzle::swizzle_name[swizzle->type];
+			return ref(swizzle->src) + "." + accessor;
+		} else if (!variables.count(index)) {
+			fmt::println("unexpected IR requested for ref(...)");
+			dump_ir_operation(g);
+			abort();
+		}
 
 		return variables[index];
 	};
