@@ -67,9 +67,10 @@ void shader()
 {
 	struct constants {
 		vec2 data;
+		vec3 another;
 
 		auto layout() {
-			return uniform_layout(data);
+			return uniform_layout(data, another);
 		}
 	};
 
@@ -80,11 +81,12 @@ void shader()
 
 	layout_out <vec3, 2> pc3;
 
+	pc.data.x = 1;
+	pc.data = vec2(1, 0);
+
 	pc2 = 1;
 	pc3 = vec3(1, 0, 2);
 	pc3.x = 1;
-
-	// pc.data.x = 1;
 
 	// TODO: before synthesis, demote variables to inline if they are not modified later
 	// TODO: warnings for the unused sections

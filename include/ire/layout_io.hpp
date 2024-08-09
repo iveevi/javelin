@@ -93,7 +93,11 @@ requires primitive_type <T> || synthesizable <T> || uniform_compatible <T>
 struct layout_out : layout_out_base <T> {
 	using upcast_t = decltype(upcast(T()));
 
-	layout_out() = default;
+	std::conditional_t <synthesizable <T> || uniform_compatible <T>,
+		cache_index_t, uint8_t> whole_ref;
+
+	layout_out()
+	requires primitive_type <T> = default;
 
 	layout_out()
 	requires synthesizable <T> {
@@ -105,6 +109,28 @@ struct layout_out : layout_out_base <T> {
 		global.qualifier = op::Global::layout_out;
 
 		this->ref = em.emit(global);
+	}
+
+	template <typename ... Args>
+	layout_out(const Args &... args)
+	requires uniform_compatible <T> : T(args...), whole_ref(cache_index_t::null()) {
+		auto &em = Emitter::active;
+
+		auto uniform_layout = this->layout();
+
+		op::Global global;
+		global.type = synthesize_type_fields(uniform_layout).id;
+		global.binding = binding;
+		global.qualifier = op::Global::layout_out;
+
+		whole_ref = em.emit(global);
+
+		for (size_t i = 0; i < uniform_layout.fields.size(); i++) {
+			op::Load load;
+			load.src = whole_ref.id;
+			load.idx = i;
+			uniform_layout.fields[i]->ref = em.emit(load);
+		}
 	}
 
 	layout_out &operator=(const T &t)
