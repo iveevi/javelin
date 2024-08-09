@@ -15,6 +15,8 @@ std::string glsl_global_ref(const Global &global)
 		return "_lin" + std::to_string(global.binding);
 	case Global::push_constant:
 		return "_pc";
+	case Global::glsl_vertex_intrinsic_gl_Position:
+		return "gl_Position";
 	default:
 		break;
 	}
@@ -197,6 +199,9 @@ std::string synthesize_glsl_body(const General *const pool,
 			source += finish("}", false);
 		} else if (g.is <TypeField> ()) {
 			// Already taken care of during type/struct synthesis
+		} else if (g.is <Global> ()) {
+			// Same reason; otherwise there are shader intrinsics
+			// which do not need to be synthesized
 		} else {
 			source += finish("<?>", false);
 		}

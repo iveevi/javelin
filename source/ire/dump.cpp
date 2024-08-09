@@ -8,7 +8,8 @@ void dump_ir_operation(const General &g)
 		static const char *qualifier_table[] = {
 			"layout input",
 			"layout output",
-			"push_constant"
+			"push_constant",
+			"glsl:vertex:gl_Position"
 		};
 
 		fmt::print("global: %{} = ({}, {})",

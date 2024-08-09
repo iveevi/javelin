@@ -8,6 +8,7 @@
 #include <fmt/format.h>
 
 #include "ire/core.hpp"
+#include "ire/tagged.hpp"
 
 namespace jvl::ire {
 
@@ -65,29 +66,10 @@ using namespace jvl::ire;
 
 void shader()
 {
-	struct constants {
-		vec2 data;
-		vec3 another;
+	gl_Position.x = 1;
+	gl_Position = vec4(1, 0, 0, 0);
 
-		auto layout() {
-			return uniform_layout(data, another);
-		}
-	};
-
-	// TODO: immutability
-	layout_out <constants, 0> pc;
-
-	layout_out <int, 1> pc2;
-
-	layout_out <vec3, 2> pc3;
-
-	pc.data.x = 1;
-	pc.data = vec2(1, 0);
-
-	pc2 = 1;
-	pc3 = vec3(1, 0, 2);
-	pc3.x = 1;
-
+	// TODO: immutability for shader inputs
 	// TODO: before synthesis, demote variables to inline if they are not modified later
 	// TODO: warnings for the unused sections
 }

@@ -15,6 +15,10 @@ template <primitive_type T, size_t N>
 requires (N >= 1 && N <= 4)
 struct swizzle_base : tagged {};
 
+// Other intrinsics
+struct __gl_Position_t;
+
+// Swizzle element
 template <primitive_type T, typename Up, op::Swizzle::Kind swz>
 class swizzle_element : tagged {
 	Up *upper;
@@ -55,8 +59,11 @@ public:
 	template <primitive_type U, size_t N>
 	requires (N >= 1 && N <= 4)
 	friend class swizzle_base;
+
+	friend struct __gl_Position_t;
 };
 
+// Swizzle base specializations
 template <primitive_type T>
 class swizzle_base <T, 2> : public tagged {
 	using self = swizzle_base <T, 2>;
@@ -149,6 +156,7 @@ public:
 	}
 };
 
+// Final vector type
 template <primitive_type T, size_t N>
 struct vec : swizzle_base <T, N> {
 	using swizzle_base <T, N> ::swizzle_base;
@@ -166,5 +174,46 @@ struct vec : swizzle_base <T, N> {
 		return *this;
 	}
 };
+
+// Shader intrinsic types
+struct __gl_Position_t {
+	using self = __gl_Position_t;
+
+	// TODO: macros to include all swizzles
+	// TODO: zero storage swizzle members
+	swizzle_element <float, self, op::Swizzle::x> x;
+	swizzle_element <float, self, op::Swizzle::y> y;
+	swizzle_element <float, self, op::Swizzle::z> z;
+	swizzle_element <float, self, op::Swizzle::w> w;
+
+	__gl_Position_t() : x(this), y(this), z(this), w(this) {}
+
+	const __gl_Position_t &operator=(const vec <float, 4> &other) const {
+		auto &em = Emitter::active;
+
+		op::Global global;
+		global.type = synthesize_type_fields <vec <float, 4>> ().id;
+		global.qualifier = op::Global::glsl_vertex_intrinsic_gl_Position;
+
+		op::Store store;
+		store.dst = em.emit(global);
+		store.src = other.synthesize().id;
+
+		em.emit_main(store);
+
+		return *this;
+	}
+
+	cache_index_t synthesize() const {
+		auto &em = Emitter::active;
+
+		op::Global global;
+		global.type = synthesize_type_fields <vec <float, 4>> ().id;
+		global.qualifier = op::Global::glsl_vertex_intrinsic_gl_Position;
+
+		cache_index_t cit;
+		return (cit = em.emit_main(global));
+	}
+} static gl_Position;
 
 } // namespace jvl::ire

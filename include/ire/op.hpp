@@ -35,7 +35,8 @@ struct Global {
 	enum {
 		layout_in,
 		layout_out,
-		push_constant
+		push_constant,
+		glsl_vertex_intrinsic_gl_Position,
 	} qualifier;
 };
 
