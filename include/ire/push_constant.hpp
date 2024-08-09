@@ -6,13 +6,13 @@
 namespace jvl::ire {
 
 template <uniform_compatible T>
-struct push_constants : T {
+struct push_constant : T {
 	cache_index_t ref = cache_index_t::null();
 
 	// TODO: handle operator= disabling
 
 	template <typename ... Args>
-	push_constants(const Args &... args) : T(args...) {
+	push_constant(const Args &... args) : T(args...) {
 		auto &em = Emitter::active;
 
 		auto uniform_layout = this->layout();

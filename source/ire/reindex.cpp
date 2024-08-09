@@ -12,6 +12,8 @@ void reindex_ir_operation(const wrapped::reindex &reindexer, General &g)
 	} else if (g.is <Cmp> ()) {
 		reindexer(g.as <Cmp> ().a);
 		reindexer(g.as <Cmp> ().b);
+	} else if (g.is <Operation> ()) {
+		reindexer(g.as <Operation> ().args);
 	} else if (g.is <List> ()) {
 		reindexer(g.as <List> ().item);
 		reindexer(g.as <List> ().next);

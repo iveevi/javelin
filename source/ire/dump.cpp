@@ -68,10 +68,12 @@ void dump_ir_operation(const General &g)
 	} else if (auto swizzle = g.get <Swizzle> ()) {
 		fmt::print("swizzle %{} #{}",
 				swizzle->src,
-				Swizzle::swizzle_name[swizzle->type]);
+				Swizzle::name[swizzle->type]);
 	} else if (auto cmp = g.get <Cmp> ()) {
 		const char *cmp_table[] = {"=", "!="};
 		fmt::print("cmp %{} {} %{}", cmp->a, cmp_table[cmp->type], cmp->b);
+	} else if (auto op = g.get <Operation> ()) {
+		fmt::print("op {} %{}", Operation::name[op->type], op->args);
 	} else if (auto cond = g.get <Cond> ()) {
 		fmt::print("cond %{} -> %{}", cond->cond, cond->failto);
 	} else if (auto elif = g.get <Elif> ()) {

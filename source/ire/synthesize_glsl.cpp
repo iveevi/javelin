@@ -56,6 +56,20 @@ std::string glsl_cmp(const Cmp &cmp)
 	return "<cmp:?>";
 }
 
+std::string glsl_format_operation(int type, const std::vector <std::string> &args)
+{
+	// TODO: check # of args
+
+	switch (type) {
+	case Operation::unary_negation:
+		return fmt::format("-{}", args[0]);
+	default:
+		break;
+	}
+
+	return "<op:?>";
+}
+
 std::string synthesize_glsl_body(const General *const pool,
 		                 const wrapped::hash_table <int, std::string> &struct_names,
 		                 const std::unordered_set <int> &synthesized,
@@ -87,7 +101,7 @@ std::string synthesize_glsl_body(const General *const pool,
 				accessor = fmt::format(".f{}", load->idx);
 			return ref(load->src) + accessor;
 		} else if (auto swizzle = g.get <Swizzle> ()) {
-			std::string accessor = Swizzle::swizzle_name[swizzle->type];
+			std::string accessor = Swizzle::name[swizzle->type];
 			return ref(swizzle->src) + "." + accessor;
 		} else if (!variables.count(index)) {
 			fmt::println("unexpected IR requested for ref(...)");
@@ -130,16 +144,40 @@ std::string synthesize_glsl_body(const General *const pool,
 				accessor = fmt::format(".f{}", load->idx);
 			return inlined(load->src) + accessor;
 		} else if (auto swizzle = g.get <Swizzle> ()) {
-			std::string accessor = Swizzle::swizzle_name[swizzle->type];
+			std::string accessor = Swizzle::name[swizzle->type];
 			return ref(swizzle->src) + "." + accessor;
 		} else if (auto cmp = g.get <Cmp> ()) {
 			return fmt::format("({} {} {})",
 					inlined(cmp->a),
 					glsl_cmp(*cmp),
 					inlined(cmp->b));
+		} else if (auto op = g.get <Operation> ()) {
+			std::vector <std::string> args;
+
+			int l = op->args;
+			while (l != -1) {
+				General h = pool[l];
+				if (!h.is <List> ())
+					abort();
+
+				List list = h.as <List> ();
+				if (list.item == -1)
+					abort();
+
+				args.push_back(inlined(list.item));
+
+				l = list.next;
+			}
+
+			return glsl_format_operation(op->type, args);
+		} else {
+			fmt::println("not sure how to inline atom:");
+			dump_ir_operation(g);
+			fmt::print("\n");
+			abort();
 		}
 
-		return "?";
+		return "<inl:?>";
 	};
 
 	std::string source;

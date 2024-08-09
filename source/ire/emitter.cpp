@@ -82,6 +82,8 @@ void Emitter::mark_used(int index, bool syn)
 	} else if (auto tf = g.get <op::TypeField> ()) {
 		mark_used(tf->down, false);
 		mark_used(tf->next, false);
+	} else if (auto op = g.get <op::Operation> ()) {
+		mark_used(op->args, false);
 	}
 
 	if (syn)

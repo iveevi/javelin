@@ -56,6 +56,21 @@ struct primitive_t : tagged {
 		synthesize();
 	}
 
+	primitive_t operator-() const {
+		auto &em = Emitter::active;
+
+		op::List list;
+		list.item = synthesize().id;
+
+		op::Operation neg;
+		neg.args = em.emit(list);
+		neg.type = op::Operation::unary_negation;
+
+		cache_index_t cit;
+		cit = em.emit(neg);
+		return cit;
+	}
+
 	primitive_t &operator=(const T &v) {
 		// At this point we are required to have storage for this
 		auto &em = Emitter::active;

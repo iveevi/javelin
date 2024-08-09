@@ -9,6 +9,8 @@
 
 #include "ire/core.hpp"
 #include "ire/tagged.hpp"
+#include "ire/uniform_layout.hpp"
+#include "ire/vector.hpp"
 
 namespace jvl::ire {
 
@@ -66,8 +68,20 @@ using namespace jvl::ire;
 
 void shader()
 {
-	gl_Position.x = 1;
+	struct mvp {
+		mat4 model;
+		mat4 view;
+		mat4 proj;
+
+		auto layout() {
+			return uniform_layout(model, view, proj);
+		}
+	};
+
+	push_constant <mvp> mvp;
+
 	gl_Position = vec4(1, 0, 0, 0);
+	gl_Position.y = -gl_Position.y;
 
 	// TODO: immutability for shader inputs
 	// TODO: before synthesis, demote variables to inline if they are not modified later

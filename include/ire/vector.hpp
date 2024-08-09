@@ -56,6 +56,10 @@ public:
 		return *this;
 	}
 
+	primitive_t <T> operator-() const {
+		return primitive_t <T> (synthesize()).operator-();
+	}
+
 	template <primitive_type U, size_t N>
 	requires (N >= 1 && N <= 4)
 	friend class swizzle_base;

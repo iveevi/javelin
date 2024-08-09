@@ -8,6 +8,7 @@
 
 #include "wrapped_types.hpp"
 
+// TODO: refactor to atom
 namespace jvl::ire::op {
 
 enum PrimitiveType {
@@ -67,13 +68,14 @@ struct Swizzle {
 		x, y, z, w, xy
 	} type;
 
-	static constexpr const char *swizzle_name[] = {
+	int src = -1;
+
+	static constexpr const char *name[] = {
 		"x", "y", "z", "w", "xy"
 	};
-
-	int src = -1;
 };
 
+// TODO: merge with Operation
 struct Cmp {
 	int a = -1;
 	int b = -1;
@@ -81,6 +83,18 @@ struct Cmp {
 		eq,
 		neq,
 	} type;
+};
+
+struct Operation {
+	enum {
+		unary_negation
+	} type;
+
+	int args = -1;
+
+	static constexpr const char *name[] = {
+		"negation"
+	};
 };
 
 struct List {
@@ -119,7 +133,7 @@ struct Elif : Cond {};
 struct End {};
 
 using General = wrapped::variant <
-	Global, TypeField, Primitive, Swizzle, Cmp,
+	Global, TypeField, Primitive, Swizzle, Cmp, Operation,
 	Construct, List, Store, Load, Cond, Elif, While, End
 >;
 
