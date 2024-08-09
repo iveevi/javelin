@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ire/type_synthesis.hpp"
 #include "primitive.hpp"
 #include "tagged.hpp"
 #include "util.hpp"
@@ -65,12 +66,8 @@ public:
 
 		auto &em = Emitter::active;
 
-		// TODO: type field generator
-		op::TypeField tf;
-		tf.item = synthesize_primitive_type <vec <T, 2>> ();
-
 		op::Construct ctor;
-		ctor.type = em.emit(tf);
+		ctor.type = synthesize_type_fields <vec <T, 2>> ();
 		ctor.args = synthesize_list(initial[0], initial[1]);
 
 		return (ref = em.emit(ctor));
@@ -99,13 +96,8 @@ public:
 			return ref;
 
 		auto &em = Emitter::active;
-
-		// TODO: type field generator
-		op::TypeField tf;
-		tf.item = synthesize_primitive_type <vec <T, 3>> ();
-
 		op::Construct ctor;
-		ctor.type = em.emit(tf);
+		ctor.type = synthesize_type_fields <vec <T, 3>> ();
 		ctor.args = synthesize_list(initial[0], initial[1], initial[2]);
 
 		return (ref = em.emit(ctor));
@@ -137,12 +129,8 @@ public:
 
 		auto &em = Emitter::active;
 
-		// TODO: type field generator
-		op::TypeField tf;
-		tf.item = synthesize_primitive_type <vec <T, 4>> ();
-
 		op::Construct ctor;
-		ctor.type = em.emit(tf);
+		ctor.type = synthesize_type_fields <vec <T, 4>> ();
 		ctor.args = synthesize_list(initial[0], initial[1], initial[2], initial[3]);
 
 		return (ref = em.emit(ctor));

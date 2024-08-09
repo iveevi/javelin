@@ -72,6 +72,10 @@ void Emitter::mark_used(int index, bool syn)
 		syn = false;
 	} else if (auto load = g.get <op::Load> ()) {
 		mark_used(load->src, true);
+	} else if (auto store = g.get <op::Store> ()) {
+		mark_used(store->src, false);
+		mark_used(store->dst, false);
+		syn = false;
 	} else if (auto global = g.get <op::Global> ()) {
 		mark_used(global->type, true);
 		syn = false;
