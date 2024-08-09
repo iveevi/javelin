@@ -146,6 +146,16 @@ public:
 		initial[3] = w;
 	}
 
+	swizzle_base(const swizzle_base <T, 3> &v, const primitive_t <T> &x) : swizzle_base() {
+		auto &em = Emitter::active;
+
+		atom::Construct ctor;
+		ctor.type = synthesize_type_fields <vec <T, 4>> ().id;
+		ctor.args = synthesize_list(v, initial[3]);
+
+		ref = em.emit(ctor);
+	}
+
 	cache_index_t synthesize() const {
 		if (cached())
 			return ref;

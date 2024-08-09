@@ -78,9 +78,12 @@ void shader()
 		}
 	};
 
+	layout_in <vec3, 0> position;
+
 	push_constant <mvp> mvp;
 
-	gl_Position = vec4(1, 0, 0, 0);
+	// gl_Position = mvp.proj * vec4()
+	gl_Position = vec4(position, 0);
 	gl_Position.y = -gl_Position.y;
 
 	// TODO: immutability for shader inputs

@@ -42,6 +42,18 @@ struct layout_in : layout_in_base <T> {
 
 	layout_in() = default;
 
+	layout_in()
+	requires synthesizable <T> {
+		auto &em = Emitter::active;
+
+		atom::Global global;
+		global.type = synthesize_type_fields <T> ().id;
+		global.binding = binding;
+		global.qualifier = atom::Global::layout_in;
+
+		this->ref = em.emit(global);
+	}
+
 	template <typename ... Args>
 	layout_in(const Args &... args)
 	requires uniform_compatible <T> : T(args...), whole_ref(cache_index_t::null()) {
@@ -82,9 +94,9 @@ struct layout_in : layout_in_base <T> {
 		return (this->ref = em.emit_main(load));
 	}
 
-	operator primitive_t <T> ()
+	operator upcast_t ()
 	requires primitive_type <T> {
-		return primitive_t <T> (synthesize());
+		return upcast_t(synthesize());
 	}
 };
 
