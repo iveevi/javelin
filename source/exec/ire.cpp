@@ -9,6 +9,7 @@
 
 #include "ire/atom.hpp"
 #include "ire/core.hpp"
+#include "ire/emitter.hpp"
 #include "ire/tagged.hpp"
 #include "ire/uniform_layout.hpp"
 #include "ire/util.hpp"
@@ -112,14 +113,13 @@ int main()
 {
 	glfwInit();
 
-	auto vertex_kernel = emit_kernel(vertex_shader);
+	auto vertex_kernel = kernel_from_args(vertex_shader);
 	std::string vertex_source = vertex_kernel.synthesize();
-	fmt::println("vsource: {}", vertex_source);
+	fmt::println("vsource:\n{}", vertex_source);
 
-	// NOTE: bug when doing vertex shader again
-	auto fragment_kernel = emit_kernel(fragment_shader);
+	auto fragment_kernel = kernel_from_args(fragment_shader);
 	std::string fragment_source = fragment_kernel.synthesize();
-	fmt::println("fsource: {}", fragment_source);
+	fmt::println("fsource:\n{}", fragment_source);
 
 	// glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 	// GLFWwindow *window = glfwCreateWindow(800, 800, "Window", NULL, NULL);

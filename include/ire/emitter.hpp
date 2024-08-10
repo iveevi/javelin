@@ -83,7 +83,7 @@ struct Emitter {
 };
 
 template <typename F, typename ... Args>
-Kernel emit_kernel(const F &ftn, const Args &... args)
+Kernel kernel_from_args(const F &ftn, const Args &... args)
 {
 	Emitter::active.clear();
 	ftn(args...);

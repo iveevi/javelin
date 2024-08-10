@@ -14,7 +14,15 @@ struct __gl_Position_t {
 	swizzle_element <float, self, atom::Swizzle::z> z;
 	swizzle_element <float, self, atom::Swizzle::w> w;
 
-	__gl_Position_t() : x(this), y(this), z(this), w(this) {}
+	__gl_Position_t() : x(this), y(this), z(this), w(this) {
+		auto &em = Emitter::active;
+
+		// Since there is only going to be one instance...
+		em.persist_cache_index(x.ref);
+		em.persist_cache_index(y.ref);
+		em.persist_cache_index(z.ref);
+		em.persist_cache_index(w.ref);
+	}
 
 	const __gl_Position_t &operator=(const vec <float, 4> &other) const {
 		auto &em = Emitter::active;
