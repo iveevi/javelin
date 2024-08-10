@@ -24,8 +24,8 @@ void structure(const Args &... args)
 	auto &em = Emitter::active;
 
 	atom::Construct ctor;
-	ctor.type = synthesize_type_fields <Args...> ().id;
-	ctor.args = synthesize_list(args...);
+	ctor.type = type_field_from_args <Args...> ().id;
+	ctor.args = list_from_args(args...);
 
 	em.emit_main(ctor);
 }
@@ -39,7 +39,7 @@ boolean operator==(const T &A, const U &B)
 	int b = B.synthesize().id;
 
 	atom::Operation cmp;
-	cmp.args = synthesize_list(a, b);
+	cmp.args = list_from_args(a, b);
 	cmp.type = atom::Operation::equals;
 
 	cache_index_t c;
@@ -48,7 +48,6 @@ boolean operator==(const T &A, const U &B)
 	return boolean(c);
 }
 
-// Promoting to gltype
 template <synthesizable T, typename U>
 boolean operator==(const T &A, const U &B)
 {
@@ -67,17 +66,18 @@ boolean operator==(const T &A, const U &B)
 
 using namespace jvl::ire;
 
+struct mvp {
+	mat4 model;
+	mat4 view;
+	mat4 proj;
+
+	auto layout() {
+		return uniform_layout(model, view, proj);
+	}
+};
+
 void vertex_shader()
 {
-	struct mvp {
-		mat4 model;
-		mat4 view;
-		mat4 proj;
-
-		auto layout() {
-			return uniform_layout(model, view, proj);
-		}
-	};
 
 	layout_in <vec3, 0> position;
 	layout_out <vec3, 0> out_position;
@@ -92,78 +92,6 @@ void vertex_shader()
 	// TODO: immutability for shader inputs
 	// TODO: before synthesis, demote variables to inline if they are not modified later
 	// TODO: warnings for the unused sections
-}
-
-template <typename T, size_t N>
-vec <T, N> dFdx(const vec <T, N> &v)
-{
-	static const char name[] = "dFdx";
-
-	auto &em = Emitter::active;
-
-	atom::Intrinsic intr;
-	intr.name = name;
-	intr.args = synthesize_list(v);
-	intr.ret = synthesize_type_fields <vec <T, N>> ().id;
-
-	cache_index_t cit;
-	cit = em.emit_main(intr);
-
-	return cit;
-}
-
-template <typename T, size_t N>
-vec <T, N> dFdy(const vec <T, N> &v)
-{
-	static const char name[] = "dFdy";
-
-	auto &em = Emitter::active;
-
-	atom::Intrinsic intr;
-	intr.name = name;
-	intr.args = synthesize_list(v);
-	intr.ret = synthesize_type_fields <vec <T, N>> ().id;
-
-	cache_index_t cit;
-	cit = em.emit_main(intr);
-
-	return cit;
-}
-
-template <typename T>
-vec <T, 3> cross(const vec <T, 3> &v, const vec <T, 3> &w)
-{
-	static const char name[] = "cross";
-
-	auto &em = Emitter::active;
-
-	atom::Intrinsic intr;
-	intr.name = name;
-	intr.args = synthesize_list(v, w);
-	intr.ret = synthesize_type_fields <vec <T, 3>> ().id;
-
-	cache_index_t cit;
-	cit = em.emit_main(intr);
-
-	return cit;
-}
-
-template <typename T, size_t N>
-vec <T, N> normalize(const vec <T, N> &v)
-{
-	static const char name[] = "normalize";
-
-	auto &em = Emitter::active;
-
-	atom::Intrinsic intr;
-	intr.name = name;
-	intr.args = synthesize_list(v);
-	intr.ret = synthesize_type_fields <vec <T, N>> ().id;
-
-	cache_index_t cit;
-	cit = em.emit_main(intr);
-
-	return cit;
 }
 
 void fragment_shader()

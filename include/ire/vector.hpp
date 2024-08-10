@@ -93,8 +93,8 @@ public:
 		auto &em = Emitter::active;
 
 		atom::Construct ctor;
-		ctor.type = synthesize_type_fields <vec <T, 2>> ().id;
-		ctor.args = synthesize_list(initial[0], initial[1]);
+		ctor.type = type_field_from_args <vec <T, 2>> ().id;
+		ctor.args = list_from_args(initial[0], initial[1]);
 
 		return (ref = em.emit(ctor));
 	}
@@ -126,8 +126,8 @@ public:
 
 		auto &em = Emitter::active;
 		atom::Construct ctor;
-		ctor.type = synthesize_type_fields <vec <T, 3>> ().id;
-		ctor.args = synthesize_list(initial[0], initial[1], initial[2]);
+		ctor.type = type_field_from_args <vec <T, 3>> ().id;
+		ctor.args = list_from_args(initial[0], initial[1], initial[2]);
 
 		return (ref = em.emit(ctor));
 	}
@@ -156,8 +156,8 @@ public:
 		auto &em = Emitter::active;
 
 		atom::Construct ctor;
-		ctor.type = synthesize_type_fields <vec <T, 4>> ().id;
-		ctor.args = synthesize_list(v, x);
+		ctor.type = type_field_from_args <vec <T, 4>> ().id;
+		ctor.args = list_from_args(v, x);
 
 		ref = em.emit(ctor);
 	}
@@ -172,8 +172,8 @@ public:
 		auto &em = Emitter::active;
 
 		atom::Construct ctor;
-		ctor.type = synthesize_type_fields <vec <T, 4>> ().id;
-		ctor.args = synthesize_list(initial[0], initial[1], initial[2], initial[3]);
+		ctor.type = type_field_from_args <vec <T, 4>> ().id;
+		ctor.args = list_from_args(initial[0], initial[1], initial[2], initial[3]);
 
 		return (ref = em.emit(ctor));
 	}
@@ -196,46 +196,5 @@ struct vec : swizzle_base <T, N> {
 		return *this;
 	}
 };
-
-// Shader intrinsic types
-struct __gl_Position_t {
-	using self = __gl_Position_t;
-
-	// TODO: macros to include all swizzles
-	// TODO: zero storage swizzle members
-	swizzle_element <float, self, atom::Swizzle::x> x;
-	swizzle_element <float, self, atom::Swizzle::y> y;
-	swizzle_element <float, self, atom::Swizzle::z> z;
-	swizzle_element <float, self, atom::Swizzle::w> w;
-
-	__gl_Position_t() : x(this), y(this), z(this), w(this) {}
-
-	const __gl_Position_t &operator=(const vec <float, 4> &other) const {
-		auto &em = Emitter::active;
-
-		atom::Global global;
-		global.type = synthesize_type_fields <vec <float, 4>> ().id;
-		global.qualifier = atom::Global::glsl_vertex_intrinsic_gl_Position;
-
-		atom::Store store;
-		store.dst = em.emit(global);
-		store.src = other.synthesize().id;
-
-		em.emit_main(store);
-
-		return *this;
-	}
-
-	cache_index_t synthesize() const {
-		auto &em = Emitter::active;
-
-		atom::Global global;
-		global.type = synthesize_type_fields <vec <float, 4>> ().id;
-		global.qualifier = atom::Global::glsl_vertex_intrinsic_gl_Position;
-
-		cache_index_t cit;
-		return (cit = em.emit_main(global));
-	}
-} static gl_Position;
 
 } // namespace jvl::ire

@@ -47,7 +47,7 @@ struct layout_in : layout_in_base <T> {
 		auto &em = Emitter::active;
 
 		atom::Global global;
-		global.type = synthesize_type_fields <T> ().id;
+		global.type = type_field_from_args <T> ().id;
 		global.binding = binding;
 		global.qualifier = atom::Global::layout_in;
 
@@ -62,7 +62,7 @@ struct layout_in : layout_in_base <T> {
 		auto uniform_layout = this->layout();
 
 		atom::Global global;
-		global.type = synthesize_type_fields(uniform_layout).id;
+		global.type = type_field_from_args(uniform_layout).id;
 		global.binding = binding;
 		global.qualifier = atom::Global::layout_in;
 
@@ -84,7 +84,7 @@ struct layout_in : layout_in_base <T> {
 		auto &em = Emitter::active;
 
 		atom::Global global;
-		global.type = synthesize_type_fields <T> ().id;
+		global.type = type_field_from_args <T> ().id;
 		global.binding = binding;
 		global.qualifier = atom::Global::layout_in;
 
@@ -116,7 +116,7 @@ struct layout_out : layout_out_base <T> {
 		auto &em = Emitter::active;
 
 		atom::Global global;
-		global.type = synthesize_type_fields <T> ().id;
+		global.type = type_field_from_args <T> ().id;
 		global.binding = binding;
 		global.qualifier = atom::Global::layout_out;
 
@@ -131,7 +131,7 @@ struct layout_out : layout_out_base <T> {
 		auto uniform_layout = this->layout();
 
 		atom::Global global;
-		global.type = synthesize_type_fields(uniform_layout).id;
+		global.type = type_field_from_args(uniform_layout).id;
 		global.binding = binding;
 		global.qualifier = atom::Global::layout_out;
 
@@ -150,7 +150,7 @@ struct layout_out : layout_out_base <T> {
 		auto &em = Emitter::active;
 
 		atom::Global global;
-		global.type = synthesize_type_fields <T> ().id;
+		global.type = type_field_from_args <T> ().id;
 		global.binding = binding;
 		global.qualifier = atom::Global::layout_out;
 
@@ -167,7 +167,7 @@ struct layout_out : layout_out_base <T> {
 		auto &em = Emitter::active;
 
 		atom::Global global;
-		global.type = synthesize_type_fields <T> ().id;
+		global.type = type_field_from_args <T> ().id;
 		global.binding = binding;
 		global.qualifier = atom::Global::layout_out;
 

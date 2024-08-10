@@ -1,6 +1,7 @@
 #pragma once
 
 #include "emitter.hpp"
+#include "type_synthesis.hpp"
 #include "uniform_layout.hpp"
 
 namespace jvl::ire {
@@ -18,7 +19,7 @@ struct push_constant : T {
 		auto uniform_layout = this->layout();
 
 		atom::Global global;
-		global.type = synthesize_type_fields(uniform_layout).id;
+		global.type = type_field_from_args(uniform_layout).id;
 		global.binding = -1;
 		global.qualifier = atom::Global::push_constant;
 

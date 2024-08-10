@@ -5,64 +5,29 @@
 
 namespace jvl::ire {
 
-// TODO: quaternion class?
+// TODO: quaternion class
 template <primitive_type T, size_t N>
 vec <T, N> operator+(const T &k, const vec <T, N> &v)
 {
-	auto &em = Emitter::active;
-
-	atom::Operation op;
-	op.type = atom::Operation::addition;
-	op.args = synthesize_list(k, v);
-
-	cache_index_t cit;
-	cit = em.emit(op);
-
-	return cit;
+	return operation_from_args <vec <T, N>> (atom::Operation::addition, k, v);
 }
 
 template <primitive_type T, size_t N>
 vec <T, N> operator*(const T &k, const vec <T, N> &v)
 {
-	auto &em = Emitter::active;
-
-	atom::Operation op;
-	op.type = atom::Operation::multiplication;
-	op.args = synthesize_list(k, v);
-
-	cache_index_t cit;
-	cit = em.emit(op);
-
-	return cit;
+	return operation_from_args <vec <T, N>> (atom::Operation::multiplication, k, v);
 }
 
 template <primitive_type T, size_t N>
 vec <T, N> operator*(const primitive_t <T> &k, const vec <T, N> &v)
 {
-	auto &em = Emitter::active;
-
-	atom::Operation op;
-	op.type = atom::Operation::multiplication;
-	op.args = synthesize_list(k, v);
-
-	cache_index_t cit;
-	cit = em.emit(op);
-
-	return cit;
+	return operation_from_args <vec <T, N>> (atom::Operation::multiplication, k, v);
 }
 
-inline vec4 operator*(const mat4 &m, const vec4 &v)
+template <typename T, size_t M, size_t N>
+vec <T, M> operator*(const mat <T, M, N> &m, const vec <T, N> &v)
 {
-	auto &em = Emitter::active;
-
-	atom::Operation op;
-	op.type = atom::Operation::multiplication;
-	op.args = synthesize_list(m, v);
-
-	cache_index_t cit;
-	cit = em.emit(op);
-
-	return cit;
+	return operation_from_args <vec <T, M>> (atom::Operation::multiplication, m, v);
 }
 
 } // namespace jvl::ire

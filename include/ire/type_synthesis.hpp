@@ -15,7 +15,7 @@ template <typename T>
 constexpr atom::PrimitiveType synthesize_primitive_type();
 
 template <typename T, typename ... Args>
-cache_index_t synthesize_type_fields()
+cache_index_t type_field_from_args()
 {
 	static thread_local cache_index_t cached = cache_index_t::null();
 	if (cached.id != -1)
@@ -26,7 +26,7 @@ cache_index_t synthesize_type_fields()
 	atom::TypeField tf;
 	tf.item = synthesize_primitive_type <T> ();
 	if constexpr (sizeof...(Args))
-		tf.next = synthesize_type_fields <Args...> ().id;
+		tf.next = type_field_from_args <Args...> ().id;
 	else
 		tf.next = -1;
 
@@ -35,9 +35,9 @@ cache_index_t synthesize_type_fields()
 }
 
 template <typename ... Args>
-cache_index_t synthesize_type_fields(const uniform_layout <Args...> &args)
+cache_index_t type_field_from_args(const uniform_layout <Args...> &args)
 {
-	return synthesize_type_fields <Args...> ();
+	return type_field_from_args <Args...> ();
 }
 
 } // namespace jvl::ire
