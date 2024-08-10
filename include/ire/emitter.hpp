@@ -10,6 +10,22 @@
 
 namespace jvl::ire {
 
+struct Kernel {
+	// TODO: extra information: supported profiles, parameters, etc...
+
+	// At this point the IR atoms are unlikely to change
+	std::vector <atom::General> atoms;
+	std::unordered_set <atom::index_t> used;
+	std::unordered_set <atom::index_t> synthesized;
+
+	// Synthesizing targets
+	// TODO: template by target, and return value as well (i.e. string source or binary code)
+	std::string synthesize();
+
+	// Printing the stored IR
+	void dump();
+};
+
 struct Emitter {
 	// By default the program begins at index=0
 	atom::General *pool;
@@ -53,14 +69,26 @@ struct Emitter {
 	// TODO: pass stage
 	void validate() const;
 
-	// Generating GLSL source code
-	std::string generate_glsl();
+	// Transfering to a Kernel object
+	Kernel export_to_kernel();
+
+	// // Generating GLSL source code
+	// // TODO: operate on kernels
+	// std::string generate_glsl();
 
 	// Printing the IR state
 	void dump();
 
 	static thread_local Emitter active;
 };
+
+template <typename F, typename ... Args>
+Kernel emit_kernel(const F &ftn, const Args &... args)
+{
+	Emitter::active.clear();
+	ftn(args...);
+	return Emitter::active.export_to_kernel();
+}
 
 namespace detail {
 

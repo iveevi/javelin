@@ -112,61 +112,41 @@ int main()
 {
 	glfwInit();
 
-	Emitter::active.clear();
+	auto vertex_kernel = emit_kernel(vertex_shader);
+	std::string vertex_source = vertex_kernel.synthesize();
+	fmt::println("vsource: {}", vertex_source);
 
-	vertex_shader();
+	// NOTE: bug when doing vertex shader again
+	auto fragment_kernel = emit_kernel(fragment_shader);
+	std::string fragment_source = fragment_kernel.synthesize();
+	fmt::println("fsource: {}", fragment_source);
 
-	// TODO: auto kernel = jvl_emit_kernel(ftn, args...)
-	//            ^
-	//            now kernel holds the IR;
-	//            operator()(...) semantics to be dealt
-	//            with later...
-	Emitter::active.compact();
-	Emitter::active.dump();
-	Emitter::active.validate();
-
-	auto vsource = Emitter::active.generate_glsl();
-
-	printf("\nvertex shader:\n%s", vsource.c_str());
-
-	Emitter::active.clear();
-
-	fragment_shader();
-
-	Emitter::active.compact();
-	Emitter::active.dump();
-	Emitter::active.validate();
-
-	auto fsource = Emitter::active.generate_glsl();
-
-	printf("\nfragment shader:\n%s", fsource.c_str());
-
-	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-	GLFWwindow *window = glfwCreateWindow(800, 800, "Window", NULL, NULL);
-	if (window == NULL) {
-		printf("failed to load glfw\n");
-		glfwTerminate();
-		return -1;
-	}
-	glfwMakeContextCurrent(window);
-
-	if (!gladLoadGL((GLADloadfunc) glfwGetProcAddress)) {
-		printf("failed to load glad\n");
-		return -1;
-	}
-
-	GLuint program = glCreateShader(GL_VERTEX_SHADER);
-	const char *source_c_str = vsource.c_str();
-	glShaderSource(program, 1, &source_c_str, nullptr);
-	glCompileShader(program);
-
-	printf("program: %d\n", program);
-
-	int success;
-	char error_log[512];
-	glGetShaderiv(program, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		glGetShaderInfoLog(program, 512, NULL, error_log);
-		fmt::println("compilation error: {}", error_log);
-	}
+	// glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	// GLFWwindow *window = glfwCreateWindow(800, 800, "Window", NULL, NULL);
+	// if (window == NULL) {
+	// 	printf("failed to load glfw\n");
+	// 	glfwTerminate();
+	// 	return -1;
+	// }
+	// glfwMakeContextCurrent(window);
+	//
+	// if (!gladLoadGL((GLADloadfunc) glfwGetProcAddress)) {
+	// 	printf("failed to load glad\n");
+	// 	return -1;
+	// }
+	//
+	// GLuint program = glCreateShader(GL_VERTEX_SHADER);
+	// const char *source_c_str = vsource.c_str();
+	// glShaderSource(program, 1, &source_c_str, nullptr);
+	// glCompileShader(program);
+	//
+	// printf("program: %d\n", program);
+	//
+	// int success;
+	// char error_log[512];
+	// glGetShaderiv(program, GL_COMPILE_STATUS, &success);
+	// if (!success) {
+	// 	glGetShaderInfoLog(program, 512, NULL, error_log);
+	// 	fmt::println("compilation error: {}", error_log);
+	// }
 }
