@@ -47,6 +47,9 @@ add_executable(ire
 	source/exec/ire.cpp
 	thirdparty/glad/src/gl.c)
 
+add_executable(lang-features
+	source/exec/lang.cpp)
+
 add_executable(test
 	source/test/ire_synthesis.cpp
 	source/test/math_matrix.cpp)
@@ -68,4 +71,5 @@ set(VULKAN_LIBRARY_SET
 target_link_libraries(jvl-ire fmt::fmt)
 target_link_libraries(javelin fmt::fmt ${VULKAN_LIBRARY_SET} imgui)
 target_link_libraries(ire glfw fmt::fmt jvl-ire)
+target_link_libraries(lang-features fmt::fmt)
 target_link_libraries(test GTest::gtest_main jvl-ire)
