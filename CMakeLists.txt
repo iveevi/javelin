@@ -55,6 +55,11 @@ add_executable(test
 	source/test/ire_synthesis.cpp
 	source/test/math_matrix.cpp)
 
+target_compile_options(lang-features PRIVATE
+	-Wall
+	-fno-rtti)
+	# -fsanitize=address)
+
 include_directories(.
 	include
 	thirdparty
@@ -72,5 +77,5 @@ set(VULKAN_LIBRARY_SET
 target_link_libraries(jvl-ire fmt::fmt)
 target_link_libraries(javelin fmt::fmt ${VULKAN_LIBRARY_SET} imgui)
 target_link_libraries(ire glfw fmt::fmt jvl-ire)
-target_link_libraries(lang-features fmt::fmt)
+target_link_libraries(lang-features fmt::fmt) # -fsanitize=address)
 target_link_libraries(test GTest::gtest_main jvl-ire)

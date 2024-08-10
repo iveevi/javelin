@@ -102,7 +102,6 @@ struct lex_state {
 	bool push(decltype(token::type) type) {
 		token t;
 		t.type = type;
-		fmt::println("{}", t);
 		produced.push_back(t);
 		return true;
 	}
@@ -112,7 +111,6 @@ struct lex_state {
 		token t;
 		t.type = type;
 		t.payload = v;
-		fmt::println("{}", t);
 		produced.push_back(t);
 		return true;
 	}

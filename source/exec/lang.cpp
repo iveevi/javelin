@@ -69,7 +69,7 @@ struct parse_state {
 		template <typename T>
 		const T &ok(const T &t) {
 			// TODO: success message
-			fmt::println("[S] succeeded $({})", scope);
+			// fmt::println("[S] succeeded $({})", scope);
 			success = true;
 			return t;
 		}
@@ -77,7 +77,7 @@ struct parse_state {
 		~save_state() {
 			if (!success) {
 				// TODO: debug only
-				fmt::println("[F] failed $({}), going back to #{}", scope, prior);
+				// fmt::println("[F] failed $({}), going back to #{}", scope, prior);
 				ref.index = prior;
 			}
 		}
@@ -89,8 +89,18 @@ struct parse_state {
 };
 
 // Memory management
+struct grand_bank_t {
+	// Tracks memory usage from within the compiler
+	size_t bytes = 0;
+
+	static grand_bank_t &one() {
+		static grand_bank_t gb;
+		return gb;
+	}
+};
+
 template <typename T>
-struct bank {
+struct bank_t {
 	// TODO: allocate in page chunks
 };
 
@@ -113,6 +123,11 @@ struct ptr {
 		return address;
 	}
 
+	ptr &operator++(int) {
+		address++;
+		return *this;
+	}
+
 	template <typename ... Args>
 	static ptr from(const Args &... args) {
 		// TODO: use the bank allocator
@@ -122,7 +137,8 @@ struct ptr {
 
 	static ptr block_from(const std::vector <T> &values) {
 		T *p = new T[values.size()];
-		std::memcpy(p, values.data(), sizeof(T) * values.size());
+		for (size_t i = 0; i < values.size(); i++)
+			p[i] = values[i];
 		return p;
 	}
 };
@@ -137,7 +153,7 @@ concept ast_node_type = requires(parse_state &state) {
 
 // Simplifying sequences of tokens and ast types
 template <typename T = void>
-struct token_payload_ref {
+struct payload_ref {
 	static constexpr bool valued = true;
 
 	T &ref;
@@ -145,20 +161,20 @@ struct token_payload_ref {
 };
 
 template <>
-struct token_payload_ref <void> {
+struct payload_ref <void> {
 	static constexpr bool valued = false;
 
 	token::kind type;
 };
 
 template <typename T, typename ... Args>
-bool match(parse_state &state, token_payload_ref <T> &tpr, Args &... args)
+bool match(parse_state &state, payload_ref <T> &tpr, Args &... args)
 {
 	auto topt = state.gettn_match(tpr.type);
 	if (!topt)
 		return false;
 
-	if constexpr (token_payload_ref <T> ::valued)
+	if constexpr (payload_ref <T> ::valued)
 		tpr.ref = topt.value().payload.template as <T> ();
 
 	if constexpr (sizeof...(Args)) {
@@ -184,19 +200,31 @@ bool match(parse_state &state, ptr <T> &p, Args &... args)
 	return true;
 }
 
+// Printing nicely
+#define pp_println(s, ...)						\
+	do {								\
+		fmt::print("{}", std::string(indent << 1, ' '));	\
+		fmt::println(s, ##__VA_ARGS__);				\
+	} while (0)
+
 // Forward declarations
 
 // Implementations
 
 // General structure of a namespace:
-//     <name1>.<name2>. ....
+//     <name #1>.<name #2>. ....
 struct ast_namespace {
 	std::vector <std::string> names;
 
+	void dump(int indent = 0) {
+		pp_println("namespace {{");
+		for (auto s : names)
+			pp_println("  name: {}", s);
+		pp_println("}}");
+	}
+
 	static ptr <ast_namespace> attempt(parse_state &state) {
 		auto save = state.save("namespace");
-
-		fmt::println("namespace:");
 
 		if (!state.gett().is(token::misc_identifier))
 			return nullptr;
@@ -204,9 +232,7 @@ struct ast_namespace {
 		auto node = ptr <ast_namespace> ::from();
 		while (true) {
 			const token &t = state.gettn();
-			fmt::println("  name: {}", t.payload.as <std::string> ());
 			node->names.push_back(t.payload.as <std::string> ());
-
 			if (!state.gettn_match(token::sign_dot) || !state.gett_match(token::misc_identifier))
 				break;
 		}
@@ -216,19 +242,23 @@ struct ast_namespace {
 };
 
 // General structure of an import:
-//     import <namespace>.<sub>;
+//     import <namespace>;
 struct ast_import {
 	ptr <ast_namespace> nspace = nullptr;
-
 	// TODO: sub
 
-	// TODO: return ptrs to this
+	void dump(int indent = 0) {
+		pp_println("import {{");
+		nspace->dump(indent + 1);
+		pp_println("}}");
+	}
+
 	static ptr <ast_import> attempt(parse_state &state) {
 		auto save = state.save("import");
 
 		auto node = ptr <ast_import> ::from();
-		auto ref_kw = token_payload_ref <> (token::keyword_import);
-		auto ref_end = token_payload_ref <> (token::sign_semicolon);
+		auto ref_kw = payload_ref <> (token::keyword_import);
+		auto ref_end = payload_ref <> (token::sign_semicolon);
 		if (!match(state, ref_kw, node->nspace, ref_end))
 			return nullptr;
 
@@ -240,11 +270,17 @@ struct ast_attribute {
 	// TODO: arguments as well
 	ptr <ast_namespace> nspace = nullptr;
 
+	void dump(int indent = 0) {
+		pp_println("attribute {{");
+		nspace->dump(indent + 1);
+		pp_println("}}");
+	}
+
 	static ptr <ast_attribute> attempt(parse_state &state) {
 		auto save = state.save("attribute");
 
 		auto node = ptr <ast_attribute> ::from();
-		auto ref = token_payload_ref <> (token::sign_attribute);
+		auto ref = payload_ref <> (token::sign_attribute);
 		if (!match(state, ref, node->nspace))
 			return nullptr;
 
@@ -255,6 +291,11 @@ struct ast_attribute {
 struct ast_type {
 	// TODO: generics
 	ptr <ast_namespace> nspace = nullptr;
+
+	void dump(int indent = 0) {
+		pp_println("type:");
+		nspace->dump(indent + 1);
+	}
 
 	static ptr <ast_type> attempt(parse_state &state) {
 		auto save = state.save("type");
@@ -270,12 +311,17 @@ struct ast_type {
 struct ast_decl_using {
 	ptr <ast_namespace> nspace = nullptr;
 
+	void dump(int indent = 0) {
+		pp_println("decl using:");
+		nspace->dump(indent + 1);
+	}
+
 	static ptr <ast_decl_using> attempt(parse_state &state) {
 		auto save = state.save("decl: using");
 
 		auto node = ptr <ast_decl_using> ::from();
-		auto ref_kw = token_payload_ref <> (token::keyword_using);
-		auto ref_end = token_payload_ref <> (token::sign_semicolon);
+		auto ref_kw = payload_ref <> (token::keyword_using);
+		auto ref_end = payload_ref <> (token::sign_semicolon);
 		if (!match(state, ref_kw, node->nspace, ref_end))
 			return nullptr;
 
@@ -288,6 +334,8 @@ struct ast_factor;
 struct ast_expression {
 	// TODO: extend
 	ptr <ast_factor> factor = nullptr;
+
+	void dump(int indent = 0);
 
 	static ptr <ast_expression> attempt(parse_state &);
 };
@@ -328,8 +376,8 @@ struct ast_pseudo_arguments {
 	static ptr <ast_pseudo_arguments> attempt(parse_state &state) {
 		auto save = state.save("pseudo: arguments");
 
-		auto begin = token_payload_ref <> (token::sign_parenthesis_left);
-		auto end = token_payload_ref <> (token::sign_parenthesis_right);
+		auto begin = payload_ref <> (token::sign_parenthesis_left);
+		auto end = payload_ref <> (token::sign_parenthesis_right);
 		ptr <ast_pseudo_expression_list> stmts = nullptr;
 
 		if (!match(state, begin, stmts, end))
@@ -343,9 +391,18 @@ struct ast_pseudo_arguments {
 	}
 };
 
+// TODO: refactor to call... <factor>(args...)
 struct ast_factor_construct {
 	ptr <ast_type> type = nullptr;
+
+	// TODO: should be list...
 	ptr <ast_pseudo_arguments> args = nullptr;
+
+	void dump(int indent = 0) {
+		pp_println("construct {{");
+		type->dump(indent + 1);
+		pp_println("}}");
+	}
 
 	static ptr <ast_factor_construct> attempt(parse_state &state) {
 		auto save = state.save("factor: construct");
@@ -360,6 +417,17 @@ struct ast_factor_construct {
 
 struct ast_factor_literal {
 	token_payload_t value;
+
+	void dump(int indent = 0) {
+		if (auto i = value.get <int> ())
+			pp_println("int: {}", *i);
+		else if (auto i = value.get <float> ())
+			pp_println("float: {}", *i);
+		else if (auto i = value.get <std::string> ())
+			pp_println("string: {}", *i);
+		else
+			pp_println("literal: ??");
+	}
 
 	static ptr <ast_factor_literal> attempt(parse_state &state) {
 		auto save = state.save("factor: literal");
@@ -380,8 +448,19 @@ struct ast_factor_literal {
 
 struct ast_factor {
 	ptr <ast_factor_construct> construct = nullptr;
+	// TODO: should be semantically different
 	ptr <ast_namespace> nspace = nullptr;
 	ptr <ast_factor_literal> literal = nullptr;
+
+	void dump(int indent = 0) {
+		pp_println("factor:");
+		if (construct)
+			construct->dump(indent + 1);
+		if (nspace)
+			nspace->dump(indent + 1);
+		if (literal)
+			literal->dump(indent + 1);
+	}
 
 	static ptr <ast_factor> attempt(parse_state &state) {
 		auto save = state.save("factor");
@@ -400,6 +479,12 @@ struct ast_factor {
 	}
 };
 
+void ast_expression::dump(int indent)
+{
+	pp_println("expression:");
+	factor->dump(indent + 1);
+}
+
 ptr <ast_expression> ast_expression::attempt(parse_state &state)
 {
 	auto save = state.save("expression");
@@ -417,12 +502,19 @@ struct ast_decl_assign {
 	ptr <ast_namespace> dst = nullptr;
 	ptr <ast_expression> value = nullptr;
 
+	void dump(int indent = 0) {
+		pp_println("decl assign {{");
+		dst->dump(indent + 1);
+		value->dump(indent + 1);
+		pp_println("}}");
+	}
+
 	static ptr <ast_decl_assign> attempt(parse_state &state) {
 		auto save = state.save("decl: assign");
 
 		auto node = ptr <ast_decl_assign> ::from();
-		auto ref_eq = token_payload_ref <> (token::sign_equals);
-		auto ref_end = token_payload_ref <> (token::sign_semicolon);
+		auto ref_eq = payload_ref <> (token::sign_equals);
+		auto ref_end = payload_ref <> (token::sign_semicolon);
 		if (!match(state, node->dst, ref_eq, node->value, ref_end))
 			return nullptr;
 
@@ -433,12 +525,18 @@ struct ast_decl_assign {
 struct ast_decl_return {
 	ptr <ast_expression> value = nullptr;
 
+	void dump(int indent = 0) {
+		pp_println("decl return {{");
+		value->dump(indent + 1);
+		pp_println("}}");
+	}
+
 	static ptr <ast_decl_return> attempt(parse_state &state) {
 		auto save = state.save("decl: return");
 
 		auto node = ptr <ast_decl_return> ::from();
-		auto ref_kw = token_payload_ref <> (token::keyword_return);
-		auto ref_end = token_payload_ref <> (token::sign_semicolon);
+		auto ref_kw = payload_ref <> (token::keyword_return);
+		auto ref_end = payload_ref <> (token::sign_semicolon);
 		if (!match(state, ref_kw, node->value, ref_end))
 			return nullptr;
 
@@ -451,6 +549,19 @@ struct ast_statement {
 	ptr <ast_decl_using> decl_using = nullptr;
 	ptr <ast_decl_assign> decl_assign = nullptr;
 	ptr <ast_decl_return> decl_return = nullptr;
+
+	void dump(int indent = 0) {
+		pp_println("statement:");
+
+		if (decl_using)
+			decl_using->dump(indent + 1);
+
+		if (decl_assign)
+			decl_assign->dump(indent + 1);
+
+		if (decl_return)
+			decl_return->dump(indent + 1);
+	}
 
 	static ptr <ast_statement> attempt(parse_state &state) {
 		auto save = state.save("statement");
@@ -491,21 +602,27 @@ struct ast_pseudo_statement_list {
 };
 
 // General structure of a block:
-//      <stmt1>
-//      <stmt2>
+//      <stmt #1>
+//      <stmt #2>
 //      ...
 struct ast_block {
 	size_t count;
 	ptr <ast_statement> stmts = nullptr;
 
+	void dump(int indent = 0) {
+		pp_println("block:");
+		pp_println("  # of statements: {}", count);
+
+		auto p = stmts;
+		for (size_t i = 0; i < count; i++, p++)
+			p->dump(indent + 1);
+	}
+
 	static ptr <ast_block> attempt(parse_state &state) {
 		auto save = state.save("block");
 
-		fmt::println("block:");
-		fmt::println("  next token: {}", state.gett());
-
-		auto begin = token_payload_ref <> (token::sign_brace_left);
-		auto end = token_payload_ref <> (token::sign_brace_right);
+		auto begin = payload_ref <> (token::sign_brace_left);
+		auto end = payload_ref <> (token::sign_brace_right);
 		ptr <ast_pseudo_statement_list> stmts = nullptr;
 
 		if (!match(state, begin, stmts, end))
@@ -520,16 +637,25 @@ struct ast_block {
 };
 
 struct ast_parameter {
-	ptr <ast_type> type = nullptr;
 	std::string name;
+	ptr <ast_type> type = nullptr;
+
+	void dump(int indent = 0) {
+		pp_println("parameter {{");
+		pp_println("  name: {}", name);
+		type->dump(indent + 1);
+		pp_println("}}");
+	}
 
 	static ptr <ast_parameter> attempt(parse_state &state) {
 		auto save = state.save("parameter");
 
 		auto node = ptr <ast_parameter> ::from();
-		auto ref = token_payload_ref <std::string> (node->name, token::misc_identifier);
+		auto ref = payload_ref <std::string> (node->name, token::misc_identifier);
 		if (!match(state, node->type, ref))
 			return nullptr;
+
+		fmt::println("parameter: {}", node->name);
 
 		return save.ok(node);
 	}
@@ -542,7 +668,7 @@ struct ast_pseudo_return {
 		auto save = state.save("pseudo: return");
 
 		auto node = ptr <ast_pseudo_return> ::from();
-		auto ref = token_payload_ref <> (token::sign_arrow);
+		auto ref = payload_ref <> (token::sign_arrow);
 		if (!match(state, ref, node->type))
 			return nullptr;
 
@@ -552,7 +678,7 @@ struct ast_pseudo_return {
 
 // Pseudo AST node; not actually stored
 // General structure of a (pseudo) parameter group:
-//     (<parameter1>, <parameter2>, ....)
+//     (<parameter #1>, <parameter #2>, ....)
 struct ast_pseudo_parameter_group {
 	size_t nargs;
 	ptr <ast_parameter> parameters = nullptr;
@@ -565,22 +691,28 @@ struct ast_pseudo_parameter_group {
 			return nullptr;
 
 		std::vector <ast_parameter> params;
-		fmt::println("parameter group");
 		while (auto param = ast_parameter::attempt(state)) {
-			fmt::println("  parameter: {}", param->name);
+			params.push_back(*param);
+			fmt::println("!!! param group: got {}", param->name);
 			if (!state.gettn_match(token::sign_comma))
 				break;
 		}
 
-		if (!state.gettn_match(token::sign_parenthesis_right)) {
-			fmt::println("no closing parenthesis...");
+		if (!state.gettn_match(token::sign_parenthesis_right))
 			return nullptr;
-		}
 
-		fmt::println("  completed parameter block");
+		// auto params_ptr = ptr <ast_parameter> ::block_from(params);
+		// auto node = ptr <ast_pseudo_parameter_group> ::from(params.size(), params_ptr);
 
-		auto params_ptr = ptr <ast_parameter> ::block_from(params);
-		auto node = ptr <ast_pseudo_parameter_group> ::from(params.size(), params_ptr);
+		auto node = ptr <ast_pseudo_parameter_group> ::from();
+		node->nargs = params.size();
+		node->parameters = ptr <ast_parameter> ::block_from(params);
+
+		fmt::println("recap args:");
+		auto p = node->parameters;
+		for (size_t i = 0; i < node->nargs; i++, p++)
+			p->dump();
+
 		return save.ok(node);
 	}
 };
@@ -601,12 +733,33 @@ struct ast_function {
 	ptr <ast_parameter> parameters = nullptr;
 	ptr <ast_block> block = nullptr;
 
+	void dump(int indent = 0) {
+		pp_println("function:");
+		pp_println("  name: {}", name);
+		pp_println("  # of attributes: {}", nattrs);
+		pp_println("  # of arguments: {}", nargs);
+
+		if (attributes)
+			attributes->dump(indent + 1);
+
+		pp_println("  return type:");
+		if (return_type)
+			return_type->dump(indent + 2);
+
+		pp_println("  parameters:");
+		auto p = parameters;
+		for (size_t i = 0; i < nargs; i++, p++)
+			p->dump(indent + 2);
+
+		block->dump(indent + 1);
+	}
+
 	static ptr <ast_function> attempt(parse_state &state) {
 		auto save = state.save("function");
 
 		auto node = ptr <ast_function> ::from();
-		auto ref_kw = token_payload_ref <> (token::keyword_function);
-		auto ref_name = token_payload_ref <std::string> (node->name, token::misc_identifier);
+		auto ref_kw = payload_ref <> (token::keyword_function);
+		auto ref_name = payload_ref <std::string> (node->name, token::misc_identifier);
 		ptr <ast_pseudo_parameter_group> p_args_group =  nullptr;
 		ptr <ast_pseudo_return> p_return_type = nullptr;
 
@@ -623,6 +776,7 @@ struct ast_function {
 		if (!success)
 			return nullptr;
 
+		// TODO: move operation to null out
 		node->nargs = p_args_group->nargs;
 		node->parameters = p_args_group->parameters;
 
@@ -632,37 +786,79 @@ struct ast_function {
 	}
 };
 
+// General structure of a global declaration:
+//     <import>
+//     or
+//     <function>
+struct ast_global_decl {
+	ptr <ast_import> decl_import = nullptr;
+	ptr <ast_function> decl_function = nullptr;
+
+	void dump(int indent = 0) {
+		pp_println("global declaration {{");
+
+		if (decl_import)
+			decl_import->dump(indent + 1);
+
+		if (decl_function)
+			decl_function->dump(indent + 1);
+
+		pp_println("}}");
+	}
+
+	static ptr <ast_global_decl> attempt(parse_state &state) {
+		auto save = state.save("decl: global");
+
+		auto node = ptr <ast_global_decl> ::from();
+		if (match(state, node->decl_import))
+			return save.ok(node);
+
+		if (match(state, node->decl_function))
+			return save.ok(node);
+
+		return nullptr;
+	}
+};
+
 // General struture of a module
-//     <import>...
-//     <function>...
+//     <global decl #1>
+//     <global decl #2>
+//     ...
 struct ast_module {
-	size_t nimports;
-	size_t nfunctions;
-	ptr <ast_import> imports = nullptr;
-	ptr <ast_function> functions = nullptr;
+	size_t count;
+	ptr <ast_global_decl> decls = nullptr;
+
+	void dump(int indent = 0) {
+		std::string spacing(indent << 1, ' ');
+
+		pp_println("module {{");
+		pp_println("  # of declarations: {}", count);
+
+		auto p = decls;
+		for (size_t i = 0; i < count; i++, p++)
+			p->dump(indent + 1);
+
+		pp_println("}}");
+	}
 
 	static ptr <ast_module> attempt(parse_state &state) {
 		auto save = state.save("module");
 
-		std::vector <ptr <ast_import>> imports;
-		std::vector <ptr <ast_function>> functions;
+		std::vector <ast_global_decl> decls;
 
-		auto node = ptr <ast_module> ::from();
 		while (!state.eof()) {
-			auto import = ast_import::attempt(state);
-			if (import) {
-				imports.push_back(import);
-				continue;
-			}
-
-			auto function = ast_function::attempt(state);
-			if (function) {
-				functions.push_back(function);
+			auto decl = ast_global_decl::attempt(state);
+			if (decl) {
+				decls.push_back(*decl);
 				continue;
 			}
 
 			return nullptr;
 		}
+
+		auto node = ptr <ast_module> ::from();
+		node->count = decls.size();
+		node->decls = ptr <ast_global_decl> ::block_from(decls);
 
 		return save.ok(node);
 	}
@@ -677,4 +873,6 @@ int main()
 	parse_state ps(lexer(source), 0);
 
 	auto module = ast_module::attempt(ps);
+
+	module->dump();
 }
