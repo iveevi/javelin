@@ -48,7 +48,8 @@ add_executable(ire
 	thirdparty/glad/src/gl.c)
 
 add_executable(lang-features
-	source/exec/lang.cpp)
+	source/exec/lang.cpp
+	source/lang/lex.cpp)
 
 add_executable(test
 	source/test/ire_synthesis.cpp

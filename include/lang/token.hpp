@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "../wrapped_types.hpp"
 
@@ -14,7 +15,7 @@ using token_payload_t = wrapped::variant <
 >;
 
 struct token {
-	enum {
+	enum kind {
 		literal_float,
 		literal_int,
 		literal_string,
@@ -53,6 +54,10 @@ struct token {
 
 	token_payload_t payload;
 
+	bool is(decltype(type) t) const {
+		return type == t;
+	}
+
 	static constexpr const char *name[] = {
 		"literal_float",
 		"literal_int",
@@ -87,6 +92,8 @@ struct token {
 		"misc_identifier",
 	};
 };
+
+std::vector <token> lexer(const std::string &);
 
 inline auto format_as(const token &t)
 {
