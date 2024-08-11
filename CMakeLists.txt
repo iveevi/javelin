@@ -43,7 +43,7 @@ add_executable(javelin
 	source/exec/main.cpp
 	source/core/preset.cpp)
 
-add_executable(ire
+add_executable(ire-features
 	source/exec/ire.cpp
 	thirdparty/glad/src/gl.c)
 
@@ -57,8 +57,8 @@ add_executable(test
 
 target_compile_options(lang-features PRIVATE
 	-Wall
-	-fno-rtti)
-	# -fsanitize=address)
+	-fno-rtti
+	-fsanitize=address)
 
 include_directories(.
 	include
@@ -76,6 +76,6 @@ set(VULKAN_LIBRARY_SET
 
 target_link_libraries(jvl-ire fmt::fmt)
 target_link_libraries(javelin fmt::fmt ${VULKAN_LIBRARY_SET} imgui)
-target_link_libraries(ire glfw fmt::fmt jvl-ire)
-target_link_libraries(lang-features fmt::fmt) # -fsanitize=address)
+target_link_libraries(ire-features glfw fmt::fmt jvl-ire)
+target_link_libraries(lang-features fmt::fmt -fsanitize=address)
 target_link_libraries(test GTest::gtest_main jvl-ire)
