@@ -41,7 +41,8 @@ add_library(jvl-ire STATIC
 
 add_executable(javelin
 	source/exec/main.cpp
-	source/core/preset.cpp)
+	source/core/preset.cpp
+	source/gfx/cpu/bvh.cpp)
 
 add_executable(ire-features
 	source/exec/ire.cpp
