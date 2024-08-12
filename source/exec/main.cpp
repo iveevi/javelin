@@ -10,10 +10,6 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_vulkan.h>
 #include <imgui/backends/imgui_impl_glfw.h>
-#include <mutex>
-#include <thread>
-#include <type_traits>
-#include <vulkan/vulkan_enums.hpp>
 
 #include "constants.hpp"
 #include "core/aperature.hpp"
@@ -63,9 +59,9 @@ layout (location = 0) out vec4 fragment;
 
 void main()
 {
-	vec3 dU = dFdx(position);
+	vec3 dU = dFdxFine(position);
 	vec3 dV = dFdyFine(position);
-	vec3 N = normalize(cross(dU, dV));
+	vec3 N = normalize(cross(dV, dU));
 	fragment = vec4(0.5 + 0.5 * N, 1.0);
 }
 )";
@@ -461,6 +457,10 @@ int main(int argc, char *argv[])
 		return tonemap(color);
 	};
 
+	auto clear = [&fb](jvl::int2 ij, jvl::float2 uv) -> uint32_t {
+		return 0xff000000;
+	};
+
 	jvl::int2 size = { 16, 16 };
 	auto tiles = fb.tiles(size);
 
@@ -563,7 +563,8 @@ int main(int argc, char *argv[])
 			if (ImGui::Begin("Interface")) {
 				if (ImGui::Button("Render")) {
 					rf = jvl::core::rayframe(aperature, transform);
-					fb.clear();
+					fb.process(clear);
+					// fb.clear();
 					thread_pool.reset();
 					thread_pool.enque(tiles);
 					thread_pool.begin();
