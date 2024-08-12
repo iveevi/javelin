@@ -198,4 +198,4 @@ std::string synthesize_glsl_body(const General *const,
 		                 const std::unordered_set <atom::index_t> &,
 				 size_t);
 
-} // namespace jvl::ire::atom
+} // namespace jvl::atom

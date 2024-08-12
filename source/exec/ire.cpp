@@ -14,6 +14,7 @@
 #include "ire/uniform_layout.hpp"
 #include "ire/util.hpp"
 #include "ire/vector.hpp"
+#include "profiles/targets.hpp"
 
 namespace jvl::ire {
 
@@ -119,11 +120,11 @@ int main()
 	glfwInit();
 
 	auto vertex_kernel = kernel_from_args(vertex_shader);
-	std::string vertex_source = vertex_kernel.synthesize();
+	std::string vertex_source = vertex_kernel.synthesize(jvl::profiles::opengl_330);
 	fmt::println("vsource:\n{}", vertex_source);
 
 	auto fragment_kernel = kernel_from_args(fragment_shader);
-	std::string fragment_source = fragment_kernel.synthesize();
+	std::string fragment_source = fragment_kernel.synthesize(jvl::profiles::opengl_460);
 	fmt::println("fsource:\n{}", fragment_source);
 
 	// glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);

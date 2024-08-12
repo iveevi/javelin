@@ -5,26 +5,11 @@
 #include <unordered_set>
 
 #include "../atom/atom.hpp"
+#include "../atom/kernel.hpp"
 #include "../wrapped_types.hpp"
 #include "tagged.hpp"
 
 namespace jvl::ire {
-
-struct Kernel {
-	// TODO: extra information: supported profiles, parameters, etc...
-
-	// At this point the IR atoms are unlikely to change
-	std::vector <atom::General> atoms;
-	std::unordered_set <atom::index_t> used;
-	std::unordered_set <atom::index_t> synthesized;
-
-	// Synthesizing targets
-	// TODO: template by target, and return value as well (i.e. string source or binary code)
-	std::string synthesize();
-
-	// Printing the stored IR
-	void dump();
-};
 
 struct Emitter {
 	// By default the program begins at index=0
@@ -70,7 +55,7 @@ struct Emitter {
 	void validate() const;
 
 	// Transfering to a Kernel object
-	Kernel export_to_kernel();
+	atom::Kernel export_to_kernel();
 
 	// Printing the IR state
 	void dump();
@@ -79,7 +64,7 @@ struct Emitter {
 };
 
 template <typename F, typename ... Args>
-Kernel kernel_from_args(const F &ftn, const Args &... args)
+atom::Kernel kernel_from_args(const F &ftn, const Args &... args)
 {
 	Emitter::active.clear();
 	ftn(args...);
