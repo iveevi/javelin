@@ -79,7 +79,6 @@ struct mvp {
 
 void vertex_shader()
 {
-
 	layout_in <vec3, 0> position;
 	layout_out <vec3, 0> out_position;
 
@@ -100,11 +99,17 @@ void fragment_shader()
 	layout_in <vec3, 0> position;
 	layout_out <vec4, 0> fragment;
 
+	push_constant <float> tint;
+
+	// TODO: some intrinsics only work on layout ins...
 	vec3 dU = dFdx(position);
 	vec3 dV = dFdy(position);
 	vec3 N = normalize(cross(dU, dV));
-	fragment = vec4(0.5f + 0.5f * N, 1);
+	// fragment = vec4(0.5f + 0.5f * N, 1);
+	fragment = vec4(vec3(1, 1, 1), tint);
 }
+
+// TODO: test on shader toy shaders
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>

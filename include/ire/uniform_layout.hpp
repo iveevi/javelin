@@ -38,5 +38,4 @@ struct is_uniform_layout <uniform_layout <Args...>> {
 template <typename T>
 concept uniform_compatible = is_uniform_layout <decltype(T().layout())> ::value;
 
-
 } // namespace jvl::ire

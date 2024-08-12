@@ -5,13 +5,9 @@
 #include "tagged.hpp"
 #include "uniform_layout.hpp"
 #include "type_synthesis.hpp"
+#include "upcast.hpp"
 
 namespace jvl::ire {
-
-// TODO: gl_type -> jvl_primitive_t
-// TODO: gltype_complatible -> is_jvl_primitive
-// synthesizable -> is_synthesizable
-// uniform_compatible -> is_uniform_compatible
 
 struct __empty {};
 
@@ -21,24 +17,11 @@ using layout_in_base = std::conditional_t <synthesizable <T> || uniform_compatib
 template <typename T>
 using layout_out_base = std::conditional_t <synthesizable <T> || uniform_compatible <T>, T, __empty>;
 
-template <primitive_type T>
-constexpr primitive_t <T> upcast(const T &) { return primitive_t <T> (); }
-
-template <uniform_compatible T>
-constexpr T upcast(const T &) { return T(); }
-
-template <synthesizable T>
-constexpr T upcast(const T &) { return T(); }
-
-static_assert(std::same_as <layout_in_base <int>, tagged>);
-
-template <typename T, size_t binding>
-requires primitive_type <T> || synthesizable <T> || uniform_compatible <T>
+template <global_qualifier_compatible T, size_t binding>
 struct layout_in : layout_in_base <T> {
 	using upcast_t = decltype(upcast(T()));
 
-	std::conditional_t <synthesizable <T> || uniform_compatible <T>,
-		cache_index_t, uint8_t> whole_ref;
+	std::conditional_t <uniform_compatible <T>, cache_index_t, uint8_t> whole_ref;
 
 	layout_in() = default;
 
@@ -105,8 +88,7 @@ requires primitive_type <T> || synthesizable <T> || uniform_compatible <T>
 struct layout_out : layout_out_base <T> {
 	using upcast_t = decltype(upcast(T()));
 
-	std::conditional_t <synthesizable <T> || uniform_compatible <T>,
-		cache_index_t, uint8_t> whole_ref;
+	std::conditional_t <uniform_compatible <T>, cache_index_t, uint8_t> whole_ref;
 
 	layout_out()
 	requires primitive_type <T> = default;
