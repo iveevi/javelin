@@ -3,9 +3,9 @@
 #include <fmt/printf.h>
 #include <unordered_set>
 
-#include "wrapped_types.hpp"
+#include "../wrapped_types.hpp"
 
-namespace jvl::ire::atom {
+namespace jvl::atom {
 
 using index_t = int16_t;
 

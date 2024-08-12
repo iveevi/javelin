@@ -7,7 +7,7 @@
 
 #include <fmt/format.h>
 
-#include "ire/atom.hpp"
+#include "atom/atom.hpp"
 #include "ire/core.hpp"
 #include "ire/emitter.hpp"
 #include "ire/tagged.hpp"

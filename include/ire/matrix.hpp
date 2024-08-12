@@ -1,7 +1,7 @@
 #pragma once
 
+#include "../atom/atom.hpp"
 #include "tagged.hpp"
-#include "atom.hpp"
 #include "emitter.hpp"
 
 namespace jvl::ire {

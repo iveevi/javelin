@@ -2,8 +2,8 @@
 #include <fmt/core.h>
 #include <map>
 
+#include "atom/atom.hpp"
 #include "ire/emitter.hpp"
-#include "ire/atom.hpp"
 #include "ire/tagged.hpp"
 #include "wrapped_types.hpp"
 

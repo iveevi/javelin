@@ -1,6 +1,6 @@
 #pragma once
 
-#include "atom.hpp"
+#include "../atom/atom.hpp"
 #include "tagged.hpp"
 #include "emitter.hpp"
 

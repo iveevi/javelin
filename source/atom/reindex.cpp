@@ -1,6 +1,6 @@
-#include "ire/atom.hpp"
+#include "atom/atom.hpp"
 
-namespace jvl::ire::atom {
+namespace jvl::atom {
 
 void reindex_ir_operation(const wrapped::reindex <index_t> &reindexer, General &g)
 {

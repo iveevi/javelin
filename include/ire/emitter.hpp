@@ -4,9 +4,9 @@
 #include <stack>
 #include <unordered_set>
 
-#include "atom.hpp"
+#include "../atom/atom.hpp"
+#include "../wrapped_types.hpp"
 #include "tagged.hpp"
-#include "wrapped_types.hpp"
 
 namespace jvl::ire {
 
@@ -71,10 +71,6 @@ struct Emitter {
 
 	// Transfering to a Kernel object
 	Kernel export_to_kernel();
-
-	// // Generating GLSL source code
-	// // TODO: operate on kernels
-	// std::string generate_glsl();
 
 	// Printing the IR state
 	void dump();

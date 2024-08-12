@@ -2,6 +2,7 @@
 
 #include "ire/core.hpp"
 
+using namespace jvl;
 using namespace jvl::ire;
 
 // Checking that certain operations appear in IR

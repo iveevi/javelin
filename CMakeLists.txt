@@ -33,11 +33,11 @@ add_library(imgui SHARED
 	thirdparty/imgui/backends/imgui_impl_vulkan.cpp)
 
 add_library(jvl-ire STATIC
+	source/atom/dump.cpp
+	source/atom/reindex.cpp
+	source/atom/synthesize_glsl.cpp
 	source/ire/compaction.cpp
-	source/ire/dump.cpp
-	source/ire/emitter.cpp
-	source/ire/reindex.cpp
-	source/ire/synthesize_glsl.cpp)
+	source/ire/emitter.cpp)
 
 add_executable(javelin
 	source/exec/main.cpp

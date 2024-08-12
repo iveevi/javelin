@@ -1,10 +1,10 @@
 #include <functional>
 #include <string>
 
-#include "ire/atom.hpp"
+#include "atom/atom.hpp"
 #include "wrapped_types.hpp"
 
-namespace jvl::ire::atom {
+namespace jvl::atom {
 
 std::string glsl_global_ref(const Global &global)
 {

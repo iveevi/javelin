@@ -3,13 +3,13 @@
 #include <fmt/printf.h>
 
 #include "ire/emitter.hpp"
-#include "ire/atom.hpp"
+#include "atom/atom.hpp"
 #include "wrapped_types.hpp"
 
 // Compressing IR code sequences
 using block_atom_t = uint32_t;
 
-constexpr size_t block_size = (sizeof(jvl::ire::atom::General)
+constexpr size_t block_size = (sizeof(jvl::atom::General)
 				+ sizeof(block_atom_t) - 1)
 				/ sizeof(block_atom_t);
 

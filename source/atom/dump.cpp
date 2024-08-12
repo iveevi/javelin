@@ -1,6 +1,6 @@
-#include "ire/atom.hpp"
+#include "atom/atom.hpp"
 
-namespace jvl::ire::atom {
+namespace jvl::atom {
 
 void dump_ir_operation(const General &g)
 {
