@@ -27,7 +27,7 @@ void dump_ir_operation(const General &g)
 
 		fmt::print(" -> ");
 		if (tf->next >= 0)
-			fmt::print("{}", tf->next);
+			fmt::print("%{}", tf->next);
 		else
 			fmt::print("(nil)");
 	} else if (auto p = g.get <Primitive> ()) {

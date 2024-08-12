@@ -23,7 +23,8 @@ struct layout_in : layout_in_base <T> {
 
 	std::conditional_t <uniform_compatible <T>, cache_index_t, uint8_t> whole_ref;
 
-	layout_in() = default;
+	layout_in()
+	requires primitive_type <T> = default;
 
 	layout_in()
 	requires synthesizable <T> {

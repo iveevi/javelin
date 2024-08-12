@@ -117,6 +117,16 @@ public:
 		initial[2] = z;
 	}
 
+	swizzle_base(const primitive_t <T> &x, const primitive_t <T> &y, const primitive_t <T> &z) : swizzle_base() {
+		auto &em = Emitter::active;
+
+		atom::Construct ctor;
+		ctor.type = type_field_from_args <vec <T, 4>> ().id;
+		ctor.args = list_from_args(x, y, z);
+
+		ref = em.emit(ctor);
+	}
+
 	swizzle_base(cache_index_t cit)
 			: tagged(cit), x(this), y(this), z(this) {}
 

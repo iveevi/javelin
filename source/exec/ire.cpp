@@ -98,7 +98,10 @@ void vertex_shader()
 void fragment_shader()
 {
 	layout_in <vec3, 0> position;
-	layout_out <vec4, 0> fragment;
+	layout_in <float, 1> depth;
+
+	layout_out <vec4, 0> normal;
+	layout_out <vec4, 1> color;
 
 	push_constant <float> tint;
 
@@ -106,8 +109,8 @@ void fragment_shader()
 	vec3 dU = dFdx(position);
 	vec3 dV = dFdy(position);
 	vec3 N = normalize(cross(dU, dV));
-	// fragment = vec4(0.5f + 0.5f * N, 1);
-	fragment = vec4(vec3(1, 1, 1), tint);
+	normal = vec4(0.5f + 0.5f * N, 1);
+	color = vec4(vec3(depth, depth, depth), tint);
 }
 
 // TODO: test on shader toy shaders
@@ -124,7 +127,7 @@ int main()
 	fmt::println("vsource:\n{}", vertex_source);
 
 	auto fragment_kernel = kernel_from_args(fragment_shader);
-	std::string fragment_source = fragment_kernel.synthesize(jvl::profiles::opengl_460);
+	std::string fragment_source = fragment_kernel.synthesize(jvl::profiles::cplusplus_11);
 	fmt::println("fsource:\n{}", fragment_source);
 
 	// glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);

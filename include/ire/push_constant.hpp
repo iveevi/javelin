@@ -18,7 +18,8 @@ struct push_constant : push_constant_base <T> {
 	std::conditional_t <uniform_compatible <T>, cache_index_t, uint8_t> whole_ref;
 
 	// TODO: handle operator= disabling
-	push_constant() = default;
+	push_constant()
+	requires primitive_type <T> = default;
 
 	push_constant()
 	requires synthesizable <T> {
