@@ -1,15 +1,16 @@
 #pragma once
 
 #include "../atom/atom.hpp"
+#include "ire/uniform_layout.hpp"
 #include "tagged.hpp"
 #include "emitter.hpp"
 
 namespace jvl::ire {
 
 // Forward declarations
-template <synthesizable ... Args>
+template <typename ... Args>
 requires (sizeof...(Args) > 0)
-struct uniform_layout;
+struct __uniform_layout;
 
 template <typename T>
 constexpr atom::PrimitiveType synthesize_primitive_type();
@@ -24,7 +25,14 @@ cache_index_t type_field_from_args()
 	auto &em = Emitter::active;
 
 	atom::TypeField tf;
-	tf.item = synthesize_primitive_type <T> ();
+
+	if constexpr (uniform_compatible <T>) {
+		using layout_t = decltype(T().layout());
+		tf.down = type_field_from_args(layout_t()).id;
+	} else {
+		tf.item = synthesize_primitive_type <T> ();
+	}
+
 	if constexpr (sizeof...(Args))
 		tf.next = type_field_from_args <Args...> ().id;
 	else
@@ -35,7 +43,7 @@ cache_index_t type_field_from_args()
 }
 
 template <typename ... Args>
-cache_index_t type_field_from_args(const uniform_layout <Args...> &args)
+cache_index_t type_field_from_args(const __uniform_layout <Args...> &args)
 {
 	return type_field_from_args <Args...> ();
 }

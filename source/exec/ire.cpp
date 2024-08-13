@@ -10,6 +10,7 @@
 #include "atom/atom.hpp"
 #include "ire/core.hpp"
 #include "ire/emitter.hpp"
+#include "ire/intrinsics/glsl.hpp"
 #include "ire/tagged.hpp"
 #include "ire/uniform_layout.hpp"
 #include "ire/util.hpp"
@@ -68,27 +69,48 @@ boolean operator==(const T &A, const U &B)
 
 using namespace jvl::ire;
 
+struct lighting {
+	vec3 direction;
+	vec3 color;
+
+	auto layout() {
+		// TODO: prevent duplicate fields
+		// return uniform_layout(direction, direction);
+		return uniform_layout(direction, color);
+	}
+};
+
+// TODO: nested structures
 struct mvp {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
 
+	lighting light;
+
 	auto layout() {
-		return uniform_layout(model, view, proj);
+		return uniform_layout(model, view, light, proj);
+		// return uniform_layout(model, view, proj);
 	}
 };
 
 void vertex_shader()
 {
-	layout_in <vec3, 0> position;
-	layout_out <vec3, 0> out_position;
+	// TODO: autodiff on inputs...
+	// TODO: composing functions
+	// TODO: callable functions (cached...)
+
+	// layout_in <vec3, 0> position;
+	// layout_out <vec3, 0> out_position;
 
 	push_constant <mvp> mvp;
 
-	vec4 v = vec4(position, 1);
-	gl_Position = mvp.proj * (mvp.view * (mvp.model * v));
-	gl_Position.y = -gl_Position.y;
-	out_position = position;
+	gl_Position = mvp.proj * vec4(mvp.light.color, 1);
+
+	// vec4 v = vec4(position, 1);
+	// gl_Position = mvp.proj * (mvp.view * (mvp.model * v));
+	// gl_Position.y = -gl_Position.y;
+	// out_position = position;
 
 	// TODO: immutability for shader inputs
 	// TODO: before synthesis, demote variables to inline if they are not modified later
@@ -126,9 +148,11 @@ int main()
 	std::string vertex_source = vertex_kernel.synthesize(jvl::profiles::opengl_330);
 	fmt::println("vsource:\n{}", vertex_source);
 
-	auto fragment_kernel = kernel_from_args(fragment_shader);
-	std::string fragment_source = fragment_kernel.synthesize(jvl::profiles::cplusplus_11);
-	fmt::println("fsource:\n{}", fragment_source);
+	vertex_kernel.dump();
+
+	// auto fragment_kernel = kernel_from_args(fragment_shader);
+	// std::string fragment_source = fragment_kernel.synthesize(jvl::profiles::cplusplus_11);
+	// fmt::println("fsource:\n{}", fragment_source);
 
 	// glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 	// GLFWwindow *window = glfwCreateWindow(800, 800, "Window", NULL, NULL);

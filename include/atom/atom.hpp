@@ -162,29 +162,9 @@ static_assert(sizeof(End)       == 1);
 static_assert(sizeof(General)   == 16);
 
 // Dispatcher types (vd = variadic dispatcher)
-inline std::string type_name(const General *const pool,
-		             const wrapped::hash_table <int, std::string> &struct_names,
-			     int index,
-			     int field)
-{
-	if (struct_names.contains(index)) {
-		if (field == -1)
-			return struct_names.at(index);
-
-		index -= std::max(0, field);
-		field = 0;
-	}
-
-	General g = pool[index];
-	if (auto global = g.get <Global> ()) {
-		return type_name(pool, struct_names, global->type, field);
-	} else if (auto tf = g.get <TypeField> ()) {
-		if (tf->item != bad)
-			return type_table[tf->item];
-	}
-
-	return "<BAD>";
-}
+std::string type_name(const General *const,
+		      const wrapped::hash_table <int, std::string> &,
+		      int, int);
 
 // Printing instructions for debugging
 void dump_ir_operation(const General &);

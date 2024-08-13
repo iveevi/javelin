@@ -21,8 +21,6 @@ template <global_qualifier_compatible T, size_t binding>
 struct layout_in : layout_in_base <T> {
 	using upcast_t = decltype(upcast(T()));
 
-	std::conditional_t <uniform_compatible <T>, cache_index_t, uint8_t> whole_ref;
-
 	layout_in()
 	requires primitive_type <T> = default;
 
@@ -40,24 +38,19 @@ struct layout_in : layout_in_base <T> {
 
 	template <typename ... Args>
 	layout_in(const Args &... args)
-	requires uniform_compatible <T> : T(args...), whole_ref(cache_index_t::null()) {
+	requires uniform_compatible <T> : T(args...) {
 		auto &em = Emitter::active;
 
-		auto uniform_layout = this->layout();
+		auto layout = this->layout();
 
 		atom::Global global;
-		global.type = type_field_from_args(uniform_layout).id;
+		global.type = type_field_from_args(layout).id;
 		global.binding = binding;
 		global.qualifier = atom::Global::layout_in;
 
-		whole_ref = em.emit(global);
-
-		for (size_t i = 0; i < uniform_layout.fields.size(); i++) {
-			atom::Load load;
-			load.src = whole_ref.id;
-			load.idx = i;
-			uniform_layout.fields[i]->ref = em.emit(load);
-		}
+		cache_index_t ref;
+		ref = em.emit(global);
+		layout.__ref_with(ref);
 	}
 
 	cache_index_t synthesize() const
@@ -89,8 +82,6 @@ requires primitive_type <T> || synthesizable <T> || uniform_compatible <T>
 struct layout_out : layout_out_base <T> {
 	using upcast_t = decltype(upcast(T()));
 
-	std::conditional_t <uniform_compatible <T>, cache_index_t, uint8_t> whole_ref;
-
 	layout_out()
 	requires primitive_type <T> = default;
 
@@ -108,24 +99,19 @@ struct layout_out : layout_out_base <T> {
 
 	template <typename ... Args>
 	layout_out(const Args &... args)
-	requires uniform_compatible <T> : T(args...), whole_ref(cache_index_t::null()) {
+	requires uniform_compatible <T> : T(args...) {
 		auto &em = Emitter::active;
 
-		auto uniform_layout = this->layout();
+		auto layout = this->layout();
 
 		atom::Global global;
-		global.type = type_field_from_args(uniform_layout).id;
+		global.type = type_field_from_args(layout).id;
 		global.binding = binding;
 		global.qualifier = atom::Global::layout_out;
 
-		whole_ref = em.emit(global);
-
-		for (size_t i = 0; i < uniform_layout.fields.size(); i++) {
-			atom::Load load;
-			load.src = whole_ref.id;
-			load.idx = i;
-			uniform_layout.fields[i]->ref = em.emit(load);
-		}
+		cache_index_t ref;
+		ref = em.emit(global);
+		layout.__ref_with(ref);
 	}
 
 	layout_out &operator=(const T &t)

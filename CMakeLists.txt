@@ -37,6 +37,7 @@ add_library(jvl-ire STATIC
 	source/atom/kernel.cpp
 	source/atom/reindex.cpp
 	source/atom/synthesize_glsl.cpp
+	source/atom/type_name.cpp
 	source/ire/compaction.cpp
 	source/ire/emitter.cpp)
 

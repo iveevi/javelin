@@ -13,15 +13,15 @@ void dump_ir_operation(const General &g)
 		};
 
 		fmt::print("global: %{} = ({}, {})",
-				global->type,
-				qualifier_table[global->qualifier],
-				global->binding);
+			global->type,
+			qualifier_table[global->qualifier],
+			global->binding);
 	} else if (auto tf = g.get <TypeField> ()) {
 		fmt::print("type: ");
 		if (tf->item != bad)
 			fmt::print("{}", type_table[tf->item]);
 		else if (tf->down != -1)
-			fmt::print("{}", tf->down);
+			fmt::print("%{}", tf->down);
 		else
 			fmt::print("<BAD>");
 

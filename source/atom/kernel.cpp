@@ -38,13 +38,17 @@ std::string synthesize_struct(const std::vector <atom::General> &atoms, int i,
 		              wrapped::hash_table <int, std::string> &struct_names,
 			      int &struct_index)
 {
+	std::string dependent_struct_defs;
+
 	atom::General g = atoms[i];
 	if (!g.is <atom::TypeField>())
 		return "";
 
 	atom::TypeField tf = g.as <atom::TypeField>();
-	if (tf.next == -1 && tf.down == -1)
+	if (tf.next == -1 && tf.down == -1) {
+		struct_names[i] = atom::type_table[tf.item];
 		return "";
+	}
 
 	// TODO: handle nested structs (down)
 	std::string struct_name = fmt::format("s{}_t", struct_index++);
@@ -62,17 +66,28 @@ std::string synthesize_struct(const std::vector <atom::General> &atoms, int i,
 			abort();
 
 		atom::TypeField tf = g.as <atom::TypeField> ();
+
+		std::string tf_type_name;
+		if (tf.down != -1) {
+			// TODO: made sure we are not making duplicates
+			std::string nested_struct_source = synthesize_struct(atoms, tf.down, struct_names, struct_index);
+			dependent_struct_defs += nested_struct_source;
+			tf_type_name = struct_names[tf.down];
+		} else {
+			tf_type_name = atom::type_table[tf.item];
+		}
+
+		struct_source += fmt::format("    {} f{};\n", tf_type_name, field_index++);
+
 		// TODO: nested
 		// TODO: put this whole thing in a method
-
-		struct_source += fmt::format("    {} f{};\n", atom::type_table[tf.item], field_index++);
 
 		j = tf.next;
 	}
 
 	struct_source += "};\n\n";
 
-	return struct_source;
+	return dependent_struct_defs + struct_source;
 }
 
 // Gathering the input/output structure of the kernel
