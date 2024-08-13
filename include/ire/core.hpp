@@ -8,6 +8,7 @@
 #include "vector.hpp"
 #include "matrix.hpp"
 #include "arithmetic.hpp"
+#include "emitter.hpp"
 
 #include "intrinsics/glsl.hpp"
 

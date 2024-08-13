@@ -38,7 +38,7 @@ bool ir_check_op_occurence(const atom::General &g, int occurence = 1)
 	return (count == occurence);
 }
 
-TEST(ire_synthesis, synthesize_empty)
+TEST(ire_emitter, synthesize_empty)
 {
 	Emitter::active.clear();
 
@@ -51,7 +51,7 @@ TEST(ire_synthesis, synthesize_empty)
 	ASSERT_EQ(Emitter::active.pointer, 0);
 }
 
-// TEST(ire_synthesis, synthesize_layout_io)
+// TEST(ire_emitter, synthesize_layout_io)
 
 template <primitive_type T>
 void synthesize_layout_io_inner()
@@ -82,17 +82,17 @@ void synthesize_layout_io_inner()
 	EXPECT_TRUE(ir_check_op_occurence(type_field, 1));
 }
 
-TEST(ire_synthesis, synthesize_layout_io_int)
+TEST(ire_emitter, synthesize_layout_io_int)
 {
 	synthesize_layout_io_inner <int> ();
 }
 
-TEST(ire_synthesis, synthesize_layout_io_float)
+TEST(ire_emitter, synthesize_layout_io_float)
 {
 	synthesize_layout_io_inner <float> ();
 }
 
-TEST(ire_synthesis, synthesize_layout_io_bool)
+TEST(ire_emitter, synthesize_layout_io_bool)
 {
 	synthesize_layout_io_inner <bool> ();
 }

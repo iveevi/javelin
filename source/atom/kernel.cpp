@@ -203,6 +203,12 @@ std::string jvl_primitive_type_as_string(atom::PrimitiveType type)
 	case f32:
 	case boolean:
 		return "";
+	case ivec2:
+		return jvl_vector_type_as_string <int, 2> ("ivec2");
+	case ivec3:
+		return jvl_vector_type_as_string <int, 3> ("ivec3");
+	case ivec4:
+		return jvl_vector_type_as_string <int, 4> ("ivec4");
 	case vec2:
 		return jvl_vector_type_as_string <float, 2> ("vec2");
 	case vec3:
@@ -220,6 +226,10 @@ std::string Kernel::synthesize_cplusplus()
 {
 	// Final generated source
 	std::string source;
+
+	// All the includes
+	source += "#include <tuple>";
+	source += "\n";
 
 	// Generate structs for the used primitive types
 	// TODO: unless told to use jvl structures...
@@ -305,20 +315,25 @@ std::string Kernel::synthesize_cplusplus()
 	// Process the body of the function
 	source += atom::synthesize_glsl_body(atoms.data(), struct_names, synthesized, atoms.size());
 
-	// At the end, create the tuple and return it
-	std::string returns;
+	// Synthesizing the return statement
+	if (ios.louts.size() == 1) {
+		source += "    return _lout0;\n";
+	} else {
+		size_t count = 0;
 
-	size_t count = 0;
-	for (auto [binding, _] : ios.louts) {
-		returns += fmt::format("_lout{}", binding);
-		if (count + 1 < ios.louts.size()) {
-			returns += ", ";
+		// At the end, create the tuple and return it
+		std::string returns;
+		for (auto [binding, _] : ios.louts) {
+			returns += fmt::format("_lout{}", binding);
+			if (count + 1 < ios.louts.size()) {
+				returns += ", ";
+			}
+
+			count++;
 		}
 
-		count++;
+		source += fmt::format("    return std::make_tuple({});\n", returns);
 	}
-
-	source += fmt::format("    return std::make_tuple({})\n", returns);
 
 	source += "}\n";
 

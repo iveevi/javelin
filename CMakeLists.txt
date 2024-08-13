@@ -54,7 +54,8 @@ add_executable(lang-features
 	source/lang/lex.cpp)
 
 add_executable(test
-	source/test/ire_synthesis.cpp
+	source/test/ire_emitter.cpp
+	source/test/ire_synthesize_cpp.cpp
 	source/test/math_matrix.cpp)
 
 target_compile_options(lang-features PRIVATE
