@@ -31,10 +31,17 @@ inline const std::string readfile(const std::filesystem::path &path)
 	return s.str();
 }
 
+std::string source = R"(
+ftn add(int a, int b) -> int
+{
+	return a + b;
+}
+)";
+
 int main()
 {
-	std::filesystem::path path = "include/lang/proto/triangle.jvl";
-	std::string source = readfile(path);
+	// std::filesystem::path path = "include/lang/proto/triangle.jvl";
+	// std::string source = readfile(path);
 	fmt::println("{}", source);
 
 	jvl::lang::parse_state ps(jvl::lang::lexer(source), 0);

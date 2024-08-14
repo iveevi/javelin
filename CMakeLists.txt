@@ -57,7 +57,9 @@ add_executable(lang-features
 add_executable(test
 	source/test/ire_emitter.cpp
 	source/test/ire_synthesize_cpp.cpp
-	source/test/math_matrix.cpp)
+	source/test/ire_synthesize_glsl.cpp
+	source/test/math_matrix.cpp
+	thirdparty/glad/src/gl.c)
 
 target_compile_options(lang-features PRIVATE
 	-Wall
@@ -82,4 +84,4 @@ target_link_libraries(jvl-ire fmt::fmt)
 target_link_libraries(javelin fmt::fmt ${VULKAN_LIBRARY_SET} imgui)
 target_link_libraries(ire-features glfw fmt::fmt jvl-ire)
 target_link_libraries(lang-features fmt::fmt -fsanitize=address)
-target_link_libraries(test GTest::gtest_main jvl-ire)
+target_link_libraries(test GTest::gtest_main jvl-ire glfw)
