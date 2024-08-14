@@ -38,6 +38,13 @@ inline void loop(const boolean &b)
 	em.mark_synthesized_underlying(branch.cond);
 }
 
+inline void returns()
+{
+	auto &em = Emitter::active;
+	atom::Returns ret;
+	em.emit_main(ret);
+}
+
 inline void end()
 {
 	auto &em = Emitter::active;

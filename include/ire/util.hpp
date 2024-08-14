@@ -1,5 +1,6 @@
 #pragma once
 
+#include "atom/atom.hpp"
 #include "ire/type_synthesis.hpp"
 #include "primitive.hpp"
 
@@ -63,6 +64,34 @@ R platform_intrinsic_from_args(const char *name, const Args &... args)
 	cit = em.emit_main(intr);
 
 	return cit;
+}
+
+template <synthesizable ... Args>
+void void_platform_intrinsic_from_args(const char *name, const Args &... args)
+{
+	auto &em = Emitter::active;
+
+	atom::TypeField tf;
+	tf.item = atom::PrimitiveType::none;
+
+	atom::Intrinsic intr;
+	intr.name = name;
+	intr.ret = em.emit(tf);
+
+	if constexpr (sizeof...(Args))
+		intr.args = list_from_args(args...);
+
+	em.emit_main(intr);
+}
+
+inline void platform_intrinsic_keyword(const char *name)
+{
+	auto &em = Emitter::active;
+
+	atom::Intrinsic intr;
+	intr.name = name;
+
+	em.emit_main(intr);
 }
 
 } // namespace jvl::ire

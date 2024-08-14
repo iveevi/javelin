@@ -186,7 +186,32 @@ std::string synthesize_glsl_body(const General *const pool,
 		return "<inl:?>";
 	};
 
+	auto intrinsic = [&](const Intrinsic &intr, int index) -> std::string {
+		// Keyword intrinsic
+		if (intr.ret == -1)
+			return finish(intr.name);
+
+		General g = pool[intr.ret];
+		if (!g.is <TypeField> ())
+			return "?";
+
+		TypeField tf = g.as <TypeField> ();
+		if (tf.item == none) {
+			// Void return type, so no assignment
+			auto args = arglist(intr.args);
+			std::string v = intr.name + strargs(args);
+			return finish(v);
+		} else {
+			auto args = arglist(intr.args);
+			std::string t = type_name(pool, struct_names, intr.ret, -1);
+			std::string v = intr.name + strargs(args);
+			return assign_new(t, v, index);
+		}
+	};
+
+	// Final emitted source code
 	std::string source;
+
 	auto synthesize = [&](const General &g, int index) -> void {
 		if (auto cond = g.get <Cond> ()) {
 			std::string v = inlined(cond->cond);
@@ -231,10 +256,7 @@ std::string synthesize_glsl_body(const General *const pool,
 			std::string v = glsl_primitive(*prim);
 			source += assign_new(t, v, index);
 		} else if (auto intr = g.get <Intrinsic> ()) {
-			auto args = arglist(intr->args);
-			std::string t = type_name(pool, struct_names, intr->ret, -1);
-			std::string v = intr->name + strargs(args);
-			source += assign_new(t, v, index);
+			source += intrinsic(intr.value(), index);
 		} else if (g.get <End> ()) {
 			indentation--;
 			source += finish("}", false);

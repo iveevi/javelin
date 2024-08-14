@@ -72,11 +72,12 @@ using namespace jvl::ire;
 struct lighting {
 	vec3 direction;
 	vec3 color;
+	boolean on;
 
 	auto layout() {
 		// TODO: prevent duplicate fields
 		// return uniform_layout(direction, direction);
-		return uniform_layout(direction, color);
+		return uniform_layout(direction, color, on);
 	}
 };
 
@@ -94,6 +95,11 @@ struct mvp {
 	}
 };
 
+inline void discard()
+{
+	platform_intrinsic_keyword("discard");
+}
+
 void vertex_shader()
 {
 	// TODO: autodiff on inputs...
@@ -105,7 +111,12 @@ void vertex_shader()
 
 	push_constant <mvp> mvp;
 
-	gl_Position = mvp.proj * vec4(mvp.light.color, 1);
+	cond(mvp.light.on);
+		gl_Position = mvp.proj * vec4(mvp.light.color, 1);
+		// TODO: returns with args...
+		// returns();
+		discard();
+	end();
 
 	// vec4 v = vec4(position, 1);
 	// gl_Position = mvp.proj * (mvp.view * (mvp.model * v));

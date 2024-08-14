@@ -10,7 +10,7 @@ namespace jvl::atom {
 using index_t = int16_t;
 
 enum PrimitiveType : int8_t {
-	bad,
+	bad, none,
 	boolean, i32, f32,
 	vec2, vec3, vec4,
 	ivec2, ivec3, ivec4,
@@ -19,7 +19,7 @@ enum PrimitiveType : int8_t {
 
 // Type translation
 static const char *type_table[] = {
-	"<BAD>",
+	"<BAD>", "void",
 	"bool", "int", "float",
 	"vec2", "vec3", "vec4",
 	"ivec2", "ivec3", "ivec4",
@@ -138,13 +138,20 @@ struct While {
 
 struct Elif : Cond {};
 
+struct Returns {
+	index_t args = -1;
+};
+
 struct End {};
 
 using General = wrapped::variant <
-	Global, TypeField, Primitive, Swizzle, Operation,
-	Construct, Intrinsic, List, Store, Load, Cond, Elif, While, End
+	Global, TypeField, Primitive,
+	Swizzle, Operation, Construct,
+	Intrinsic, List, Store, Load,
+	Cond, Elif, While, Returns, End
 >;
 
+// TODO: move to guarantees.hpp
 static_assert(sizeof(Global)    == 6);
 static_assert(sizeof(TypeField) == 6);
 static_assert(sizeof(Primitive) == 8);
@@ -158,6 +165,7 @@ static_assert(sizeof(Load)      == 4);
 static_assert(sizeof(Cond)      == 4);
 static_assert(sizeof(While)     == 4);
 static_assert(sizeof(Elif)      == 4);
+static_assert(sizeof(Returns)   == 2);
 static_assert(sizeof(End)       == 1);
 static_assert(sizeof(General)   == 16);
 
