@@ -65,16 +65,4 @@ vec <T, N> dFdy(const vec <T, N> &v)
 	return platform_intrinsic_from_args <vec <T, N>> ("dFdy", v);
 }
 
-template <typename T>
-vec <T, 3> cross(const vec <T, 3> &v, const vec <T, 3> &w)
-{
-	return platform_intrinsic_from_args <vec <T, 3>> ("cross", v, w);
-}
-
-template <typename T, size_t N>
-vec <T, N> normalize(const vec <T, N> &v)
-{
-	return platform_intrinsic_from_args <vec <T, N>> ("normalize", v);
-}
-
 } // namespace jvl::ire

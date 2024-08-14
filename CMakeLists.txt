@@ -58,6 +58,7 @@ add_executable(test
 	source/test/ire_emitter.cpp
 	source/test/ire_synthesize_cpp.cpp
 	source/test/ire_synthesize_glsl.cpp
+	source/test/ire_ggx_brdf.cpp
 	source/test/math_matrix.cpp
 	thirdparty/glad/src/gl.c)
 

@@ -1,15 +1,18 @@
 #pragma once
 
 #include "aliases.hpp"
+#include "primitive.hpp"
 #include "tagged.hpp"
 
 namespace jvl::ire {
 
 // TODO: quaternion class
+
+// Vector operations
 template <primitive_type T, size_t N>
-vec <T, N> operator+(const T &k, const vec <T, N> &v)
+vec <T, N> operator+(const T &v, const vec <T, N> &w)
 {
-	return operation_from_args <vec <T, N>> (atom::Operation::addition, k, v);
+	return operation_from_args <vec <T, N>> (atom::Operation::addition, v, w);
 }
 
 template <primitive_type T, size_t N>
