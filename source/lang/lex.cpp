@@ -138,6 +138,9 @@ struct lex_state {
 		case '{': return consume_and_push(token::sign_brace_left);
 		case '}': return consume_and_push(token::sign_brace_right);
 
+		case '+': return consume_and_push(token::sign_plus);
+		case '*': return consume_and_push(token::sign_star);
+		case '/': return consume_and_push(token::sign_forward_slash);
 		case '-':
 			  getcn();
 			  if (getc() == '>')

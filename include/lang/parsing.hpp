@@ -7,6 +7,8 @@ namespace jvl::lang {
 
 // State management
 struct parse_state {
+	static int level;
+
 	std::vector <token> tokens;
 	size_t index;
 
@@ -44,7 +46,7 @@ struct parse_state {
 
 		template <typename S>
 		struct free_state {
-			ptr <S> tracked = nullptr;
+			ptr <S> &tracked;
 			bool &success;
 
 			~free_state() {
@@ -54,31 +56,38 @@ struct parse_state {
 		};
 
 		template <typename S>
-		auto release_on_fail(const ptr <S> &t) {
+		auto release_on_fail(ptr <S> &t) {
 			return free_state <S> { t, success };
 		}
 
 		template <typename T>
 		const T &ok(const T &t) {
-			// TODO: debug only
-			// fmt::println("[S] succeeded $({})", scope);
 			success = true;
 			return t;
 		}
 
 		~save_state() {
-			if (!success) {
-				// TODO: debug only
-				// fmt::println("[F] failed $({}), going back to #{}", scope, prior);
+			level--;
+			if (!success)
 				ref.index = prior;
-			}
+
+			// TODO: debug only
+			if (success)
+				fmt::println("{}[✔] succeeded $({})", std::string(level << 2, ' '), scope);
+			else
+				fmt::println("{}[✘] failed $({})", std::string(level << 2, ' '), scope);
 		}
 	};
 
 	save_state save(const std::string &scope) {
+		fmt::println("{}[I] attempting $({})", std::string(level << 2, ' '), scope);
+		level++;
+
 		return { *this, scope, index, false };
 	}
 };
+
+inline int parse_state::level = 0;
 
 // Specification
 template <typename T>

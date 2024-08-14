@@ -29,6 +29,7 @@ struct token {
 		sign_plus,
 		sign_semicolon,
 		sign_star,
+		sign_forward_slash,
 
 		sign_parenthesis_left,
 		sign_parenthesis_right,
@@ -72,6 +73,7 @@ struct token {
 		"sign_plus",
 		"sign_semicolon",
 		"sign_star",
+		"sign_forward_slash",
 
 		"sign_parenthesis_left",
 		"sign_parenthesis_right",

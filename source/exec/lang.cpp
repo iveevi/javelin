@@ -32,6 +32,8 @@ inline const std::string readfile(const std::filesystem::path &path)
 }
 
 std::string source = R"(
+@inline
+@intrinsic
 ftn add(int a, int b) -> int
 {
 	return a + b;
@@ -48,11 +50,10 @@ int main()
 
 	auto module = jvl::lang::ast_module::attempt(ps);
 
-	module->dump();
-
-	jvl::lang::grand_bank_t::one().dump();
-
-	module.free();
+	if (module) {
+		module->dump();
+		module.free();
+	}
 
 	jvl::lang::grand_bank_t::one().dump();
 }

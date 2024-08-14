@@ -3,6 +3,7 @@
 #include "token.hpp"
 #include "memory.hpp"
 #include "parsing.hpp"
+#include <cstdlib>
 
 namespace jvl::lang {
 
@@ -169,8 +170,45 @@ struct ast_attribute {
 
 		auto node = ptr <ast_attribute> ::from();
 		auto ref = payload_ref <> (token::sign_attribute);
+
+		auto free_node = save.release_on_fail(node);
 		if (!match(state, ref, node->nspace))
 			return nullptr;
+
+		return save.ok(node);
+	}
+};
+
+struct ast_pseudo_attribute_list {
+	size_t count;
+	ptr <ast_attribute> attributes = nullptr;
+
+	~ast_pseudo_attribute_list() {
+		attributes.free();
+		disown();
+	}
+
+	void disown() {
+		attributes = nullptr;
+	}
+
+	static ptr <ast_pseudo_attribute_list> attempt(parse_state &state) {
+		auto save = state.save("pseuo: attribute list");
+
+		std::vector <ptr <ast_attribute>> attrs;
+		while (auto attribute = ast_attribute::attempt(state))
+			attrs.push_back(attribute);
+
+		if (attrs.empty())
+			return nullptr;
+
+		auto node = ptr <ast_pseudo_attribute_list> ::from();
+		node->count = attrs.size();
+		node->attributes = ptr <ast_attribute> ::block_from(attrs);
+
+		// TODO: disown_and_free_list for vector of ptrs?
+		for (auto attr : attrs)
+			attr.disowned().free();
 
 		return save.ok(node);
 	}
@@ -243,15 +281,24 @@ struct ast_factor;
 
 struct ast_expression {
 	// TODO: extend
-	ptr <ast_factor> factor = nullptr;
+	ptr <ast_factor> a = nullptr;
+	ptr <ast_factor> b = nullptr;
+
+	enum {
+		eAdd,
+		eSubtract,
+		eSolo
+	} operation;
 
 	~ast_expression() {
-		factor.free();
+		a.free();
+		b.free();
 		disown();
 	}
 
 	void disown() {
-		factor = nullptr;
+		a = nullptr;
+		b = nullptr;
 	}
 
 	void dump(int indent = 0);
@@ -440,7 +487,21 @@ struct ast_factor {
 inline void ast_expression::dump(int indent)
 {
 	pp_println("expression:");
-	factor->dump(indent + 1);
+
+	std::string repr;
+	switch (operation) {
+	case eAdd:
+		repr = "add";
+		break;
+	default:
+		repr = "?";
+		break;
+	}
+
+	pp_println("  operation: {}", repr);
+	a->dump(indent + 1);
+	if (b)
+		b->dump(indent + 1);
 }
 
 inline ptr <ast_expression> ast_expression::attempt(parse_state &state)
@@ -448,10 +509,19 @@ inline ptr <ast_expression> ast_expression::attempt(parse_state &state)
 	auto save = state.save("expression");
 
 	auto node = ptr <ast_expression> ::from();
-	if (match(state, node->factor))
-		return save.ok(node);
 
-	fmt::println("unable to parse expression: {}", state.gett());
+	// Addition of terms
+	auto ref_plus = payload_ref <> (token::sign_plus);
+	if (match(state, node->a, ref_plus, node->b)) {
+		node->operation = eAdd;
+		return save.ok(node);
+	}
+
+	// Single term
+	if (match(state, node->a)) {
+		node->operation = eSolo;
+		return save.ok(node);
+	}
 
 	return nullptr;
 }
@@ -583,6 +653,15 @@ struct ast_pseudo_statement_list {
 	size_t count;
 	ptr <ast_statement> stmts = nullptr;
 
+	~ast_pseudo_statement_list() {
+		stmts.free();
+		disown();
+	}
+
+	void disown() {
+		stmts = nullptr;
+	}
+
 	static ptr <ast_pseudo_statement_list> attempt(parse_state &state) {
 		auto save = state.save("pseudo: statements");
 
@@ -642,7 +721,7 @@ struct ast_block {
 		node->count = stmts->count;
 		node->stmts = stmts->stmts;
 
-		stmts.free();
+		stmts.disowned().free();
 
 		return save.ok(node);
 	}
@@ -689,6 +768,15 @@ struct ast_parameter {
 struct ast_pseudo_return {
 	ptr <ast_type> type = nullptr;
 
+	~ast_pseudo_return() {
+		type.free();
+		disown();
+	}
+
+	void disown() {
+		type = nullptr;
+	}
+
 	static ptr <ast_pseudo_return> attempt(parse_state &state) {
 		auto save = state.save("pseudo: return");
 
@@ -707,6 +795,15 @@ struct ast_pseudo_return {
 struct ast_pseudo_parameter_group {
 	size_t nargs;
 	ptr <ast_parameter> parameters = nullptr;
+
+	~ast_pseudo_parameter_group() {
+		parameters.free();
+		disown();
+	}
+
+	void disown() {
+		parameters = nullptr;
+	}
 
 	static ptr <ast_pseudo_parameter_group> attempt(parse_state &state) {
 		auto save = state.save("pseudo: parameters");
@@ -775,17 +872,19 @@ struct ast_function {
 		pp_println("  # of attributes: {}", nattrs);
 		pp_println("  # of arguments: {}", nargs);
 
-		if (attributes)
-			attributes->dump(indent + 1);
+		pp_println("  attributes:");
+		auto ap = attributes;
+		for (size_t i = 0; i < nattrs; i++, ap++)
+			ap->dump(indent + 1);
 
 		pp_println("  return type:");
 		if (return_type)
 			return_type->dump(indent + 2);
 
 		pp_println("  parameters:");
-		auto p = parameters;
-		for (size_t i = 0; i < nargs; i++, p++)
-			p->dump(indent + 2);
+		auto pp = parameters;
+		for (size_t i = 0; i < nargs; i++, pp++)
+			pp->dump(indent + 2);
 
 		block->dump(indent + 1);
 	}
@@ -798,32 +897,62 @@ struct ast_function {
 		auto node = ptr <ast_function> ::from();
 		auto ref_kw = payload_ref <> (token::keyword_function);
 		auto ref_name = payload_ref <std::string> (name, token::misc_identifier);
+
+		ptr <ast_pseudo_attribute_list> p_attrs =  nullptr;
 		ptr <ast_pseudo_parameter_group> p_args_group =  nullptr;
 		ptr <ast_pseudo_return> p_return_type = nullptr;
 
+		auto free_p_attrs = save.release_on_fail(p_attrs);
 		auto free_p_args_group = save.release_on_fail(p_args_group);
 		auto free_p_return_type = save.release_on_fail(p_return_type);
 
-		auto success =  match(state,
-			/* begin */
-			node->attributes,  // attribute
-			ref_kw,            // keyword 'ftn'
-			ref_name,          // function name
-			p_args_group,      // parameters
-			p_return_type,     // return type
-			node->block        // function block statements
-			/* end */ );
+		bool success = false;
 
-		if (!success)
+		// First try: everything
+		if (!success) {
+			// TODO: opt <...> types for match
+			success =  match(state,
+				/* begin */
+				p_attrs,  // attribute
+				ref_kw,            // keyword 'ftn'
+				ref_name,          // function name
+				p_args_group,      // parameters
+				p_return_type,     // return type
+				node->block        // function block statements
+				/* end */ );
+		} else {
+			// TODO: free intermediates...
+		}
+
+		// Second try: skipping the attribute
+		if (!success && !p_attrs) {
+			success =  match(state,
+				/* begin */
+				ref_kw,            // keyword 'ftn'
+				ref_name,          // function name
+				p_args_group,      // parameters
+				p_return_type,     // return type
+				node->block        // function block statements
+				/* end */ );
+		}
+
+		if (!success) {
+			node.free();
 			return nullptr;
+		}
 
 		node->nargs = p_args_group->nargs;
 		node->parameters = p_args_group->parameters;
+
+		node->nattrs = p_attrs->count;
+		node->attributes = p_attrs->attributes;
+
 		node->return_type = p_return_type->type;
 		node->name = ptr <ast_string> ::from(name);
 
-		p_args_group.free();
-		p_return_type.free();
+		p_attrs.disowned().free();
+		p_args_group.disowned().free();
+		p_return_type.disowned().free();
 
 		return save.ok(node);
 	}
@@ -864,6 +993,8 @@ struct ast_global_decl {
 		auto save = state.save("decl: global");
 
 		auto node = ptr <ast_global_decl> ::from();
+		auto free_node = save.release_on_fail(node);
+
 		if (match(state, node->decl_import))
 			return save.ok(node);
 
