@@ -11,6 +11,18 @@ class Kernel {
 	std::string synthesize_glsl(const std::string &);
 	std::string synthesize_cplusplus();
 public:
+	// Possible kernel flags, which enable certain paths of synthesis
+	enum Kind {
+		eNone            = 0x0,
+		eVertexShader    = 0x1,
+		eFragmentShader  = 0x10,
+		eCallable        = 0x100,
+		eAll             = eVertexShader | eFragmentShader | eCallable,
+	} kind;
+
+	// Must specify the type by the time of construction
+	Kernel(Kind k) : kind(k) {}
+
 	// At this point the IR atoms are unlikely to change
 	std::vector <atom::General> atoms;
 	std::unordered_set <atom::index_t> used;
@@ -24,6 +36,11 @@ public:
 	// TODO: potentially pass a name for the function
 	std::string synthesize(const profiles::cpp_standard standard) {
 		return synthesize_cplusplus();
+	}
+
+	[[gnu::always_inline]]
+	inline bool is_compatible(Kind k) {
+		return (k & kind) == k;
 	}
 
 	// Printing the stored IR

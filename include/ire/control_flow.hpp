@@ -1,6 +1,8 @@
 #pragma once
 
 #include "aliases.hpp"
+#include "atom/atom.hpp"
+#include "type_synthesis.hpp"
 
 namespace jvl::ire {
 
@@ -35,13 +37,22 @@ inline void loop(const boolean &b)
 	atom::While branch;
 	branch.cond = b.synthesize().id;
 	em.emit_main(branch);
-	em.mark_synthesized_underlying(branch.cond);
 }
 
-inline void returns()
+template <typename ... Args>
+inline void returns(const Args &... args)
 {
 	auto &em = Emitter::active;
 	atom::Returns ret;
+	if constexpr (sizeof...(Args)) {
+		ret.args = list_from_args(args...);
+		ret.type = type_field_from_args <std::decay_t <Args>...> ().id;
+	} else {
+		atom::TypeField tf;
+		tf.item = atom::none;
+		ret.type = em.emit(tf);
+	}
+
 	em.emit_main(ret);
 }
 

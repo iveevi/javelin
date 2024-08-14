@@ -180,7 +180,7 @@ std::string synthesize_glsl_body(const General *const pool,
 			fmt::println("not sure how to inline atom:");
 			dump_ir_operation(g);
 			fmt::print("\n");
-			abort();
+			// abort();
 		}
 
 		return "<inl:?>";
@@ -213,6 +213,7 @@ std::string synthesize_glsl_body(const General *const pool,
 	std::string source;
 
 	auto synthesize = [&](const General &g, int index) -> void {
+		// TODO: index-based switch?
 		if (auto cond = g.get <Cond> ()) {
 			std::string v = inlined(cond->cond);
 			std::string ifs = "if (" + v + ") {";
@@ -257,6 +258,15 @@ std::string synthesize_glsl_body(const General *const pool,
 			source += assign_new(t, v, index);
 		} else if (auto intr = g.get <Intrinsic> ()) {
 			source += intrinsic(intr.value(), index);
+		} else if (auto op = g.get <Operation> ()) {
+			// TODO: lambda shortcut
+			std::string t = type_name(pool, struct_names, op->ret, -1);
+			std::string v = glsl_format_operation(op->type, arglist(op->args));
+			source += assign_new(t, v, index);
+		} else if (auto ret = g.get <Returns> ()) {
+			// TODO: create a tuple type struct if necesary
+			auto args = arglist(ret->args);
+			source += finish("return " + strargs(args));
 		} else if (g.get <End> ()) {
 			indentation--;
 			source += finish("}", false);
@@ -266,6 +276,10 @@ std::string synthesize_glsl_body(const General *const pool,
 			// Same reason; otherwise there are shader intrinsics
 			// which do not need to be synthesized
 		} else {
+			fmt::println("unexpected IR requested for synthesize(...)");
+			dump_ir_operation(g);
+			fmt::print("\n");
+
 			source += finish("<?>", false);
 		}
 	};

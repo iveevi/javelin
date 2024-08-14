@@ -1,3 +1,4 @@
+#include <array>
 #include <map>
 #include <type_traits>
 
@@ -14,7 +15,19 @@ void Kernel::dump()
 	// TODO: more properties
 	fmt::println("------------------------------");
 	fmt::println("KERNEL:");
-	fmt::println("    {} atoms", atoms.size());
+	fmt::println("~~~~~~~");
+	fmt::println("atoms: {}", atoms.size());
+	fmt::println("flags:");
+
+	if (is_compatible(eVertexShader))
+		fmt::println(".... vertex shader");
+
+	if (is_compatible(eFragmentShader))
+		fmt::println(".... fragment shader");
+
+	if (is_compatible(eCallable))
+		fmt::println(".... callable");
+
 	fmt::println("------------------------------");
 	for (size_t i = 0; i < atoms.size(); i++) {
 		if (synthesized.contains(i))
@@ -129,10 +142,6 @@ std::string Kernel::synthesize_glsl(const std::string &version_number)
 	// Final generated source
 	std::string source;
 
-	// Version header
-	source += "#version " + version_number + "\n";
-	source += "\n";
-
 	// Gather all necessary structs
 	wrapped::hash_table <int, std::string> struct_names;
 
@@ -146,33 +155,75 @@ std::string Kernel::synthesize_glsl(const std::string &version_number)
 
 	auto ios = io_structure::from(atoms, struct_names, used);
 
-	// Global shader variables
-	for (const auto &[binding, type] : ios.lins) {
-		source += fmt::format("layout (location = {}) in {} _lin{};\n",
-				binding, type, binding);
+	if (!is_compatible(eVertexShader) && !is_compatible(eFragmentShader)) {
+		// Input signature for the function
+		std::vector <std::string> parameters;
+		for (const auto &[binding, type] : ios.lins)
+			parameters.emplace_back(fmt::format("{} _lin{}", type, binding));
+
+		// Output type
+		std::string return_type;
+
+		// TODO: return consistency validation
+		for (auto g : atoms) {
+			if  (auto ret = g.get <Returns> ()) {
+				return_type = atom::type_name(atoms.data(), struct_names, ret->type, -1);
+				break;
+			}
+		}
+
+		// Synthesize the function signature
+		std::string parameter_string;
+
+		if (ios.push_constant.size()) {
+			parameter_string += fmt::format("const {} &_pc", ios.push_constant);
+			if (ios.lins.size())
+				parameter_string += ", ";
+		}
+
+		for (size_t i = 0; i < parameters.size(); i++) {
+			parameter_string += parameters[i];
+			if (i + 1 < parameters.size())
+				parameter_string += ", ";
+		}
+
+		source += return_type + " kernel(" + parameter_string + ")\n";
+	} else {
+		// Version header
+		source += "#version " + version_number + "\n";
+		source += "\n";
+
+		// Global shader variables
+		for (const auto &[binding, type] : ios.lins) {
+			source += fmt::format("layout (location = {}) in {} _lin{};\n",
+					binding, type, binding);
+		}
+
+		if (ios.lins.size())
+			source += "\n";
+
+		for (const auto &[binding, type] : ios.louts)
+			source += fmt::format("layout (location = {}) out {} _lout{};\n",
+					binding, type, binding);
+
+		if (ios.louts.size())
+			source += "\n";
+
+		// TODO: check for vulkan or opengl, etc
+		// might need to add #require statements
+		if (ios.push_constant.size()) {
+			source += "layout (push_constant) uniform constants\n";
+			source += "{\n";
+			source += "     " + ios.push_constant + " _pc;\n";
+			source += "}\n";
+			source += "\n";
+		}
+
+		// Main function
+		source += "void main()\n";
 	}
 
-	if (ios.lins.size())
-		source += "\n";
-
-	for (const auto &[binding, type] : ios.louts)
-		source += fmt::format("layout (location = {}) out {} _lout{};\n",
-				binding, type, binding);
-
-	if (ios.louts.size())
-		source += "\n";
-
-	// TODO: check for vulkan or opengl, etc
-	if (ios.push_constant.size()) {
-		source += "layout (push_constant) uniform constants\n";
-		source += "{\n";
-		source += "     " + ios.push_constant + " _pc;\n";
-		source += "}\n";
-		source += "\n";
-	}
-
-	// Main function
-	source += "void main()\n";
+	// Function body, return statements are automatically synthesized below
 	source += "{\n";
 	source += atom::synthesize_glsl_body(atoms.data(), struct_names, synthesized, atoms.size());
 	source += "}\n";

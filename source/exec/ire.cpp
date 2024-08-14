@@ -12,60 +12,14 @@
 #include "ire/emitter.hpp"
 #include "ire/intrinsics/glsl.hpp"
 #include "ire/tagged.hpp"
+#include "ire/type_synthesis.hpp"
 #include "ire/uniform_layout.hpp"
 #include "ire/util.hpp"
 #include "ire/vector.hpp"
 #include "profiles/targets.hpp"
 
-namespace jvl::ire {
-
-// TODO: with name
-template <synthesizable ... Args>
-requires (sizeof...(Args) > 0)
-void structure(const Args &... args)
-{
-	auto &em = Emitter::active;
-
-	atom::Construct ctor;
-	ctor.type = type_field_from_args <Args...> ().id;
-	ctor.args = list_from_args(args...);
-
-	em.emit_main(ctor);
-}
-
-template <synthesizable T, synthesizable U>
-boolean operator==(const T &A, const U &B)
-{
-	auto &em = Emitter::active;
-
-	int a = A.synthesize().id;
-	int b = B.synthesize().id;
-
-	atom::Operation cmp;
-	cmp.args = list_from_args(a, b);
-	cmp.type = atom::Operation::equals;
-
-	cache_index_t c;
-	c = em.emit(cmp);
-
-	return boolean(c);
-}
-
-template <synthesizable T, typename U>
-boolean operator==(const T &A, const U &B)
-{
-	return A == primitive_t <U> (B);
-}
-
-template <typename T, synthesizable U>
-boolean operator==(const T &A, const U &B)
-{
-	return primitive_t <T> (A) == B;
-}
-
+// TODO: synthesizable with name hints
 // TODO: std.hpp for additional features
-
-} // namespace jvl::ire
 
 using namespace jvl::ire;
 
@@ -100,13 +54,79 @@ inline void discard()
 	platform_intrinsic_keyword("discard");
 }
 
-template <typename R>
-struct callable {
-	template <typename ... Args>
-	callable(const Args &... args_) {}
+template <typename R, typename ... Args>
+struct callable : Callable {
+	bool cached;
+
+	std::tuple <Args...> mimic;
+	std::tuple <Args *...> passed;
+
+	template <typename U, typename ... UArgs>
+	std::tuple <U *, UArgs *...> __fill_parameter_references(U &u, UArgs &... uargs) {
+		std::tuple <U *> x = &u;
+		if constexpr (sizeof...(UArgs)) {
+			std::tuple <UArgs *...> xargs = __fill_parameter_references(uargs...);
+			return std::tuple_cat(x, xargs);
+		} else {
+			return x;
+		}
+	}
+
+	template <size_t index>
+	void __fill_mimic_references() {
+		auto &x = std::get <index> (mimic);
+
+		auto &em = Emitter::active;
+
+		using namespace jvl;
+
+		// TODO: parameter global qualifier
+		using type_of_x = std::decay_t <decltype(x)>;
+
+		atom::Global global;
+		global.qualifier = atom::Global::layout_in;
+		global.type = type_field_from_args <type_of_x> ().id;
+		global.binding = index;
+
+		x.ref = em.emit(global);
+
+		if constexpr (index + 1 < sizeof...(Args))
+			__fill_mimic_references <index + 1> ();
+	}
+
+	template <size_t index>
+	void __transfer_mimic_references() {
+		auto src = std::get <index> (mimic);
+		auto dst = std::get <index> (passed);
+		dst->ref = src.ref;
+
+		if constexpr (index + 1 < sizeof...(Args))
+			__transfer_mimic_references <index + 1> ();
+	}
+
+	void call(Args &... active_args) {
+		passed = __fill_parameter_references(active_args...);
+
+		if (cached) {
+			// TODO: if we here then synthesize a call
+			fmt::println("early return, cached");
+			return;
+		}
+
+		Emitter::active.scopes.push(*this);
+		__fill_mimic_references <0> ();
+		__transfer_mimic_references <0> ();
+	}
+
+	auto &end() {
+		// TODO: make sure its at the top
+		Emitter::active.scopes.pop();
+		return *this;
+	}
 
 	operator R() const {
-
+		// TODO: make sure its no longer in the scopes
+		return R();
 	}
 };
 
@@ -127,10 +147,28 @@ struct callable {
 
 auto G1(vec3 n, vec3 v, f32 roughness)
 {
-	auto f = callable <f32> (n, v, roughness);
+	static callable <f32, vec3, vec3, f32> f;
+
+	f.call(n, v, roughness);
+	if (f.cached)
+		return f;
+
+	f32 alpha = roughness;
+	f32 theta = acos(clamp(dot(n, v), 0, 0.999f));
+
+	f32 tan_theta = tan(theta);
+
+	f32 denom = 1 + sqrt(1 + alpha * alpha * tan_theta * tan_theta);
+	returns(2.0f/denom);
+
+	// auto f = callable <f32> (n, v, roughness);
 	// TODO: Caching callables...
 
-	return f;
+	auto k = f.export_to_kernel();
+	k.dump();
+	fmt::println("{}", k.synthesize(jvl::profiles::opengl_330));
+
+	return f.end();
 }
 
 void vertex_shader()
@@ -144,13 +182,13 @@ void vertex_shader()
 
 	layout_out <f32, 0> result;
 
-	// result = G1(normal, position, 0.1);
+	result = G1(normal, position, 0.1);
 
-	push_constant <mvp> mvp;
-
-	vec4 v = vec4(position, 1);
-	gl_Position = mvp.proj * (mvp.view * (mvp.model * v));
-	gl_Position.y = -gl_Position.y;
+	// push_constant <mvp> mvp;
+	//
+	// vec4 v = vec4(position, 1);
+	// gl_Position = mvp.proj * (mvp.view * (mvp.model * v));
+	// gl_Position.y = -gl_Position.y;
 
 	// TODO: immutability for shader inputs
 	// TODO: before synthesis, demote variables to inline if they are not modified later

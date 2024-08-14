@@ -11,6 +11,23 @@
 
 namespace jvl::ire {
 
+struct Callable {
+	std::vector <atom::General> pool;
+	size_t pointer;
+	size_t cid;
+
+	// For callables we can track back used and synthesized
+	// insructions from working backwards at the returns
+
+	Callable();
+
+	atom::Kernel export_to_kernel();
+
+	int emit(const atom::General &);
+
+	void dump();
+};
+
 struct Emitter {
 	// By default the program begins at index 0
 	std::vector <atom::General> pool;
@@ -20,7 +37,7 @@ struct Emitter {
 	std::unordered_set <atom::index_t> used;
 	std::unordered_set <atom::index_t> synthesized;
 
-	std::vector <std::reference_wrapper <cache_index_t>> caches;
+	std::stack <std::reference_wrapper <Callable>> scopes;
 
 	Emitter();
 
@@ -28,12 +45,8 @@ struct Emitter {
 	void clear();
 	void compact();
 
-	// Managing the state
-	cache_index_t &persist_cache_index(cache_index_t &);
-
 	// Dead code elimination, always conservative
 	void mark_used(int, bool);
-	void mark_synthesized_underlying(int);
 
 	// Emitting instructions during function invocation
 	int emit(const atom::General &);

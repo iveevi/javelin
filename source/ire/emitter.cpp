@@ -1,6 +1,8 @@
 #include <cassert>
-#include <fmt/core.h>
 #include <map>
+#include <unordered_set>
+
+#include <fmt/core.h>
 
 #include "atom/atom.hpp"
 #include "ire/emitter.hpp"
@@ -9,16 +11,110 @@
 
 namespace jvl::ire {
 
+void mark_used(const std::vector <atom::General> &pool,
+	       std::unordered_set <atom::index_t> &used,
+	       std::unordered_set <atom::index_t> &synthesized,
+	       int index, bool syn)
+{
+	if (index == -1)
+		return;
+
+	used.insert(index);
+
+	atom::General g = pool[index];
+	if (auto ctor = g.get <atom::Construct> ()) {
+		mark_used(pool, used, synthesized, ctor->type, true);
+		mark_used(pool, used, synthesized, ctor->args, true);
+	} else if (auto list = g.get <atom::List> ()) {
+		// TODO: get size for nodes...
+		mark_used(pool, used, synthesized, list->item, true);
+		mark_used(pool, used, synthesized, list->next, false);
+		syn = false;
+	} else if (auto load = g.get <atom::Load> ()) {
+		mark_used(pool, used, synthesized, load->src, true);
+	} else if (auto store = g.get <atom::Store> ()) {
+		mark_used(pool, used, synthesized, store->src, false);
+		mark_used(pool, used, synthesized, store->dst, false);
+		syn = false;
+	} else if (auto global = g.get <atom::Global> ()) {
+		mark_used(pool, used, synthesized, global->type, true);
+		syn = false;
+	} else if (auto tf = g.get <atom::TypeField> ()) {
+		mark_used(pool, used, synthesized, tf->down, false);
+		mark_used(pool, used, synthesized, tf->next, false);
+	} else if (auto op = g.get <atom::Operation> ()) {
+		mark_used(pool, used, synthesized, op->args, false);
+	} else if (auto intr = g.get <atom::Intrinsic> ()) {
+		mark_used(pool, used, synthesized, intr->args, false);
+	} else if (auto ret = g.get <atom::Returns> ()) {
+		mark_used(pool, used, synthesized, ret->args, true);
+		syn = true;
+	}
+
+	if (syn)
+		synthesized.insert(index);
+}
+
+Callable::Callable() : pointer(0)
+{
+	static size_t id = 0;
+	cid = id++;
+}
+
+int Callable::emit(const atom::General &op)
+{
+	if (pointer >= pool.size())
+		pool.resize(1 + (pool.size() << 2));
+
+	pool[pointer] = op;
+
+	return pointer++;
+}
+
+atom::Kernel Callable::export_to_kernel()
+{
+	// Determine the set of used and synthesizable instructions
+	std::unordered_set <atom::index_t> used;
+	std::unordered_set <atom::index_t> synthesized;
+
+	std::vector <atom::Returns> returns;
+	for (size_t i = 0; i < pool.size(); i++) {
+		if (pool[i].is <atom::Returns> ()) {
+			returns.push_back(pool[i].as <atom::Returns> ());
+			mark_used(pool, used, synthesized, i, true);
+		}
+	}
+
+	// TODO:demotion on synthesized elements
+
+	// TODO: compaction and validation
+	atom::Kernel kernel(atom::Kernel::eCallable);
+	kernel.atoms.resize(pointer);
+	std::memcpy(kernel.atoms.data(), pool.data(), sizeof(atom::General) * pointer);
+	kernel.synthesized = synthesized;
+	kernel.used = used;
+
+	return kernel;
+}
+
+void Callable::dump()
+{
+	fmt::println("------------------------------");
+	fmt::println("CALLABLE ({}/{})", pointer, pool.size());
+	fmt::println("------------------------------");
+	for (size_t i = 0; i < pointer; i++) {
+		fmt::print("   [{:4d}]: ", i);
+			atom::dump_ir_operation(pool[i]);
+		fmt::print("\n");
+	}
+}
+
 Emitter::Emitter() : pointer(0) {}
 
 void Emitter::clear()
 {
 	pointer = 0;
 	std::memset(pool.data(), 0, pool.size() * sizeof(atom::General));
-
-	// Reset active cache members
-	for (auto &ref : caches)
-		ref.get() = cache_index_t::null();
 
 	// Reset usages
 	used.clear();
@@ -36,61 +132,22 @@ void Emitter::compact()
 	used = reindexer(used);
 }
 
-// State management
-cache_index_t &Emitter::persist_cache_index(cache_index_t &index)
-{
-	caches.push_back(std::ref(index));
-	return index;
-}
-
 // Dead code elimination
 void Emitter::mark_used(int index, bool syn)
 {
-	if (index == -1)
+	// If we are in a scope, this is all determined later...
+	if (scopes.size())
 		return;
 
-	used.insert(index);
-
-	atom::General g = pool[index];
-	if (auto ctor = g.get <atom::Construct> ()) {
-		mark_used(ctor->type, true);
-		mark_used(ctor->args, true);
-	} else if (auto list = g.get <atom::List> ()) {
-		mark_used(list->item, false);
-		mark_used(list->next, false);
-		syn = false;
-	} else if (auto load = g.get <atom::Load> ()) {
-		mark_used(load->src, true);
-	} else if (auto store = g.get <atom::Store> ()) {
-		mark_used(store->src, false);
-		mark_used(store->dst, false);
-		syn = false;
-	} else if (auto global = g.get <atom::Global> ()) {
-		mark_used(global->type, true);
-		syn = false;
-	} else if (auto tf = g.get <atom::TypeField> ()) {
-		mark_used(tf->down, false);
-		mark_used(tf->next, false);
-	} else if (auto op = g.get <atom::Operation> ()) {
-		mark_used(op->args, false);
-	} else if (auto intr = g.get <atom::Intrinsic> ()) {
-		mark_used(intr->args, false);
-	}
-
-	if (syn)
-		synthesized.insert(index);
-}
-
-void Emitter::mark_synthesized_underlying(int index)
-{
-	atom::General g = pool[index];
-	if (auto op = g.get <atom::Operation> ())
-		mark_synthesized_underlying(op->args);
+	ire::mark_used(pool, used, synthesized, index, syn);
 }
 
 // Emitting instructions during function invocation
 int Emitter::emit(const atom::General &op)
 {
+	if (scopes.size())
+		return scopes.top().get().emit(op);
+
 	if (pointer >= pool.size())
 		pool.resize(1 + (pool.size() << 2));
 
@@ -203,7 +260,7 @@ atom::Kernel Emitter::export_to_kernel()
 	compact();
 	validate();
 
-	atom::Kernel kernel;
+	atom::Kernel kernel(atom::Kernel::eAll);
 	kernel.atoms.resize(pointer);
 	std::memcpy(kernel.atoms.data(), pool.data(), sizeof(atom::General) * pointer);
 	kernel.synthesized = synthesized;
@@ -216,7 +273,6 @@ atom::Kernel Emitter::export_to_kernel()
 }
 
 // Printing the IR state
-// TODO: debug only?
 void Emitter::dump()
 {
 	fmt::println("------------------------------");

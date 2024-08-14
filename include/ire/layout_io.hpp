@@ -71,6 +71,11 @@ struct layout_in : layout_in_base <T> {
 		return (this->ref = em.emit_main(load));
 	}
 
+	operator upcast_t()
+	requires synthesizable <T> {
+		return upcast_t(synthesize());
+	}
+
 	operator upcast_t ()
 	requires primitive_type <T> {
 		return upcast_t(synthesize());

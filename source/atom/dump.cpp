@@ -77,6 +77,8 @@ void dump_ir_operation(const General &g)
 			fmt::print("elif (nil) -> %{}", elif->failto);
 	} else if (auto loop = g.get <While> ()) {
 		fmt::print("while %{} -> %{}", loop->cond, loop->failto);
+	} else if (auto ret = g.get <Returns> ()) {
+		fmt::print("return %{} -> %{}", ret->args, ret->type);
 	} else if (g.is <End> ()) {
 		fmt::print("end");
 	} else {

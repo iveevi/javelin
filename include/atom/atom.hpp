@@ -139,6 +139,7 @@ struct While {
 struct Elif : Cond {};
 
 struct Returns {
+	index_t type = -1;
 	index_t args = -1;
 };
 
@@ -165,7 +166,7 @@ static_assert(sizeof(Load)      == 4);
 static_assert(sizeof(Cond)      == 4);
 static_assert(sizeof(While)     == 4);
 static_assert(sizeof(Elif)      == 4);
-static_assert(sizeof(Returns)   == 2);
+static_assert(sizeof(Returns)   == 4);
 static_assert(sizeof(End)       == 1);
 static_assert(sizeof(General)   == 16);
 

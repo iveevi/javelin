@@ -13,6 +13,8 @@ void reindex_ir_operation(const wrapped::reindex <index_t> &reindexer, General &
 		reindexer(g.as <Operation> ().args);
 	} else if (g.is <Intrinsic> ()) {
 		reindexer(g.as <Intrinsic> ().args);
+	} else if (g.is <Returns> ()) {
+		reindexer(g.as <Returns> ().args);
 	} else if (g.is <List> ()) {
 		reindexer(g.as <List> ().item);
 		reindexer(g.as <List> ().next);
