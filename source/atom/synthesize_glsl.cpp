@@ -46,9 +46,9 @@ std::string glsl_format_operation(int type, const std::vector <std::string> &arg
 	case Operation::unary_negation:
 		return fmt::format("-{}", args[0]);
 	case Operation::addition:
-		return fmt::format("({} * {})", args[0], args[1]);
+		return fmt::format("({} + {})", args[0], args[1]);
 	case Operation::subtraction:
-		return fmt::format("({} * {})", args[0], args[1]);
+		return fmt::format("({} - {})", args[0], args[1]);
 	case Operation::multiplication:
 		return fmt::format("({} * {})", args[0], args[1]);
 	case Operation::division:

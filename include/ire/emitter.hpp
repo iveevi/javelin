@@ -12,11 +12,8 @@
 namespace jvl::ire {
 
 struct Emitter {
-	// By default the program begins at index=0
-	atom::General *pool;
-	atom::General *dual;
-
-	size_t size;
+	// By default the program begins at index 0
+	std::vector <atom::General> pool;
 	size_t pointer;
 
 	std::stack <atom::index_t> control_flow_ends;
@@ -30,7 +27,6 @@ struct Emitter {
 	// Resizing and compaction
 	void clear();
 	void compact();
-	void resize(size_t);
 
 	// Managing the state
 	cache_index_t &persist_cache_index(cache_index_t &);

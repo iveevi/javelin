@@ -9,13 +9,12 @@
 
 namespace jvl::ire {
 
-Emitter::Emitter() : pool(nullptr), dual(nullptr), size(0), pointer(0) {}
+Emitter::Emitter() : pointer(0) {}
 
 void Emitter::clear()
 {
 	pointer = 0;
-	std::memset(pool, 0, size * sizeof(atom::General));
-	std::memset(dual, 0, size * sizeof(atom::General));
+	std::memset(pool.data(), 0, pool.size() * sizeof(atom::General));
 
 	// Reset active cache members
 	for (auto &ref : caches)
@@ -28,39 +27,13 @@ void Emitter::clear()
 
 void Emitter::compact()
 {
+	std::vector <atom::General> dual(pool.size());
 	wrapped::reindex <atom::index_t> reindexer;
-	std::tie(pointer, reindexer) = detail::ir_compact_deduplicate(pool, dual, synthesized, pointer);
-	std::memset(pool, 0, size * sizeof(atom::General));
-	std::memcpy(pool, dual, pointer * sizeof(atom::General));
+	std::tie(pointer, reindexer) = detail::ir_compact_deduplicate(pool.data(), dual.data(), synthesized, pointer);
+	std::memset(pool.data(), 0, pool.size() * sizeof(atom::General));
+	std::memcpy(pool.data(), dual.data(), pointer * sizeof(atom::General));
 	synthesized = reindexer(synthesized);
 	used = reindexer(used);
-}
-
-void Emitter::resize(size_t units)
-{
-	size_t count = 0;
-
-	// TODO: compact IR before resizing
-	atom::General *old_pool = pool;
-	atom::General *old_dual = dual;
-
-	pool = new atom::General[units];
-	dual = new atom::General[units];
-
-	std::memset(pool, 0, units * sizeof(atom::General));
-	std::memset(dual, 0, units * sizeof(atom::General));
-
-	if (old_pool) {
-		std::memcpy(pool, old_pool, size * sizeof(atom::General));
-		delete[] old_pool;
-	}
-
-	if (old_dual) {
-		std::memcpy(dual, old_dual, size * sizeof(atom::General));
-		delete[] old_dual;
-	}
-
-	size = units;
 }
 
 // State management
@@ -118,21 +91,11 @@ void Emitter::mark_synthesized_underlying(int index)
 // Emitting instructions during function invocation
 int Emitter::emit(const atom::General &op)
 {
-	if (pointer >= size) {
-		if (size == 0)
-			resize(1 << 4);
-		else
-			resize(size << 2);
-	}
-
-	if (pointer >= size) {
-		printf("error, exceed global pool size, please reserve "
-		       "beforehand\n");
-		throw -1;
-		return -1;
-	}
+	if (pointer >= pool.size())
+		pool.resize(1 + (pool.size() << 2));
 
 	pool[pointer] = op;
+
 	return pointer++;
 }
 
@@ -242,7 +205,7 @@ atom::Kernel Emitter::export_to_kernel()
 
 	atom::Kernel kernel;
 	kernel.atoms.resize(pointer);
-	std::memcpy(kernel.atoms.data(), pool, sizeof(atom::General) * pointer);
+	std::memcpy(kernel.atoms.data(), pool.data(), sizeof(atom::General) * pointer);
 	kernel.synthesized = synthesized;
 	kernel.used = used;
 
@@ -257,7 +220,7 @@ atom::Kernel Emitter::export_to_kernel()
 void Emitter::dump()
 {
 	fmt::println("------------------------------");
-	fmt::println("GLOBALS ({}/{})", pointer, size);
+	fmt::println("GLOBALS ({}/{})", pointer, pool.size());
 	fmt::println("------------------------------");
 	for (size_t i = 0; i < pointer; i++) {
 		if (synthesized.contains(i))

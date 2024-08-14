@@ -100,28 +100,57 @@ inline void discard()
 	platform_intrinsic_keyword("discard");
 }
 
+template <typename R>
+struct callable {
+	template <typename ... Args>
+	callable(const Args &... args_) {}
+
+	operator R() const {
+
+	}
+};
+
+// Smith shadow-masking function
+// f32 G1(vec3 n, vec3 v, f32 roughness)
+// {
+// 	// if (dot(v, n) <= 0.0f)
+// 	// 	return 0.0f;
+//
+// 	f32 alpha = roughness;
+// 	f32 theta = acos(clamp(dot(n, v), 0, 0.999f));
+//
+// 	f32 tan_theta = tan(theta);
+//
+// 	f32 denom = 1 + sqrt(1 + alpha * alpha * tan_theta * tan_theta);
+// 	return 2.0f/denom;
+// }
+
+auto G1(vec3 n, vec3 v, f32 roughness)
+{
+	auto f = callable <f32> (n, v, roughness);
+	// TODO: Caching callables...
+
+	return f;
+}
+
 void vertex_shader()
 {
 	// TODO: autodiff on inputs...
 	// TODO: composing functions
 	// TODO: callable functions (cached...)
 
-	// layout_in <vec3, 0> position;
-	// layout_out <vec3, 0> out_position;
+	layout_in <vec3, 0> position;
+	layout_in <vec3, 1> normal;
+
+	layout_out <f32, 0> result;
+
+	// result = G1(normal, position, 0.1);
 
 	push_constant <mvp> mvp;
 
-	cond(mvp.light.on);
-		gl_Position = mvp.proj * vec4(mvp.light.color, 1);
-		// TODO: returns with args...
-		// returns();
-		discard();
-	end();
-
-	// vec4 v = vec4(position, 1);
-	// gl_Position = mvp.proj * (mvp.view * (mvp.model * v));
-	// gl_Position.y = -gl_Position.y;
-	// out_position = position;
+	vec4 v = vec4(position, 1);
+	gl_Position = mvp.proj * (mvp.view * (mvp.model * v));
+	gl_Position.y = -gl_Position.y;
 
 	// TODO: immutability for shader inputs
 	// TODO: before synthesis, demote variables to inline if they are not modified later
