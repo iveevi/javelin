@@ -77,7 +77,7 @@ public:
 	swizzle_element <T, self, atom::Swizzle::x> x;
 	swizzle_element <T, self, atom::Swizzle::y> y;
 
-	swizzle_base(T x = T(0), T y = T(0))
+	explicit swizzle_base(T x = T(0), T y = T(0))
 			: x(this), y(this) {
 		initial[0] = x;
 		initial[1] = y;
@@ -110,7 +110,7 @@ public:
 	swizzle_element <T, self, atom::Swizzle::y> y;
 	swizzle_element <T, self, atom::Swizzle::z> z;
 
-	swizzle_base(T x = T(0), T y = T(0), T z = T(0))
+	explicit swizzle_base(T x = T(0), T y = T(0), T z = T(0))
 			: x(this), y(this), z(this) {
 		initial[0] = x;
 		initial[1] = y;
@@ -154,7 +154,7 @@ public:
 	swizzle_element <T, self, atom::Swizzle::z> z;
 	swizzle_element <T, self, atom::Swizzle::w> w;
 
-	swizzle_base(T x = T(0), T y = T(0), T z = T(0), T w = T(0))
+	explicit swizzle_base(T x = T(0), T y = T(0), T z = T(0), T w = T(0))
 			: x(this), y(this), z(this), w(this) {
 		initial[0] = x;
 		initial[1] = y;
@@ -205,6 +205,55 @@ struct vec : swizzle_base <T, N> {
 
 		return *this;
 	}
+
+	// Arithmetic operators
+	vec operator-() const {
+		return operation_from_args <vec> (atom::Operation::unary_negation, *this);
+	}
+
+	friend vec operator+(const vec &a, const vec &b) {
+		return operation_from_args <vec> (atom::Operation::addition, a, b);
+	}
+
+	friend vec operator-(const vec &a, const vec &b) {
+		return operation_from_args <vec> (atom::Operation::subtraction, a, b);
+	}
+
+	friend vec operator/(const vec &a, const vec &b) {
+		return operation_from_args <vec> (atom::Operation::division, a, b);
+	}
+
+	friend vec operator*(const vec &a, const vec &b) {
+		return operation_from_args <vec> (atom::Operation::multiplication, a, b);
+	}
+
+	// Mixed arithmetic operators
+	#define MIXED_OP(sym, code)								\
+		friend vec operator sym(const vec &a, const primitive_t <T> &b) {		\
+			return operation_from_args <vec> (atom::Operation::code, a, b);		\
+		}										\
+		friend vec operator sym(const primitive_t <T> &a, const vec &b) {		\
+			return operation_from_args <vec> (atom::Operation::code, a, b);		\
+		}
+
+	MIXED_OP(+, addition);
+	MIXED_OP(-, subtraction);
+	MIXED_OP(*, multiplication);
+	MIXED_OP(/, division);
+
+	// Mixed arithmetic operators with C++ primitives
+	#define MIXED_PRIMITIVE_OP(sym, code)							\
+		friend vec operator sym(const vec &a, const T &b) {				\
+			return a sym primitive_t <T> (b);					\
+		}										\
+		friend vec operator sym(const T &a, vec &b) {					\
+			return primitive_t <T> (a) sym b;					\
+		}
+
+	MIXED_PRIMITIVE_OP(+, addition);
+	MIXED_PRIMITIVE_OP(-, subtraction);
+	MIXED_PRIMITIVE_OP(*, multiplication);
+	MIXED_PRIMITIVE_OP(/, division);
 };
 
 } // namespace jvl::ire

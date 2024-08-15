@@ -261,6 +261,15 @@ std::string synthesize_glsl_body(const General *const pool,
 			std::string t = type_name(pool, struct_names, ctor->type, -1);
 			std::string v = t + "(" + inlined(ctor->args) + ")";
 			source += assign_new(t, v, index);
+		} else if (auto call = g.get <Call> ()) {
+			ire::Callable *cbl = ire::Callable::search_tracked(call->cid);
+			std::string args;
+			if (call->args != -1)
+				args = strargs(arglist(call->args));
+
+			std::string t = type_name(pool, struct_names, call->ret, -1);
+			std::string v = fmt::format("{}{}", cbl->name, args);
+			source += assign_new(t, v, index);
 		} else if (auto load = g.get <Load> ()) {
 			std::string accessor;
 			if (load->idx != -1)

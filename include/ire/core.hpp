@@ -7,7 +7,6 @@
 #include "control_flow.hpp"
 #include "vector.hpp"
 #include "matrix.hpp"
-#include "arithmetic.hpp"
 #include "emitter.hpp"
 #include "callable.hpp"
 

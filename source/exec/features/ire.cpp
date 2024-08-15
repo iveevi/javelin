@@ -42,43 +42,30 @@ inline void discard()
 }
 
 // Smith shadow-masking function
-void __G1(vec3 n, vec3 v, f32 roughness)
+void __flip(vec3 n)
 {
-	cond(dot(v, n) <= 0.0f);
-		returns(0.0f);
-	end();
-
-	f32 alpha = roughness;
-	f32 theta = acos(clamp(dot(n, v), 0, 0.999f));
-
-	f32 tan_theta = tan(theta);
-
-	f32 denom = 1 + sqrt(1 + alpha * alpha * tan_theta * tan_theta);
-	returns(2.0f/denom);
+	returns(-n);
 }
 
-// Define concrete callables as static objects
-// so that they are only created once
-auto G1 = callable <f32> (__G1).named("G1");
+auto flip = callable <vec3> (__flip).named("flip");
+
+void __flip_and_translate(vec3 n, vec3 d)
+{
+	returns(flip(n) + d);
+}
+
+auto flip_and_translate = callable <vec3> (__flip_and_translate).named("flip_and_translate");
 
 void vertex_shader()
 {
 	// TODO: autodiff on inputs...
-	// TODO: composing functions
-	// TODO: callable functions (cached...)
 
 	layout_in <vec3, 0> position;
 	layout_in <vec3, 1> normal;
 
-	layout_out <f32, 0> result;
+	layout_out <vec3, 0> result;
 
-	result = G1(normal, position, 0.1);
-
-	// push_constant <mvp> mvp;
-	//
-	// vec4 v = vec4(position, 1);
-	// gl_Position = mvp.proj * (mvp.view * (mvp.model * v));
-	// gl_Position.y = -gl_Position.y;
+	result = flip_and_translate(position, normal);
 
 	// TODO: immutability for shader inputs
 	// TODO: before synthesis, demote variables to inline if they are not modified later
@@ -117,6 +104,9 @@ int main()
 	fmt::println("vsource:\n{}", vertex_source);
 
 	vertex_kernel.dump();
+
+	flip.export_to_kernel().dump();
+	flip_and_translate.export_to_kernel().dump();
 
 	// auto fragment_kernel = kernel_from_args(fragment_shader);
 	// std::string fragment_source = fragment_kernel.synthesize(jvl::profiles::cplusplus_11);

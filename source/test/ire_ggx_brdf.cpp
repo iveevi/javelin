@@ -52,14 +52,14 @@ void __G1(Material mat, vec3 n, vec3 v)
 // {
 // 	return G1(mat, n, wo) * G1(mat, n, wi);
 // }
-//
-// // Shlicks approximation to the Fresnel reflectance
-// vec3 ggx_f(Material mat, vec3 wi, vec3 h)
-// {
-// 	f32 k = pow(1 - dot(wi, h), 5);
-// 	return mat.specular + (1 - mat.specular) * k;
-// }
-//
+
+// Shlicks approximation to the Fresnel reflectance
+void ggx_f(Material mat, vec3 wi, vec3 h)
+{
+	f32 k = pow(1 - dot(wi, h), 5);
+	returns(mat.specular + (1 - mat.specular) * k);
+}
+
 // // GGX specular brdf
 // vec3 ggx_brdf(Material mat, vec3 n, vec3 wi, vec3 wo)
 // {
