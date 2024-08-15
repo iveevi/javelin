@@ -26,7 +26,7 @@ bool ir_cmp_op(const atom::General &ref, const atom::General &g)
 	return false;
 }
 
-bool ir_check_op_occurence(const atom::General &g, int occurence = 1)
+int ir_op_occurence(const atom::General &g)
 {
 	int count = 0;
 	for (size_t i = 0; i < Emitter::active.pointer; i++) {
@@ -35,7 +35,7 @@ bool ir_check_op_occurence(const atom::General &g, int occurence = 1)
 			count++;
 	}
 
-	return (count == occurence);
+	return count;
 }
 
 TEST(ire_emitter, synthesize_empty)
@@ -77,9 +77,9 @@ void synthesize_layout_io_inner()
 	atom::TypeField type_field;
 	type_field.item = synthesize_primitive_type <T> ();
 
-	EXPECT_TRUE(ir_check_op_occurence(lin));
-	EXPECT_TRUE(ir_check_op_occurence(lout));
-	EXPECT_TRUE(ir_check_op_occurence(type_field, 1));
+	EXPECT_EQ(ir_op_occurence(lin), 1);
+	EXPECT_EQ(ir_op_occurence(lout), 1);
+	EXPECT_EQ(ir_op_occurence(type_field), 2);
 }
 
 TEST(ire_emitter, synthesize_layout_io_int)

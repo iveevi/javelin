@@ -4,6 +4,7 @@
 
 #include "atom/kernel.hpp"
 #include "atom/atom.hpp"
+#include "ire/tagged.hpp"
 #include "wrapped_types.hpp"
 
 namespace jvl::atom {
@@ -299,6 +300,7 @@ std::string Kernel::synthesize_cplusplus()
 
 	// Generate structs for the used primitive types
 	// TODO: unless told to use jvl structures...
+	std::unordered_set <int> synthesized_primitives;
 	for (int i = 0; i < atoms.size(); i++) {
 		if (!used.contains(i))
 			continue;
@@ -311,8 +313,13 @@ std::string Kernel::synthesize_cplusplus()
 		if (tf.next != -1 || tf.down != -1)
 			continue;
 
+		if (synthesized_primitives.count(tf.item))
+			continue;
+
 		// If we are here, it means that the type is a primitive
 		source += jvl_primitive_type_as_string(tf.item);
+
+		synthesized_primitives.insert(tf.item);
 	}
 
 	// Gather all necessary structs
