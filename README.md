@@ -6,36 +6,44 @@ A realtime rendering framework.
 
 ## Intermediate Representation Emitter (IRE)
 
-- [ ] Common
+- **Common:**
   - [x] Revised implementation of vector types with limited swizzling
   - [x] Uniform layout concept for custom structs
   - [x] Persistent storage for mutating variables
   - [x] Structs and nested structs
+  - [x] Standard vector operations (dot, cross, etc.)
+  - [x] Return calls
+  - [ ] Callable functions from ordinary functions
   - [ ] Standard floating point functions (sin, cos, exp, log, etc.)
-  - [ ] Standard vector operations (dot, cross, etc.)
   - [ ] Named structures for synthesizing compatible code
-- [ ] GLSL specific
+  - [ ] Branching (if, else if, else)
+  - [ ] While loops (while, do-while)
+  - [ ] For loops (for, foreach)
+- **GLSL specific:**
   - [x] Layout input and output variables
   - [x] Push constants
   - [ ] Uniform buffers
 
-## IR Synthesis
+## Code Synthesis
 
-- [ ] GLSL synthesis
+- **GLSL synthesis:**
   - [x] Structures and nested structures
   - [x] Layout inputs and outputs
   - [x] Push constants with and without structs
+  - [x] Callable functions with ordinary parameters
   - [ ] Uniform and storage buffers
   - [ ] Image formats and textures
-- [ ] C++ synthesis
+- **C++ synthesis:**
   - [x] Layout inputs converted to parameters
   - [x] Tuple return types for multiple layout outputs
   - [x] Struct generation for jvl primitive types (vec2, ivec4, etc.)
-- [ ] SPIRV synthesis
+- **SPIRV synthesis:**
+  - [ ] Direct translation of basic atoms to SPIRV ASM
 
-## Host-side Rendering
+## CPU Rendering
 
 - [x] Thread pool implementation
+- [x] IRE shaders for vertex/fragment pipeline
 - [ ] GGX material description
 - [ ] BVH construction methods
 - [ ] Naive path tracing
@@ -45,5 +53,10 @@ A realtime rendering framework.
 
 ## Testing
 
-- [x] IR emitter tests to ensure correct IR is being produced (simple)
-- [x] IR synthesis tests to ensure that C++ synthesized by kernels is compileable (simple)
+- **IRE:**
+  - [x] Simple layout in/out check for presence of atoms
+  - [ ] Checks for control flow operations
+  - [ ] Ensure that uniform compatible structures are preserved
+- **Code synthesis:**
+  - [x] Compatibility test for C++ synthesis
+  - [ ] Compatibility test for GLSL synthesis
