@@ -41,114 +41,6 @@ inline void discard()
 	platform_intrinsic_keyword("discard");
 }
 
-template <typename R, typename ... Args>
-struct __callable : Callable {
-	std::tuple <Args...> mimic;
-	std::tuple <Args *...> passed;
-
-	template <size_t index>
-	void __fill_parameter_references(std::tuple <Args...> &tpl) {
-		std::get <index> (passed) = &std::get <index> (tpl);
-		if constexpr (index + 1 < sizeof...(Args))
-			__fill_parameter_references <index + 1> (tpl);
-	}
-
-	template <size_t index>
-	void __transfer_mimic_references() {
-		auto src = std::get <index> (mimic);
-		auto dst = std::get <index> (passed);
-		dst->ref = src.ref;
-
-		if constexpr (index + 1 < sizeof...(Args))
-			__transfer_mimic_references <index + 1> ();
-	}
-
-	// TODO: only do this if the argument is a synthesizable
-	// TODO: how to deal with passing global variables
-	// (push constants/layouts with custom layouts?)
-	// TODO: constexpr switches to handle each case...
-	template <size_t index>
-	void __fill_mimic_references() {
-		auto &x = std::get <index> (mimic);
-
-		auto &em = Emitter::active;
-
-		using type_of_x = std::decay_t <decltype(x)>;
-
-		atom::Global global;
-		global.qualifier = atom::Global::parameter;
-		global.type = type_field_from_args <type_of_x> ().id;
-		global.binding = index;
-
-		x.ref = em.emit(global);
-
-		if constexpr (index + 1 < sizeof...(Args))
-			__fill_mimic_references <index + 1> ();
-	}
-
-	void call(std::tuple <Args...> &args) {
-		Emitter::active.scopes.push(*this);
-		__fill_parameter_references <0> (args);
-		__fill_mimic_references <0> ();
-		__transfer_mimic_references <0> ();
-	}
-
-	auto &end() {
-		// TODO: make sure its at the top
-		Emitter::active.scopes.pop();
-		return *this;
-	}
-
-	// TODO: named(...) to set cached & synthesized name
-
-	R operator()(const Args &... args) {
-		auto &em = Emitter::active;
-
-		atom::Call call;
-		call.cid = cid;
-		call.ret = type_field_from_args <R> ().id;
-		call.args = list_from_args(args...);
-
-		cache_index_t cit;
-		cit = em.emit(call);
-		return R(cit);
-	}
-};
-
-template <typename R, typename ... Args>
-struct __callable_redirect {
-	using type = __callable <R, Args...>;
-};
-
-template <typename R, typename ... Args>
-struct __callable_redirect <R, std::tuple <Args...>> {
-	using type = __callable <R, Args...>;
-};
-
-template <typename F>
-struct signature;
-
-template <typename R, typename ... Args>
-struct signature <R (Args...)> {
-	using args_t = std::tuple <Args...>;
-	using return_t = R;
-};
-
-template <typename R, typename F>
-using __callable_t = __callable_redirect <R, typename signature <F> ::args_t> ::type;
-
-template <typename R, typename F>
-requires std::is_function_v <F>
-__callable_t <R, F>
-callable(const F &ftn)
-{
-	__callable_t <R, F> cbl;
-	auto args = typename signature <F> ::args_t();
-	cbl.call(args);
-	std::apply(ftn, args);
-	return cbl.end();
-}
-
 // Smith shadow-masking function
 void __G1(vec3 n, vec3 v, f32 roughness)
 {
@@ -167,7 +59,7 @@ void __G1(vec3 n, vec3 v, f32 roughness)
 
 // Define concrete callables as static objects
 // so that they are only created once
-auto G1 = callable <f32> (__G1);
+auto G1 = callable <f32> (__G1).named("G1");
 
 void vertex_shader()
 {

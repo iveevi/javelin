@@ -9,144 +9,9 @@
 #include "ire/emitter.hpp"
 #include "ire/tagged.hpp"
 #include "wrapped_types.hpp"
+#include "ire/callable.hpp"
 
 namespace jvl::ire {
-
-void mark_used(const std::vector <atom::General> &pool,
-	       std::unordered_set <atom::index_t> &used,
-	       std::unordered_set <atom::index_t> &synthesized,
-	       int index, bool syn)
-{
-	if (index == -1)
-		return;
-
-	used.insert(index);
-
-	atom::General g = pool[index];
-
-	// TODO: std visit with methods
-	if (auto ctor = g.get <atom::Construct> ()) {
-		mark_used(pool, used, synthesized, ctor->type, true);
-		mark_used(pool, used, synthesized, ctor->args, true);
-	} else if (auto call = g.get <atom::Call> ()) {
-		mark_used(pool, used, synthesized, call->ret, true);
-		mark_used(pool, used, synthesized, call->args, true);
-	} else if (auto list = g.get <atom::List> ()) {
-		// TODO: get size for nodes...
-		mark_used(pool, used, synthesized, list->item, true);
-		mark_used(pool, used, synthesized, list->next, false);
-		syn = false;
-	} else if (auto load = g.get <atom::Load> ()) {
-		mark_used(pool, used, synthesized, load->src, true);
-	} else if (auto store = g.get <atom::Store> ()) {
-		mark_used(pool, used, synthesized, store->src, false);
-		mark_used(pool, used, synthesized, store->dst, false);
-		syn = false;
-	} else if (auto global = g.get <atom::Global> ()) {
-		mark_used(pool, used, synthesized, global->type, true);
-		syn = false;
-	} else if (auto tf = g.get <atom::TypeField> ()) {
-		mark_used(pool, used, synthesized, tf->down, false);
-		mark_used(pool, used, synthesized, tf->next, false);
-	} else if (auto op = g.get <atom::Operation> ()) {
-		mark_used(pool, used, synthesized, op->args, false);
-	} else if (auto intr = g.get <atom::Intrinsic> ()) {
-		mark_used(pool, used, synthesized, intr->args, false);
-		mark_used(pool, used, synthesized, intr->ret, false);
-	} else if (auto ret = g.get <atom::Returns> ()) {
-		mark_used(pool, used, synthesized, ret->args, true);
-	} else if (auto cond = g.get <atom::Cond> ()) {
-		mark_used(pool, used, synthesized, cond->cond, true);
-	}
-
-	if (syn)
-		synthesized.insert(index);
-}
-
-Callable::Callable() : pointer(0)
-{
-	static size_t id = 0;
-	cid = id++;
-
-	tracked()[cid] = this;
-}
-
-Callable::Callable(const Callable &other)
-{
-	*this = other;
-}
-
-// TODO: destructor will erase the entry if the active * == this
-
-Callable &Callable::operator=(const Callable &other)
-{
-	if (this != &other) {
-		pool = other.pool;
-		pointer = other.pointer;
-		cid = other.cid;
-
-		// Replace with the most recent tracked version
-		tracked()[cid] = this;
-	}
-
-	return *this;
-}
-
-int Callable::emit(const atom::General &op)
-{
-	if (pointer >= pool.size())
-		pool.resize(1 + (pool.size() << 2));
-
-	pool[pointer] = op;
-
-	return pointer++;
-}
-
-atom::Kernel Callable::export_to_kernel()
-{
-	// Determine the set of used and synthesizable instructions
-	std::unordered_set <atom::index_t> used;
-	std::unordered_set <atom::index_t> synthesized;
-
-	std::vector <atom::Returns> returns;
-	for (size_t i = 0; i < pool.size(); i++) {
-		if (pool[i].is <atom::Returns> ()) {
-			returns.push_back(pool[i].as <atom::Returns> ());
-			mark_used(pool, used, synthesized, i, true);
-		}
-
-		if (pool[i].is <atom::Cond> ()
-			|| pool[i].is <atom::Elif> ()
-			|| pool[i].is <atom::While> ()
-			|| pool[i].is <atom::End> ())
-			mark_used(pool, used, synthesized, i, true);
-
-		// TODO: check scopes around returns...
-	}
-
-	// TODO:demotion on synthesized elements
-
-	// TODO: compaction and validation
-	atom::Kernel kernel(atom::Kernel::eCallable);
-	kernel.atoms.resize(pointer);
-	std::memcpy(kernel.atoms.data(), pool.data(), sizeof(atom::General) * pointer);
-	kernel.synthesized = synthesized;
-	kernel.used = used;
-
-	return kernel;
-}
-
-void Callable::dump()
-{
-	fmt::println("------------------------------");
-	fmt::println("CALLABLE ({}/{})", pointer, pool.size());
-	fmt::println("------------------------------");
-	for (size_t i = 0; i < pointer; i++) {
-		fmt::print("   [{:4d}]: ", i);
-			atom::dump_ir_operation(pool[i]);
-		fmt::print("\n");
-	}
-}
 
 Emitter::Emitter() : pointer(0) {}
 
@@ -178,7 +43,7 @@ void Emitter::mark_used(int index, bool syn)
 	if (scopes.size())
 		return;
 
-	ire::mark_used(pool, used, synthesized, index, syn);
+	detail::mark_used(pool, used, synthesized, index, syn);
 }
 
 // Emitting instructions during function invocation

@@ -9,11 +9,11 @@
 #include "matrix.hpp"
 #include "arithmetic.hpp"
 #include "emitter.hpp"
+#include "callable.hpp"
 
 #include "intrinsics/common.hpp"
 #include "intrinsics/glsl.hpp"
 
 // TODO: organize into different targets, i.e. core/glsl.hpp, core/spirv.hpp, etc.
-
 // TODO: debug only
 #include "guarantees.hpp"

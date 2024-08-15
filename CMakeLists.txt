@@ -38,8 +38,10 @@ add_library(jvl-ire STATIC
 	source/atom/reindex.cpp
 	source/atom/synthesize_glsl.cpp
 	source/atom/type_name.cpp
+	source/ire/callable.cpp
 	source/ire/compaction.cpp
-	source/ire/emitter.cpp)
+	source/ire/emitter.cpp
+	source/ire/marking.cpp)
 
 add_executable(javelin
 	source/exec/javelin/main.cpp

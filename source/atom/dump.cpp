@@ -1,4 +1,5 @@
 #include "atom/atom.hpp"
+#include "ire/callable.hpp"
 
 namespace jvl::atom {
 
@@ -50,8 +51,8 @@ void dump_ir_operation(const General &g)
 		else
 			fmt::print("%{}", ctor->args);
 	} else if (auto call = g.get <Call> ()) {
-		// TODO: if it has a name then use that
-		fmt::print("call ${}:", call->cid);
+		ire::Callable *cbl = ire::Callable::search_tracked(call->cid);
+		fmt::print("call ${}:", cbl->name);
 		if (call->args == -1)
 			fmt::print(" (nil) -> ");
 		else

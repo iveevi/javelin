@@ -12,35 +12,7 @@
 
 namespace jvl::ire {
 
-// TODO: move to another header
-struct Callable {
-	// Global list of callables
-	static auto &tracked() {
-		static std::unordered_map <size_t, Callable *> map;
-		return map;
-	}
-
-	// Ordinary information, same as Emitter
-	// but lacks the used and synthesized members
-	std::vector <atom::General> pool;
-	size_t pointer;
-	size_t cid;
-
-	// For callables we can track back used and synthesized
-	// insructions from working backwards at the returns
-
-	Callable();
-	Callable(const Callable &);
-	Callable &operator=(const Callable &);
-
-	// TODO: destructor, which offloads it from the global list
-
-	atom::Kernel export_to_kernel();
-
-	int emit(const atom::General &);
-
-	void dump();
-};
+struct Callable;
 
 struct Emitter {
 	// By default the program begins at index 0
@@ -101,6 +73,11 @@ ir_compact_deduplicate(const atom::General *const,
 		       atom::General *const,
 		       std::unordered_set <atom::index_t> &,
 		       size_t);
+
+void mark_used(const std::vector <atom::General> &,
+	       std::unordered_set <atom::index_t> &,
+	       std::unordered_set <atom::index_t> &,
+	       int, bool);
 
 } // namespace detail
 

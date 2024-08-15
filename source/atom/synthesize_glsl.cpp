@@ -2,6 +2,7 @@
 #include <string>
 
 #include "atom/atom.hpp"
+#include "ire/callable.hpp"
 #include "wrapped_types.hpp"
 
 namespace jvl::atom {
@@ -172,11 +173,11 @@ std::string synthesize_glsl_body(const General *const pool,
 			std::string t = type_name(pool, struct_names, ctor->type, -1);
 			return t + "(" + inlined(ctor->args) + ")";
 		} else if (auto call = g.get <Call> ()) {
-			// TODO: use correct name if present...
+			ire::Callable *cbl = ire::Callable::search_tracked(call->cid);
 			std::string args;
 			if (call->args != -1)
 				args = strargs(arglist(call->args));
-			return fmt::format("callable{}{}", call->cid, args);
+			return fmt::format("{}{}", cbl->name, args);
 		} else if (auto list = g.get <List> ()) {
 			std::string v = inlined(list->item);
 			if (list->next != -1)

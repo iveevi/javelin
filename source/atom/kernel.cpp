@@ -4,6 +4,7 @@
 
 #include "atom/atom.hpp"
 #include "atom/kernel.hpp"
+#include "ire/callable.hpp"
 #include "ire/emitter.hpp"
 #include "ire/tagged.hpp"
 #include "wrapped_types.hpp"
@@ -200,7 +201,6 @@ std::string Kernel::synthesize_glsl(const std::string &version_number)
 		// TODO: some other method (find_tracked() -> nil if not exists)
 		ire::Callable *cbl = ire::Callable::tracked()[cid];
 		auto kernel = cbl->export_to_kernel();
-		kernel.name = fmt::format("callable{}", cid);
 		std::string ksource = kernel.synthesize_glsl(version_number);
 		source += ksource + "\n";
 	}
