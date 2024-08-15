@@ -75,12 +75,18 @@ struct Swizzle {
 struct Operation {
 	enum {
 		unary_negation,
+
 		addition,
 		subtraction,
 		multiplication,
 		division,
+
 		equals,
-		not_equals
+		not_equals,
+		cmp_ge,
+		cmp_geq,
+		cmp_le,
+		cmp_leq,
 	} type;
 
 	index_t args = -1;
@@ -88,12 +94,18 @@ struct Operation {
 
 	static constexpr const char *name[] = {
 		"negation",
+
 		"addition",
 		"subtraction",
 		"multiplication",
 		"division",
+
 		"equals",
-		"not_equals"
+		"not_equals",
+		"cmp_ge",
+		"cmp_geq",
+		"cmp_le",
+		"cmp_leq",
 	};
 };
 

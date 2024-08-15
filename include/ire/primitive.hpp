@@ -2,7 +2,6 @@
 
 #include "emitter.hpp"
 #include "tagged.hpp"
-#include <type_traits>
 
 namespace jvl::ire {
 
@@ -133,6 +132,33 @@ struct primitive_t : tagged {
 
 	friend primitive_t operator*(const primitive_t &a, const primitive_t &b) {
 		return operation_from_args <primitive_t> (atom::Operation::multiplication, a, b);
+	}
+
+	// Comparison operators
+	using bool_t = primitive_t <bool>;
+
+	friend bool_t operator==(const primitive_t &a, const primitive_t &b) {
+		return operation_from_args <bool_t> (atom::Operation::equals, a, b);
+	}
+
+	friend bool_t operator!=(const primitive_t &a, const primitive_t &b) {
+		return operation_from_args <bool_t> (atom::Operation::not_equals, a, b);
+	}
+
+	friend bool_t operator>(const primitive_t &a, const primitive_t &b) {
+		return operation_from_args <bool_t> (atom::Operation::cmp_ge, a, b);
+	}
+
+	friend bool_t operator<(const primitive_t &a, const primitive_t &b) {
+		return operation_from_args <bool_t> (atom::Operation::cmp_le, a, b);
+	}
+
+	friend bool_t operator>=(const primitive_t &a, const primitive_t &b) {
+		return operation_from_args <bool_t> (atom::Operation::cmp_geq, a, b);
+	}
+
+	friend bool_t operator<=(const primitive_t &a, const primitive_t &b) {
+		return operation_from_args <bool_t> (atom::Operation::cmp_leq, a, b);
 	}
 };
 

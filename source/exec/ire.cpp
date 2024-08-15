@@ -55,21 +55,25 @@ inline void discard()
 }
 
 template <typename R, typename ... Args>
-struct callable : Callable {
-	bool cached;
-
+struct __callable : Callable {
 	std::tuple <Args...> mimic;
 	std::tuple <Args *...> passed;
 
-	template <typename U, typename ... UArgs>
-	std::tuple <U *, UArgs *...> __fill_parameter_references(U &u, UArgs &... uargs) {
-		std::tuple <U *> x = &u;
-		if constexpr (sizeof...(UArgs)) {
-			std::tuple <UArgs *...> xargs = __fill_parameter_references(uargs...);
-			return std::tuple_cat(x, xargs);
-		} else {
-			return x;
-		}
+	template <size_t index>
+	void __fill_parameter_references(std::tuple <Args...> &tpl) {
+		std::get <index> (passed) = &std::get <index> (tpl);
+		if constexpr (index + 1 < sizeof...(Args))
+			__fill_parameter_references <index + 1> (tpl);
+	}
+
+	template <size_t index>
+	void __transfer_mimic_references() {
+		auto src = std::get <index> (mimic);
+		auto dst = std::get <index> (passed);
+		dst->ref = src.ref;
+
+		if constexpr (index + 1 < sizeof...(Args))
+			__transfer_mimic_references <index + 1> ();
 	}
 
 	template <size_t index>
@@ -94,26 +98,9 @@ struct callable : Callable {
 			__fill_mimic_references <index + 1> ();
 	}
 
-	template <size_t index>
-	void __transfer_mimic_references() {
-		auto src = std::get <index> (mimic);
-		auto dst = std::get <index> (passed);
-		dst->ref = src.ref;
-
-		if constexpr (index + 1 < sizeof...(Args))
-			__transfer_mimic_references <index + 1> ();
-	}
-
-	void call(Args &... active_args) {
-		passed = __fill_parameter_references(active_args...);
-
-		if (cached) {
-			// TODO: if we here then synthesize a call
-			fmt::println("early return, cached");
-			return;
-		}
-
+	void call(std::tuple <Args...> &args) {
 		Emitter::active.scopes.push(*this);
+		__fill_parameter_references <0> (args);
 		__fill_mimic_references <0> ();
 		__transfer_mimic_references <0> ();
 	}
@@ -124,35 +111,53 @@ struct callable : Callable {
 		return *this;
 	}
 
-	operator R() const {
-		// TODO: make sure its no longer in the scopes
+	R operator()(const Args &...) {
 		return R();
 	}
 };
 
-// Smith shadow-masking function
-// f32 G1(vec3 n, vec3 v, f32 roughness)
-// {
-// 	// if (dot(v, n) <= 0.0f)
-// 	// 	return 0.0f;
-//
-// 	f32 alpha = roughness;
-// 	f32 theta = acos(clamp(dot(n, v), 0, 0.999f));
-//
-// 	f32 tan_theta = tan(theta);
-//
-// 	f32 denom = 1 + sqrt(1 + alpha * alpha * tan_theta * tan_theta);
-// 	return 2.0f/denom;
-// }
+template <typename R, typename ... Args>
+struct __callable_redirect {
+	using type = __callable <R, Args...>;
+};
 
-auto G1(vec3 n, vec3 v, f32 roughness)
+template <typename R, typename ... Args>
+struct __callable_redirect <R, std::tuple <Args...>> {
+	using type = __callable <R, Args...>;
+};
+
+template <typename F>
+struct signature;
+
+template <typename R, typename ... Args>
+struct signature <R (Args...)> {
+	using args_t = std::tuple <Args...>;
+	using return_t = R;
+};
+
+template <typename R, typename F>
+using __callable_t = __callable_redirect <R, typename signature <F> ::args_t> ::type;
+
+template <typename R, typename F>
+requires std::is_function_v <F>
+__callable_t <R, F>
+callable(const F &ftn)
 {
-	static callable <f32, vec3, vec3, f32> f;
+	__callable_t <R, F> cbl;
+	auto args = typename signature <F> ::args_t();
+	cbl.call(args);
+	std::apply(ftn, args);
+	return cbl.end();
+}
 
-	f.call(n, v, roughness);
-	if (f.cached)
-		return f;
+// Smith shadow-masking function
+void __G1(vec3 n, vec3 v, f32 roughness)
+{
+	cond(dot(v, n) <= 0.0f);
+		returns(0.0f);
+	end();
 
+	// This is the actual function...
 	f32 alpha = roughness;
 	f32 theta = acos(clamp(dot(n, v), 0, 0.999f));
 
@@ -160,16 +165,11 @@ auto G1(vec3 n, vec3 v, f32 roughness)
 
 	f32 denom = 1 + sqrt(1 + alpha * alpha * tan_theta * tan_theta);
 	returns(2.0f/denom);
-
-	// auto f = callable <f32> (n, v, roughness);
-	// TODO: Caching callables...
-
-	auto k = f.export_to_kernel();
-	k.dump();
-	fmt::println("{}", k.synthesize(jvl::profiles::opengl_330));
-
-	return f.end();
 }
+
+// Define concrete callables as static objects
+// so that they are only created once
+auto G1 = callable <f32> (__G1);
 
 void vertex_shader()
 {
@@ -183,6 +183,10 @@ void vertex_shader()
 	layout_out <f32, 0> result;
 
 	result = G1(normal, position, 0.1);
+
+	auto k = G1.export_to_kernel();
+	k.dump();
+	fmt::println("{}", k.synthesize(jvl::profiles::opengl_330));
 
 	// push_constant <mvp> mvp;
 	//

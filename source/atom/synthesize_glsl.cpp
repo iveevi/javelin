@@ -53,6 +53,14 @@ std::string glsl_format_operation(int type, const std::vector <std::string> &arg
 		return fmt::format("({} * {})", args[0], args[1]);
 	case Operation::division:
 		return fmt::format("({} / {})", args[0], args[1]);
+	case Operation::cmp_ge:
+		return fmt::format("({} > {})", args[0], args[1]);
+	case Operation::cmp_le:
+		return fmt::format("({} < {})", args[0], args[1]);
+	case Operation::cmp_geq:
+		return fmt::format("({} >= {})", args[0], args[1]);
+	case Operation::cmp_leq:
+		return fmt::format("({} <= {})", args[0], args[1]);
 	default:
 		break;
 	}

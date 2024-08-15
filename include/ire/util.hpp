@@ -42,7 +42,7 @@ R operation_from_args(decltype(atom::Operation::type) type, const Args &... args
 	atom::Operation intr;
 	intr.type = type;
 	intr.args = list_from_args(args...);
-	intr.ret = type_field_from_args <Args...> ().id;
+	intr.ret = type_field_from_args <R> ().id;
 
 	cache_index_t cit;
 	cit = em.emit(intr);
@@ -58,7 +58,7 @@ R platform_intrinsic_from_args(const char *name, const Args &... args)
 	atom::Intrinsic intr;
 	intr.name = name;
 	intr.args = list_from_args(args...);
-	intr.ret = type_field_from_args <Args...> ().id;
+	intr.ret = type_field_from_args <R> ().id;
 
 	cache_index_t cit;
 	cit = em.emit_main(intr);

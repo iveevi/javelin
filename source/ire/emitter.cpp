@@ -22,6 +22,8 @@ void mark_used(const std::vector <atom::General> &pool,
 	used.insert(index);
 
 	atom::General g = pool[index];
+
+	// TODO: std visit with methods
 	if (auto ctor = g.get <atom::Construct> ()) {
 		mark_used(pool, used, synthesized, ctor->type, true);
 		mark_used(pool, used, synthesized, ctor->args, true);
@@ -46,9 +48,11 @@ void mark_used(const std::vector <atom::General> &pool,
 		mark_used(pool, used, synthesized, op->args, false);
 	} else if (auto intr = g.get <atom::Intrinsic> ()) {
 		mark_used(pool, used, synthesized, intr->args, false);
+		mark_used(pool, used, synthesized, intr->ret, false);
 	} else if (auto ret = g.get <atom::Returns> ()) {
 		mark_used(pool, used, synthesized, ret->args, true);
-		syn = true;
+	} else if (auto cond = g.get <atom::Cond> ()) {
+		mark_used(pool, used, synthesized, cond->cond, true);
 	}
 
 	if (syn)
@@ -83,6 +87,14 @@ atom::Kernel Callable::export_to_kernel()
 			returns.push_back(pool[i].as <atom::Returns> ());
 			mark_used(pool, used, synthesized, i, true);
 		}
+
+		if (pool[i].is <atom::Cond> ()
+			|| pool[i].is <atom::Elif> ()
+			|| pool[i].is <atom::While> ()
+			|| pool[i].is <atom::End> ())
+			mark_used(pool, used, synthesized, i, true);
+
+		// TODO: check scopes around returns...
 	}
 
 	// TODO:demotion on synthesized elements
@@ -201,7 +213,12 @@ int Emitter::emit_main(const atom::End &end)
 
 void Emitter::control_flow_callback(int ref, int p)
 {
-	auto &op = pool[ref];
+	atom::General op;
+	if (scopes.size())
+		op = scopes.top().get().pool[ref];
+	else
+		op = pool[ref];
+
 	if (op.is <atom::Cond> ()) {
 		op.as <atom::Cond> ().failto = p;
 	} else if (op.is <atom::Elif> ()) {
