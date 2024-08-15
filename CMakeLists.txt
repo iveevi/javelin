@@ -42,16 +42,17 @@ add_library(jvl-ire STATIC
 	source/ire/emitter.cpp)
 
 add_executable(javelin
-	source/exec/main.cpp
+	source/exec/javelin/main.cpp
+	source/exec/javelin/glio.cpp
 	source/core/preset.cpp
 	source/gfx/cpu/bvh.cpp)
 
 add_executable(ire-features
-	source/exec/ire.cpp
+	source/exec/features/ire.cpp
 	thirdparty/glad/src/gl.c)
 
 add_executable(lang-features
-	source/exec/lang.cpp
+	source/exec/features/lang.cpp
 	source/lang/lex.cpp)
 
 add_executable(test
@@ -82,7 +83,7 @@ set(VULKAN_LIBRARY_SET
 	glslang-default-resource-limits)
 
 target_link_libraries(jvl-ire fmt::fmt)
-target_link_libraries(javelin fmt::fmt ${VULKAN_LIBRARY_SET} imgui)
+target_link_libraries(javelin fmt::fmt ${VULKAN_LIBRARY_SET} imgui jvl-ire)
 target_link_libraries(ire-features glfw fmt::fmt jvl-ire)
 target_link_libraries(lang-features fmt::fmt -fsanitize=address)
 target_link_libraries(test GTest::gtest_main jvl-ire glfw)

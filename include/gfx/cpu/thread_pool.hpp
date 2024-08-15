@@ -1,9 +1,15 @@
 #pragma once
 
 #include <concepts>
+#include <pthread.h>
 #include <thread>
 #include <list>
 #include <vector>
+#include <csignal>
+
+#include <pthread.h>
+
+#include <fmt/printf.h>
 
 #include "../../wrapped_types.hpp"
 
@@ -19,6 +25,8 @@ template <typename T, typename F>
 requires std::same_as <std::invoke_result_t <F, T>, void>
 void worker_loop(const F &kernel, wrapped::thread_safe_queue <T> &queue, worker_status &status)
 {
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
+
 	// TODO: sleep
 	while (!status.begin) {
 		if (status.kill)
@@ -33,12 +41,14 @@ void worker_loop(const F &kernel, wrapped::thread_safe_queue <T> &queue, worker_
 			if (queue.size_locked())
 				item = queue.pop_locked();
 			else
-				return;
+				break;
 		}
 
 		// TODO: message method in sync
 		kernel(item);
 	}
+
+	fmt::println("kill status: {}", status.kill);
 
 	status.done = true;
 }
@@ -88,11 +98,21 @@ public:
 	}
 
 	void reset() {
-		for (auto &s : status)
-			s.kill = true;
+		auto it = status.begin();
+		for (size_t i = 0; i < count; i++) {
+			auto &t = threads[i];
+			auto &s = *it++;
 
-		for (auto &t : threads)
-			t.join();
+			if (s.done) {
+				t.join();
+				continue;
+			}
+
+			pthread_t tid = t.native_handle();
+			t.detach();
+
+			pthread_cancel(tid);
+		}
 
 		status.clear();
 		threads.clear();

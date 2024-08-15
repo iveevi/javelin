@@ -1,4 +1,6 @@
 #include <cassert>
+#include <csignal>
+#include <cstdlib>
 #include <filesystem>
 
 #include <fmt/format.h>
@@ -20,133 +22,65 @@
 #include "gfx/cpu/thread_pool.hpp"
 #include "gfx/cpu/intersection.hpp"
 #include "gfx/vk/triangle_mesh.hpp"
+#include "ire/emitter.hpp"
+#include "ire/uniform_layout.hpp"
 #include "math_types.hpp"
+#include "ire/core.hpp"
+
+#include "glio.hpp"
+#include "profiles/targets.hpp"
+
+using namespace jvl;
 
 // Shader sources
 struct MVP {
-	jvl::float4x4 model;
-	jvl::float4x4 view;
-	jvl::float4x4 proj;
+	float4x4 model;
+	float4x4 view;
+	float4x4 proj;
 };
 
-const std::string vertex_shader_source = R"(
-#version 450
+namespace {
 
-layout (push_constant) uniform MVP {
+using namespace jvl::ire;
+
+struct mvp {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
+
+	vec4 project(vec3 position) {
+		return proj * (view * (model * vec4(position, 1.0)));
+	}
+
+	auto layout() {
+		return uniform_layout(model, view, proj);
+	}
 };
 
-layout (location = 0) in vec3 position;
-
-layout (location = 0) out vec3 out_color;
-
-void main()
+// TODO: with regular input/output semantics?
+void vertex()
 {
-	gl_Position = proj * view * model * vec4(position, 1.0);
+	layout_in <vec3, 0> position;
+	layout_out <vec3, 0> color;
+
+	push_constant <mvp> mvp;
+
+	gl_Position = mvp.project(position);
 	gl_Position.y = -gl_Position.y;
-	out_color = position;
+	color = position;
 }
-)";
 
-const std::string fragment_shader_source = R"(
-#version 450
-
-layout (location = 0) in vec3 position;
-
-layout (location = 0) out vec4 fragment;
-
-void main()
+void fragment()
 {
+	layout_in <vec3, 0> position;
+	layout_out <vec4, 0> fragment;
+
 	vec3 dU = dFdxFine(position);
 	vec3 dV = dFdyFine(position);
 	vec3 N = normalize(cross(dV, dU));
-	fragment = vec4(0.5 + 0.5 * N, 1.0);
-}
-)";
-
-struct {
-	jvl::float2 min;
-	jvl::float2 max;
-	bool active;
-
-	bool contains(const jvl::float2 &v) const {
-		if (!active)
-			return false;
-
-		return (min.x <= v.x) && (v.x <= max.x)
-			&& (min.y <= v.y) && (v.y <= max.y);
-	}
-} viewport_region;
-
-struct MouseInfo {
-	bool left_drag = false;
-	bool voided = true;
-	float last_x = 0.0f;
-	float last_y = 0.0f;
-} mouse;
-
-void button_callback(GLFWwindow *window, int button, int action, int mods)
-{
-	double xpos;
-	double ypos;
-
-	glfwGetCursorPos(window, &xpos, &ypos);
-	if (!viewport_region.contains(jvl::float2(xpos, ypos))) {
-		ImGuiIO &io = ImGui::GetIO();
-		io.AddMouseButtonEvent(button, action);
-		return;
-	}
-
-	if (button == GLFW_MOUSE_BUTTON_LEFT) {
-		mouse.left_drag = (action == GLFW_PRESS);
-		if (action == GLFW_RELEASE)
-			mouse.voided = true;
-	}
+	fragment = vec4(0.5f + 0.5f * N, 1.0f);
 }
 
-void cursor_callback(GLFWwindow *window, double xpos, double ypos)
-{
-	if (!viewport_region.contains(jvl::float2(xpos, ypos))) {
-		ImGuiIO &io = ImGui::GetIO();
-		io.MousePos = ImVec2(xpos, ypos);
-		return;
-	}
-
-	auto transform = reinterpret_cast <jvl::core::Transform *> (glfwGetWindowUserPointer(window));
-
-	if (mouse.voided) {
-		mouse.last_x = xpos;
-		mouse.last_y = ypos;
-		mouse.voided = false;
-	}
-
-	float xoffset = xpos - mouse.last_x;
-	float yoffset = ypos - mouse.last_y;
-
-	mouse.last_x = xpos;
-	mouse.last_y = ypos;
-
-	constexpr float sensitivity = 0.0025f;
-	xoffset *= sensitivity;
-	yoffset *= sensitivity;
-
-	static float pitch = 0;
-	static float yaw = 0;
-
-	if (mouse.left_drag) {
-		jvl::float3 horizontal { 0, 1, 0 };
-		jvl::float3 vertical = transform->right();
-
-		pitch -= xoffset;
-		yaw += yoffset;
-
-		float pi_e = jvl::pi <float> / 2.0f - 1e-3f;
-		yaw = std::min(pi_e, std::max(-pi_e, yaw));
-
-		transform->rotation = jvl::fquat::euler_angles(yaw, pitch, 0);
-	}
 }
 
 inline vk::DescriptorSet imgui_add_vk_texture(const vk::Sampler &sampler, const vk::ImageView &view, const vk::ImageLayout &layout)
@@ -156,14 +90,29 @@ inline vk::DescriptorSet imgui_add_vk_texture(const vk::Sampler &sampler, const 
 					   static_cast <VkImageLayout> (layout));
 }
 
+std::vector <std::function <void ()>> terminal;
+
+void signal_handler(int)
+{
+	fmt::println("signal handler!");
+	for (const auto &t : terminal)
+		t();
+
+	exit(EXIT_FAILURE);
+}
+
 int main(int argc, char *argv[])
 {
+	// Signal handlers
+	// std::signal(SIGINT, signal_handler);
+	// std::signal(SIGKILL, signal_handler);
+
 	assert(argc >= 2);
 
 	std::filesystem::path path = argv[1];
 	fmt::println("path to scene: {}", path);
 
-	auto preset = jvl::core::Preset::from(path).value();
+	auto preset = core::Preset::from(path).value();
 
 	//////////////////
 	// VULKAN SETUP //
@@ -259,23 +208,26 @@ int main(int argc, char *argv[])
 		command_pool,
 		vk::CommandBufferLevel::ePrimary, 2u);
 
-	std::vector <jvl::core::TriangleMesh> tmeshes;
-	std::vector <jvl::gfx::vulkan::TriangleMesh> vmeshes;
+	std::vector <core::TriangleMesh> tmeshes;
+	std::vector <gfx::vulkan::TriangleMesh> vmeshes;
 
 	for (size_t i = 0; i < preset.geometry.size(); i++) {
-		auto tmesh = jvl::core::TriangleMesh::from(preset.geometry[i]).value();
+		auto tmesh = core::TriangleMesh::from(preset.geometry[i]).value();
 		tmeshes.push_back(tmesh);
 
-		auto vmesh = jvl::gfx::vulkan::TriangleMesh::from(allocator, tmesh).value();
+		auto vmesh = gfx::vulkan::TriangleMesh::from(allocator, tmesh).value();
 		vmeshes.push_back(vmesh);
 	}
 
 	// Create a graphics pipeline
 	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
 
+	std::string vertex_shader = ire::kernel_from_args(vertex).synthesize(profiles::opengl_450);
+	std::string fragment_shader = ire::kernel_from_args(fragment).synthesize(profiles::opengl_450);
+
 	auto bundle = littlevk::ShaderStageBundle(device, dal)
-		.source(vertex_shader_source, vk::ShaderStageFlagBits::eVertex)
-		.source(fragment_shader_source, vk::ShaderStageFlagBits::eFragment);
+		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
+		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 
 	littlevk::Pipeline ppl = littlevk::PipelineAssembler <littlevk::eGraphics> (device, window, dal)
 		.with_render_pass(render_pass, 0)
@@ -332,15 +284,15 @@ int main(int argc, char *argv[])
 
 	export_render_targets_to_imgui();
 
-	jvl::core::Aperature aperature;
-	jvl::core::Transform transform;
+	core::Aperature aperature;
+	core::Transform transform;
 
 	ImGuiIO &io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 	MVP mvp;
-	mvp.model = jvl::float4x4::identity();
-	mvp.proj = jvl::core::perspective(aperature);
+	mvp.model = float4x4::identity();
+	mvp.proj = core::perspective(aperature);
 
 	auto resize = [&]() {
 		combined.resize(surface, window, swapchain);
@@ -384,7 +336,7 @@ int main(int argc, char *argv[])
 		littlevk::submit_now(device, command_pool, graphics_queue, transition);
 
 		aperature.aspect = float(window.extent.width)/float(window.extent.height);
-		mvp.proj = jvl::core::perspective(aperature);
+		mvp.proj = core::perspective(aperature);
 	};
 
 	auto handle_input = [&]() {
@@ -395,7 +347,7 @@ int main(int argc, char *argv[])
 		float delta = speed * float(glfwGetTime() - last_time);
 		last_time = glfwGetTime();
 
-		jvl::float3 velocity(0.0f);
+		float3 velocity(0.0f);
 		if (glfwGetKey(window.handle, GLFW_KEY_S) == GLFW_PRESS)
 			velocity.z -= delta;
 		else if (glfwGetKey(window.handle, GLFW_KEY_W) == GLFW_PRESS)
@@ -418,12 +370,12 @@ int main(int argc, char *argv[])
 	glfwSetMouseButtonCallback(window.handle, button_callback);
 	glfwSetCursorPosCallback(window.handle, cursor_callback);
 
-	auto fb = jvl::gfx::cpu::Framebuffer <uint32_t> ::from(200, 200);
+	auto fb = gfx::cpu::Framebuffer <uint32_t> ::from(200, 200);
 	fb.clear();
 
-	auto rf = jvl::core::rayframe(aperature, transform);
+	auto rf = core::rayframe(aperature, transform);
 
-	auto tonemap = [](const jvl::float3 &rgb) -> uint32_t {
+	auto tonemap = [](const float3 &rgb) -> uint32_t {
 		// TODO: r g b a components with a union
 		uint32_t r = 255 * rgb.x;
 		uint32_t g = 255 * rgb.y;
@@ -431,44 +383,44 @@ int main(int argc, char *argv[])
 		return r | g << 8 | b << 16 | 0xff000000;
 	};
 
-	auto raytrace = [&tmeshes, &rf, &tonemap](jvl::int2 ij, jvl::float2 uv) -> uint32_t {
-		jvl::float3 origin = rf.origin;
-		jvl::float3 ray = normalize(rf.lower_left
+	auto raytrace = [&tmeshes, &rf, &tonemap](int2 ij, float2 uv) -> uint32_t {
+		float3 origin = rf.origin;
+		float3 ray = normalize(rf.lower_left
 				+ uv.x * rf.horizontal
 				+ (1 - uv.y) * rf.vertical
 				- rf.origin);
 
-		jvl::gfx::cpu::Intersection sh = jvl::gfx::cpu::Intersection::miss();
+		gfx::cpu::Intersection sh = gfx::cpu::Intersection::miss();
 		for (const auto &tmesh : tmeshes) {
-			for (const jvl::int3 &t : tmesh.triangles) {
-				jvl::float3 v0 = tmesh.positions[t.x];
-				jvl::float3 v1 = tmesh.positions[t.y];
-				jvl::float3 v2 = tmesh.positions[t.z];
+			for (const int3 &t : tmesh.triangles) {
+				float3 v0 = tmesh.positions[t.x];
+				float3 v1 = tmesh.positions[t.y];
+				float3 v2 = tmesh.positions[t.z];
 
-				auto hit = jvl::gfx::cpu::ray_triangle_intersection(ray, origin, v0, v1, v2);
+				auto hit = gfx::cpu::ray_triangle_intersection(ray, origin, v0, v1, v2);
 				sh.update(hit);
 			}
 		}
 
-		jvl::float3 color;
+		float3 color;
 		if (sh.time >= 0)
 			color = 0.5f + 0.5f * sh.normal;
 
 		return tonemap(color);
 	};
 
-	auto clear = [&fb](jvl::int2 ij, jvl::float2 uv) -> uint32_t {
+	auto clear = [&fb](int2 ij, float2 uv) -> uint32_t {
 		return 0xff000000;
 	};
 
-	jvl::int2 size = { 16, 16 };
+	int2 size = { 16, 16 };
 	auto tiles = fb.tiles(size);
 
-	auto kernel = [&fb, &raytrace](const jvl::gfx::cpu::Tile &tile) {
+	auto kernel = [&fb, &raytrace](const gfx::cpu::Tile &tile) {
 		fb.process_tile(raytrace, tile);
 	};
 
-	using thread_pool_t = jvl::gfx::cpu::fixed_function_thread_pool <jvl::gfx::cpu::Tile, decltype(kernel)>;
+	using thread_pool_t = gfx::cpu::fixed_function_thread_pool <gfx::cpu::Tile, decltype(kernel)>;
 	thread_pool_t thread_pool(std::thread::hardware_concurrency(), kernel);
 
 	littlevk::Buffer fb_buffer;
@@ -482,8 +434,8 @@ int main(int argc, char *argv[])
 				| vk::ImageUsageFlagBits::eTransferDst,
 			vk::ImageAspectFlagBits::eColor);
 
-	littlevk::submit_now(device, command_pool, graphics_queue,
-		[&](const vk::CommandBuffer &cmd) {
+	littlevk::bind(device, command_pool, graphics_queue)
+		.submit_and_wait([&](const vk::CommandBuffer &cmd) {
 			fb_image.transition(cmd, vk::ImageLayout::eTransferDstOptimal);
 			littlevk::copy_buffer_to_image(cmd, fb_image, fb_buffer, vk::ImageLayout::eTransferDstOptimal);
 			fb_image.transition(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
@@ -493,14 +445,17 @@ int main(int argc, char *argv[])
 	vk::DescriptorSet cpu_fb_dset = imgui_add_vk_texture(sampler, fb_image.view,
 			vk::ImageLayout::eShaderReadOnlyOptimal);
 
+	terminal.push_back([&]() { thread_pool.reset(); });
+
 	// TODO: dynamic render pass
+	ImVec2 viewport;
 
 	uint32_t frame = 0;
         while (true) {
 		handle_input();
 
 		// TODO: method instead of function
-		mvp.proj = jvl::core::perspective(aperature);
+		mvp.proj = core::perspective(aperature);
 		mvp.view = transform.to_view_matrix();
 
                 glfwPollEvents();
@@ -562,11 +517,35 @@ int main(int argc, char *argv[])
 
 			if (ImGui::Begin("Interface")) {
 				if (ImGui::Button("Render")) {
-					rf = jvl::core::rayframe(aperature, transform);
-					fb.process(clear);
-					// fb.clear();
+					fb.resize(viewport.x, viewport.y);
+					fmt::println("rendering at {} x {} resolution", fb.width, fb.height);
+
+					std::tie(fb_buffer, fb_image) = allocator
+						.buffer(fb.data, vk::BufferUsageFlagBits::eTransferSrc)
+						.image(vk::Extent2D { fb.width, fb.height },
+								vk::Format::eR8G8B8A8Unorm,
+								vk::ImageUsageFlagBits::eSampled
+								| vk::ImageUsageFlagBits::eTransferDst,
+								vk::ImageAspectFlagBits::eColor);
+
+					littlevk::bind(device, command_pool, graphics_queue)
+						.submit_and_wait([&](const vk::CommandBuffer &cmd) {
+								fb_image.transition(cmd, vk::ImageLayout::eTransferDstOptimal);
+								littlevk::copy_buffer_to_image(cmd, fb_image, fb_buffer, vk::ImageLayout::eTransferDstOptimal);
+								fb_image.transition(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
+								});
+
+					vk::Sampler sampler = littlevk::SamplerAssembler(device, dal);
+					cpu_fb_dset = imgui_add_vk_texture(sampler, fb_image.view,
+							vk::ImageLayout::eShaderReadOnlyOptimal);
+
+					auto tiles = fb.tiles(size);
+
+					rf = core::rayframe(aperature, transform);
+
 					thread_pool.reset();
 					thread_pool.enque(tiles);
+					fb.process(clear);
 					thread_pool.begin();
 				}
 
@@ -592,9 +571,8 @@ int main(int argc, char *argv[])
 			}
 
 			if (ImGui::Begin("Framebuffer")) {
-				ImVec2 size = ImGui::GetContentRegionAvail();
-				ImGui::Image(cpu_fb_dset, size);
-
+				viewport = ImGui::GetContentRegionAvail();
+				ImGui::Image(cpu_fb_dset, viewport);
 				ImGui::End();
 			}
 
@@ -629,4 +607,6 @@ int main(int argc, char *argv[])
 	window.drop();
 
 	dal.drop();
+
+	thread_pool.reset();
 }

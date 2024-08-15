@@ -26,6 +26,8 @@ static const char *type_table[] = {
 	"mat2", "mat3", "mat4",
 };
 
+// TODO: pack everything, manually pad to align
+
 // Atomic types
 struct Global {
 	index_t type = -1;
@@ -52,12 +54,13 @@ struct TypeField {
 };
 
 struct Primitive {
-	PrimitiveType type = bad;
 	union {
 		bool b;
 		float fdata;
 		int idata;
 	};
+
+	PrimitiveType type = bad;
 };
 
 struct Swizzle {
@@ -73,7 +76,7 @@ struct Swizzle {
 };
 
 struct Operation {
-	enum {
+enum : uint8_t {
 		unary_negation,
 
 		addition,
@@ -111,6 +114,7 @@ struct Operation {
 
 #pragma pack(push, 1)
 struct Intrinsic {
+	// TODO: index in a table of intrinsics, then cache intrinsics?
 	const char *name = nullptr;
 	index_t args = -1;
 	index_t ret = -1;
@@ -169,7 +173,7 @@ static_assert(sizeof(Global)    == 6);
 static_assert(sizeof(TypeField) == 6);
 static_assert(sizeof(Primitive) == 8);
 static_assert(sizeof(Swizzle)   == 4);
-static_assert(sizeof(Operation) == 8);
+static_assert(sizeof(Operation) == 6);
 static_assert(sizeof(Intrinsic) == 12);
 static_assert(sizeof(List)      == 4);
 static_assert(sizeof(Construct) == 4);

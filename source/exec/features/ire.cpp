@@ -112,6 +112,8 @@ struct __callable : Callable {
 	}
 
 	R operator()(const Args &...) {
+		// TODO: fill this out,
+		// needs a new call IR
 		return R();
 	}
 };

@@ -11,8 +11,10 @@ void reindex_ir_operation(const wrapped::reindex <index_t> &reindexer, General &
 		reindexer(g.as <TypeField> ().next);
 	} else if (g.is <Operation> ()) {
 		reindexer(g.as <Operation> ().args);
+		reindexer(g.as <Operation> ().ret);
 	} else if (g.is <Intrinsic> ()) {
 		reindexer(g.as <Intrinsic> ().args);
+		reindexer(g.as <Intrinsic> ().ret);
 	} else if (g.is <Returns> ()) {
 		reindexer(g.as <Returns> ().args);
 	} else if (g.is <List> ()) {

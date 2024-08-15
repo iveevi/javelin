@@ -256,6 +256,11 @@ std::string synthesize_glsl_body(const General *const pool,
 			std::string t = type_name(pool, struct_names, load->src, load->idx);
 			std::string v = inlined(load->src) + accessor;
 			source += assign_new(t, v, index);
+		} else if (auto swizzle = g.get <Swizzle> ()) {
+			// TODO: generalize
+			std::string t = "float";
+			std::string v = inlined(index);
+			source += assign_new(t, v, index);
 		} else if (auto store = g.get <Store> ()) {
 			// TODO: there could be a store index chain...
 			std::string v = inlined(store->src);
@@ -284,6 +289,7 @@ std::string synthesize_glsl_body(const General *const pool,
 			// Same reason; otherwise there are shader intrinsics
 			// which do not need to be synthesized
 		} else {
+			// TODO: error reporting for jvl facilities
 			fmt::println("unexpected IR requested for synthesize(...)");
 			dump_ir_operation(g);
 			fmt::print("\n");

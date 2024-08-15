@@ -109,11 +109,15 @@ struct Framebuffer {
 		memset(data.data(), 0, sizeof(T) * width * height);
 	}
 
+	void resize(size_t width_, size_t height_) {
+		width = width_;
+		height = height_;
+		data.resize(width * height);
+	}
+
 	static Framebuffer from(size_t width, size_t height) {
 		Framebuffer fb;
-		fb.width = width;
-		fb.height = height;
-		fb.data.resize(width * height);
+		fb.resize(width, height);
 		return fb;
 	}
 };

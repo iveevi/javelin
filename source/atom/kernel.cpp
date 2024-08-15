@@ -143,6 +143,11 @@ std::string Kernel::synthesize_glsl(const std::string &version_number)
 	// Final generated source
 	std::string source;
 
+	// Version header
+	// TODO: skip if callable
+	source += "#version " + version_number + "\n";
+	source += "\n";
+
 	// Gather all necessary structs
 	wrapped::hash_table <int, std::string> struct_names;
 
@@ -190,10 +195,6 @@ std::string Kernel::synthesize_glsl(const std::string &version_number)
 
 		source += return_type + " kernel(" + parameter_string + ")\n";
 	} else {
-		// Version header
-		source += "#version " + version_number + "\n";
-		source += "\n";
-
 		// Global shader variables
 		for (const auto &[binding, type] : ios.lins) {
 			source += fmt::format("layout (location = {}) in {} _lin{};\n",
@@ -216,7 +217,7 @@ std::string Kernel::synthesize_glsl(const std::string &version_number)
 			source += "layout (push_constant) uniform constants\n";
 			source += "{\n";
 			source += "     " + ios.push_constant + " _pc;\n";
-			source += "}\n";
+			source += "};\n";
 			source += "\n";
 		}
 

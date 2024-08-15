@@ -67,11 +67,11 @@ inline Intersection ray_triangle_intersection(const float3 &ray,
 		// 	sh.uv = Vector2 { sh.b.y, sh.b.z };
 
 		sh.normal = normalize(cross(e1, e2));
-		// if (dot(sh.ng, ray) > 0) {
-		// 	sh.ng = -sh.ng;
-		// 	sh.backfacing = true;
-		// }
-		//
+		if (dot(sh.normal, ray) > 0) {
+			sh.normal = -sh.normal;
+			// sh.backfacing = true;
+		}
+
 		// if (triangle.has_normals) {
 		// 	sh.ns = triangle.n0 * sh.b.x + triangle.n1 * sh.b.y + triangle.n2 * sh.b.z;
 		// 	if (dot(sh.ns, ray) > 0)

@@ -57,4 +57,16 @@ vec <T, N> dFdy(const vec <T, N> &v)
 	return platform_intrinsic_from_args <vec <T, N>> ("dFdy", v);
 }
 
+template <typename T, size_t N>
+vec <T, N> dFdxFine(const vec <T, N> &v)
+{
+	return platform_intrinsic_from_args <vec <T, N>> ("dFdxFine", v);
+}
+
+template <typename T, size_t N>
+vec <T, N> dFdyFine(const vec <T, N> &v)
+{
+	return platform_intrinsic_from_args <vec <T, N>> ("dFdyFine", v);
+}
+
 } // namespace jvl::ire

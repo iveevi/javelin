@@ -65,7 +65,7 @@ void dump_ir_operation(const General &g)
 				swizzle->src,
 				Swizzle::name[swizzle->type]);
 	} else if (auto op = g.get <Operation> ()) {
-		fmt::print("op ${} %{}", Operation::name[op->type], op->args);
+		fmt::print("op ${} %{} -> %{}", Operation::name[op->type], op->args, op->ret);
 	} else if (auto intr = g.get <Intrinsic> ()) {
 		fmt::print("intr ${} %{} -> %{}", intr->name, intr->args, intr->ret);
 	} else if (auto cond = g.get <Cond> ()) {
