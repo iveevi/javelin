@@ -34,11 +34,20 @@ struct Global {
 	index_t binding = -1;
 
 	enum : int8_t {
+		parameter,
 		layout_in,
 		layout_out,
 		push_constant,
 		glsl_vertex_intrinsic_gl_Position,
 	} qualifier;
+
+       static constexpr const char *name[] = {
+	       "parameter",
+	       "layout input",
+	       "layout output",
+	       "push_constant",
+	       "glsl:vertex:gl_Position"
+	};
 };
 
 struct TypeField {
@@ -131,6 +140,12 @@ struct Construct {
 	index_t args = -1;
 };
 
+struct Call {
+	index_t cid = -1;
+	index_t args = -1;
+	index_t ret = -1;
+};
+
 struct Store {
 	index_t dst = -1;
 	index_t src = -1;
@@ -163,7 +178,7 @@ struct End {};
 
 using General = wrapped::variant <
 	Global, TypeField, Primitive,
-	Swizzle, Operation, Construct,
+	Swizzle, Operation, Construct, Call,
 	Intrinsic, List, Store, Load,
 	Cond, Elif, While, Returns, End
 >;
@@ -177,6 +192,7 @@ static_assert(sizeof(Operation) == 6);
 static_assert(sizeof(Intrinsic) == 12);
 static_assert(sizeof(List)      == 4);
 static_assert(sizeof(Construct) == 4);
+static_assert(sizeof(Call)      == 6);
 static_assert(sizeof(Store)     == 4);
 static_assert(sizeof(Load)      == 4);
 static_assert(sizeof(Cond)      == 4);

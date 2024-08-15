@@ -5,16 +5,9 @@ namespace jvl::atom {
 void dump_ir_operation(const General &g)
 {
 	if (auto global = g.get <Global> ()) {
-		static const char *qualifier_table[] = {
-			"layout input",
-			"layout output",
-			"push_constant",
-			"glsl:vertex:gl_Position"
-		};
-
 		fmt::print("global: %{} = ({}, {})",
 			global->type,
-			qualifier_table[global->qualifier],
+			Global::name[global->qualifier],
 			global->binding);
 	} else if (auto tf = g.get <TypeField> ()) {
 		fmt::print("type: ");
@@ -56,6 +49,14 @@ void dump_ir_operation(const General &g)
 			fmt::print("(nil)");
 		else
 			fmt::print("%{}", ctor->args);
+	} else if (auto call = g.get <Call> ()) {
+		// TODO: if it has a name then use that
+		fmt::print("call ${}:", call->cid);
+		if (call->args == -1)
+			fmt::print(" (nil) -> ");
+		else
+			fmt::print(" %{} -> ", call->args);
+		fmt::print("%{}", call->ret);
 	} else if (auto store = g.get <Store> ()) {
 		fmt::print("store %{} -> %{}", store->src, store->dst);
 	} else if (auto load = g.get <Load> ()) {

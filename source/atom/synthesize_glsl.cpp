@@ -9,10 +9,12 @@ namespace jvl::atom {
 std::string glsl_global_ref(const Global &global)
 {
 	switch (global.qualifier) {
-	case Global::layout_out:
-		return "_lout" + std::to_string(global.binding);
 	case Global::layout_in:
-		return "_lin" + std::to_string(global.binding);
+		return fmt::format("_lin{}", global.binding);
+	case Global::layout_out:
+		return fmt::format("_lout{}", global.binding);
+	case Global::parameter:
+		return fmt::format("_arg{}", global.binding);
 	case Global::push_constant:
 		return "_pc";
 	case Global::glsl_vertex_intrinsic_gl_Position:
@@ -137,8 +139,12 @@ std::string synthesize_glsl_body(const General *const pool,
 		int l = start;
 		while (l != -1) {
 			General h = pool[l];
-			if (!h.is <List> ())
+			if (!h.is <List> ()) {
+				fmt::println("unexpected atom in arglist:");
+				atom::dump_ir_operation(h);
+				fmt::print("\n");
 				abort();
+			}
 
 			List list = h.as <List> ();
 			if (list.item == -1)
@@ -165,6 +171,12 @@ std::string synthesize_glsl_body(const General *const pool,
 		} else if (auto ctor = g.get <Construct> ()) {
 			std::string t = type_name(pool, struct_names, ctor->type, -1);
 			return t + "(" + inlined(ctor->args) + ")";
+		} else if (auto call = g.get <Call> ()) {
+			// TODO: use correct name if present...
+			std::string args;
+			if (call->args != -1)
+				args = strargs(arglist(call->args));
+			return fmt::format("callable{}{}", call->cid, args);
 		} else if (auto list = g.get <List> ()) {
 			std::string v = inlined(list->item);
 			if (list->next != -1)

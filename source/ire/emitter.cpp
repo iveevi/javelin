@@ -1,5 +1,6 @@
 #include <cassert>
 #include <map>
+#include <unordered_map>
 #include <unordered_set>
 
 #include <fmt/core.h>
@@ -27,6 +28,9 @@ void mark_used(const std::vector <atom::General> &pool,
 	if (auto ctor = g.get <atom::Construct> ()) {
 		mark_used(pool, used, synthesized, ctor->type, true);
 		mark_used(pool, used, synthesized, ctor->args, true);
+	} else if (auto call = g.get <atom::Call> ()) {
+		mark_used(pool, used, synthesized, call->ret, true);
+		mark_used(pool, used, synthesized, call->args, true);
 	} else if (auto list = g.get <atom::List> ()) {
 		// TODO: get size for nodes...
 		mark_used(pool, used, synthesized, list->item, true);
@@ -63,6 +67,29 @@ Callable::Callable() : pointer(0)
 {
 	static size_t id = 0;
 	cid = id++;
+
+	tracked()[cid] = this;
+}
+
+Callable::Callable(const Callable &other)
+{
+	*this = other;
+}
+
+// TODO: destructor will erase the entry if the active * == this
+
+Callable &Callable::operator=(const Callable &other)
+{
+	if (this != &other) {
+		pool = other.pool;
+		pointer = other.pointer;
+		cid = other.cid;
+
+		// Replace with the most recent tracked version
+		tracked()[cid] = this;
+	}
+
+	return *this;
 }
 
 int Callable::emit(const atom::General &op)

@@ -428,7 +428,7 @@ int main(int argc, char *argv[])
 
 	std::tie(fb_buffer, fb_image) = allocator
 		.buffer(fb.data, vk::BufferUsageFlagBits::eTransferSrc)
-		.image(vk::Extent2D { fb.width, fb.height },
+		.image(vk::Extent2D { uint32_t(fb.width), uint32_t(fb.height) },
 			vk::Format::eR8G8B8A8Unorm,
 			vk::ImageUsageFlagBits::eSampled
 				| vk::ImageUsageFlagBits::eTransferDst,
@@ -522,7 +522,7 @@ int main(int argc, char *argv[])
 
 					std::tie(fb_buffer, fb_image) = allocator
 						.buffer(fb.data, vk::BufferUsageFlagBits::eTransferSrc)
-						.image(vk::Extent2D { fb.width, fb.height },
+						.image(vk::Extent2D { uint32_t(fb.width), uint32_t(fb.height) },
 								vk::Format::eR8G8B8A8Unorm,
 								vk::ImageUsageFlagBits::eSampled
 								| vk::ImageUsageFlagBits::eTransferDst,

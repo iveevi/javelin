@@ -2,8 +2,9 @@
 #include <map>
 #include <type_traits>
 
-#include "atom/kernel.hpp"
 #include "atom/atom.hpp"
+#include "atom/kernel.hpp"
+#include "ire/emitter.hpp"
 #include "ire/tagged.hpp"
 #include "wrapped_types.hpp"
 
@@ -105,32 +106,37 @@ std::string synthesize_struct(const std::vector <atom::General> &atoms, int i,
 }
 
 // Gathering the input/output structure of the kernel
-struct io_structure {
+struct kernel_synthesis_structure {
+	std::unordered_set <size_t> callables;
 	std::map <int, std::string> lins;
 	std::map <int, std::string> louts;
+	std::map <int, std::string> parameters;
 	std::string push_constant;
 
-	static io_structure from(const std::vector <atom::General> &atoms,
+	static kernel_synthesis_structure from(const std::vector <atom::General> &atoms,
 			         const wrapped::hash_table <int, std::string> &struct_names,
 				 const std::unordered_set <atom::index_t> &used) {
-		io_structure ios;
+		kernel_synthesis_structure ios;
 
 		for (int i = 0; i < atoms.size(); i++) {
 			if (!used.count(i))
 				continue;
 
 			auto op = atoms[i];
-			if (!op.is <atom::Global> ())
-				continue;
+			if (auto global = op.get <atom::Global> ()) {
+				auto type = atom::type_name(atoms.data(), struct_names, i, -1);
 
-			auto global = std::get <atom::Global> (op);
-			auto type = atom::type_name(atoms.data(), struct_names, i, -1);
-			if (global.qualifier == atom::Global::layout_in)
-				ios.lins[global.binding] = type;
-			else if (global.qualifier == atom::Global::layout_out)
-				ios.louts[global.binding] = type;
-			else if (global.qualifier == atom::Global::push_constant)
-				ios.push_constant = type;
+				if (global->qualifier == atom::Global::layout_in)
+					ios.lins[global->binding] = type;
+				else if (global->qualifier == atom::Global::layout_out)
+					ios.louts[global->binding] = type;
+				else if (global->qualifier == atom::Global::parameter)
+					ios.parameters[global->binding] = type;
+				else if (global->qualifier == atom::Global::push_constant)
+					ios.push_constant = type;
+			} else if (auto call = op.get <atom::Call> ()) {
+				ios.callables.insert(call->cid);
+			}
 		}
 
 		return ios;
@@ -143,11 +149,6 @@ std::string Kernel::synthesize_glsl(const std::string &version_number)
 	// Final generated source
 	std::string source;
 
-	// Version header
-	// TODO: skip if callable
-	source += "#version " + version_number + "\n";
-	source += "\n";
-
 	// Gather all necessary structs
 	wrapped::hash_table <int, std::string> struct_names;
 
@@ -159,42 +160,14 @@ std::string Kernel::synthesize_glsl(const std::string &version_number)
 		source += synthesize_struct(atoms, i, struct_names, struct_index);
 	}
 
-	auto ios = io_structure::from(atoms, struct_names, used);
+	// TODO: gather the required structs, uniquely
+	auto ios = kernel_synthesis_structure::from(atoms, struct_names, used);
 
-	if (!is_compatible(eVertexShader) && !is_compatible(eFragmentShader)) {
-		// Input signature for the function
-		std::vector <std::string> parameters;
-		for (const auto &[binding, type] : ios.lins)
-			parameters.emplace_back(fmt::format("{} _lin{}", type, binding));
+	if (is_compatible(eVertexShader) || is_compatible(eFragmentShader)) {
+		// Version header
+		source += "#version " + version_number + "\n";
+		source += "\n";
 
-		// Output type
-		std::string return_type;
-
-		// TODO: return consistency validation
-		for (auto g : atoms) {
-			if  (auto ret = g.get <Returns> ()) {
-				return_type = atom::type_name(atoms.data(), struct_names, ret->type, -1);
-				break;
-			}
-		}
-
-		// Synthesize the function signature
-		std::string parameter_string;
-
-		if (ios.push_constant.size()) {
-			parameter_string += fmt::format("const {} &_pc", ios.push_constant);
-			if (ios.lins.size())
-				parameter_string += ", ";
-		}
-
-		for (size_t i = 0; i < parameters.size(); i++) {
-			parameter_string += parameters[i];
-			if (i + 1 < parameters.size())
-				parameter_string += ", ";
-		}
-
-		source += return_type + " kernel(" + parameter_string + ")\n";
-	} else {
 		// Global shader variables
 		for (const auto &[binding, type] : ios.lins) {
 			source += fmt::format("layout (location = {}) in {} _lin{};\n",
@@ -220,7 +193,46 @@ std::string Kernel::synthesize_glsl(const std::string &version_number)
 			source += "};\n";
 			source += "\n";
 		}
+	}
 
+	// Synthesize all callable functions
+	for (size_t cid : ios.callables) {
+		// TODO: some other method (find_tracked() -> nil if not exists)
+		ire::Callable *cbl = ire::Callable::tracked()[cid];
+		auto kernel = cbl->export_to_kernel();
+		kernel.name = fmt::format("callable{}", cid);
+		std::string ksource = kernel.synthesize_glsl(version_number);
+		source += ksource + "\n";
+	}
+
+	if (!is_compatible(eVertexShader) && !is_compatible(eFragmentShader)) {
+		// Input signature for the function
+		std::vector <std::string> parameters;
+		for (const auto &[binding, type] : ios.parameters)
+			parameters.emplace_back(fmt::format("{} _arg{}", type, binding));
+
+		// Output type
+		std::string return_type;
+
+		// TODO: return consistency validation
+		for (auto g : atoms) {
+			if  (auto ret = g.get <Returns> ()) {
+				return_type = atom::type_name(atoms.data(), struct_names, ret->type, -1);
+				break;
+			}
+		}
+
+		// Synthesize the function signature
+		std::string parameter_string;
+
+		for (size_t i = 0; i < parameters.size(); i++) {
+			parameter_string += parameters[i];
+			if (i + 1 < parameters.size())
+				parameter_string += ", ";
+		}
+
+		source += fmt::format("{} {}({})\n", return_type, name, parameter_string);
+	} else {
 		// Main function
 		source += "void main()\n";
 	}
@@ -334,7 +346,7 @@ std::string Kernel::synthesize_cplusplus()
 		source += synthesize_struct(atoms, i, struct_names, struct_index);
 	}
 
-	auto ios = io_structure::from(atoms, struct_names, used);
+	auto ios = kernel_synthesis_structure::from(atoms, struct_names, used);
 
 	// TODO: name hint for layout output structure (as a replacement for a tuple)
 
@@ -378,7 +390,7 @@ std::string Kernel::synthesize_cplusplus()
 			parameter_string += ", ";
 	}
 
-	source += return_type + " kernel(" + parameter_string + ")\n";
+	source += fmt::format("{} {}({})\n", return_type, name, parameter_string);
 
 	// Fill in the outputs
 	source += "{\n";

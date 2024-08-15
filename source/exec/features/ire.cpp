@@ -21,6 +21,7 @@
 // TODO: synthesizable with name hints
 // TODO: std.hpp for additional features
 
+using namespace jvl;
 using namespace jvl::ire;
 
 struct lighting {
@@ -32,20 +33,6 @@ struct lighting {
 		// TODO: prevent duplicate fields
 		// return uniform_layout(direction, direction);
 		return uniform_layout(direction, color, on);
-	}
-};
-
-// TODO: nested structures
-struct mvp {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-
-	lighting light;
-
-	auto layout() {
-		return uniform_layout(model, view, light, proj);
-		// return uniform_layout(model, view, proj);
 	}
 };
 
@@ -76,19 +63,20 @@ struct __callable : Callable {
 			__transfer_mimic_references <index + 1> ();
 	}
 
+	// TODO: only do this if the argument is a synthesizable
+	// TODO: how to deal with passing global variables
+	// (push constants/layouts with custom layouts?)
+	// TODO: constexpr switches to handle each case...
 	template <size_t index>
 	void __fill_mimic_references() {
 		auto &x = std::get <index> (mimic);
 
 		auto &em = Emitter::active;
 
-		using namespace jvl;
-
-		// TODO: parameter global qualifier
 		using type_of_x = std::decay_t <decltype(x)>;
 
 		atom::Global global;
-		global.qualifier = atom::Global::layout_in;
+		global.qualifier = atom::Global::parameter;
 		global.type = type_field_from_args <type_of_x> ().id;
 		global.binding = index;
 
@@ -111,10 +99,19 @@ struct __callable : Callable {
 		return *this;
 	}
 
-	R operator()(const Args &...) {
-		// TODO: fill this out,
-		// needs a new call IR
-		return R();
+	// TODO: named(...) to set cached & synthesized name
+
+	R operator()(const Args &... args) {
+		auto &em = Emitter::active;
+
+		atom::Call call;
+		call.cid = cid;
+		call.ret = type_field_from_args <R> ().id;
+		call.args = list_from_args(args...);
+
+		cache_index_t cit;
+		cit = em.emit(call);
+		return R(cit);
 	}
 };
 
@@ -159,7 +156,6 @@ void __G1(vec3 n, vec3 v, f32 roughness)
 		returns(0.0f);
 	end();
 
-	// This is the actual function...
 	f32 alpha = roughness;
 	f32 theta = acos(clamp(dot(n, v), 0, 0.999f));
 
@@ -185,10 +181,6 @@ void vertex_shader()
 	layout_out <f32, 0> result;
 
 	result = G1(normal, position, 0.1);
-
-	auto k = G1.export_to_kernel();
-	k.dump();
-	fmt::println("{}", k.synthesize(jvl::profiles::opengl_330));
 
 	// push_constant <mvp> mvp;
 	//
@@ -229,7 +221,7 @@ int main()
 	glfwInit();
 
 	auto vertex_kernel = kernel_from_args(vertex_shader);
-	std::string vertex_source = vertex_kernel.synthesize(jvl::profiles::opengl_330);
+	std::string vertex_source = vertex_kernel.synthesize(jvl::profiles::opengl_450);
 	fmt::println("vsource:\n{}", vertex_source);
 
 	vertex_kernel.dump();

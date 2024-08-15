@@ -11,6 +11,9 @@ class Kernel {
 	std::string synthesize_glsl(const std::string &);
 	std::string synthesize_cplusplus();
 public:
+	// Name of the kernel, usually not set by the user
+	std::string name;
+
 	// Possible kernel flags, which enable certain paths of synthesis
 	enum Kind {
 		eNone            = 0x0,
@@ -21,7 +24,7 @@ public:
 	} kind;
 
 	// Must specify the type by the time of construction
-	Kernel(Kind k) : kind(k) {}
+	Kernel(Kind k) : name("kernel"), kind(k) {}
 
 	// At this point the IR atoms are unlikely to change
 	std::vector <atom::General> atoms;

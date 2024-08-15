@@ -23,6 +23,9 @@ void reindex_ir_operation(const wrapped::reindex <index_t> &reindexer, General &
 	} else if (g.is <Construct> ()) {
 		reindexer(g.as <Construct> ().type);
 		reindexer(g.as <Construct> ().args);
+	} else if (g.is <Call> ()) {
+		reindexer(g.as <Call> ().ret);
+		reindexer(g.as <Call> ().args);
 	} else if (g.is <Store> ()) {
 		reindexer(g.as <Store> ().dst);
 		reindexer(g.as <Store> ().src);

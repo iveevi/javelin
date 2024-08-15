@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <stack>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "../atom/atom.hpp"
@@ -11,7 +12,16 @@
 
 namespace jvl::ire {
 
+// TODO: move to another header
 struct Callable {
+	// Global list of callables
+	static auto &tracked() {
+		static std::unordered_map <size_t, Callable *> map;
+		return map;
+	}
+
+	// Ordinary information, same as Emitter
+	// but lacks the used and synthesized members
 	std::vector <atom::General> pool;
 	size_t pointer;
 	size_t cid;
@@ -20,6 +30,10 @@ struct Callable {
 	// insructions from working backwards at the returns
 
 	Callable();
+	Callable(const Callable &);
+	Callable &operator=(const Callable &);
+
+	// TODO: destructor, which offloads it from the global list
 
 	atom::Kernel export_to_kernel();
 

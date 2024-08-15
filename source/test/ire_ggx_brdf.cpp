@@ -21,20 +21,22 @@ struct Material {
 };
 
 // GGX microfacet distribution function
-f32 ggx_d(Material mat, vec3 n, vec3 h)
+void __ggx_ndf(Material mat, vec3 n, vec3 h)
 {
 	f32 alpha = mat.roughness;
 	f32 theta = acos(clamp(dot(n, h), 0.0f, 0.999f));
-	return (alpha * alpha)
+	f32 ret = (alpha * alpha)
 		/ (PI * pow(cos(theta), 4)
 		* pow(alpha * alpha + tan(theta) * tan(theta), 2.0f));
+	returns(ret);
 }
 
 // Smith shadow-masking function (single)
-f32 G1(Material mat, vec3 n, vec3 v)
+void __G1(Material mat, vec3 n, vec3 v)
 {
-	// if (dot(v, n) <= 0.0f)
-	// 	return 0.0f;
+	cond(dot(v, n) <= 0.0f);
+		returns(0.0f);
+	end();
 
 	f32 alpha = mat.roughness;
 	f32 theta = acos(clamp(dot(n, v), 0, 0.999f));
@@ -42,7 +44,7 @@ f32 G1(Material mat, vec3 n, vec3 v)
 	f32 tan_theta = tan(theta);
 
 	f32 denom = 1 + sqrt(1 + alpha * alpha * tan_theta * tan_theta);
-	return 2.0f/denom;
+	returns(2.0f/denom);
 }
 
 // // Smith shadow-masking function (double)
