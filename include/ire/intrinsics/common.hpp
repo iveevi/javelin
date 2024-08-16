@@ -48,4 +48,9 @@ vec <T, N> normalize(const vec <T, N> &v)
 	return platform_intrinsic_from_args <vec <T, N>> ("normalize", v);
 }
 
+inline void discard()
+{
+	platform_intrinsic_keyword("discard");
+}
+
 } // namespace jvl::ire

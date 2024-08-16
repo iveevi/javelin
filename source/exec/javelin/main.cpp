@@ -52,7 +52,7 @@ struct mvp {
 		return proj * (view * (model * vec4(position, 1.0)));
 	}
 
-	auto layout() {
+	auto layout() const {
 		return uniform_layout(model, view, proj);
 	}
 };

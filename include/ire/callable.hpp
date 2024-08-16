@@ -2,6 +2,7 @@
 
 #include "../atom/atom.hpp"
 #include "../atom/kernel.hpp"
+#include "ire/uniform_layout.hpp"
 #include "type_synthesis.hpp"
 #include "emitter.hpp"
 
@@ -48,56 +49,48 @@ struct Callable {
 };
 
 // Internal construction of callables
+// TODO: restrict argument types...
 template <typename R, typename ... Args>
 struct __callable : Callable {
-	std::tuple <Args...> mimic;
-	std::tuple <Args *...> passed;
-
 	template <size_t index>
 	void __fill_parameter_references(std::tuple <Args...> &tpl) {
-		std::get <index> (passed) = &std::get <index> (tpl);
-		if constexpr (index + 1 < sizeof...(Args))
-			__fill_parameter_references <index + 1> (tpl);
-	}
-
-	template <size_t index>
-	void __transfer_mimic_references() {
-		auto src = std::get <index> (mimic);
-		auto dst = std::get <index> (passed);
-		dst->ref = src.ref;
-
-		if constexpr (index + 1 < sizeof...(Args))
-			__transfer_mimic_references <index + 1> ();
-	}
-
-	// TODO: only do this if the argument is a synthesizable
-	// TODO: how to deal with passing global variables
-	// (push constants/layouts with custom layouts?)
-	// TODO: constexpr switches to handle each case...
-	template <size_t index>
-	void __fill_mimic_references() {
-		auto &x = std::get <index> (mimic);
-
 		auto &em = Emitter::active;
 
-		using type_of_x = std::decay_t <decltype(x)>;
+		using type_t = std::decay_t <decltype(std::get <index> (tpl))>;
 
-		atom::Global global;
-		global.qualifier = atom::Global::parameter;
-		global.type = type_field_from_args <type_of_x> ().id;
-		global.binding = index;
+		if constexpr (uniform_compatible <type_t>) {
+			auto &x = std::get <index> (tpl);
 
-		x.ref = em.emit(global);
+			auto layout = x.layout().remove_const();
+
+			atom::Global global;
+			global.qualifier = atom::Global::parameter;
+			global.type = type_field_from_args(layout).id;
+			global.binding = index;
+
+			cache_index_t ref;
+			ref = em.emit(global);
+			layout.__ref_with(ref);
+		} else {
+			auto &x = std::get <index> (tpl);
+
+			using type_of_x = std::decay_t <decltype(x)>;
+
+			atom::Global global;
+			global.qualifier = atom::Global::parameter;
+			global.type = type_field_from_args <type_of_x> ().id;
+			global.binding = index;
+
+			x.ref = em.emit(global);
+		}
 
 		if constexpr (index + 1 < sizeof...(Args))
-			__fill_mimic_references <index + 1> ();
+			__fill_parameter_references <index + 1> (tpl);
 	}
 
 	void call(std::tuple <Args...> &args) {
 		Emitter::active.scopes.push(*this);
 		__fill_parameter_references <0> (args);
-		__fill_mimic_references <0> ();
-		__transfer_mimic_references <0> ();
 	}
 
 	auto &end() {

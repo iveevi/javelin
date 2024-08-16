@@ -1,7 +1,9 @@
 #pragma once
 
 #include "atom/atom.hpp"
+#include "ire/tagged.hpp"
 #include "ire/type_synthesis.hpp"
+#include "ire/uniform_layout.hpp"
 #include "primitive.hpp"
 
 namespace jvl::ire {
@@ -27,6 +29,27 @@ int list_from_args(const T &t, const Args &... args)
 
 	atom::List l;
 	l.item = t.synthesize().id;
+
+	if constexpr (sizeof...(args))
+		l.next = list_from_args(args...);
+
+	return em.emit(l);
+}
+
+template <uniform_compatible T, typename ... Args>
+int list_from_args(const T &t, const Args &... args)
+{
+	auto &em = Emitter::active;
+
+	// TODO: are nested structs handled?
+	auto layout = t.layout();
+
+	atom::Construct ctor;
+	ctor.type = type_field_from_args(layout).id;
+	ctor.args = layout.list().id;
+
+	atom::List l;
+	l.item = em.emit(ctor);
 
 	if constexpr (sizeof...(args))
 		l.next = list_from_args(args...);
@@ -92,6 +115,50 @@ inline void platform_intrinsic_keyword(const char *name)
 	intr.name = name;
 
 	em.emit_main(intr);
+}
+
+template <typename ... Args>
+cache_index_t default_construct_index(const __const_uniform_layout <Args...> &layout, int index)
+{
+	auto &em = Emitter::active;
+
+	atom::Construct ctor;
+	ctor.type = type_field_index_from_args(index, layout).id;
+	// args is (nil) to properly engage the default constructor
+
+	cache_index_t cit;
+	cit = em.emit(ctor);
+	return cit;
+}
+
+template <typename ... Args>
+requires (sizeof...(Args) > 0)
+cache_index_t __const_uniform_layout <Args...> ::list() const
+{
+	auto &em = Emitter::active;
+
+	atom::List end;
+
+	cache_index_t next = cache_index_t::null();
+	for (int i = fields.size() - 1; i >= 0; i--) {
+		const_field f = fields[i];
+
+		end.next = next.id;
+		if (f.type == eField) {
+			const tagged *t = reinterpret_cast <const tagged *> (f.ptr);
+
+			if (t->ref.id == -1)
+				end.item = default_construct_index(*this, i).id;
+			else
+				end.item = t->ref.id;
+
+		}
+		// TODO: handle nested structs...
+
+		next = em.emit(end);
+	}
+
+	return next;
 }
 
 } // namespace jvl::ire

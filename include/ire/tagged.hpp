@@ -16,16 +16,16 @@ struct cache_index_t {
 		return *this;
 	}
 
-	static cache_index_t null() {
-		return {.id = -1};
-	}
-
 	bool operator==(const value_type &v) {
 		return id == v;
 	}
 
 	bool operator==(const cache_index_t &c) {
 		return id == c.id;
+	}
+
+	static cache_index_t null() {
+		return {.id = -1};
 	}
 };
 

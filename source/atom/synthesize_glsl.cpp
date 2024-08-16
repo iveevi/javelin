@@ -86,6 +86,14 @@ std::string synthesize_glsl_body(const General *const pool,
 		return std::string(indentation << 2, ' ') + s + (semicolon ? ";" : "") + "\n";
 	};
 
+	auto declare_new = [&](const std::string &t, int index) -> std::string {
+		int n = variables.size();
+		std::string var = fmt::format("s{}", n);
+		std::string stmt = fmt::format("{} {}", t, var);
+		variables[index] = var;
+		return finish(stmt);
+	};
+
 	auto assign_new = [&](const std::string &t, const std::string &v, int index) -> std::string {
 		int n = variables.size();
 		std::string var = fmt::format("s{}", n);
@@ -95,6 +103,11 @@ std::string synthesize_glsl_body(const General *const pool,
 	};
 
 	ref = [&](int index) -> std::string {
+		if (index == -1) {
+			fmt::println("invalid index passed to ref");
+			abort();
+		}
+
 		General g = pool[index];
 		if (auto global = g.get <Global> ()) {
 			return glsl_global_ref(*global);
@@ -148,8 +161,10 @@ std::string synthesize_glsl_body(const General *const pool,
 			}
 
 			List list = h.as <List> ();
-			if (list.item == -1)
+			if (list.item == -1) {
+				fmt::println("invalid index found in list item");
 				abort();
+			}
 
 			args.push_back(inlined(list.item));
 
@@ -162,6 +177,11 @@ std::string synthesize_glsl_body(const General *const pool,
 	inlined = [&](int index) -> std::string {
 		if (variables.count(index))
 			return variables[index];
+
+		if (index == -1) {
+			fmt::println("invalid index passed to inlined");
+			abort();
+		}
 
 		General g = pool[index];
 
@@ -259,16 +279,21 @@ std::string synthesize_glsl_body(const General *const pool,
 			indentation++;
 		} else if (auto ctor = g.get <Construct> ()) {
 			std::string t = type_name(pool, struct_names, ctor->type, -1);
-			std::string v = t + "(" + inlined(ctor->args) + ")";
-			source += assign_new(t, v, index);
+			if (ctor->args == -1) {
+				source += declare_new(t, index);
+			} else {
+				std::string args = strargs(arglist(ctor->args));
+				std::string v = t + args;
+				source += assign_new(t, v, index);
+			}
 		} else if (auto call = g.get <Call> ()) {
 			ire::Callable *cbl = ire::Callable::search_tracked(call->cid);
-			std::string args;
+			std::string args = "()";
 			if (call->args != -1)
 				args = strargs(arglist(call->args));
 
 			std::string t = type_name(pool, struct_names, call->ret, -1);
-			std::string v = fmt::format("{}{}", cbl->name, args);
+			std::string v = cbl->name + args;
 			source += assign_new(t, v, index);
 		} else if (auto load = g.get <Load> ()) {
 			std::string accessor;

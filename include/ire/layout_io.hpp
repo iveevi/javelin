@@ -41,7 +41,7 @@ struct layout_in : layout_in_base <T> {
 	requires uniform_compatible <T> : T(args...) {
 		auto &em = Emitter::active;
 
-		auto layout = this->layout();
+		auto layout = this->layout().remove_const();
 
 		atom::Global global;
 		global.type = type_field_from_args(layout).id;
@@ -107,7 +107,7 @@ struct layout_out : layout_out_base <T> {
 	requires uniform_compatible <T> : T(args...) {
 		auto &em = Emitter::active;
 
-		auto layout = this->layout();
+		auto layout = this->layout().remove_const();
 
 		atom::Global global;
 		global.type = type_field_from_args(layout).id;
