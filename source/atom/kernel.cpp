@@ -145,10 +145,17 @@ struct kernel_synthesis_structure {
 };
 
 // Generating GLSL source code
+// TODO: need to pass stage type...
 std::string Kernel::synthesize_glsl(const std::string &version_number)
 {
 	// Final generated source
 	std::string source;
+
+	if (is_compatible(eVertexShader) || is_compatible(eFragmentShader)) {
+		// Version header
+		source += "#version " + version_number + "\n";
+		source += "\n";
+	}
 
 	// Gather all necessary structs
 	wrapped::hash_table <int, std::string> struct_names;
@@ -165,10 +172,6 @@ std::string Kernel::synthesize_glsl(const std::string &version_number)
 	auto ios = kernel_synthesis_structure::from(atoms, struct_names, used);
 
 	if (is_compatible(eVertexShader) || is_compatible(eFragmentShader)) {
-		// Version header
-		source += "#version " + version_number + "\n";
-		source += "\n";
-
 		// Global shader variables
 		for (const auto &[binding, type] : ios.lins) {
 			source += fmt::format("layout (location = {}) in {} _lin{};\n",
