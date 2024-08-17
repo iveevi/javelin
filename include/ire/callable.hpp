@@ -6,6 +6,7 @@
 #include "uniform_layout.hpp"
 #include "type_synthesis.hpp"
 #include "emitter.hpp"
+#include <type_traits>
 
 namespace jvl::ire {
 
@@ -130,12 +131,12 @@ concept acceptable_callable = std::is_function_v <F> || requires(const F &ftn) {
 template <typename R, typename ... Args>
 struct signature_pair {
 	using return_t = R;
-	using args_t = std::tuple <Args...>;
+	using args_t = std::tuple <std::decay_t <Args>...>;
 
-	using callable = callable_t <R, Args...>;
+	using callable = callable_t <R, std::decay_t <Args>...>;
 
 	template <typename RR>
-	using manual_callable = callable_t <RR, Args...>;
+	using manual_callable = callable_t <RR, std::decay_t <Args>...>;
 };
 
 template <typename R, typename ... Args>
@@ -167,12 +168,12 @@ struct signature {
 template <typename R, typename ... Args>
 struct signature <R (Args...)> {
 	using return_t = R;
-	using args_t = std::tuple <Args...>;
+	using args_t = std::tuple <std::decay_t <Args>...>;
 
-	using callable = callable_t <R, Args...>;
+	using callable = callable_t <R, std::decay_t <Args>...>;
 
 	template <typename RR>
-	using manual_callable = callable_t <RR, Args...>;
+	using manual_callable = callable_t <RR, std::decay_t <Args>...>;
 };
 
 }

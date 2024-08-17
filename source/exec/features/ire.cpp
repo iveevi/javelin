@@ -41,12 +41,11 @@ struct surface_hit {
 	}
 };
 
-void ftn(lighting light, surface_hit sh)
+auto shade = callable([](const lighting &light,
+			 const surface_hit &sh)
 {
-	returns(light.lambert(sh.n) * sh.p);
-}
-
-auto shade = callable <vec3> (ftn).named("shade");
+	return light.lambert(sh.n) * sh.p;
+}).named("shade");
 
 void shader()
 {

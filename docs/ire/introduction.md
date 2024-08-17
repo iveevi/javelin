@@ -1,15 +1,18 @@
-# Intermediate Representation Emitter (IRE)
+---
+title: Intermediate Representation Emitter (IRE)
+---
 
-## About
+# About
 
 The Javelin IRE framework aims to bring shader programming and general purpose GPU computing natively to the C++ programming language. Rather than creating a dialect of C++ with a new compiler system, we enable these features using only the existing type system, meta-programming, and operator overloading capabilities present in C++ itself.
 
 This document describes the design choices taken to establish a framework to make this possible. Later documents will dive into more details about specifics of the IRE:
 
 - [Type system](types.md)
+- [Callable instances in Javelin](callable.md)
 - [Automatic differentiation (prototype)](autodiff.md)
 
-## Overview
+# Overview
 
 At the highest level, the goal of the IRE module is to translate syntactically seamless C++ code into arbitrary targets for downstream applications. These targets could include GLSL or HLSL shader code, SPIRV assembly or binaries, CUDA code or PTX assembly, or perhaps even C++ code or dynamic libraries. Effectively, this means that the IRE is a multi-target Just-in-Time (JIT) compiler framework.
 
@@ -33,10 +36,10 @@ Beside this reason, it may be be useful to generate programs at runtime, dependi
 
 Along this reasoning, another potential feature that runtime generation enables is the possibility of code transformation, to provide language features not native to the target code. For example, as differentiable programming is becoming more popular, some languages like [slang](https://research.nvidia.com/labs/rtr/publication/bangaru2023slangd/) have implemented differentiable programming as a native feature. However, this is not the case with other languages like CUDA. With a multi-target solution, such as the IRE proposed here, language features can be granted to those which do not natively have them.
 
-## Atoms
+# Atoms
 
-## Lifted Type Systems
+# Lifted Type Systems
 
-## Callables
+# Callables
 
 Subroutines are familiar and ubiquitous objects in programming.

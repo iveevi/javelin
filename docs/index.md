@@ -1,5 +1,7 @@
-# Javelin
+---
+title: Javelin
+---
 
-## Components
+# Components
 
-#### [Javelin Intermediate Representation Emitter (IRE)](ire/introduction.md)
+### [Javelin Intermediate Representation Emitter (IRE)](ire/introduction.md)
