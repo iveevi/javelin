@@ -158,7 +158,6 @@ struct Load {
 
 struct Cond {
 	index_t cond = -1;
-	// TODO: is failto actually used?
 	index_t failto = -1;
 };
 
@@ -167,7 +166,8 @@ struct While {
 	index_t failto = -1;
 };
 
-struct Elif : Cond {};
+// TODO: is any distinction necessary?
+struct Elif : Cond {}; // If cond is (-1) then it is an else branch
 
 struct Returns {
 	index_t type = -1;

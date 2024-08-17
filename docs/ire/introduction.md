@@ -8,9 +8,10 @@ The Javelin IRE framework aims to bring shader programming and general purpose G
 
 This document describes the design choices taken to establish a framework to make this possible. Later documents will dive into more details about specifics of the IRE:
 
-- [Type system](types.md)
-- [Callable instances in Javelin](callable.md)
-- [Automatic differentiation (prototype)](autodiff.md)
+- [Atom IR Specification](atom.md)
+- [Type System](types.md)
+- [Callables in Javelin](callable.md)
+- [Automatic Differentiation (Prototype)](autodiff.md)
 
 # Overview
 
@@ -22,7 +23,7 @@ This is of course an ambitious goal, so one ought to raise a few precautionary q
 2. Why choose C++ as the base language to implement such as system?
 3. What kind of features and restriction can a user expect from a system which delivers the capabilities above?
 
-#### 1. Shader permutations and runtime generation
+## 1. Shader permutations and runtime generation
 
 In the particular context of game engines in computer science, shader permutations present a notable problem. Namely, suppose that a material in the game engine has a set of properties, and that it is desired to optimize away some of these options when compiling the final material shader. If these are, for example, $N$ boolean options in the shader, there will be a total of $2^N$ combinations of unique shaders which need to be compiled. This is impractical to do beforehand in most cases, so common solutions include:
 
@@ -36,10 +37,4 @@ Beside this reason, it may be be useful to generate programs at runtime, dependi
 
 Along this reasoning, another potential feature that runtime generation enables is the possibility of code transformation, to provide language features not native to the target code. For example, as differentiable programming is becoming more popular, some languages like [slang](https://research.nvidia.com/labs/rtr/publication/bangaru2023slangd/) have implemented differentiable programming as a native feature. However, this is not the case with other languages like CUDA. With a multi-target solution, such as the IRE proposed here, language features can be granted to those which do not natively have them.
 
-# Atoms
-
-# Lifted Type Systems
-
-# Callables
-
-Subroutines are familiar and ubiquitous objects in programming.
+# Atom IR
