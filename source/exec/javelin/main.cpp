@@ -12,6 +12,7 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_vulkan.h>
 #include <imgui/backends/imgui_impl_glfw.h>
+#include <vulkan/vulkan_structs.hpp>
 
 #include "constants.hpp"
 #include "core/aperature.hpp"
@@ -83,6 +84,16 @@ void fragment()
 
 }
 
+struct InteractiveWindow : littlevk::Window {
+	InteractiveWindow() = default;
+
+	InteractiveWindow(const littlevk::Window &win) : littlevk::Window(win) {}
+
+	bool key_pressed(int key) const {
+		return glfwGetKey(handle, key) == GLFW_PRESS;
+	}
+};
+
 struct DeviceResourceCollection {
 	vk::PhysicalDevice phdev;
 	vk::SurfaceKHR surface;
@@ -93,10 +104,10 @@ struct DeviceResourceCollection {
 	vk::DescriptorPool descriptor_pool;
 	vk::PhysicalDeviceMemoryProperties memory_properties;
 
-	// TODO: InteractiveWindow with key_pressed(...) methods
-	littlevk::Window window;
 	littlevk::Swapchain swapchain;
 	littlevk::Deallocator dal;
+
+	InteractiveWindow window;
 
 	auto allocator() {
 		return littlevk::bind(device, memory_properties, dal);
@@ -109,6 +120,30 @@ struct DeviceResourceCollection {
 	auto commander() {
 		return littlevk::bind(device, command_pool, graphics_queue);
 	}
+
+	template <typename ... Args>
+	void configure_display(const Args &... args) {
+		littlevk::Window win;
+		std::tie(surface, win) = littlevk::surface_handles(args...);
+		window = win;
+	}
+
+	void configure_device(const std::vector <const char *> &EXTENSIONS) {
+		littlevk::QueueFamilyIndices queue_family = littlevk::find_queue_families(phdev, surface);
+
+		memory_properties = phdev.getMemoryProperties();
+		device = littlevk::device(phdev, queue_family, EXTENSIONS);
+		dal = littlevk::Deallocator(device);
+
+		graphics_queue = device.getQueue(queue_family.graphics, 0);
+		present_queue = device.getQueue(queue_family.present, 0);
+
+		command_pool = littlevk::command_pool(device,
+			vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+			queue_family.graphics).unwrap(dal);
+
+		swapchain = combined().swapchain(surface, queue_family);
+	}
 };
 
 inline vk::DescriptorSet imgui_add_vk_texture(const vk::Sampler &sampler, const vk::ImageView &view, const vk::ImageLayout &layout)
@@ -118,9 +153,36 @@ inline vk::DescriptorSet imgui_add_vk_texture(const vk::Sampler &sampler, const 
 					   static_cast <VkImageLayout> (layout));
 }
 
-inline void imgui_initialize_vulkan()
+inline void imgui_initialize_vulkan(DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
 {
+	ImGui::CreateContext();
 
+	ImGui_ImplGlfw_InitForVulkan(drc.window.handle, true);
+
+	vk::DescriptorPoolSize pool_size {
+		vk::DescriptorType::eCombinedImageSampler, 1 << 10
+	};
+
+	auto descriptor_pool = littlevk::descriptor_pool(
+		drc.device, vk::DescriptorPoolCreateInfo {
+			vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+			1 << 10, pool_size,
+		}
+	).unwrap(drc.dal);
+
+	ImGui_ImplVulkan_InitInfo init_info = {};
+
+	init_info.Instance = littlevk::detail::get_vulkan_instance();
+	init_info.DescriptorPool = descriptor_pool;
+	init_info.Device = drc.device;
+	init_info.ImageCount = 3;
+	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+	init_info.MinImageCount = 3;
+	init_info.PhysicalDevice = drc.phdev;
+	init_info.Queue = drc.graphics_queue;
+	init_info.RenderPass = render_pass;
+
+	ImGui_ImplVulkan_Init(&init_info);
 }
 
 struct FramebufferCollection {
@@ -129,7 +191,7 @@ struct FramebufferCollection {
 	littlevk::Image display;
 	vk::DescriptorSet descriptor;
 	vk::Sampler sampler;
-	
+
 	littlevk::LinkedDeviceAllocator <> allocator;
 	littlevk::LinkedCommandQueue commander;
 
@@ -206,75 +268,28 @@ int main(int argc, char *argv[])
 	DeviceResourceCollection drc;
 
 	drc.phdev = littlevk::pick_physical_device(predicate);
-
-	vk::Extent2D default_extent { 1920, 1080 };
-
-	std::tie(drc.surface, drc.window) = littlevk::surface_handles(default_extent, "javelin");
-
-	littlevk::QueueFamilyIndices queue_family = littlevk::find_queue_families(drc.phdev, drc.surface);
-
-	// TODO: configure method
-	drc.memory_properties = drc.phdev.getMemoryProperties();
-	drc.device = littlevk::device(drc.phdev, queue_family, EXTENSIONS);
-	drc.dal = littlevk::Deallocator(drc.device);
-
-	auto swapchain = drc.combined().swapchain(drc.surface, queue_family);
-
-	drc.graphics_queue = drc.device.getQueue(queue_family.graphics, 0);
-	drc.present_queue = drc.device.getQueue(queue_family.present, 0);
+	drc.configure_display(vk::Extent2D(1920, 1080), "javelin");
+	drc.configure_device(EXTENSIONS);
 
 	vk::RenderPass ui_render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
-		.add_attachment(littlevk::default_color_attachment(swapchain.format))
+		.add_attachment(littlevk::default_color_attachment(drc.swapchain.format))
 		.add_subpass(vk::PipelineBindPoint::eGraphics)
 			.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
 			.done();
 
 	vk::RenderPass render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
-		.add_attachment(littlevk::default_color_attachment(swapchain.format))
+		.add_attachment(littlevk::default_color_attachment(drc.swapchain.format))
 		.add_attachment(littlevk::default_depth_attachment())
 		.add_subpass(vk::PipelineBindPoint::eGraphics)
 			.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
 			.depth_attachment(1, vk::ImageLayout::eDepthStencilAttachmentOptimal)
 			.done();
 
+	imgui_initialize_vulkan(drc, ui_render_pass);
+
 	std::vector <vk::Framebuffer> ui_framebuffers;
 	std::vector <vk::Framebuffer> framebuffers;
-
 	std::vector <littlevk::Image> render_color_targets;
-
-	{
-		littlevk::Image depth = drc.allocator()
-			.image(drc.window.extent,
-				vk::Format::eD32Sfloat,
-				vk::ImageUsageFlagBits::eDepthStencilAttachment,
-				vk::ImageAspectFlagBits::eDepth);
-
-		render_color_targets.clear();
-		for (size_t i = 0; i < swapchain.images.size(); i++) {
-			render_color_targets.push_back(drc.allocator()
-				.image(drc.window.extent,
-					vk::Format::eB8G8R8A8Unorm,
-					vk::ImageUsageFlagBits::eColorAttachment
-						| vk::ImageUsageFlagBits::eSampled,
-					vk::ImageAspectFlagBits::eColor)
-			);
-		}
-
-		littlevk::FramebufferGenerator ui_generator(drc.device, ui_render_pass, drc.window.extent, drc.dal);
-		littlevk::FramebufferGenerator generator(drc.device, render_pass, drc.window.extent, drc.dal);
-
-		for (size_t i = 0; i < swapchain.images.size(); i++) {
-			ui_generator.add(swapchain.image_views[i]);
-			generator.add(render_color_targets[i].view, depth.view);
-		}
-
-		ui_framebuffers = ui_generator.unpack();
-		framebuffers = generator.unpack();
-	}
-
-	drc.command_pool = littlevk::command_pool(drc.device,
-		vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-		queue_family.graphics).unwrap(drc.dal);
 
 	auto command_buffers = littlevk::command_buffers(drc.device,
 		drc.command_pool,
@@ -311,35 +326,6 @@ int main(int argc, char *argv[])
 	// Syncronization primitives
 	auto sync = littlevk::present_syncronization(drc.device, 2).unwrap(drc.dal);
 
-	ImGui::CreateContext();
-
-	ImGui_ImplGlfw_InitForVulkan(drc.window.handle, true);
-
-	vk::DescriptorPoolSize pool_size {
-		vk::DescriptorType::eCombinedImageSampler, 1 << 10
-	};
-
-	auto descriptor_pool = littlevk::descriptor_pool(
-		drc.device, vk::DescriptorPoolCreateInfo {
-			vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-			1 << 10, pool_size,
-		}
-	).unwrap(drc.dal);
-
-	ImGui_ImplVulkan_InitInfo init_info = {};
-
-	init_info.Instance = littlevk::detail::get_vulkan_instance();
-	init_info.DescriptorPool = descriptor_pool;
-	init_info.Device = drc.device;
-	init_info.ImageCount = 3;
-	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-	init_info.MinImageCount = 3;
-	init_info.PhysicalDevice = drc.phdev;
-	init_info.Queue = drc.graphics_queue;
-	init_info.RenderPass = ui_render_pass;
-
-	ImGui_ImplVulkan_Init(&init_info);
-
 	std::vector <vk::DescriptorSet> imgui_descriptors;
 
 	auto export_render_targets_to_imgui = [&]() {
@@ -354,9 +340,8 @@ int main(int argc, char *argv[])
 		}
 	};
 
-	export_render_targets_to_imgui();
-
-	core::Aperature aperature;
+	core::Aperature primary_aperature;
+	core::Aperature local_aperature;
 	core::Transform transform;
 
 	ImGuiIO &io = ImGui::GetIO();
@@ -364,10 +349,10 @@ int main(int argc, char *argv[])
 
 	MVP mvp;
 	mvp.model = float4x4::identity();
-	mvp.proj = core::perspective(aperature);
+	mvp.proj = core::perspective(primary_aperature);
 
 	auto resize = [&]() {
-		drc.combined().resize(drc.surface, drc.window, swapchain);
+		drc.combined().resize(drc.surface, drc.window, drc.swapchain);
 
 		littlevk::Image depth = drc.allocator()
 			.image(drc.window.extent,
@@ -376,7 +361,7 @@ int main(int argc, char *argv[])
 				vk::ImageAspectFlagBits::eDepth);
 
 		render_color_targets.clear();
-		for (size_t i = 0; i < swapchain.images.size(); i++) {
+		for (size_t i = 0; i < drc.swapchain.images.size(); i++) {
 			render_color_targets.push_back(drc.allocator()
 				.image(drc.window.extent,
 					vk::Format::eB8G8R8A8Unorm,
@@ -389,8 +374,8 @@ int main(int argc, char *argv[])
 		littlevk::FramebufferGenerator ui_generator(drc.device, ui_render_pass, drc.window.extent, drc.dal);
 		littlevk::FramebufferGenerator generator(drc.device, render_pass, drc.window.extent, drc.dal);
 
-		for (size_t i = 0; i < swapchain.images.size(); i++) {
-			ui_generator.add(swapchain.image_views[i]);
+		for (size_t i = 0; i < drc.swapchain.images.size(); i++) {
+			ui_generator.add(drc.swapchain.image_views[i]);
 			generator.add(render_color_targets[i].view, depth.view);
 		}
 
@@ -404,13 +389,10 @@ int main(int argc, char *argv[])
 				image.transition(cmd, vk::ImageLayout::ePresentSrcKHR);
 		};
 
-		// TODO: linked queue pool
 		drc.commander().submit_and_wait(transition);
-		// littlevk::submit_now(drc.device, drc.command_pool, graphics_queue, transition);
-
-		aperature.aspect = float(drc.window.extent.width)/float(drc.window.extent.height);
-		mvp.proj = core::perspective(aperature);
 	};
+
+	resize();
 
 	auto handle_input = [&]() {
 		static float last_time = 0.0f;
@@ -421,19 +403,19 @@ int main(int argc, char *argv[])
 		last_time = glfwGetTime();
 
 		float3 velocity(0.0f);
-		if (glfwGetKey(drc.window.handle, GLFW_KEY_S) == GLFW_PRESS)
+		if (drc.window.key_pressed(GLFW_KEY_S))
 			velocity.z -= delta;
-		else if (glfwGetKey(drc.window.handle, GLFW_KEY_W) == GLFW_PRESS)
+		else if (drc.window.key_pressed(GLFW_KEY_W))
 			velocity.z += delta;
 
-		if (glfwGetKey(drc.window.handle, GLFW_KEY_D) == GLFW_PRESS)
+		if (drc.window.key_pressed(GLFW_KEY_D))
 			velocity.x -= delta;
-		else if (glfwGetKey(drc.window.handle, GLFW_KEY_A) == GLFW_PRESS)
+		else if (drc.window.key_pressed(GLFW_KEY_A))
 			velocity.x += delta;
 
-		if (glfwGetKey(drc.window.handle, GLFW_KEY_E) == GLFW_PRESS)
+		if (drc.window.key_pressed(GLFW_KEY_E))
 			velocity.y += delta;
-		else if (glfwGetKey(drc.window.handle, GLFW_KEY_Q) == GLFW_PRESS)
+		else if (drc.window.key_pressed(GLFW_KEY_Q))
 			velocity.y -= delta;
 
 		transform.translate += transform.rotation.rotate(velocity);
@@ -447,7 +429,7 @@ int main(int argc, char *argv[])
 	fb.resize(200, 200);
 	fb.host.clear();
 
-	auto rf = core::rayframe(aperature, transform);
+	auto rf = core::rayframe(primary_aperature, transform);
 
 	auto tonemap = [](const float3 &rgb) -> uint32_t {
 		// TODO: r g b a components with a union
@@ -504,7 +486,7 @@ int main(int argc, char *argv[])
 		handle_input();
 
 		// TODO: method instead of function
-		mvp.proj = core::perspective(aperature);
+		mvp.proj = core::perspective(primary_aperature);
 		mvp.view = transform.to_view_matrix();
 
                 glfwPollEvents();
@@ -512,7 +494,7 @@ int main(int argc, char *argv[])
                         break;
 
 		littlevk::SurfaceOperation op;
-                op = littlevk::acquire_image(drc.device, swapchain.swapchain, sync[frame]);
+                op = littlevk::acquire_image(drc.device, drc.swapchain.swapchain, sync[frame]);
 		if (op.status == littlevk::SurfaceOperation::eResize) {
 			resize();
 			continue;
@@ -561,31 +543,36 @@ int main(int argc, char *argv[])
 			ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 
 			if (ImGui::Begin("Interface")) {
-				if (ImGui::Button("Render")) {
-					fb.resize(viewport.x, viewport.y);
-					fmt::println("rendering at {} x {} resolution", fb.host.width, fb.host.height);
-
-					auto tiles = fb.host.tiles(size);
-
-					rf = core::rayframe(aperature, transform);
-
-					thread_pool.reset();
-					thread_pool.enque(tiles);
-					fb.host.process(clear);
-					thread_pool.begin();
-				}
-
 				ImGui::End();
 			}
 
-			if (ImGui::Begin("Preview")) {
+			bool preview_open = true;
+			if (ImGui::Begin("Preview", &preview_open, ImGuiWindowFlags_MenuBar)) {
+				if (ImGui::BeginMenuBar()) {
+					if (ImGui::Button("Render")) {
+						fb.resize(viewport.x, viewport.y);
+						fmt::println("rendering at {} x {} resolution", fb.host.width, fb.host.height);
+
+						auto tiles = fb.host.tiles(size);
+
+						rf = core::rayframe(local_aperature, transform);
+
+						thread_pool.reset();
+						thread_pool.enque(tiles);
+						fb.host.process(clear);
+						thread_pool.begin();
+					}
+
+					ImGui::EndMenuBar();
+				}
+
 				viewport_region.active = ImGui::IsWindowFocused();
 
 				ImVec2 size = ImGui::GetContentRegionAvail();
 				ImGui::Image(imgui_descriptors[frame], size);
 
 				ImVec2 viewport = ImGui::GetItemRectSize();
-				aperature.aspect = viewport.x/viewport.y;
+				primary_aperature.aspect = viewport.x/viewport.y;
 
 				ImVec2 min = ImGui::GetItemRectMin();
 				ImVec2 max = ImGui::GetItemRectMax();
@@ -598,6 +585,7 @@ int main(int argc, char *argv[])
 
 			if (ImGui::Begin("Framebuffer")) {
 				viewport = ImGui::GetContentRegionAvail();
+				local_aperature.aspect = viewport.x/viewport.y;
 				ImGui::Image(fb.descriptor, viewport);
 				ImGui::End();
 			}
@@ -621,7 +609,7 @@ int main(int argc, char *argv[])
 
 		drc.graphics_queue.submit(submit_info, sync.in_flight[frame]);
 
-                op = littlevk::present_image(drc.present_queue, swapchain.swapchain, sync[frame], op.index);
+                op = littlevk::present_image(drc.present_queue, drc.swapchain.swapchain, sync[frame], op.index);
 		if (op.status == littlevk::SurfaceOperation::eResize)
 			resize();
 
