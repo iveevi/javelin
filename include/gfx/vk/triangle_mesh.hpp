@@ -14,7 +14,7 @@ struct TriangleMesh {
 
 	// property<littlevk::Buffer> attributes;
 
-	static std::optional <TriangleMesh> from(littlevk::LinkedDeviceAllocator <> &allocator, const core::TriangleMesh &tmesh) {
+	static std::optional <TriangleMesh> from(littlevk::LinkedDeviceAllocator <> allocator, const core::TriangleMesh &tmesh) {
 		TriangleMesh vmesh;
 
 		vmesh.count = 3 * tmesh.triangles.size();

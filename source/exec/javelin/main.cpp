@@ -83,6 +83,34 @@ void fragment()
 
 }
 
+struct DeviceResourceCollection {
+	vk::PhysicalDevice phdev;
+	vk::SurfaceKHR surface;
+	vk::Device device;
+	vk::Queue graphics_queue;
+	vk::Queue present_queue;
+	vk::CommandPool command_pool;
+	vk::DescriptorPool descriptor_pool;
+	vk::PhysicalDeviceMemoryProperties memory_properties;
+
+	// TODO: InteractiveWindow with key_pressed(...) methods
+	littlevk::Window window;
+	littlevk::Swapchain swapchain;
+	littlevk::Deallocator dal;
+
+	auto allocator() {
+		return littlevk::bind(device, memory_properties, dal);
+	}
+
+	auto combined() {
+		return littlevk::bind(phdev, device);
+	}
+
+	auto commander() {
+		return littlevk::bind(device, command_pool, graphics_queue);
+	}
+};
+
 inline vk::DescriptorSet imgui_add_vk_texture(const vk::Sampler &sampler, const vk::ImageView &view, const vk::ImageLayout &layout)
 {
 	return ImGui_ImplVulkan_AddTexture(static_cast <VkSampler> (sampler),
@@ -90,23 +118,70 @@ inline vk::DescriptorSet imgui_add_vk_texture(const vk::Sampler &sampler, const 
 					   static_cast <VkImageLayout> (layout));
 }
 
-std::vector <std::function <void ()>> terminal;
-
-void signal_handler(int)
+inline void imgui_initialize_vulkan()
 {
-	fmt::println("signal handler!");
-	for (const auto &t : terminal)
-		t();
 
-	exit(EXIT_FAILURE);
 }
+
+struct FramebufferCollection {
+	gfx::cpu::Framebuffer <uint32_t> host;
+	littlevk::Buffer staging;
+	littlevk::Image display;
+	vk::DescriptorSet descriptor;
+	vk::Sampler sampler;
+	
+	littlevk::LinkedDeviceAllocator <> allocator;
+	littlevk::LinkedCommandQueue commander;
+
+	FramebufferCollection(littlevk::LinkedDeviceAllocator <> allocator_,
+				littlevk::LinkedCommandQueue commander_)
+			: allocator(allocator_),
+				commander(commander_) {
+		sampler = littlevk::SamplerAssembler(allocator.device, allocator.dal);
+	}
+
+	void __copy(const vk::CommandBuffer &cmd) {
+		display.transition(cmd, vk::ImageLayout::eTransferDstOptimal);
+
+		littlevk::copy_buffer_to_image(cmd,
+			display, staging,
+			vk::ImageLayout::eTransferDstOptimal);
+
+		display.transition(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
+	}
+
+	void __allocate() {
+		std::tie(staging, display) = allocator
+			.buffer(host.data, vk::BufferUsageFlagBits::eTransferSrc)
+			.image(vk::Extent2D {
+					uint32_t(host.width),
+					uint32_t(host.height)
+				},
+				vk::Format::eR8G8B8A8Unorm,
+				vk::ImageUsageFlagBits::eSampled
+					| vk::ImageUsageFlagBits::eTransferDst,
+				vk::ImageAspectFlagBits::eColor);
+
+		commander.submit_and_wait([&](const vk::CommandBuffer &cmd) {
+			__copy(cmd);
+		});
+
+		descriptor = imgui_add_vk_texture(sampler, display.view, vk::ImageLayout::eShaderReadOnlyOptimal);
+	}
+
+	void resize(size_t width, size_t height) {
+		host.resize(width, height);
+		__allocate();
+	}
+
+	void refresh(const vk::CommandBuffer &cmd) {
+		littlevk::upload(allocator.device, staging, host.data);
+		__copy(cmd);
+	}
+};
 
 int main(int argc, char *argv[])
 {
-	// Signal handlers
-	// std::signal(SIGINT, signal_handler);
-	// std::signal(SIGKILL, signal_handler);
-
 	assert(argc >= 2);
 
 	std::filesystem::path path = argv[1];
@@ -128,36 +203,33 @@ int main(int argc, char *argv[])
 		return littlevk::physical_device_able(phdev, EXTENSIONS);
 	};
 
-	vk::PhysicalDevice phdev = littlevk::pick_physical_device(predicate);
+	DeviceResourceCollection drc;
 
-	vk::SurfaceKHR surface;
-	littlevk::Window window;
+	drc.phdev = littlevk::pick_physical_device(predicate);
 
 	vk::Extent2D default_extent { 1920, 1080 };
 
-	std::tie(surface, window) = littlevk::surface_handles(default_extent, "javelin");
+	std::tie(drc.surface, drc.window) = littlevk::surface_handles(default_extent, "javelin");
 
-	littlevk::QueueFamilyIndices queue_family = littlevk::find_queue_families(phdev, surface);
+	littlevk::QueueFamilyIndices queue_family = littlevk::find_queue_families(drc.phdev, drc.surface);
 
-	auto memory_properties = phdev.getMemoryProperties();
-	auto device = littlevk::device(phdev, queue_family, EXTENSIONS);
-	auto dal = littlevk::Deallocator(device);
+	// TODO: configure method
+	drc.memory_properties = drc.phdev.getMemoryProperties();
+	drc.device = littlevk::device(drc.phdev, queue_family, EXTENSIONS);
+	drc.dal = littlevk::Deallocator(drc.device);
 
-	auto allocator = littlevk::bind(device, memory_properties, dal);
-	auto combined = littlevk::bind(phdev, device);
+	auto swapchain = drc.combined().swapchain(drc.surface, queue_family);
 
-	auto swapchain = combined.swapchain(surface, queue_family);
+	drc.graphics_queue = drc.device.getQueue(queue_family.graphics, 0);
+	drc.present_queue = drc.device.getQueue(queue_family.present, 0);
 
-	auto graphics_queue = device.getQueue(queue_family.graphics, 0);
-	auto present_queue = device.getQueue(queue_family.present, 0);
-
-	vk::RenderPass ui_render_pass = littlevk::RenderPassAssembler(device, dal)
+	vk::RenderPass ui_render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
 		.add_attachment(littlevk::default_color_attachment(swapchain.format))
 		.add_subpass(vk::PipelineBindPoint::eGraphics)
 			.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
 			.done();
 
-	vk::RenderPass render_pass = littlevk::RenderPassAssembler(device, dal)
+	vk::RenderPass render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
 		.add_attachment(littlevk::default_color_attachment(swapchain.format))
 		.add_attachment(littlevk::default_depth_attachment())
 		.add_subpass(vk::PipelineBindPoint::eGraphics)
@@ -171,16 +243,16 @@ int main(int argc, char *argv[])
 	std::vector <littlevk::Image> render_color_targets;
 
 	{
-		littlevk::Image depth = allocator
-			.image(window.extent,
+		littlevk::Image depth = drc.allocator()
+			.image(drc.window.extent,
 				vk::Format::eD32Sfloat,
 				vk::ImageUsageFlagBits::eDepthStencilAttachment,
 				vk::ImageAspectFlagBits::eDepth);
 
 		render_color_targets.clear();
 		for (size_t i = 0; i < swapchain.images.size(); i++) {
-			render_color_targets.push_back(allocator
-				.image(window.extent,
+			render_color_targets.push_back(drc.allocator()
+				.image(drc.window.extent,
 					vk::Format::eB8G8R8A8Unorm,
 					vk::ImageUsageFlagBits::eColorAttachment
 						| vk::ImageUsageFlagBits::eSampled,
@@ -188,8 +260,8 @@ int main(int argc, char *argv[])
 			);
 		}
 
-		littlevk::FramebufferGenerator ui_generator(device, ui_render_pass, window.extent, dal);
-		littlevk::FramebufferGenerator generator(device, render_pass, window.extent, dal);
+		littlevk::FramebufferGenerator ui_generator(drc.device, ui_render_pass, drc.window.extent, drc.dal);
+		littlevk::FramebufferGenerator generator(drc.device, render_pass, drc.window.extent, drc.dal);
 
 		for (size_t i = 0; i < swapchain.images.size(); i++) {
 			ui_generator.add(swapchain.image_views[i]);
@@ -200,12 +272,12 @@ int main(int argc, char *argv[])
 		framebuffers = generator.unpack();
 	}
 
-	auto command_pool = littlevk::command_pool(device,
+	drc.command_pool = littlevk::command_pool(drc.device,
 		vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-		queue_family.graphics).unwrap(dal);
+		queue_family.graphics).unwrap(drc.dal);
 
-	auto command_buffers = littlevk::command_buffers(device,
-		command_pool,
+	auto command_buffers = littlevk::command_buffers(drc.device,
+		drc.command_pool,
 		vk::CommandBufferLevel::ePrimary, 2u);
 
 	std::vector <core::TriangleMesh> tmeshes;
@@ -215,7 +287,7 @@ int main(int argc, char *argv[])
 		auto tmesh = core::TriangleMesh::from(preset.geometry[i]).value();
 		tmeshes.push_back(tmesh);
 
-		auto vmesh = gfx::vulkan::TriangleMesh::from(allocator, tmesh).value();
+		auto vmesh = gfx::vulkan::TriangleMesh::from(drc.allocator(), tmesh).value();
 		vmeshes.push_back(vmesh);
 	}
 
@@ -225,11 +297,11 @@ int main(int argc, char *argv[])
 	std::string vertex_shader = ire::kernel_from_args(vertex).synthesize(profiles::opengl_450);
 	std::string fragment_shader = ire::kernel_from_args(fragment).synthesize(profiles::opengl_450);
 
-	auto bundle = littlevk::ShaderStageBundle(device, dal)
+	auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
 		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
 		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 
-	littlevk::Pipeline ppl = littlevk::PipelineAssembler <littlevk::eGraphics> (device, window, dal)
+	littlevk::Pipeline ppl = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
 		.with_render_pass(render_pass, 0)
 		.with_vertex_layout(vertex_layout)
 		.with_shader_bundle(bundle)
@@ -237,33 +309,33 @@ int main(int argc, char *argv[])
 		.cull_mode(vk::CullModeFlagBits::eNone);
 
 	// Syncronization primitives
-	auto sync = littlevk::present_syncronization(device, 2).unwrap(dal);
+	auto sync = littlevk::present_syncronization(drc.device, 2).unwrap(drc.dal);
 
 	ImGui::CreateContext();
 
-	ImGui_ImplGlfw_InitForVulkan(window.handle, true);
+	ImGui_ImplGlfw_InitForVulkan(drc.window.handle, true);
 
 	vk::DescriptorPoolSize pool_size {
 		vk::DescriptorType::eCombinedImageSampler, 1 << 10
 	};
 
 	auto descriptor_pool = littlevk::descriptor_pool(
-		device, vk::DescriptorPoolCreateInfo {
+		drc.device, vk::DescriptorPoolCreateInfo {
 			vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
 			1 << 10, pool_size,
 		}
-	).unwrap(dal);
+	).unwrap(drc.dal);
 
 	ImGui_ImplVulkan_InitInfo init_info = {};
 
 	init_info.Instance = littlevk::detail::get_vulkan_instance();
 	init_info.DescriptorPool = descriptor_pool;
-	init_info.Device = device;
+	init_info.Device = drc.device;
 	init_info.ImageCount = 3;
 	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 	init_info.MinImageCount = 3;
-	init_info.PhysicalDevice = phdev;
-	init_info.Queue = graphics_queue;
+	init_info.PhysicalDevice = drc.phdev;
+	init_info.Queue = drc.graphics_queue;
 	init_info.RenderPass = ui_render_pass;
 
 	ImGui_ImplVulkan_Init(&init_info);
@@ -273,7 +345,7 @@ int main(int argc, char *argv[])
 	auto export_render_targets_to_imgui = [&]() {
 		imgui_descriptors.clear();
 
-		vk::Sampler sampler = littlevk::SamplerAssembler(device, dal);
+		vk::Sampler sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
 		for (const littlevk::Image &image : render_color_targets) {
 			vk::DescriptorSet dset = imgui_add_vk_texture(sampler, image.view,
 					vk::ImageLayout::eShaderReadOnlyOptimal);
@@ -295,18 +367,18 @@ int main(int argc, char *argv[])
 	mvp.proj = core::perspective(aperature);
 
 	auto resize = [&]() {
-		combined.resize(surface, window, swapchain);
+		drc.combined().resize(drc.surface, drc.window, swapchain);
 
-		littlevk::Image depth = allocator
-			.image(window.extent,
+		littlevk::Image depth = drc.allocator()
+			.image(drc.window.extent,
 				vk::Format::eD32Sfloat,
 				vk::ImageUsageFlagBits::eDepthStencilAttachment,
 				vk::ImageAspectFlagBits::eDepth);
 
 		render_color_targets.clear();
 		for (size_t i = 0; i < swapchain.images.size(); i++) {
-			render_color_targets.push_back(allocator
-				.image(window.extent,
+			render_color_targets.push_back(drc.allocator()
+				.image(drc.window.extent,
 					vk::Format::eB8G8R8A8Unorm,
 					vk::ImageUsageFlagBits::eColorAttachment
 						| vk::ImageUsageFlagBits::eSampled,
@@ -314,8 +386,8 @@ int main(int argc, char *argv[])
 			);
 		}
 
-		littlevk::FramebufferGenerator ui_generator(device, ui_render_pass, window.extent, dal);
-		littlevk::FramebufferGenerator generator(device, render_pass, window.extent, dal);
+		littlevk::FramebufferGenerator ui_generator(drc.device, ui_render_pass, drc.window.extent, drc.dal);
+		littlevk::FramebufferGenerator generator(drc.device, render_pass, drc.window.extent, drc.dal);
 
 		for (size_t i = 0; i < swapchain.images.size(); i++) {
 			ui_generator.add(swapchain.image_views[i]);
@@ -333,9 +405,10 @@ int main(int argc, char *argv[])
 		};
 
 		// TODO: linked queue pool
-		littlevk::submit_now(device, command_pool, graphics_queue, transition);
+		drc.commander().submit_and_wait(transition);
+		// littlevk::submit_now(drc.device, drc.command_pool, graphics_queue, transition);
 
-		aperature.aspect = float(window.extent.width)/float(window.extent.height);
+		aperature.aspect = float(drc.window.extent.width)/float(drc.window.extent.height);
 		mvp.proj = core::perspective(aperature);
 	};
 
@@ -348,30 +421,31 @@ int main(int argc, char *argv[])
 		last_time = glfwGetTime();
 
 		float3 velocity(0.0f);
-		if (glfwGetKey(window.handle, GLFW_KEY_S) == GLFW_PRESS)
+		if (glfwGetKey(drc.window.handle, GLFW_KEY_S) == GLFW_PRESS)
 			velocity.z -= delta;
-		else if (glfwGetKey(window.handle, GLFW_KEY_W) == GLFW_PRESS)
+		else if (glfwGetKey(drc.window.handle, GLFW_KEY_W) == GLFW_PRESS)
 			velocity.z += delta;
 
-		if (glfwGetKey(window.handle, GLFW_KEY_D) == GLFW_PRESS)
+		if (glfwGetKey(drc.window.handle, GLFW_KEY_D) == GLFW_PRESS)
 			velocity.x -= delta;
-		else if (glfwGetKey(window.handle, GLFW_KEY_A) == GLFW_PRESS)
+		else if (glfwGetKey(drc.window.handle, GLFW_KEY_A) == GLFW_PRESS)
 			velocity.x += delta;
 
-		if (glfwGetKey(window.handle, GLFW_KEY_E) == GLFW_PRESS)
+		if (glfwGetKey(drc.window.handle, GLFW_KEY_E) == GLFW_PRESS)
 			velocity.y += delta;
-		else if (glfwGetKey(window.handle, GLFW_KEY_Q) == GLFW_PRESS)
+		else if (glfwGetKey(drc.window.handle, GLFW_KEY_Q) == GLFW_PRESS)
 			velocity.y -= delta;
 
 		transform.translate += transform.rotation.rotate(velocity);
 	};
 
-	glfwSetWindowUserPointer(window.handle, &transform);
-	glfwSetMouseButtonCallback(window.handle, button_callback);
-	glfwSetCursorPosCallback(window.handle, cursor_callback);
+	glfwSetWindowUserPointer(drc.window.handle, &transform);
+	glfwSetMouseButtonCallback(drc.window.handle, button_callback);
+	glfwSetCursorPosCallback(drc.window.handle, cursor_callback);
 
-	auto fb = gfx::cpu::Framebuffer <uint32_t> ::from(200, 200);
-	fb.clear();
+	auto fb = FramebufferCollection(drc.allocator(), drc.commander());
+	fb.resize(200, 200);
+	fb.host.clear();
 
 	auto rf = core::rayframe(aperature, transform);
 
@@ -414,38 +488,13 @@ int main(int argc, char *argv[])
 	};
 
 	int2 size = { 16, 16 };
-	auto tiles = fb.tiles(size);
+	auto tiles = fb.host.tiles(size);
 
 	auto kernel = [&fb, &raytrace](const gfx::cpu::Tile &tile) {
-		fb.process_tile(raytrace, tile);
+		fb.host.process_tile(raytrace, tile);
 	};
 
-	using thread_pool_t = gfx::cpu::fixed_function_thread_pool <gfx::cpu::Tile, decltype(kernel)>;
-	thread_pool_t thread_pool(std::thread::hardware_concurrency(), kernel);
-
-	littlevk::Buffer fb_buffer;
-	littlevk::Image fb_image;
-
-	std::tie(fb_buffer, fb_image) = allocator
-		.buffer(fb.data, vk::BufferUsageFlagBits::eTransferSrc)
-		.image(vk::Extent2D { uint32_t(fb.width), uint32_t(fb.height) },
-			vk::Format::eR8G8B8A8Unorm,
-			vk::ImageUsageFlagBits::eSampled
-				| vk::ImageUsageFlagBits::eTransferDst,
-			vk::ImageAspectFlagBits::eColor);
-
-	littlevk::bind(device, command_pool, graphics_queue)
-		.submit_and_wait([&](const vk::CommandBuffer &cmd) {
-			fb_image.transition(cmd, vk::ImageLayout::eTransferDstOptimal);
-			littlevk::copy_buffer_to_image(cmd, fb_image, fb_buffer, vk::ImageLayout::eTransferDstOptimal);
-			fb_image.transition(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
-		});
-
-	vk::Sampler sampler = littlevk::SamplerAssembler(device, dal);
-	vk::DescriptorSet cpu_fb_dset = imgui_add_vk_texture(sampler, fb_image.view,
-			vk::ImageLayout::eShaderReadOnlyOptimal);
-
-	terminal.push_back([&]() { thread_pool.reset(); });
+	auto thread_pool = gfx::cpu::fixed_function_thread_pool <gfx::cpu::Tile, decltype(kernel)> (8, kernel);
 
 	// TODO: dynamic render pass
 	ImVec2 viewport;
@@ -459,11 +508,11 @@ int main(int argc, char *argv[])
 		mvp.view = transform.to_view_matrix();
 
                 glfwPollEvents();
-                if (glfwWindowShouldClose(window.handle))
+                if (glfwWindowShouldClose(drc.window.handle))
                         break;
 
 		littlevk::SurfaceOperation op;
-                op = littlevk::acquire_image(device, swapchain.swapchain, sync[frame]);
+                op = littlevk::acquire_image(drc.device, swapchain.swapchain, sync[frame]);
 		if (op.status == littlevk::SurfaceOperation::eResize) {
 			resize();
 			continue;
@@ -474,17 +523,13 @@ int main(int argc, char *argv[])
 		cmd.begin(vk::CommandBufferBeginInfo {});
 
 		// Set viewport and scissor
-		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(window));
+		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(drc.window));
 
 		const auto &render_rpbi = littlevk::default_rp_begin_info <2>
-			(render_pass, framebuffers[op.index], window);
+			(render_pass, framebuffers[op.index], drc.window);
 
 		// Update framebuffer buffer and copy to the image
-		littlevk::upload(device, fb_buffer, fb.data);
-
-		fb_image.transition(cmd, vk::ImageLayout::eTransferDstOptimal);
-		littlevk::copy_buffer_to_image(cmd, fb_image, fb_buffer, vk::ImageLayout::eTransferDstOptimal);
-		fb_image.transition(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
+		fb.refresh(cmd);
 
 		cmd.beginRenderPass(render_rpbi, vk::SubpassContents::eInline);
 		{
@@ -505,7 +550,7 @@ int main(int argc, char *argv[])
 				vk::ImageLayout::eShaderReadOnlyOptimal);
 
 		const auto &rpbi = littlevk::default_rp_begin_info <1>
-			(ui_render_pass, ui_framebuffers[op.index], window);
+			(ui_render_pass, ui_framebuffers[op.index], drc.window);
 
 		cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);
 		{
@@ -518,34 +563,15 @@ int main(int argc, char *argv[])
 			if (ImGui::Begin("Interface")) {
 				if (ImGui::Button("Render")) {
 					fb.resize(viewport.x, viewport.y);
-					fmt::println("rendering at {} x {} resolution", fb.width, fb.height);
+					fmt::println("rendering at {} x {} resolution", fb.host.width, fb.host.height);
 
-					std::tie(fb_buffer, fb_image) = allocator
-						.buffer(fb.data, vk::BufferUsageFlagBits::eTransferSrc)
-						.image(vk::Extent2D { uint32_t(fb.width), uint32_t(fb.height) },
-								vk::Format::eR8G8B8A8Unorm,
-								vk::ImageUsageFlagBits::eSampled
-								| vk::ImageUsageFlagBits::eTransferDst,
-								vk::ImageAspectFlagBits::eColor);
-
-					littlevk::bind(device, command_pool, graphics_queue)
-						.submit_and_wait([&](const vk::CommandBuffer &cmd) {
-								fb_image.transition(cmd, vk::ImageLayout::eTransferDstOptimal);
-								littlevk::copy_buffer_to_image(cmd, fb_image, fb_buffer, vk::ImageLayout::eTransferDstOptimal);
-								fb_image.transition(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
-								});
-
-					vk::Sampler sampler = littlevk::SamplerAssembler(device, dal);
-					cpu_fb_dset = imgui_add_vk_texture(sampler, fb_image.view,
-							vk::ImageLayout::eShaderReadOnlyOptimal);
-
-					auto tiles = fb.tiles(size);
+					auto tiles = fb.host.tiles(size);
 
 					rf = core::rayframe(aperature, transform);
 
 					thread_pool.reset();
 					thread_pool.enque(tiles);
-					fb.process(clear);
+					fb.host.process(clear);
 					thread_pool.begin();
 				}
 
@@ -572,7 +598,7 @@ int main(int argc, char *argv[])
 
 			if (ImGui::Begin("Framebuffer")) {
 				viewport = ImGui::GetContentRegionAvail();
-				ImGui::Image(cpu_fb_dset, viewport);
+				ImGui::Image(fb.descriptor, viewport);
 				ImGui::End();
 			}
 
@@ -593,20 +619,20 @@ int main(int argc, char *argv[])
 			sync.render_finished[frame]
 		};
 
-		graphics_queue.submit(submit_info, sync.in_flight[frame]);
+		drc.graphics_queue.submit(submit_info, sync.in_flight[frame]);
 
-                op = littlevk::present_image(present_queue, swapchain.swapchain, sync[frame], op.index);
+                op = littlevk::present_image(drc.present_queue, swapchain.swapchain, sync[frame], op.index);
 		if (op.status == littlevk::SurfaceOperation::eResize)
 			resize();
 
 		frame = 1 - frame;
         }
 
-	device.waitIdle();
+	drc.device.waitIdle();
 
-	window.drop();
+	drc.window.drop();
 
-	dal.drop();
+	drc.dal.drop();
 
 	thread_pool.reset();
 }

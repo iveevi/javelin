@@ -4,8 +4,6 @@ set(CMAKE_CXX_STANDARD 20)
 
 project(javelin C CXX)
 
-add_compile_options(-fconcepts-diagnostics-depth=3)
-
 find_package(Vulkan REQUIRED)
 find_package(glfw3 REQUIRED)
 
