@@ -2,7 +2,8 @@
 
 #include "../atom/atom.hpp"
 #include "../atom/kernel.hpp"
-#include "ire/uniform_layout.hpp"
+#include "primitive.hpp"
+#include "uniform_layout.hpp"
 #include "type_synthesis.hpp"
 #include "emitter.hpp"
 
@@ -49,9 +50,9 @@ struct Callable {
 };
 
 // Internal construction of callables
-// TODO: restrict argument types...
+// TODO: type restrictions with concepts
 template <typename R, typename ... Args>
-struct __callable : Callable {
+struct callable_t : Callable {
 	template <size_t index>
 	void __fill_parameter_references(std::tuple <Args...> &tpl) {
 		auto &em = Emitter::active;
@@ -117,37 +118,90 @@ struct __callable : Callable {
 	}
 };
 
-// Metaprogramming hacks to get function arguments more easily
-template <typename R, typename ... Args>
-struct __callable_redirect {
-	using type = __callable <R, Args...>;
-};
+// Metaprogramming to generate the correct callable_t for native function types
+namespace detail {
 
-template <typename R, typename ... Args>
-struct __callable_redirect <R, std::tuple <Args...>> {
-	using type = __callable <R, Args...>;
-};
-
+// TODO: find another base than std function
 template <typename F>
-struct signature;
+concept acceptable_callable = std::is_function_v <F> || requires(const F &ftn) {
+	{ std::function(ftn) };
+};
 
+template <typename R, typename ... Args>
+struct signature_pair {
+	using return_t = R;
+	using args_t = std::tuple <Args...>;
+
+	using callable = callable_t <R, Args...>;
+
+	template <typename RR>
+	using manual_callable = callable_t <RR, Args...>;
+};
+
+template <typename R, typename ... Args>
+auto function_signature(const std::function <R (Args...)> &) -> signature_pair <R, Args...>
+{
+	return {};
+}
+
+template <acceptable_callable F>
+auto function_signature(const F &ftn)
+{
+	return function_signature(std::function(ftn));
+}
+
+template <acceptable_callable F>
+struct signature {
+	using pair = decltype(function_signature(F()));
+
+	using return_t = pair::return_t;
+	using args_t = pair::args_t;
+
+	using callable = pair::callable;
+
+	template <typename RR>
+	using manual_callable = typename pair::template manual_callable <RR>;
+};
+
+// Exception for real functions, which cannot be instantiated
 template <typename R, typename ... Args>
 struct signature <R (Args...)> {
-	using args_t = std::tuple <Args...>;
 	using return_t = R;
+	using args_t = std::tuple <Args...>;
+
+	using callable = callable_t <R, Args...>;
+
+	template <typename RR>
+	using manual_callable = callable_t <RR, Args...>;
 };
 
-template <typename R, typename F>
-using __callable_t = __callable_redirect <R, typename signature <F> ::args_t> ::type;
+}
 
-// User end function to create a callable from a regular C++ function
-template <typename R, typename F>
-requires std::is_function_v <F>
-__callable_t <R, F>
-callable(const F &ftn)
+// For functions which have concrete return types already
+// TODO: type restrictions with concepts
+template <detail::acceptable_callable F>
+requires (!std::same_as <typename detail::signature <F> ::return_t, void>)
+auto callable(F ftn)
 {
-	__callable_t <R, F> cbl;
-	auto args = typename signature <F> ::args_t();
+	using S = detail::signature <F>;
+
+	typename S::callable cbl;
+	auto args = typename S::args_t();
+	cbl.call(args);
+	auto values = std::apply(ftn, args);
+	returns(values);
+	return cbl.end();
+}
+
+// Void functions are presumbed to contain returns(...) statements already
+template <typename R, detail::acceptable_callable F>
+requires (std::same_as <typename detail::signature <F> ::return_t, void>)
+auto callable(F ftn)
+{
+	using S = detail::signature <F>;
+
+	typename S::template manual_callable <R> cbl;
+	auto args = typename S::args_t();
 	cbl.call(args);
 	std::apply(ftn, args);
 	return cbl.end();

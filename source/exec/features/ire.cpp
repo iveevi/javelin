@@ -63,7 +63,7 @@ void shader()
 	// Construct the surface intersection information
 	surface_hit sh {
 		position,
-		// normal
+		normal
 	};
 
 	// Calculate the shaded color
@@ -88,4 +88,21 @@ int main()
 		std::string source = k.synthesize(profiles::opengl_450);
 		fmt::print("\nSOURCE:\n{}", source);
 	}
+
+	auto l = [](f32 x) -> void { returns(pow(x, 2)); };
+
+	auto kl = callable <f32> (l).named("lamdba");
+	kl.export_to_kernel().dump();
+	fmt::println("\n{}", kl.export_to_kernel().synthesize(profiles::opengl_450));
+
+	struct functor {
+		i32 operator()(i32 x) {
+			return x;
+		}
+	};
+
+	auto x = functor();
+	auto kop = callable(x).named("functor");
+	kop.export_to_kernel().dump();
+	fmt::println("\n{}", kop.export_to_kernel().synthesize(profiles::opengl_450));
 }
