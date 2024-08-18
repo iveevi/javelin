@@ -19,6 +19,7 @@
 #include "core/preset.hpp"
 #include "core/transform.hpp"
 #include "core/triangle_mesh.hpp"
+#include "gfx/cpu/bvh.hpp"
 #include "gfx/cpu/framebuffer.hpp"
 #include "gfx/cpu/thread_pool.hpp"
 #include "gfx/cpu/intersection.hpp"
@@ -242,6 +243,90 @@ struct FramebufferCollection {
 	}
 };
 
+using namespace jvl::core;
+using namespace jvl::gfx;
+
+struct Scene {
+	std::vector <TriangleMesh> meshes;
+	std::vector <Material> materials;
+
+	void add(const Preset &preset) {
+		for (auto &g : preset.geometry) {
+			auto tmesh = core::TriangleMesh::from(g).value();
+			meshes.push_back(tmesh);
+		}
+	}
+
+	auto bvh() {
+		std::vector <cpu::BVHCompact> nodes;
+		cpu::AABB combined;
+		for (size_t i = 0; i < meshes.size(); i++) {
+			auto &m = meshes[i];
+			for (size_t j = 0; j < m.triangles.size(); j++) {
+				auto &tri = m.triangles[j];
+
+				auto v0 = m.positions[tri.x];
+				auto v1 = m.positions[tri.y];
+				auto v2 = m.positions[tri.z];
+				auto aabb = cpu::AABB::from_triangle(v0, v1, v2);
+
+				combined = cpu::combine(combined, aabb);
+
+				cpu::BVHCompact node;
+				node.aabb = aabb;
+				node.mesh = i;
+				node.index = j;
+
+				nodes.push_back(node);
+			}
+		}
+
+		return std::make_tuple(nodes, combined);
+	}
+};
+
+cpu::Intersection trace_accelerated(const Scene &scene, const std::vector <cpu::BVHCompact> &bvh, const float3 &ray, const float3 &origin)
+{
+	auto sh = cpu::Intersection::miss();
+
+	std::stack <int64_t> stack;
+	stack.push(0);
+
+	while (!stack.empty()) {
+		int64_t index = stack.top();
+		stack.pop();
+
+		const cpu::BVHCompact &node = bvh[index];
+
+		int64_t left = node.left;
+		int64_t right = node.right;
+
+		bool hit_aabb_ = hit_aabb(ray, origin, node.aabb, 0, sh.time < 0 ? 1e16 : sh.time);
+		if (!hit_aabb_)
+			continue;
+
+		if (left == 0 && right == 0) {
+			// Leaf node
+			auto &m = scene.meshes[node.mesh];
+			auto &tri = m.triangles[node.index];
+			auto v0 = m.positions[tri.x];
+			auto v1 = m.positions[tri.y];
+			auto v2 = m.positions[tri.z];
+
+			auto hit = gfx::cpu::ray_triangle_intersection(ray, origin, v0, v1, v2);
+
+			sh.update(hit);
+		}
+
+		if (left != 0)
+			stack.push(index + left);
+		if (right != 0)
+			stack.push(index + right);
+	}
+
+	return sh;
+}
+
 int main(int argc, char *argv[])
 {
 	assert(argc >= 2);
@@ -250,6 +335,13 @@ int main(int argc, char *argv[])
 	fmt::println("path to scene: {}", path);
 
 	auto preset = core::Preset::from(path).value();
+
+	auto scene = Scene();
+	scene.add(preset);
+	auto [nodes, combined] = scene.bvh();
+
+	std::vector <cpu::BVHCompact> built;
+	cpu::make_acceleration_structure(built, nodes, combined, cpu::eRandomAxis);
 
 	//////////////////
 	// VULKAN SETUP //
@@ -439,24 +531,14 @@ int main(int argc, char *argv[])
 		return r | g << 8 | b << 16 | 0xff000000;
 	};
 
-	auto raytrace = [&tmeshes, &rf, &tonemap](int2 ij, float2 uv) -> uint32_t {
+	auto raytrace = [&](int2 ij, float2 uv) -> uint32_t {
 		float3 origin = rf.origin;
 		float3 ray = normalize(rf.lower_left
 				+ uv.x * rf.horizontal
 				+ (1 - uv.y) * rf.vertical
 				- rf.origin);
 
-		gfx::cpu::Intersection sh = gfx::cpu::Intersection::miss();
-		for (const auto &tmesh : tmeshes) {
-			for (const int3 &t : tmesh.triangles) {
-				float3 v0 = tmesh.positions[t.x];
-				float3 v1 = tmesh.positions[t.y];
-				float3 v2 = tmesh.positions[t.z];
-
-				auto hit = gfx::cpu::ray_triangle_intersection(ray, origin, v0, v1, v2);
-				sh.update(hit);
-			}
-		}
+		auto sh = trace_accelerated(scene, built, ray, origin);
 
 		float3 color;
 		if (sh.time >= 0)

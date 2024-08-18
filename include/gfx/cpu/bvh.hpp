@@ -47,13 +47,15 @@ struct AABB {
 };
 
 AABB combine(const AABB &, const AABB &);
-bool hit_aabb(const float3 &, const float3 &, const AABB &, float3, float);
+bool hit_aabb(const float3 &, const float3 &, const AABB &, float, float);
 
 // TODO: threaded binary tree
 struct BVHCompact {
 	AABB aabb;
-	int64_t branches = 0;  // Index left (32) + Index right (32)
-	int64_t index = 0;     // Index shape (32) + Index mesh (32)
+	int32_t left = 0;
+	int32_t right = 0;
+	int32_t mesh = 0;
+	int32_t index = 0;
 };
 
 enum BuildMode {
