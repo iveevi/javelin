@@ -7,13 +7,7 @@
 #include <fmt/printf.h>
 #include <fmt/std.h>
 
-#include <littlevk/littlevk.hpp>
-
-#include <imgui/imgui.h>
-#include <imgui/backends/imgui_impl_vulkan.h>
-#include <imgui/backends/imgui_impl_glfw.h>
-#include <vulkan/vulkan_structs.hpp>
-
+// JVL headers
 #include "constants.hpp"
 #include "core/aperature.hpp"
 #include "core/preset.hpp"
@@ -21,16 +15,19 @@
 #include "core/triangle_mesh.hpp"
 #include "gfx/cpu/bvh.hpp"
 #include "gfx/cpu/framebuffer.hpp"
-#include "gfx/cpu/thread_pool.hpp"
 #include "gfx/cpu/intersection.hpp"
+#include "gfx/cpu/scene.hpp"
+#include "gfx/cpu/thread_pool.hpp"
 #include "gfx/vk/triangle_mesh.hpp"
+#include "ire/core.hpp"
 #include "ire/emitter.hpp"
 #include "ire/uniform_layout.hpp"
 #include "math_types.hpp"
-#include "ire/core.hpp"
 
+// Local project headers
 #include "glio.hpp"
-#include "profiles/targets.hpp"
+#include "device_resource_collection.hpp"
+#include "host_framebuffer_collection.hpp"
 
 using namespace jvl;
 
@@ -85,247 +82,8 @@ void fragment()
 
 }
 
-struct InteractiveWindow : littlevk::Window {
-	InteractiveWindow() = default;
-
-	InteractiveWindow(const littlevk::Window &win) : littlevk::Window(win) {}
-
-	bool key_pressed(int key) const {
-		return glfwGetKey(handle, key) == GLFW_PRESS;
-	}
-};
-
-struct DeviceResourceCollection {
-	vk::PhysicalDevice phdev;
-	vk::SurfaceKHR surface;
-	vk::Device device;
-	vk::Queue graphics_queue;
-	vk::Queue present_queue;
-	vk::CommandPool command_pool;
-	vk::DescriptorPool descriptor_pool;
-	vk::PhysicalDeviceMemoryProperties memory_properties;
-
-	littlevk::Swapchain swapchain;
-	littlevk::Deallocator dal;
-
-	InteractiveWindow window;
-
-	auto allocator() {
-		return littlevk::bind(device, memory_properties, dal);
-	}
-
-	auto combined() {
-		return littlevk::bind(phdev, device);
-	}
-
-	auto commander() {
-		return littlevk::bind(device, command_pool, graphics_queue);
-	}
-
-	template <typename ... Args>
-	void configure_display(const Args &... args) {
-		littlevk::Window win;
-		std::tie(surface, win) = littlevk::surface_handles(args...);
-		window = win;
-	}
-
-	void configure_device(const std::vector <const char *> &EXTENSIONS) {
-		littlevk::QueueFamilyIndices queue_family = littlevk::find_queue_families(phdev, surface);
-
-		memory_properties = phdev.getMemoryProperties();
-		device = littlevk::device(phdev, queue_family, EXTENSIONS);
-		dal = littlevk::Deallocator(device);
-
-		graphics_queue = device.getQueue(queue_family.graphics, 0);
-		present_queue = device.getQueue(queue_family.present, 0);
-
-		command_pool = littlevk::command_pool(device,
-			vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-			queue_family.graphics).unwrap(dal);
-
-		swapchain = combined().swapchain(surface, queue_family);
-	}
-};
-
-inline vk::DescriptorSet imgui_add_vk_texture(const vk::Sampler &sampler, const vk::ImageView &view, const vk::ImageLayout &layout)
-{
-	return ImGui_ImplVulkan_AddTexture(static_cast <VkSampler> (sampler),
-			                   static_cast <VkImageView> (view),
-					   static_cast <VkImageLayout> (layout));
-}
-
-inline void imgui_initialize_vulkan(DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
-{
-	ImGui::CreateContext();
-
-	ImGui_ImplGlfw_InitForVulkan(drc.window.handle, true);
-
-	vk::DescriptorPoolSize pool_size {
-		vk::DescriptorType::eCombinedImageSampler, 1 << 10
-	};
-
-	auto descriptor_pool = littlevk::descriptor_pool(
-		drc.device, vk::DescriptorPoolCreateInfo {
-			vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-			1 << 10, pool_size,
-		}
-	).unwrap(drc.dal);
-
-	ImGui_ImplVulkan_InitInfo init_info = {};
-
-	init_info.Instance = littlevk::detail::get_vulkan_instance();
-	init_info.DescriptorPool = descriptor_pool;
-	init_info.Device = drc.device;
-	init_info.ImageCount = 3;
-	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-	init_info.MinImageCount = 3;
-	init_info.PhysicalDevice = drc.phdev;
-	init_info.Queue = drc.graphics_queue;
-	init_info.RenderPass = render_pass;
-
-	ImGui_ImplVulkan_Init(&init_info);
-}
-
-struct FramebufferCollection {
-	gfx::cpu::Framebuffer <uint32_t> host;
-	littlevk::Buffer staging;
-	littlevk::Image display;
-	vk::DescriptorSet descriptor;
-	vk::Sampler sampler;
-
-	littlevk::LinkedDeviceAllocator <> allocator;
-	littlevk::LinkedCommandQueue commander;
-
-	FramebufferCollection(littlevk::LinkedDeviceAllocator <> allocator_,
-				littlevk::LinkedCommandQueue commander_)
-			: allocator(allocator_),
-				commander(commander_) {
-		sampler = littlevk::SamplerAssembler(allocator.device, allocator.dal);
-	}
-
-	void __copy(const vk::CommandBuffer &cmd) {
-		display.transition(cmd, vk::ImageLayout::eTransferDstOptimal);
-
-		littlevk::copy_buffer_to_image(cmd,
-			display, staging,
-			vk::ImageLayout::eTransferDstOptimal);
-
-		display.transition(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
-	}
-
-	void __allocate() {
-		std::tie(staging, display) = allocator
-			.buffer(host.data, vk::BufferUsageFlagBits::eTransferSrc)
-			.image(vk::Extent2D {
-					uint32_t(host.width),
-					uint32_t(host.height)
-				},
-				vk::Format::eR8G8B8A8Unorm,
-				vk::ImageUsageFlagBits::eSampled
-					| vk::ImageUsageFlagBits::eTransferDst,
-				vk::ImageAspectFlagBits::eColor);
-
-		commander.submit_and_wait([&](const vk::CommandBuffer &cmd) {
-			__copy(cmd);
-		});
-
-		descriptor = imgui_add_vk_texture(sampler, display.view, vk::ImageLayout::eShaderReadOnlyOptimal);
-	}
-
-	void resize(size_t width, size_t height) {
-		host.resize(width, height);
-		__allocate();
-	}
-
-	void refresh(const vk::CommandBuffer &cmd) {
-		littlevk::upload(allocator.device, staging, host.data);
-		__copy(cmd);
-	}
-};
-
 using namespace jvl::core;
 using namespace jvl::gfx;
-
-struct Scene {
-	std::vector <TriangleMesh> meshes;
-	std::vector <Material> materials;
-
-	void add(const Preset &preset) {
-		for (auto &g : preset.geometry) {
-			auto tmesh = core::TriangleMesh::from(g).value();
-			meshes.push_back(tmesh);
-		}
-	}
-
-	auto bvh() {
-		std::vector <cpu::BVHCompact> nodes;
-		cpu::AABB combined;
-		for (size_t i = 0; i < meshes.size(); i++) {
-			auto &m = meshes[i];
-			for (size_t j = 0; j < m.triangles.size(); j++) {
-				auto &tri = m.triangles[j];
-
-				auto v0 = m.positions[tri.x];
-				auto v1 = m.positions[tri.y];
-				auto v2 = m.positions[tri.z];
-				auto aabb = cpu::AABB::from_triangle(v0, v1, v2);
-
-				combined = cpu::combine(combined, aabb);
-
-				cpu::BVHCompact node;
-				node.aabb = aabb;
-				node.mesh = i;
-				node.index = j;
-
-				nodes.push_back(node);
-			}
-		}
-
-		return std::make_tuple(nodes, combined);
-	}
-};
-
-cpu::Intersection trace_accelerated(const Scene &scene, const std::vector <cpu::BVHCompact> &bvh, const float3 &ray, const float3 &origin)
-{
-	auto sh = cpu::Intersection::miss();
-
-	std::stack <int64_t> stack;
-	stack.push(0);
-
-	while (!stack.empty()) {
-		int64_t index = stack.top();
-		stack.pop();
-
-		const cpu::BVHCompact &node = bvh[index];
-
-		int64_t left = node.left;
-		int64_t right = node.right;
-
-		bool hit_aabb_ = hit_aabb(ray, origin, node.aabb, 0, sh.time < 0 ? 1e16 : sh.time);
-		if (!hit_aabb_)
-			continue;
-
-		if (left == 0 && right == 0) {
-			// Leaf node
-			auto &m = scene.meshes[node.mesh];
-			auto &tri = m.triangles[node.index];
-			auto v0 = m.positions[tri.x];
-			auto v1 = m.positions[tri.y];
-			auto v2 = m.positions[tri.z];
-
-			auto hit = gfx::cpu::ray_triangle_intersection(ray, origin, v0, v1, v2);
-
-			sh.update(hit);
-		}
-
-		if (left != 0)
-			stack.push(index + left);
-		if (right != 0)
-			stack.push(index + right);
-	}
-
-	return sh;
-}
 
 int main(int argc, char *argv[])
 {
@@ -336,12 +94,10 @@ int main(int argc, char *argv[])
 
 	auto preset = core::Preset::from(path).value();
 
-	auto scene = Scene();
+	// TODO: non blocking bvh construction (std promise equivalent?)
+	auto scene = cpu::Scene();
 	scene.add(preset);
-	auto [nodes, combined] = scene.bvh();
-
-	std::vector <cpu::BVHCompact> built;
-	cpu::make_acceleration_structure(built, nodes, combined, cpu::eRandomAxis);
+	scene.build_bvh();
 
 	//////////////////
 	// VULKAN SETUP //
@@ -517,7 +273,7 @@ int main(int argc, char *argv[])
 	glfwSetMouseButtonCallback(drc.window.handle, button_callback);
 	glfwSetCursorPosCallback(drc.window.handle, cursor_callback);
 
-	auto fb = FramebufferCollection(drc.allocator(), drc.commander());
+	auto fb = HostFramebufferCollection(drc.allocator(), drc.commander());
 	fb.resize(200, 200);
 	fb.host.clear();
 
@@ -532,17 +288,19 @@ int main(int argc, char *argv[])
 	};
 
 	auto raytrace = [&](int2 ij, float2 uv) -> uint32_t {
-		float3 origin = rf.origin;
-		float3 ray = normalize(rf.lower_left
+		core::Ray ray;
+		ray.origin = rf.origin;
+		ray.direction = normalize(rf.lower_left
 				+ uv.x * rf.horizontal
 				+ (1 - uv.y) * rf.vertical
 				- rf.origin);
 
-		auto sh = trace_accelerated(scene, built, ray, origin);
+		auto sh = scene.trace(ray);
 
 		float3 color;
 		if (sh.time >= 0)
-			color = 0.5f + 0.5f * sh.normal;
+			color = sh.barycentric;
+			// color = 0.5f + 0.5f * sh.normal;
 
 		return tonemap(color);
 	};

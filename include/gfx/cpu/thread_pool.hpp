@@ -48,8 +48,6 @@ void worker_loop(const F &kernel, wrapped::thread_safe_queue <T> &queue, worker_
 		kernel(item);
 	}
 
-	fmt::println("kill status: {}", status.kill);
-
 	status.done = true;
 }
 

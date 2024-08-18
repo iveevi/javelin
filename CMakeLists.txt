@@ -44,8 +44,12 @@ add_library(jvl-ire STATIC
 add_executable(javelin
 	source/exec/javelin/main.cpp
 	source/exec/javelin/glio.cpp
+	source/exec/javelin/device_resource_collection.cpp
 	source/core/preset.cpp
-	source/gfx/cpu/bvh.cpp)
+	source/core/aabb.cpp
+	source/gfx/cpu/bvh.cpp
+	source/gfx/cpu/scene.cpp
+	source/gfx/cpu/intersection.cpp)
 
 add_executable(ire-features
 	source/exec/features/ire.cpp

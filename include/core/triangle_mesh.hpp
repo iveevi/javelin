@@ -7,13 +7,13 @@
 namespace jvl::core {
 
 struct TriangleMesh {
-	buffer<float3> positions;
-	buffer<int3> triangles;
+	buffer <float3> positions;
+	buffer <int3> triangles;
+	// TODO: material index per triangle?
 
 	// TODO: additional vertex properties properties
 
-	static std::optional<TriangleMesh> from(const Mesh &m)
-	{
+	static std::optional<TriangleMesh> from(const Mesh &m) {
 		TriangleMesh tm;
 
 		if (auto opt_pos =
