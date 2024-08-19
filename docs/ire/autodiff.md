@@ -20,10 +20,10 @@ void shader()
 {
 	// ... global variable definitions, other code
 
-	dtype_t <f32> dx = dual_t(1.0, 0.5);       // sets dx.primal to 1.0
+	dual_t <f32> dx = dual(1.0, 0.5);          // sets dx.primal to 1.0
 	                                           // zero initializes dx.dual to 0.5
 	
-	dtype_t <f32> dsquare = dfwd(square)(dx);  // dfwd returns the forward derivative of square
+	dual_t <f32> dsquare = dfwd(square)(dx);   // dfwd returns the forward derivative of square
 	                                           // the return type of dfwd(square) is the differential type of f32
 }
 ```

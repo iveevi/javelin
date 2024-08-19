@@ -42,14 +42,15 @@ add_library(jvl-ire STATIC
 	source/ire/marking.cpp)
 
 add_executable(javelin
-	source/exec/javelin/main.cpp
-	source/exec/javelin/glio.cpp
-	source/exec/javelin/device_resource_collection.cpp
-	source/core/preset.cpp
 	source/core/aabb.cpp
+	source/core/preset.cpp
+	source/core/scene.cpp
+	source/exec/javelin/device_resource_collection.cpp
+	source/exec/javelin/glio.cpp
+	source/exec/javelin/main.cpp
 	source/gfx/cpu/bvh.cpp
-	source/gfx/cpu/scene.cpp
-	source/gfx/cpu/intersection.cpp)
+	source/gfx/cpu/intersection.cpp
+	source/gfx/cpu/scene.cpp)
 
 add_executable(ire-features
 	source/exec/features/ire.cpp

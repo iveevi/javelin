@@ -13,12 +13,16 @@ A realtime rendering framework.
   - [x] Structs and nested structs
   - [x] Standard vector operations (dot, cross, etc.)
   - [x] Return calls
-  - [ ] Callable functions from ordinary functions
+  - [x] Callable functions from ordinary functions
   - [ ] Standard floating point functions (sin, cos, exp, log, etc.)
   - [ ] Named structures for synthesizing compatible code
   - [ ] Branching (if, else if, else)
   - [ ] While loops (while, do-while)
   - [ ] For loops (for, foreach)
+  - [ ] Kernel modules for linking chunks of Atom IR
+- **Automatic differentiation:**
+  - [ ] Dual type generation through `dual_t` and construction with `dual`
+  - [ ] Forward derivative functions of simple callables
 - **GLSL specific:**
   - [x] Layout input and output variables
   - [x] Push constants
@@ -39,15 +43,17 @@ A realtime rendering framework.
   - [x] Struct generation for jvl primitive types (vec2, ivec4, etc.)
 - **SPIRV synthesis:**
   - [ ] Direct translation of basic atoms to SPIRV ASM
+- **JIT executable:**
+  - [ ] Implementation using `libgccjit`
 
 ## CPU Rendering
 
 - [x] Thread pool implementation
 - [x] IRE shaders for vertex/fragment pipeline
+- [x] BVH construction methods
+- [x] Naive path tracing
+- [x] Path tracing with BRDF importance sampling
 - [ ] GGX material description
-- [ ] BVH construction methods
-- [ ] Naive path tracing
-- [ ] Path tracing with BRDF importance sampling
 - [ ] Path tracing with NEE
 - [ ] MIS path tracer
 
@@ -58,5 +64,5 @@ A realtime rendering framework.
   - [ ] Checks for control flow operations
   - [ ] Ensure that uniform compatible structures are preserved
 - **Code synthesis:**
-  - [x] Compatibility test for C++ synthesis
-  - [ ] Compatibility test for GLSL synthesis
+  - [x] Simple compatibility test for C++ synthesis
+  - [x] Simple compatibility test for GLSL synthesis

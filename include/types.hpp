@@ -15,8 +15,14 @@ template <typename T>
 using property = jvl::wrapped::hash_table <std::string, T>;
 
 using typed_buffer = jvl::wrapped::variant <
-	buffer <float3>, buffer <float2>,
-	buffer <int>, buffer <int3>, buffer <int4>
+	buffer <float4>,
+	buffer <float3>,
+	buffer <float2>,
+	buffer <float>,
+	buffer <int3>,
+	buffer <int2>,
+	buffer <int4>,
+	buffer <int>
 >;
 
 } // namespace jvl

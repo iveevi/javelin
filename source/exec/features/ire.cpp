@@ -12,7 +12,6 @@
 // TODO: test on shader toy shaders, use this as a gfx test
 // TODO: std.hpp for additional features
 // TODO: pass structs as inout to callables
-// TODO: creating callables from lambdas
 // TODO: passing layout inputs/outputs (should ignore them)
 // TODO: test nested structs again
 

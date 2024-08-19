@@ -12,6 +12,7 @@
 #include "constants.hpp"
 #include "core/aperature.hpp"
 #include "core/preset.hpp"
+#include "core/scene.hpp"
 #include "core/transform.hpp"
 #include "core/triangle_mesh.hpp"
 #include "gfx/cpu/bvh.hpp"
@@ -101,6 +102,12 @@ int main(int argc, char *argv[])
 	auto scene = cpu::Scene();
 	scene.add(preset);
 	scene.build_bvh();
+
+	{
+		auto scene = core::Scene();
+		scene.add(preset);
+		scene.write("main.jvls");
+	}
 
 	//////////////////
 	// VULKAN SETUP //
