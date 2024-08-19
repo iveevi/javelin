@@ -365,6 +365,18 @@ constexpr vector <T, N> normalize(const vector <T, N> &v)
 	return vn;
 }
 
+template <typename T, size_t N>
+constexpr vector <T, N> clamp(const vector <T, N> &v, float min, float max)
+{
+	vector <T, N> vn = v;
+
+	// TODO: math_util header for these functoins
+	for (size_t i = 0; i < N; i++)
+		vn[i] = std::max(min, std::min(max, vn[i]));
+
+	return vn;
+}
+
 template <typename T>
 constexpr quat <T> normalize(const quat <T> &q)
 {

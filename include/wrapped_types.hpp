@@ -63,14 +63,14 @@ template <typename K, typename V>
 struct hash_table : std::unordered_map <K, V> {
 	using std::unordered_map <K, V> ::unordered_map;
 
-	optional <V> maybe_at(const K &k) {
+	optional <V> get(const K &k) {
 		if (this->count(k))
 			return this->operator[](k);
 
 		return std::nullopt;
 	}
 
-	optional <V> maybe_at(const K &k) const {
+	optional <V> get(const K &k) const {
 		if (this->count(k))
 			return this->at(k);
 

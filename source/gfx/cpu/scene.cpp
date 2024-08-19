@@ -6,8 +6,19 @@ namespace jvl::gfx::cpu {
 
 void Scene::add(const core::Preset &preset)
 {
+	// Add the materials first, then the geometry (to offset)
+	size_t offset = materials.size();
+	for (auto &m : preset.materials) {
+		// TODO: generate the kernels for each material
+		// and then compile on demand
+		materials.push_back(m);
+	}
+
 	for (auto &g : preset.geometry) {
 		auto tmesh = core::TriangleMesh::from(g).value();
+		for (auto &i : tmesh.materials)
+			i += offset;
+
 		meshes.push_back(tmesh);
 	}
 }
@@ -71,6 +82,9 @@ cpu::Intersection cpu::Scene::trace(const core::Ray &ray)
 			auto v2 = m.positions[tri.z];
 
 			auto hit = gfx::cpu::ray_triangle_intersection(ray, v0, v1, v2);
+
+			// TODO: more attributes (normal, uv...)
+			hit.material = m.materials[node.index];
 
 			sh.update(hit);
 		}

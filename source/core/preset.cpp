@@ -49,7 +49,6 @@ std::optional <Preset> Preset::from(const std::filesystem::path &path)
 
 	auto &attrib = reader.GetAttrib();
 	auto &shapes = reader.GetShapes();
-	auto &materials = reader.GetMaterials();
 
 	for (size_t s = 0; s < shapes.size(); s++) {
 		fmt::println("SHAPE>>>");
@@ -60,6 +59,7 @@ std::optional <Preset> Preset::from(const std::filesystem::path &path)
 
 		buffer <int3> triangles;
 		buffer <int4> quadrilaterals;
+		buffer <int> materials;
 
 		std::unordered_map <float3, int32_t> position_map;
 		std::unordered_map <tinyobj::index_t, int32_t> index_map;
@@ -77,9 +77,7 @@ std::optional <Preset> Preset::from(const std::filesystem::path &path)
 			// Loop over vertices in the face.
 			for (size_t v = 0; v < fv; v++) {
 				// access to vertex
-				tinyobj::index_t idx =
-					shapes[s]
-						.mesh.indices[index_offset + v];
+				tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
 				if (index_map.count(idx)) {
 					indices[v] = index_map[idx];
 					continue;
@@ -89,7 +87,7 @@ std::optional <Preset> Preset::from(const std::filesystem::path &path)
                                 tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
                                 tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
 
-                                float3 p{vx, vy, vz};
+                                float3 p { vx, vy, vz };
 
 				if (position_map.count(p)) {
 					indices[v] = position_map[p];
@@ -126,11 +124,13 @@ std::optional <Preset> Preset::from(const std::filesystem::path &path)
 				quadrilaterals.push_back(f);
 			}
 
+			materials.push_back(shape.mesh.material_ids[f]);
+
 			index_offset += fv;
 		}
 
 		fmt::println("  size: {} vertices, {} normals, {} uvs", positions.size(), normals.size(), uvs.size());
-		fmt::println("  size: {} tris, {} quads", triangles.size(), quadrilaterals.size());
+		fmt::println("  size: {} tris, {} quads {} materials", triangles.size(), quadrilaterals.size(), materials.size());
 
 		Mesh mesh;
 
@@ -147,6 +147,8 @@ std::optional <Preset> Preset::from(const std::filesystem::path &path)
 			mesh.face_properties[Mesh::triangle_key] = triangles;
 		if (quadrilaterals.size())
 			mesh.face_properties[Mesh::quadrilateral_key] = quadrilaterals;
+		if (materials.size())
+			mesh.face_properties[Mesh::material_key] = materials;
 
 		preset.geometry.push_back(mesh);
 	}
@@ -155,16 +157,22 @@ std::optional <Preset> Preset::from(const std::filesystem::path &path)
 		return float3(values[0], values[1], values[2]);
 	};
 
+	auto &materials = reader.GetMaterials();
 	for (auto &material : materials) {
 		Material m;
-		m.values["brdf"] = Phong::id;
-		m.values["ambient"] = to_float3(material.ambient);
-		m.values["diffuse"] = to_float3(material.ambient);
-		m.values["specular"] = to_float3(material.ambient);
-		m.values["emission"] = to_float3(material.emission);
-		m.values["roughness"] = material.roughness;
+		// TODO: check for textures
+		m.values[Material::brdf_key] = Phong::id;
+		m.values[Material::ambient_key] = to_float3(material.ambient);
+		m.values[Material::diffuse_key] = to_float3(material.diffuse);
+		m.values[Material::specular_key] = to_float3(material.specular);
+		m.values[Material::emission_key] = to_float3(material.emission);
+		m.values[Material::roughness_key] = material.roughness;
 		fmt::println("MATERIAL>>>");
 		fmt::println("  roughness: {}", material.roughness);
+		fmt::println("  emission: ({}, {}, {})",
+				material.emission[0],
+				material.emission[1],
+				material.emission[2]);
 		preset.materials.push_back(m);
 	}
 

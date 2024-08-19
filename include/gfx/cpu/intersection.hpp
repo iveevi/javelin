@@ -11,6 +11,7 @@ struct Intersection {
 	float3 point;
 	float3 barycentric;
 	bool backfacing;
+	int material;
 
 	void update(const Intersection &other) {
 		if (other.time < 0)
@@ -22,6 +23,7 @@ struct Intersection {
 			point = other.point;
 			barycentric = other.barycentric;
 			backfacing = other.backfacing;
+			material = other.material;
 		}
 	}
 

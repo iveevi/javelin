@@ -16,7 +16,7 @@ using property = jvl::wrapped::hash_table <std::string, T>;
 
 using typed_buffer = jvl::wrapped::variant <
 	buffer <float3>, buffer <float2>,
-	buffer <int3>, buffer <int4>
+	buffer <int>, buffer <int3>, buffer <int4>
 >;
 
 } // namespace jvl

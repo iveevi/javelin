@@ -13,6 +13,7 @@ struct Mesh {
 	// Face property keys
 	static constexpr char triangle_key[] = "triangles";
 	static constexpr char quadrilateral_key[] = "quadrilaterals";
+	static constexpr char material_key[] = "material";
 
 	size_t vertex_count;
 	property <typed_buffer> vertex_properties;

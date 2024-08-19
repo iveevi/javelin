@@ -56,7 +56,14 @@ struct HostFramebufferCollection {
 	}
 
 	void refresh(const vk::CommandBuffer &cmd) {
+		if (empty())
+			return;
+
 		littlevk::upload(allocator.device, staging, host.data);
 		__copy(cmd);
+	}
+
+	bool empty() {
+		return (host.width == 0) || (host.height == 0);
 	}
 };

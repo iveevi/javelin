@@ -15,8 +15,8 @@ struct Tile {
 
 template <typename T>
 struct Framebuffer {
-	size_t width;
-	size_t height;
+	size_t width = 0;
+	size_t height = 0;
 
 	std::vector <T> data;
 

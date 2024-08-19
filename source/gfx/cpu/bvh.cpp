@@ -13,8 +13,6 @@ int64_t build_bvh(BVH &destination, const std::vector <BVHNode> &source, const c
 	static std::mt19937 rng;
 	static std::uniform_int_distribution <int> axis_dist(0, 2);
 
-	fmt::println("build bvh with {} nodes, offset is {}", source.size(), destination.size());
-
 	if (source.size() == 1) {
 		destination.push_back(source[0]);
 		return 1;
