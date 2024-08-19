@@ -5,7 +5,7 @@
 #include "gfx/cpu/framebuffer.hpp"
 
 struct HostFramebufferCollection {
-	jvl::gfx::cpu::Framebuffer <uint32_t> host;
+	jvl::gfx::cpu::Framebuffer <jvl::float4> host;
 	littlevk::Buffer staging;
 	littlevk::Image display;
 	vk::DescriptorSet descriptor;
@@ -38,7 +38,8 @@ struct HostFramebufferCollection {
 					uint32_t(host.width),
 					uint32_t(host.height)
 				},
-				vk::Format::eR8G8B8A8Unorm,
+				// vk::Format::eR8G8B8A8Unorm,
+				vk::Format::eR32G32B32A32Sfloat,
 				vk::ImageUsageFlagBits::eSampled
 					| vk::ImageUsageFlagBits::eTransferDst,
 				vk::ImageAspectFlagBits::eColor);

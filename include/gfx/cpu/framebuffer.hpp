@@ -8,9 +8,11 @@
 
 namespace jvl::gfx::cpu {
 
+template <typename T = int>
 struct Tile {
 	int2 min;
 	int2 max;
+	T data;
 };
 
 template <typename T>
@@ -28,8 +30,17 @@ struct Framebuffer {
 		return &data[i * width];
 	}
 
-	wrapped::thread_safe_queue <Tile> tiles(int2 size) const {
-		wrapped::thread_safe_queue <Tile> tsq;
+	T &operator[](int2 i) {
+		return operator[](i.x)[i.y];
+	}
+
+	const T &operator[](int2 i) const {
+		return operator[](i.x)[i.y];
+	}
+
+	template <typename TT>
+	wrapped::thread_safe_queue <Tile <TT>> tiles(int2 size, const TT &data) const {
+		wrapped::thread_safe_queue <Tile <TT>> tsq;
 
 		for (int i = 0; i < (height + size.y - 1)/size.y; i++) {
 			for (int j = 0; j < (width + size.x - 1)/size.x; j++) {
@@ -37,9 +48,10 @@ struct Framebuffer {
 				int2 ji = { j, i };
 				int2 ji_n = { j + 1, i + 1 };
 
-				Tile tile {
+				Tile <TT> tile {
 					.min = ji * size,
-					.max = min(ji_n * size, int2(width, height))
+					.max = min(ji_n * size, int2(width, height)),
+					.data = data
 				};
 
 				tsq.push(tile);
@@ -49,13 +61,10 @@ struct Framebuffer {
 		return tsq;
 	}
 
-	// TODO: int2 indexing
-
 	// TODO: with input attachments as well
 	template <typename F>
 	requires std::is_same_v <std::invoke_result_t <F, int2, float2>, T>
 	void process(const F &kernel) {
-		// TODO: tile version
 		for (int i = 0; i < height; i++) {
 			for (int j = 0; j < width; j++) {
 				int2 ij { i, j };
@@ -65,15 +74,28 @@ struct Framebuffer {
 		}
 	}
 
-	template <typename F>
-	requires std::is_same_v <std::invoke_result_t <F, int2, float2>, T>
-	void process_tile(const F &kernel, const Tile &tile) {
-		// TODO: tile version
+	template <typename F, typename TT>
+	requires std::is_same_v <std::invoke_result_t <F, int2, float2, TT>, T>
+	void process_tile(const F &kernel, Tile <TT> &tile) {
 		for (int i = tile.min.y; i < tile.max.y; i++) {
 			for (int j = tile.min.x; j < tile.max.x; j++) {
 				int2 ij { i, j };
 				float2 uv = { j/float(width), i/float(height) };
-				data[i * width + j] = kernel(ij, uv);
+				data[i * width + j] = kernel(ij, uv, tile.data);
+			}
+		}
+	}
+
+	// Reading variants
+	template <typename F, typename TT>
+	requires std::is_same_v <std::invoke_result_t <F, int2, float2, T, TT>, T>
+	void process_tile(const F &kernel, Tile <TT> &tile) {
+		for (int i = tile.min.y; i < tile.max.y; i++) {
+			for (int j = tile.min.x; j < tile.max.x; j++) {
+				int2 ij { i, j };
+				float2 uv = { j/float(width), i/float(height) };
+				T value = data[i * width + j];
+				data[i * width + j] = kernel(ij, uv, value, tile.data);
 			}
 		}
 	}

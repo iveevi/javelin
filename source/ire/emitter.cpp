@@ -166,7 +166,7 @@ void Emitter::validate() const
 atom::Kernel Emitter::export_to_kernel()
 {
 	// Compaction, validation, ...
-	compact();
+	// compact();
 	validate();
 
 	atom::Kernel kernel(atom::Kernel::eAll);

@@ -130,6 +130,10 @@ struct thread_safe_queue : private std::deque <T> {
 			this->push_back(v);
 	}
 
+	void push_locked(const T &v) {
+		this->push_back(v);
+	}
+
 	T pop() {
 		std::lock_guard guard(lock);
 
@@ -145,7 +149,7 @@ struct thread_safe_queue : private std::deque <T> {
 	}
 
 	[[gnu::always_inline]]
-	size_t size() const {
+	size_t size() {
 		std::lock_guard guard(lock);
 		return std::deque <T> ::size();
 	}

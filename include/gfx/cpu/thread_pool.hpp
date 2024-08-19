@@ -22,7 +22,7 @@ struct worker_status {
 };
 
 template <typename T, typename F>
-requires std::same_as <std::invoke_result_t <F, T>, void>
+requires std::same_as <std::invoke_result_t <F, T &>, void>
 void worker_loop(const F &kernel, wrapped::thread_safe_queue <T> &queue, worker_status &status)
 {
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
@@ -44,7 +44,6 @@ void worker_loop(const F &kernel, wrapped::thread_safe_queue <T> &queue, worker_
 				break;
 		}
 
-		// TODO: message method in sync
 		kernel(item);
 	}
 
@@ -52,6 +51,41 @@ void worker_loop(const F &kernel, wrapped::thread_safe_queue <T> &queue, worker_
 }
 
 template <typename T, typename F>
+requires std::same_as <std::invoke_result_t <F, T &>, bool>
+void worker_loop(const F &kernel, wrapped::thread_safe_queue <T> &queue, worker_status &status)
+{
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
+
+	// TODO: sleep
+	while (!status.begin) {
+		if (status.kill)
+			return;
+	}
+
+	while (!status.kill) {
+		T item;
+
+		{
+			std::lock_guard guard(queue.lock);
+			if (queue.size_locked())
+				item = queue.pop_locked();
+			else
+				break;
+		}
+
+		bool reinsert = kernel(item);
+		if (reinsert) {
+			std::lock_guard guard(queue.lock);
+			queue.push_locked(item);
+		}
+	}
+
+	status.done = true;
+}
+
+template <typename T, typename F>
+requires std::same_as <std::invoke_result_t <F, T &>, void>
+	|| std::same_as <std::invoke_result_t <F, T &>, bool>
 class fixed_function_thread_pool {
 	F kernel;
 	size_t count;

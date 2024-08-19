@@ -30,6 +30,7 @@
 #include "glio.hpp"
 #include "device_resource_collection.hpp"
 #include "host_framebuffer_collection.hpp"
+#include "host_raytracer.hpp"
 
 using namespace jvl;
 
@@ -86,132 +87,6 @@ void fragment()
 
 using namespace jvl::core;
 using namespace jvl::gfx;
-
-inline float3 reflect(const float3 &v, const float3 &n)
-{
-    return normalize(v - 2 * dot(v, n) * n);
-}
-
-inline std::pair <float3, float> sample_hemisphere(float u, float v)
-{
-	assert(u >= 0 && u < 1);
-	assert(v >= 0 && v < 1);
-
-	float phi = 2 * M_PI * u;
-	float z = sqrt(1 - v);
-
-	return {
-		float3 {
-			std::cos(phi) * std::sqrt(v),
-			std::sin(phi) * std::sqrt(v),
-			z
-		},
-		z/M_PI
-	};
-}
-
-struct OrthonormalBasis {
-	float3 u, v, w;
-
-	float3 local(const float3 &a) const {
-		return a.x * u + a.y * v + a.z * w;
-	}
-
-	static OrthonormalBasis from(const float3 &n) {
-		OrthonormalBasis onb;
-		onb.w = normalize(n);
-
-		float3 a = (fabs(onb.w.x) > 0.9) ? float3 { 0, 1, 0 } : float3 { 1, 0, 0 };
-		onb.v = normalize(cross(onb.w, a));
-		onb.u = cross(onb.w, onb.v);
-
-		return onb;
-	}
-};
-
-struct HostRaytracer {
-	core::Transform transform;
-	core::Aperature aperature;
-	core::Rayframe rayframe;
-
-	cpu::Scene &scene;
-
-	// TODO: thread_local everything
-	std::mt19937 random;
-	std::uniform_real_distribution <float> distribution;
-
-	HostRaytracer(cpu::Scene &scene_)
-			: scene(scene_),
-			  random(std::random_device()()),
-	                  distribution(0, 1) {}
-
-	uint32_t convert_format(const float3 &rgb) {
-		// TODO: r g b a components with a union
-		uint32_t r = 255 * rgb.x;
-		uint32_t g = 255 * rgb.y;
-		uint32_t b = 255 * rgb.z;
-		return r | g << 8 | b << 16 | 0xff000000;
-	}
-
-	float3 radiance(const Ray &ray, int depth = 0) {
-		if (depth <= 0)
-			return float3(0.0f);
-
-		auto sh = scene.trace(ray);
-
-		// TODO: get environment map lighting from scene...
-		if (sh.time <= 0.0)
-			return float3(0.0f);
-
-		assert(sh.material < scene.materials.size());
-		Material &material = scene.materials[sh.material];
-
-		Phong phong = Phong::from(material);
-		float3 emission = phong.emission.as <float3> ();
-		if (length(emission) > 0)
-			return emission;
-
-		float3 kd = phong.kd.as <float3> ();
-
-		constexpr float epsilon = 1e-3f;
-
-		float u = distribution(random);
-		float v = distribution(random);
-
-		auto [sampled, pdf] = sample_hemisphere(u, v);
-
-		auto onb = OrthonormalBasis::from(sh.normal);
-
-		Ray next = ray;
-		next.origin = sh.point + epsilon * sh.normal;
-		next.direction = onb.local(sampled);
-
-		float lambertian = std::max(dot(sh.normal, next.direction), 0.0f);
-		float3 brdf = lambertian * (kd/pi <float>);
-		float3 Le = radiance(next, depth - 1);
-		float3 ret = Le * kd;
-		return brdf * Le/pdf;
-	}
-
-	float3 radiance_samples(const Ray &ray, size_t samples) {
-		float3 summed = 0;
-		for (size_t i = 0; i < samples; i++)
-			summed += radiance(ray, 6);
-
-		return summed/float(samples);
-	}
-
-	Ray ray_from_pixel(float2 uv) {
-		core::Ray ray;
-		ray.origin = rayframe.origin;
-		ray.direction = normalize(rayframe.lower_left
-				+ uv.x * rayframe.horizontal
-				+ (1 - uv.y) * rayframe.vertical
-				- rayframe.origin);
-
-		return ray;
-	}
-};
 
 int main(int argc, char *argv[])
 {
@@ -404,23 +279,34 @@ int main(int argc, char *argv[])
 
 	HostRaytracer rtx(scene);
 
-	auto raytrace = [&](int2 ij, float2 uv) -> uint32_t {
+	struct Extra {
+		int accumulated;
+		int expected;
+	};
+
+	using Tile = cpu::Tile <Extra>;
+
+	cpu::Framebuffer <float3> contributions;
+
+	auto raytrace = [&](int2 ij, float2 uv, const Extra &extra) -> float4 {
 		Ray ray = rtx.ray_from_pixel(uv);
-		float3 color = rtx.radiance_samples(ray, 64);
-		color = clamp(color, 0, 1);
-		return rtx.convert_format(color);
+		float3 color = rtx.radiance(ray, 10);
+
+		float3 &prior = contributions[ij];
+		prior = prior * float(extra.accumulated);
+		prior += color;
+		prior = prior / float(extra.accumulated + 1);
+
+		return float4(clamp(prior, 0, 1), 1);
 	};
 
-	auto clear = [&fb](int2 ij, float2 uv) -> uint32_t {
-		return 0xff000000;
-	};
-
-	auto kernel = [&fb, &raytrace](const gfx::cpu::Tile &tile) {
+	auto kernel = [&fb, &raytrace](Tile &tile) -> bool {
 		fb.host.process_tile(raytrace, tile);
+		return (++tile.data.accumulated) < tile.data.expected;
 	};
 
 	auto thread_pool = gfx::cpu::fixed_function_thread_pool
-			<gfx::cpu::Tile, decltype(kernel)>
+			<Tile, decltype(kernel)>
 			(std::thread::hardware_concurrency(), kernel);
 
 	// TODO: dynamic render pass
@@ -496,17 +382,20 @@ int main(int argc, char *argv[])
 				if (ImGui::BeginMenuBar()) {
 					if (ImGui::Button("Render")) {
 						fb.resize(viewport.x, viewport.y);
+						contributions.resize(viewport.x, viewport.y);
+
 						fmt::println("rendering at {} x {} resolution", fb.host.width, fb.host.height);
 
 						int2 size { 32, 32 };
-						auto tiles = fb.host.tiles(size);
+						auto tiles = fb.host.tiles <Extra> (size, Extra(0, 64));
 
 						rtx.transform = transform;
 						rtx.rayframe = core::rayframe(rtx.aperature, rtx.transform);
 
 						thread_pool.reset();
 						thread_pool.enque(tiles);
-						fb.host.process(clear);
+						fb.host.clear();
+						contributions.clear();
 						thread_pool.begin();
 					}
 

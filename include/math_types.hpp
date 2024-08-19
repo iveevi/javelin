@@ -65,7 +65,11 @@ struct vector_base <T, 4> {
 		};
 	};
 
-	constexpr vector_base(T x_ = 0, T y_ = 0, T z_ = 0, T w_ = 0) : x(x_), y(y_), z(z_), w(w_) {}
+	constexpr vector_base(T x_ = 0, T y_ = 0, T z_ = 0, T w_ = 0)
+			: x(x_), y(y_), z(z_), w(w_) {}
+
+	constexpr vector_base(const vector_base <T, 3> &v, T w_ = 0)
+			: x(v.x), y(v.y), z(v.z), w(w_) {}
 
 	TEMPLATE_DATA_INDEX
 };
@@ -376,6 +380,18 @@ constexpr vector <T, N> clamp(const vector <T, N> &v, float min, float max)
 
 	return vn;
 }
+
+#define TEMPLATE_VECTOR_ELEMENT_WISE(name, op)					\
+	template <typename T, size_t N>						\
+	vector <T, N> name(const vector <T, N> &A)				\
+	{									\
+		vector <T, N> C;						\
+		for (size_t i = 0; i < N; i++)					\
+			C[i] = op(A[i]);					\
+		return C;							\
+	}
+
+TEMPLATE_VECTOR_ELEMENT_WISE(sqrt, std::sqrt)
 
 template <typename T>
 constexpr quat <T> normalize(const quat <T> &q)
