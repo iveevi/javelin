@@ -23,10 +23,10 @@ struct push_constant : push_constant_base <T> {
 	requires synthesizable <T> {
 		auto &em = Emitter::active;
 
-		atom::Global global;
+		thunder::Global global;
 		global.type = type_field_from_args <T> ().id;
 		global.binding = -1;
-		global.qualifier = atom::Global::push_constant;
+		global.qualifier = thunder::Global::push_constant;
 
 		this->ref = em.emit(global);
 	}
@@ -38,10 +38,10 @@ struct push_constant : push_constant_base <T> {
 
 		auto layout = this->layout().remove_const();
 
-		atom::Global global;
+		thunder::Global global;
 		global.type = type_field_from_args(layout).id;
 		global.binding = -1;
-		global.qualifier = atom::Global::push_constant;
+		global.qualifier = thunder::Global::push_constant;
 
 		cache_index_t ref;
 		ref = em.emit(global);
@@ -55,12 +55,12 @@ struct push_constant : push_constant_base <T> {
 
 		auto &em = Emitter::active;
 
-		atom::Global global;
+		thunder::Global global;
 		global.type = type_field_from_args <T> ().id;
 		global.binding = -1;
-		global.qualifier = atom::Global::push_constant;
+		global.qualifier = thunder::Global::push_constant;
 
-		atom::Load load;
+		thunder::Load load;
 		load.src = em.emit(global);
 
 		return (this->ref = em.emit_main(load));

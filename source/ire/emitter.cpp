@@ -5,7 +5,6 @@
 
 #include <fmt/core.h>
 
-#include "atom/atom.hpp"
 #include "ire/emitter.hpp"
 #include "ire/tagged.hpp"
 #include "wrapped_types.hpp"
@@ -18,7 +17,7 @@ Emitter::Emitter() : pointer(0) {}
 void Emitter::clear()
 {
 	pointer = 0;
-	std::memset(pool.data(), 0, pool.size() * sizeof(atom::General));
+	std::memset(pool.data(), 0, pool.size() * sizeof(thunder::Atom));
 
 	// Reset usages
 	used.clear();
@@ -27,11 +26,11 @@ void Emitter::clear()
 
 void Emitter::compact()
 {
-	std::vector <atom::General> dual(pool.size());
-	wrapped::reindex <atom::index_t> reindexer;
+	std::vector <thunder::Atom> dual(pool.size());
+	wrapped::reindex <thunder::index_t> reindexer;
 	std::tie(pointer, reindexer) = detail::ir_compact_deduplicate(pool.data(), dual.data(), synthesized, pointer);
-	std::memset(pool.data(), 0, pool.size() * sizeof(atom::General));
-	std::memcpy(pool.data(), dual.data(), pointer * sizeof(atom::General));
+	std::memset(pool.data(), 0, pool.size() * sizeof(thunder::Atom));
+	std::memcpy(pool.data(), dual.data(), pointer * sizeof(thunder::Atom));
 	synthesized = reindexer(synthesized);
 	used = reindexer(used);
 }
@@ -47,7 +46,7 @@ void Emitter::mark_used(int index, bool syn)
 }
 
 // Emitting instructions during function invocation
-int Emitter::emit(const atom::General &op)
+int Emitter::emit(const thunder::Atom &op)
 {
 	if (scopes.size())
 		return scopes.top().get().emit(op);
@@ -60,7 +59,7 @@ int Emitter::emit(const atom::General &op)
 	return pointer++;
 }
 
-int Emitter::emit_main(const atom::General &op)
+int Emitter::emit_main(const thunder::Atom &op)
 {
 	int p = emit(op);
 	synthesized.insert(p);
@@ -68,16 +67,16 @@ int Emitter::emit_main(const atom::General &op)
 	return p;
 }
 
-int Emitter::emit_main(const atom::Cond &cond)
+int Emitter::emit_main(const thunder::Cond &cond)
 {
-	int p = emit_main((atom::General) cond);
+	int p = emit_main((thunder::Atom) cond);
 	control_flow_ends.push(p);
 	return p;
 }
 
-int Emitter::emit_main(const atom::Elif &elif)
+int Emitter::emit_main(const thunder::Elif &elif)
 {
-	int p = emit_main((atom::General) elif);
+	int p = emit_main((thunder::Atom) elif);
 	assert(control_flow_ends.size());
 	auto ref = control_flow_ends.top();
 	control_flow_ends.pop();
@@ -86,16 +85,16 @@ int Emitter::emit_main(const atom::Elif &elif)
 	return p;
 }
 
-int Emitter::emit_main(const atom::While &loop)
+int Emitter::emit_main(const thunder::While &loop)
 {
-	int p = emit_main((atom::General) loop);
+	int p = emit_main((thunder::Atom) loop);
 	control_flow_ends.push(p);
 	return p;
 }
 
-int Emitter::emit_main(const atom::End &end)
+int Emitter::emit_main(const thunder::End &end)
 {
-	int p = emit_main((atom::General) end);
+	int p = emit_main((thunder::Atom) end);
 	assert(control_flow_ends.size());
 	auto ref = control_flow_ends.top();
 	control_flow_ends.pop();
@@ -105,21 +104,21 @@ int Emitter::emit_main(const atom::End &end)
 
 void Emitter::control_flow_callback(int ref, int p)
 {
-	atom::General op;
+	thunder::Atom op;
 	if (scopes.size())
 		op = scopes.top().get().pool[ref];
 	else
 		op = pool[ref];
 
-	if (op.is <atom::Cond> ()) {
-		op.as <atom::Cond> ().failto = p;
-	} else if (op.is <atom::Elif> ()) {
-		op.as <atom::Elif> ().failto = p;
-	} else if (op.is <atom::While> ()) {
-		op.as <atom::While> ().failto = p;
+	if (op.is <thunder::Cond> ()) {
+		op.as <thunder::Cond> ().failto = p;
+	} else if (op.is <thunder::Elif> ()) {
+		op.as <thunder::Elif> ().failto = p;
+	} else if (op.is <thunder::While> ()) {
+		op.as <thunder::While> ().failto = p;
 	} else {
 		fmt::print("op not conditional, is actually:");
-			atom::dump_ir_operation(op);
+			thunder::dump_ir_operation(op);
 		fmt::print("\n");
 
 		abort();
@@ -139,19 +138,19 @@ void Emitter::validate() const
 		if (!used.contains(i))
 			continue;
 
-		atom::General g = pool[i];
-		if (!g.is <atom::Global>())
+		thunder::Atom g = pool[i];
+		if (!g.is <thunder::Global>())
 			continue;
 
-		atom::Global global = g.as <atom::Global> ();
-		if (global.qualifier == atom::Global::layout_in) {
+		thunder::Global global = g.as <thunder::Global> ();
+		if (global.qualifier == thunder::Global::layout_in) {
 			int type = global.type;
 			int binding = global.binding;
 			if (inputs.count(binding) && inputs[binding] != type)
 				fmt::println("JVL (error): layout in type conflict with binding #{}", binding);
 			else
 				inputs[binding] = type;
-		} else if (global.qualifier == atom::Global::layout_out) {
+		} else if (global.qualifier == thunder::Global::layout_out) {
 			int type = global.type;
 			int binding = global.binding;
 			if (outputs.count(binding) && outputs[binding] != type)
@@ -163,15 +162,15 @@ void Emitter::validate() const
 }
 
 // Kernel transfer
-atom::Kernel Emitter::export_to_kernel()
+thunder::Kernel Emitter::export_to_kernel()
 {
 	// Compaction, validation, ...
 	// compact();
 	validate();
 
-	atom::Kernel kernel(atom::Kernel::eAll);
+	thunder::Kernel kernel(thunder::Kernel::eAll);
 	kernel.atoms.resize(pointer);
-	std::memcpy(kernel.atoms.data(), pool.data(), sizeof(atom::General) * pointer);
+	std::memcpy(kernel.atoms.data(), pool.data(), sizeof(thunder::Atom) * pointer);
 	kernel.synthesized = synthesized;
 	kernel.used = used;
 
@@ -199,7 +198,7 @@ void Emitter::dump()
 			fmt::print(" ");
 
 		fmt::print(" [{:4d}]: ", i);
-			atom::dump_ir_operation(pool[i]);
+			thunder::dump_ir_operation(pool[i]);
 		fmt::print("\n");
 	}
 }

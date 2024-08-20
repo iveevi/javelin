@@ -2,8 +2,8 @@
 
 #include <type_traits>
 
-#include "../atom/atom.hpp"
-#include "../atom/kernel.hpp"
+#include "../thunder/atom.hpp"
+#include "../thunder/kernel.hpp"
 #include "uniform_layout.hpp"
 #include "type_synthesis.hpp"
 #include "emitter.hpp"
@@ -27,7 +27,7 @@ struct Callable {
 
 	// Ordinary information, same as Emitter
 	// but lacks the used and synthesized members
-	std::vector <atom::General> pool;
+	std::vector <thunder::Atom> pool;
 	size_t pointer;
 	size_t cid;
 
@@ -43,9 +43,9 @@ struct Callable {
 
 	// TODO: destructor, which offloads it from the global list
 
-	atom::Kernel export_to_kernel();
+	thunder::Kernel export_to_kernel();
 
-	int emit(const atom::General &);
+	int emit(const thunder::Atom &);
 
 	void dump();
 };
@@ -65,8 +65,8 @@ struct callable_t : Callable {
 
 			auto layout = x.layout().remove_const();
 
-			atom::Global global;
-			global.qualifier = atom::Global::parameter;
+			thunder::Global global;
+			global.qualifier = thunder::Global::parameter;
 			global.type = type_field_from_args(layout).id;
 			global.binding = index;
 
@@ -78,8 +78,8 @@ struct callable_t : Callable {
 
 			using type_of_x = std::decay_t <decltype(x)>;
 
-			atom::Global global;
-			global.qualifier = atom::Global::parameter;
+			thunder::Global global;
+			global.qualifier = thunder::Global::parameter;
 			global.type = type_field_from_args <type_of_x> ().id;
 			global.binding = index;
 
@@ -108,7 +108,7 @@ struct callable_t : Callable {
 	R operator()(const Args &... args) {
 		auto &em = Emitter::active;
 
-		atom::Call call;
+		thunder::Call call;
 		call.cid = cid;
 		call.ret = type_field_from_args <R> ().id;
 		call.args = list_from_args(args...);

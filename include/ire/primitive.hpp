@@ -10,8 +10,8 @@ inline int translate_primitive(bool b)
 {
 	auto &em = Emitter::active;
 
-	atom::Primitive p;
-	p.type = atom::boolean;
+	thunder::Primitive p;
+	p.type = thunder::boolean;
 	p.idata = b;
 
 	return em.emit(p);
@@ -21,8 +21,8 @@ inline int translate_primitive(int i)
 {
 	auto &em = Emitter::active;
 
-	atom::Primitive p;
-	p.type = atom::i32;
+	thunder::Primitive p;
+	p.type = thunder::i32;
 	p.idata = i;
 
 	return em.emit(p);
@@ -32,8 +32,8 @@ inline int translate_primitive(float f)
 {
 	auto &em = Emitter::active;
 
-	atom::Primitive p;
-	p.type = atom::f32;
+	thunder::Primitive p;
+	p.type = thunder::f32;
 	p.fdata = f;
 
 	return em.emit(p);
@@ -59,12 +59,12 @@ struct primitive_t : tagged {
 	primitive_t operator-() const {
 		auto &em = Emitter::active;
 
-		atom::List list;
+		thunder::List list;
 		list.item = synthesize().id;
 
-		atom::Operation neg;
+		thunder::Operation neg;
 		neg.args = em.emit(list);
-		neg.type = atom::Operation::unary_negation;
+		neg.type = thunder::Operation::unary_negation;
 
 		cache_index_t cit;
 		cit = em.emit(neg);
@@ -76,7 +76,7 @@ struct primitive_t : tagged {
 		auto &em = Emitter::active;
 		em.mark_used(ref.id, true);
 
-		atom::Store store;
+		thunder::Store store;
 		store.dst = ref.id;
 		store.src = translate_primitive(v);
 		em.emit_main(store);
@@ -89,7 +89,7 @@ struct primitive_t : tagged {
 		auto &em = Emitter::active;
 		em.mark_used(ref.id, true);
 
-		atom::Store store;
+		thunder::Store store;
 		store.dst = ref.id;
 		store.src = v.synthesize().id;
 		em.emit_main(store);
@@ -119,46 +119,46 @@ struct primitive_t : tagged {
 
 	// Arithmetic operators
 	friend primitive_t operator+(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (atom::Operation::addition, a, b);
+		return operation_from_args <primitive_t> (thunder::Operation::addition, a, b);
 	}
 
 	friend primitive_t operator-(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (atom::Operation::subtraction, a, b);
+		return operation_from_args <primitive_t> (thunder::Operation::subtraction, a, b);
 	}
 
 	friend primitive_t operator/(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (atom::Operation::division, a, b);
+		return operation_from_args <primitive_t> (thunder::Operation::division, a, b);
 	}
 
 	friend primitive_t operator*(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (atom::Operation::multiplication, a, b);
+		return operation_from_args <primitive_t> (thunder::Operation::multiplication, a, b);
 	}
 
 	// Comparison operators
 	using bool_t = primitive_t <bool>;
 
 	friend bool_t operator==(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (atom::Operation::equals, a, b);
+		return operation_from_args <bool_t> (thunder::Operation::equals, a, b);
 	}
 
 	friend bool_t operator!=(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (atom::Operation::not_equals, a, b);
+		return operation_from_args <bool_t> (thunder::Operation::not_equals, a, b);
 	}
 
 	friend bool_t operator>(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (atom::Operation::cmp_ge, a, b);
+		return operation_from_args <bool_t> (thunder::Operation::cmp_ge, a, b);
 	}
 
 	friend bool_t operator<(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (atom::Operation::cmp_le, a, b);
+		return operation_from_args <bool_t> (thunder::Operation::cmp_le, a, b);
 	}
 
 	friend bool_t operator>=(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (atom::Operation::cmp_geq, a, b);
+		return operation_from_args <bool_t> (thunder::Operation::cmp_geq, a, b);
 	}
 
 	friend bool_t operator<=(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (atom::Operation::cmp_leq, a, b);
+		return operation_from_args <bool_t> (thunder::Operation::cmp_leq, a, b);
 	}
 };
 

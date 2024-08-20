@@ -19,7 +19,7 @@ struct swizzle_base : tagged {};
 struct __gl_Position_t;
 
 // Swizzle element
-template <primitive_type T, typename Up, atom::Swizzle::Kind swz>
+template <primitive_type T, typename Up, thunder::Swizzle::Kind swz>
 class swizzle_element : tagged {
 	Up *upper;
 
@@ -35,7 +35,7 @@ public:
 
 		auto &em = Emitter::active;
 
-		atom::Swizzle swizzle;
+		thunder::Swizzle swizzle;
 		swizzle.type = swz;
 		swizzle.src = upper->synthesize().id;
 
@@ -47,7 +47,7 @@ public:
 	swizzle_element &operator=(const primitive_t <T> &v) {
 		auto &em = Emitter::active;
 
-		atom::Store store;
+		thunder::Store store;
 		store.src = v.synthesize().id;
 		store.dst = synthesize().id;
 
@@ -74,8 +74,8 @@ class swizzle_base <T, 2> : public tagged {
 
 	T initial[2];
 public:
-	swizzle_element <T, self, atom::Swizzle::x> x;
-	swizzle_element <T, self, atom::Swizzle::y> y;
+	swizzle_element <T, self, thunder::Swizzle::x> x;
+	swizzle_element <T, self, thunder::Swizzle::y> y;
 
 	explicit swizzle_base(T x = T(0), T y = T(0))
 			: x(this), y(this) {
@@ -92,7 +92,7 @@ public:
 
 		auto &em = Emitter::active;
 
-		atom::Construct ctor;
+		thunder::Construct ctor;
 		ctor.type = type_field_from_args <vec <T, 2>> ().id;
 		ctor.args = list_from_args(initial[0], initial[1]);
 
@@ -106,9 +106,9 @@ class swizzle_base <T, 3> : public tagged {
 
 	T initial[3];
 public:
-	swizzle_element <T, self, atom::Swizzle::x> x;
-	swizzle_element <T, self, atom::Swizzle::y> y;
-	swizzle_element <T, self, atom::Swizzle::z> z;
+	swizzle_element <T, self, thunder::Swizzle::x> x;
+	swizzle_element <T, self, thunder::Swizzle::y> y;
+	swizzle_element <T, self, thunder::Swizzle::z> z;
 
 	explicit swizzle_base(T x = T(0), T y = T(0), T z = T(0))
 			: x(this), y(this), z(this) {
@@ -120,7 +120,7 @@ public:
 	swizzle_base(const primitive_t <T> &x, const primitive_t <T> &y, const primitive_t <T> &z) : swizzle_base() {
 		auto &em = Emitter::active;
 
-		atom::Construct ctor;
+		thunder::Construct ctor;
 		ctor.type = type_field_from_args <vec <T, 4>> ().id;
 		ctor.args = list_from_args(x, y, z);
 
@@ -135,7 +135,7 @@ public:
 			return ref;
 
 		auto &em = Emitter::active;
-		atom::Construct ctor;
+		thunder::Construct ctor;
 		ctor.type = type_field_from_args <vec <T, 3>> ().id;
 		ctor.args = list_from_args(initial[0], initial[1], initial[2]);
 
@@ -149,10 +149,10 @@ class swizzle_base <T, 4> : public tagged {
 
 	T initial[4];
 public:
-	swizzle_element <T, self, atom::Swizzle::x> x;
-	swizzle_element <T, self, atom::Swizzle::y> y;
-	swizzle_element <T, self, atom::Swizzle::z> z;
-	swizzle_element <T, self, atom::Swizzle::w> w;
+	swizzle_element <T, self, thunder::Swizzle::x> x;
+	swizzle_element <T, self, thunder::Swizzle::y> y;
+	swizzle_element <T, self, thunder::Swizzle::z> z;
+	swizzle_element <T, self, thunder::Swizzle::w> w;
 
 	explicit swizzle_base(T x = T(0), T y = T(0), T z = T(0), T w = T(0))
 			: x(this), y(this), z(this), w(this) {
@@ -165,7 +165,7 @@ public:
 	swizzle_base(const swizzle_base <T, 3> &v, const primitive_t <T> &x) : swizzle_base() {
 		auto &em = Emitter::active;
 
-		atom::Construct ctor;
+		thunder::Construct ctor;
 		ctor.type = type_field_from_args <vec <T, 4>> ().id;
 		ctor.args = list_from_args(v, x);
 
@@ -181,7 +181,7 @@ public:
 
 		auto &em = Emitter::active;
 
-		atom::Construct ctor;
+		thunder::Construct ctor;
 		ctor.type = type_field_from_args <vec <T, 4>> ().id;
 		ctor.args = list_from_args(initial[0], initial[1], initial[2], initial[3]);
 
@@ -197,7 +197,7 @@ struct vec : swizzle_base <T, N> {
 	vec &operator=(const vec &other) {
 		auto &em = Emitter::active;
 
-		atom::Store store;
+		thunder::Store store;
 		store.dst = this->synthesize().id;
 		store.src = other.synthesize().id;
 
@@ -208,32 +208,32 @@ struct vec : swizzle_base <T, N> {
 
 	// Arithmetic operators
 	vec operator-() const {
-		return operation_from_args <vec> (atom::Operation::unary_negation, *this);
+		return operation_from_args <vec> (thunder::Operation::unary_negation, *this);
 	}
 
 	friend vec operator+(const vec &a, const vec &b) {
-		return operation_from_args <vec> (atom::Operation::addition, a, b);
+		return operation_from_args <vec> (thunder::Operation::addition, a, b);
 	}
 
 	friend vec operator-(const vec &a, const vec &b) {
-		return operation_from_args <vec> (atom::Operation::subtraction, a, b);
+		return operation_from_args <vec> (thunder::Operation::subtraction, a, b);
 	}
 
 	friend vec operator/(const vec &a, const vec &b) {
-		return operation_from_args <vec> (atom::Operation::division, a, b);
+		return operation_from_args <vec> (thunder::Operation::division, a, b);
 	}
 
 	friend vec operator*(const vec &a, const vec &b) {
-		return operation_from_args <vec> (atom::Operation::multiplication, a, b);
+		return operation_from_args <vec> (thunder::Operation::multiplication, a, b);
 	}
 
 	// Mixed arithmetic operators
 	#define MIXED_OP(sym, code)								\
 		friend vec operator sym(const vec &a, const primitive_t <T> &b) {		\
-			return operation_from_args <vec> (atom::Operation::code, a, b);		\
+			return operation_from_args <vec> (thunder::Operation::code, a, b);		\
 		}										\
 		friend vec operator sym(const primitive_t <T> &a, const vec &b) {		\
-			return operation_from_args <vec> (atom::Operation::code, a, b);		\
+			return operation_from_args <vec> (thunder::Operation::code, a, b);		\
 		}
 
 	MIXED_OP(+, addition);

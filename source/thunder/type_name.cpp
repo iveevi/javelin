@@ -1,8 +1,8 @@
-#include "atom/atom.hpp"
+#include "thunder/atom.hpp"
 
-namespace jvl::atom {
+namespace jvl::thunder {
 
-std::string type_name(const General *const pool,
+std::string type_name(const Atom *const pool,
 		      const wrapped::hash_table <int, std::string> &struct_names,
 		      int index,
 		      int field)
@@ -15,7 +15,7 @@ std::string type_name(const General *const pool,
 		field = 0;
 	}
 
-	General g = pool[index];
+	Atom g = pool[index];
 	if (auto global = g.get <Global> ()) {
 		return type_name(pool, struct_names, global->type, field);
 	} else if (auto tf = g.get <TypeField> ()) {

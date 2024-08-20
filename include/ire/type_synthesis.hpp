@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../atom/atom.hpp"
+#include "../thunder/atom.hpp"
 #include "primitive.hpp"
 #include "uniform_layout.hpp"
 #include "tagged.hpp"
@@ -10,7 +10,7 @@ namespace jvl::ire {
 
 // Forward declarations
 template <typename T>
-constexpr atom::PrimitiveType synthesize_primitive_type();
+constexpr thunder::PrimitiveType synthesize_primitive_type();
 
 // Fundamental types for IRE
 template <typename T>
@@ -25,7 +25,7 @@ cache_index_t type_field_from_args()
 {
 	auto &em = Emitter::active;
 
-	atom::TypeField tf;
+	thunder::TypeField tf;
 
 	if constexpr (uniform_compatible <T>) {
 		using layout_t = decltype(T().layout());
@@ -67,7 +67,7 @@ cache_index_t type_field_index_from_args(int index)
 
 	auto &em = Emitter::active;
 
-	atom::TypeField tf;
+	thunder::TypeField tf;
 
 	if constexpr (uniform_compatible <T>) {
 		using layout_t = decltype(T().layout());

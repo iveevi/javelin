@@ -20,8 +20,9 @@ A realtime rendering framework.
   - [ ] Branching (if, else if, else)
   - [ ] While loops (while, do-while)
   - [ ] For loops (for, foreach)
+  - [ ] Partial specialization of parameters and global constants (.e.g push_constants)
 - **Automatic differentiation:**
-  - [ ] Dual type generation through `dual_t` and construction with `dual`
+  - [x] Dual type generation through `dual_t` and construction with `dual`
   - [ ] Forward derivative functions of simple callables
 - **GLSL specific:**
   - [x] Layout input and output variables
@@ -71,4 +72,4 @@ A realtime rendering framework.
 
 ## Refactoring
 
-- [ ] Atom IR to Thunder
+- [x] Atom IR to Thunder

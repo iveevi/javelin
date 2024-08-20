@@ -5,8 +5,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "../atom/atom.hpp"
-#include "../atom/kernel.hpp"
+#include "../thunder/atom.hpp"
+#include "../thunder/kernel.hpp"
 #include "../wrapped_types.hpp"
 #include "tagged.hpp"
 
@@ -16,12 +16,12 @@ struct Callable;
 
 struct Emitter {
 	// By default the program begins at index 0
-	std::vector <atom::General> pool;
+	std::vector <thunder::Atom> pool;
 	size_t pointer;
 
-	std::stack <atom::index_t> control_flow_ends;
-	std::unordered_set <atom::index_t> used;
-	std::unordered_set <atom::index_t> synthesized;
+	std::stack <thunder::index_t> control_flow_ends;
+	std::unordered_set <thunder::index_t> used;
+	std::unordered_set <thunder::index_t> synthesized;
 
 	std::stack <std::reference_wrapper <Callable>> scopes;
 
@@ -35,13 +35,13 @@ struct Emitter {
 	void mark_used(int, bool);
 
 	// Emitting instructions during function invocation
-	int emit(const atom::General &);
+	int emit(const thunder::Atom &);
 
-	int emit_main(const atom::General &);
-	int emit_main(const atom::Cond &);
-	int emit_main(const atom::Elif &);
-	int emit_main(const atom::While &);
-	int emit_main(const atom::End &);
+	int emit_main(const thunder::Atom &);
+	int emit_main(const thunder::Cond &);
+	int emit_main(const thunder::Elif &);
+	int emit_main(const thunder::While &);
+	int emit_main(const thunder::End &);
 
 	void control_flow_callback(int, int);
 
@@ -50,7 +50,7 @@ struct Emitter {
 	void validate() const;
 
 	// Transfering to a Kernel object
-	atom::Kernel export_to_kernel();
+	thunder::Kernel export_to_kernel();
 
 	// Printing the IR state
 	void dump();
@@ -59,7 +59,7 @@ struct Emitter {
 };
 
 template <typename F, typename ... Args>
-atom::Kernel kernel_from_args(const F &ftn, const Args &... args)
+thunder::Kernel kernel_from_args(const F &ftn, const Args &... args)
 {
 	Emitter::active.clear();
 	ftn(args...);
@@ -68,15 +68,15 @@ atom::Kernel kernel_from_args(const F &ftn, const Args &... args)
 
 namespace detail {
 
-std::tuple <size_t, wrapped::reindex <atom::index_t>>
-ir_compact_deduplicate(const atom::General *const,
-		       atom::General *const,
-		       std::unordered_set <atom::index_t> &,
+std::tuple <size_t, wrapped::reindex <thunder::index_t>>
+ir_compact_deduplicate(const thunder::Atom *const,
+		       thunder::Atom *const,
+		       std::unordered_set <thunder::index_t> &,
 		       size_t);
 
-void mark_used(const std::vector <atom::General> &,
-	       std::unordered_set <atom::index_t> &,
-	       std::unordered_set <atom::index_t> &,
+void mark_used(const std::vector <thunder::Atom> &,
+	       std::unordered_set <thunder::index_t> &,
+	       std::unordered_set <thunder::index_t> &,
 	       int, bool);
 
 } // namespace detail

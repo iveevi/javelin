@@ -4,9 +4,7 @@
 
 #include <fmt/format.h>
 
-#include "atom/atom.hpp"
 #include "ire/core.hpp"
-#include "ire/emitter.hpp"
 #include "profiles/targets.hpp"
 
 // TODO: immutability for shader inputs types
@@ -108,28 +106,28 @@ auto dfwd(const callable_t <R, Args...> &callable)
 	auto &pool = callable.pool;
 
 	// Map each atom to a potentially new list of atoms
-	std::vector <std::list <atom::General>> promoted;
+	std::vector <std::list <thunder::Atom>> promoted;
 	promoted.resize(callable.pointer);
 
-	std::deque <atom::index_t> propogation;
-	for (atom::index_t i = 0; i < pool.size(); i++) {
+	std::deque <thunder::index_t> propogation;
+	for (thunder::index_t i = 0; i < pool.size(); i++) {
 		auto &atom = pool[i];
-		if (auto global = atom.template get <atom::Global> ()) {
-			if (global->qualifier == atom::Global::parameter)
+		if (auto global = atom.template get <thunder::Global> ()) {
+			if (global->qualifier == thunder::Global::parameter)
 				propogation.push_back(i);
 		}
 	}
 
 	// TODO: build the usage graph...
 
-	std::unordered_set <atom::index_t> diffed;
+	std::unordered_set <thunder::index_t> diffed;
 	while (propogation.size()) {
-		atom::index_t i = propogation.front();
+		thunder::index_t i = propogation.front();
 		propogation.pop_front();
 
 		auto &atom = pool[i];
-		if (auto global = atom.template get <atom::Global> ()) {
-			if (global->qualifier == atom::Global::parameter) {
+		if (auto global = atom.template get <thunder::Global> ()) {
+			if (global->qualifier == thunder::Global::parameter) {
 				diffed.insert(i);
 
 				// Dependencies are pushed front

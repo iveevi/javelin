@@ -31,12 +31,12 @@ add_library(imgui SHARED
 	thirdparty/imgui/backends/imgui_impl_vulkan.cpp)
 
 add_library(jvl-ire STATIC
-	source/atom/dump.cpp
-	source/atom/kernel.cpp
-	source/atom/linkage.cpp
-	source/atom/reindex.cpp
-	source/atom/synthesize_glsl.cpp
-	source/atom/type_name.cpp
+	source/thunder/dump.cpp
+	source/thunder/kernel.cpp
+	source/thunder/linkage.cpp
+	source/thunder/reindex.cpp
+	source/thunder/synthesize_glsl.cpp
+	source/thunder/type_name.cpp
 	source/ire/callable.cpp
 	source/ire/compaction.cpp
 	source/ire/emitter.cpp

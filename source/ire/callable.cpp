@@ -33,7 +33,7 @@ Callable &Callable::operator=(const Callable &other)
 	return *this;
 }
 
-int Callable::emit(const atom::General &op)
+int Callable::emit(const thunder::Atom &op)
 {
 	if (pointer >= pool.size())
 		pool.resize(1 + (pool.size() << 2));
@@ -43,23 +43,23 @@ int Callable::emit(const atom::General &op)
 	return pointer++;
 }
 
-atom::Kernel Callable::export_to_kernel()
+thunder::Kernel Callable::export_to_kernel()
 {
 	// Determine the set of used and synthesizable instructions
-	std::unordered_set <atom::index_t> used;
-	std::unordered_set <atom::index_t> synthesized;
+	std::unordered_set <thunder::index_t> used;
+	std::unordered_set <thunder::index_t> synthesized;
 
-	std::vector <atom::Returns> returns;
+	std::vector <thunder::Returns> returns;
 	for (size_t i = 0; i < pool.size(); i++) {
-		if (pool[i].is <atom::Returns> ()) {
-			returns.push_back(pool[i].as <atom::Returns> ());
+		if (pool[i].is <thunder::Returns> ()) {
+			returns.push_back(pool[i].as <thunder::Returns> ());
 			detail::mark_used(pool, used, synthesized, i, true);
 		}
 
-		if (pool[i].is <atom::Cond> ()
-			|| pool[i].is <atom::Elif> ()
-			|| pool[i].is <atom::While> ()
-			|| pool[i].is <atom::End> ())
+		if (pool[i].is <thunder::Cond> ()
+			|| pool[i].is <thunder::Elif> ()
+			|| pool[i].is <thunder::While> ()
+			|| pool[i].is <thunder::End> ())
 			detail::mark_used(pool, used, synthesized, i, true);
 
 		// TODO: check scopes around returns...
@@ -68,10 +68,10 @@ atom::Kernel Callable::export_to_kernel()
 	// TODO:demotion on synthesized elements
 
 	// TODO: compaction and validation
-	atom::Kernel kernel(atom::Kernel::eCallable);
+	thunder::Kernel kernel(thunder::Kernel::eCallable);
 	kernel.name = name;
 	kernel.atoms.resize(pointer);
-	std::memcpy(kernel.atoms.data(), pool.data(), sizeof(atom::General) * pointer);
+	std::memcpy(kernel.atoms.data(), pool.data(), sizeof(thunder::Atom) * pointer);
 	kernel.synthesized = synthesized;
 	kernel.used = used;
 
@@ -85,7 +85,7 @@ void Callable::dump()
 	fmt::println("------------------------------");
 	for (size_t i = 0; i < pointer; i++) {
 		fmt::print("   [{:4d}]: ", i);
-			atom::dump_ir_operation(pool[i]);
+			thunder::dump_ir_operation(pool[i]);
 		fmt::print("\n");
 	}
 }

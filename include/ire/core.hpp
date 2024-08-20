@@ -17,5 +17,5 @@
 // TODO: debug only
 #include "guarantees.hpp"
 
-#include "../atom/linkage.hpp"
-#include "../atom/kernel.hpp"
+#include "../thunder/linkage.hpp"
+#include "../thunder/kernel.hpp"

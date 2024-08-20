@@ -1,6 +1,6 @@
 #pragma once
 
-#include "atom/atom.hpp"
+#include "thunder/atom.hpp"
 #include "ire/tagged.hpp"
 #include "ire/type_synthesis.hpp"
 #include "ire/uniform_layout.hpp"
@@ -13,7 +13,7 @@ int list_from_args(const T &t, const Args &... args)
 {
 	auto &em = Emitter::active;
 
-	atom::List l;
+	thunder::List l;
 	l.item = primitive_t <T> (t).synthesize().id;
 
 	if constexpr (sizeof...(args))
@@ -27,7 +27,7 @@ int list_from_args(const T &t, const Args &... args)
 {
 	auto &em = Emitter::active;
 
-	atom::List l;
+	thunder::List l;
 	l.item = t.synthesize().id;
 
 	if constexpr (sizeof...(args))
@@ -44,11 +44,11 @@ int list_from_args(const T &t, const Args &... args)
 	// TODO: are nested structs handled?
 	auto layout = t.layout();
 
-	atom::Construct ctor;
+	thunder::Construct ctor;
 	ctor.type = type_field_from_args(layout).id;
 	ctor.args = layout.list().id;
 
-	atom::List l;
+	thunder::List l;
 	l.item = em.emit(ctor);
 
 	if constexpr (sizeof...(args))
@@ -58,11 +58,11 @@ int list_from_args(const T &t, const Args &... args)
 }
 
 template <typename R, typename ... Args>
-R operation_from_args(decltype(atom::Operation::type) type, const Args &... args)
+R operation_from_args(decltype(thunder::Operation::type) type, const Args &... args)
 {
 	auto &em = Emitter::active;
 
-	atom::Operation intr;
+	thunder::Operation intr;
 	intr.type = type;
 	intr.args = list_from_args(args...);
 	intr.ret = type_field_from_args <R> ().id;
@@ -78,7 +78,7 @@ R platform_intrinsic_from_args(const char *name, const Args &... args)
 {
 	auto &em = Emitter::active;
 
-	atom::Intrinsic intr;
+	thunder::Intrinsic intr;
 	intr.name = name;
 	intr.args = list_from_args(args...);
 	intr.ret = type_field_from_args <R> ().id;
@@ -94,10 +94,10 @@ void void_platform_intrinsic_from_args(const char *name, const Args &... args)
 {
 	auto &em = Emitter::active;
 
-	atom::TypeField tf;
-	tf.item = atom::PrimitiveType::none;
+	thunder::TypeField tf;
+	tf.item = thunder::PrimitiveType::none;
 
-	atom::Intrinsic intr;
+	thunder::Intrinsic intr;
 	intr.name = name;
 	intr.ret = em.emit(tf);
 
@@ -111,7 +111,7 @@ inline void platform_intrinsic_keyword(const char *name)
 {
 	auto &em = Emitter::active;
 
-	atom::Intrinsic intr;
+	thunder::Intrinsic intr;
 	intr.name = name;
 
 	em.emit_main(intr);
@@ -122,7 +122,7 @@ cache_index_t default_construct_index(const __const_uniform_layout <Args...> &la
 {
 	auto &em = Emitter::active;
 
-	atom::Construct ctor;
+	thunder::Construct ctor;
 	ctor.type = type_field_index_from_args(index, layout).id;
 	// args is (nil) to properly engage the default constructor
 
@@ -137,7 +137,7 @@ cache_index_t __const_uniform_layout <Args...> ::list() const
 {
 	auto &em = Emitter::active;
 
-	atom::List end;
+	thunder::List end;
 
 	cache_index_t next = cache_index_t::null();
 	for (int i = fields.size() - 1; i >= 0; i--) {

@@ -1,8 +1,8 @@
-#include "atom/atom.hpp"
+#include "thunder/atom.hpp"
 
-namespace jvl::atom {
+namespace jvl::thunder {
 
-void reindex_ir_operation(const wrapped::reindex <index_t> &reindexer, General &g)
+void reindex_ir_operation(const wrapped::reindex <index_t> &reindexer, Atom &g)
 {
 	if (g.is <Global> ()) {
 		reindexer(g.as <Global> ().type);

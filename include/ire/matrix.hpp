@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../atom/atom.hpp"
+#include "../thunder/atom.hpp"
 #include "tagged.hpp"
 #include "emitter.hpp"
 #include "vector.hpp"
@@ -21,17 +21,17 @@ struct mat_base : tagged {
 
 		// TODO: manual assignment, except for mat2x2
 		// TODO: instantiate all primitive types at header
-		atom::TypeField tf;
-		tf.item = atom::mat4;
+		thunder::TypeField tf;
+		tf.item = thunder::mat4;
 
-		atom::Primitive p;
-		p.type = atom::i32;
+		thunder::Primitive p;
+		p.type = thunder::i32;
 		p.idata = 1;
 
-		atom::List l;
+		thunder::List l;
 		l.item = em.emit(p);
 
-		atom::Construct ctor;
+		thunder::Construct ctor;
 		ctor.type = em.emit(tf);
 		ctor.args = em.emit(l);
 
@@ -44,7 +44,7 @@ struct mat : mat_base <T, N, M> {
 	using mat_base <T, N, M> ::mat_base;
 
 	friend vec <T, N> operator*(const mat &m, const vec <T, M> &v) {
-		return operation_from_args <vec <T, N>> (atom::Operation::multiplication, m, v);
+		return operation_from_args <vec <T, N>> (thunder::Operation::multiplication, m, v);
 	}
 };
 

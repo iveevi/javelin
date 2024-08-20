@@ -2,7 +2,7 @@
 
 #include <array>
 
-#include "../atom/atom.hpp"
+#include "../thunder/atom.hpp"
 #include "tagged.hpp"
 #include "emitter.hpp"
 
@@ -37,7 +37,7 @@ struct __uniform_layout {
 			if (listed.contains(f.ptr))
 				fmt::println("Duplicate member in uniform layout (element #{})", i + 1);
 
-			atom::Load load;
+			thunder::Load load;
 			load.src = up.id;
 			load.idx = i;
 

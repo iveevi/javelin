@@ -9,21 +9,21 @@ namespace jvl::ire {
 struct __gl_Position_t {
 	using self = __gl_Position_t;
 
-	swizzle_element <float, self, atom::Swizzle::x> x;
-	swizzle_element <float, self, atom::Swizzle::y> y;
-	swizzle_element <float, self, atom::Swizzle::z> z;
-	swizzle_element <float, self, atom::Swizzle::w> w;
+	swizzle_element <float, self, thunder::Swizzle::x> x;
+	swizzle_element <float, self, thunder::Swizzle::y> y;
+	swizzle_element <float, self, thunder::Swizzle::z> z;
+	swizzle_element <float, self, thunder::Swizzle::w> w;
 
 	__gl_Position_t() : x(this), y(this), z(this), w(this) {}
 
 	const __gl_Position_t &operator=(const vec <float, 4> &other) const {
 		auto &em = Emitter::active;
 
-		atom::Global global;
+		thunder::Global global;
 		global.type = type_field_from_args <vec <float, 4>> ().id;
-		global.qualifier = atom::Global::glsl_vertex_intrinsic_gl_Position;
+		global.qualifier = thunder::Global::glsl_vertex_intrinsic_gl_Position;
 
-		atom::Store store;
+		thunder::Store store;
 		store.dst = em.emit(global);
 		store.src = other.synthesize().id;
 
@@ -35,9 +35,9 @@ struct __gl_Position_t {
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
 
-		atom::Global global;
+		thunder::Global global;
 		global.type = type_field_from_args <vec <float, 4>> ().id;
-		global.qualifier = atom::Global::glsl_vertex_intrinsic_gl_Position;
+		global.qualifier = thunder::Global::glsl_vertex_intrinsic_gl_Position;
 
 		cache_index_t cit;
 		return (cit = em.emit_main(global));

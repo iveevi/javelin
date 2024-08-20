@@ -1,11 +1,11 @@
 #include <functional>
 #include <string>
 
-#include "atom/atom.hpp"
+#include "thunder/atom.hpp"
 #include "ire/callable.hpp"
 #include "wrapped_types.hpp"
 
-namespace jvl::atom {
+namespace jvl::thunder {
 
 std::string glsl_global_ref(const Global &global)
 {
@@ -71,7 +71,7 @@ std::string glsl_format_operation(int type, const std::vector <std::string> &arg
 	return "<op:?>";
 }
 
-std::string synthesize_glsl_body(const General *const pool,
+std::string synthesize_glsl_body(const Atom *const pool,
 		                 const wrapped::hash_table <int, std::string> &struct_names,
 		                 const std::unordered_set <index_t> &synthesized,
 				 size_t size)
@@ -108,7 +108,7 @@ std::string synthesize_glsl_body(const General *const pool,
 			abort();
 		}
 
-		General g = pool[index];
+		Atom g = pool[index];
 		if (auto global = g.get <Global> ()) {
 			return glsl_global_ref(*global);
 		} else if (auto load = g.get <Load> ()) {
@@ -152,10 +152,10 @@ std::string synthesize_glsl_body(const General *const pool,
 
 		int l = start;
 		while (l != -1) {
-			General h = pool[l];
+			Atom h = pool[l];
 			if (!h.is <List> ()) {
 				fmt::println("unexpected atom in arglist:");
-				atom::dump_ir_operation(h);
+				dump_ir_operation(h);
 				fmt::print("\n");
 				abort();
 			}
@@ -183,7 +183,7 @@ std::string synthesize_glsl_body(const General *const pool,
 			abort();
 		}
 
-		General g = pool[index];
+		Atom g = pool[index];
 
 		if (auto prim = g.get <Primitive> ()) {
 			return glsl_primitive(*prim);
@@ -232,7 +232,7 @@ std::string synthesize_glsl_body(const General *const pool,
 		if (intr.ret == -1)
 			return finish(intr.name);
 
-		General g = pool[intr.ret];
+		Atom g = pool[intr.ret];
 		if (!g.is <TypeField> ())
 			return "?";
 
@@ -253,7 +253,7 @@ std::string synthesize_glsl_body(const General *const pool,
 	// Final emitted source code
 	std::string source;
 
-	auto synthesize = [&](const General &g, int index) -> void {
+	auto synthesize = [&](const Atom &g, int index) -> void {
 		// TODO: index-based switch?
 		if (auto cond = g.get <Cond> ()) {
 			std::string v = inlined(cond->cond);

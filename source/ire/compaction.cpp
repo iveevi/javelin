@@ -3,13 +3,12 @@
 #include <fmt/printf.h>
 
 #include "ire/emitter.hpp"
-#include "atom/atom.hpp"
 #include "wrapped_types.hpp"
 
 // Compressing IR code sequences
 using block_atom_t = uint32_t;
 
-constexpr size_t block_size = (sizeof(jvl::atom::General)
+constexpr size_t block_size = (sizeof(jvl::thunder::Atom)
 				+ sizeof(block_atom_t) - 1)
 				/ sizeof(block_atom_t);
 
@@ -40,22 +39,22 @@ struct std::hash <block_t> {
 
 namespace jvl::ire::detail {
 
-block_t cast_to_block(const atom::General &g)
+block_t cast_to_block(const thunder::Atom &g)
 {
 	block_t b;
-	std::memcpy(b.data(), &g, sizeof(atom::General));
+	std::memcpy(b.data(), &g, sizeof(thunder::Atom));
 	return b;
 }
 
-std::tuple <size_t, wrapped::reindex <atom::index_t>>
-ir_compact_deduplicate(const atom::General *const source,
-		       atom::General *const dst,
-		       std::unordered_set <atom::index_t> &synthesized,
+std::tuple <size_t, wrapped::reindex <thunder::index_t>>
+ir_compact_deduplicate(const thunder::Atom *const source,
+		       thunder::Atom *const dst,
+		       std::unordered_set <thunder::index_t> &synthesized,
 		       size_t elements)
 {
-	wrapped::hash_table <block_t, atom::index_t> blocks;
-	std::unordered_set <atom::index_t> original;
-	wrapped::reindex <atom::index_t> reindexer;
+	wrapped::hash_table <block_t, thunder::index_t> blocks;
+	std::unordered_set <thunder::index_t> original;
+	wrapped::reindex <thunder::index_t> reindexer;
 
 	// Find duplicates (binary)
 	for (size_t i = 0; i < elements; i++) {
@@ -78,7 +77,7 @@ ir_compact_deduplicate(const atom::General *const source,
 
 	// Re-index all instructions as necessary
 	for (size_t i = 0; i < size; i++)
-		atom::reindex_ir_operation(reindexer, dst[i]);
+		thunder::reindex_ir_operation(reindexer, dst[i]);
 
 	return { size, reindexer };
 

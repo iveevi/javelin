@@ -6,7 +6,7 @@
 #include "../profiles/targets.hpp"
 #include "atom.hpp"
 
-namespace jvl::atom {
+namespace jvl::thunder {
 
 struct Linkage;
 
@@ -18,7 +18,7 @@ public:
 	std::string name;
 
 	// At this point the IR atoms are unlikely to change
-	std::vector <General> atoms;
+	std::vector <Atom> atoms;
 	std::unordered_set <index_t> used;
 	std::unordered_set <index_t> synthesized;
 
@@ -56,4 +56,4 @@ public:
 	void dump() const;
 };
 
-} // namespace jvl::atom
+} // namespace jvl::thunder

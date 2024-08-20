@@ -1,8 +1,10 @@
 ---
-title: Atom IR Specification
+title: Thunder Specification
 ---
 
 # Overview
+
+Thunder is the Intermediate Representation (IR) form used in the Javelin framework. Each instruction is an atom, which is a tagged union of the following instruction types (think of these as specific op-codes).
 
 | Atom                    | Description                                                        |
 | ----------------------- | ------------------------------------------------------------------ |
@@ -32,7 +34,7 @@ title: Atom IR Specification
 | `qualifier` | `int8_t`  | Qualifier for the global variable, see below        |
 
 The qualifier fied of the `Global` atom indicates the set of attributes available to the global variable. The currently supported set of qualifiers is as follows:
-	
+
 | Qualifier                           | Description                                  |
 | ----------------------------------- | -------------------------------------------- |
 | `parameter`                         | Parameter to a subroutine                    |

@@ -1,9 +1,9 @@
-#include "atom/atom.hpp"
+#include "thunder/atom.hpp"
 #include "ire/callable.hpp"
 
-namespace jvl::atom {
+namespace jvl::thunder {
 
-void dump_ir_operation(const General &g)
+void dump_ir_operation(const Atom &g)
 {
 	if (auto global = g.get <Global> ()) {
 		fmt::print("global: %{} = ({}, {})",
@@ -88,4 +88,4 @@ void dump_ir_operation(const General &g)
 	}
 }
 
-} // namespace jvl::ire::atom
+} // namespace jvl::ire::thunder

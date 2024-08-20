@@ -1,7 +1,7 @@
-#include "atom/linkage.hpp"
+#include "thunder/linkage.hpp"
 #include "ire/callable.hpp"
 
-namespace jvl::atom {
+namespace jvl::thunder {
 
 bool compare_declaration(const Linkage::struct_declaration &A,
 			 const Linkage::struct_declaration &B)

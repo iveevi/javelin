@@ -5,7 +5,7 @@
 
 #include "../wrapped_types.hpp"
 
-namespace jvl::atom {
+namespace jvl::thunder {
 
 using index_t = int16_t;
 
@@ -178,16 +178,16 @@ struct Returns {
 
 struct End {};
 
-// General instructions
-using __generic_base = wrapped::variant <
+// Atom instructions
+using __atom_base = wrapped::variant <
 	Global, TypeField, Primitive,
 	Swizzle, Operation, Construct, Call,
 	Intrinsic, List, Store, Load,
 	Cond, Elif, While, Returns, End
 >;
 
-struct alignas(4) General : __generic_base {
-	using __generic_base::__generic_base;
+struct alignas(4) Atom : __atom_base {
+	using __atom_base::__atom_base;
 };
 
 // TODO: move to guarantees.hpp
@@ -207,23 +207,23 @@ static_assert(sizeof(While)     == 4);
 static_assert(sizeof(Elif)      == 4);
 static_assert(sizeof(Returns)   == 4);
 static_assert(sizeof(End)       == 1);
-static_assert(sizeof(General)   == 16);
+static_assert(sizeof(Atom)      == 16);
 
 // Dispatcher types (vd = variadic dispatcher)
-std::string type_name(const General *const,
+std::string type_name(const Atom *const,
 		      const wrapped::hash_table <int, std::string> &,
 		      int, int);
 
 // Printing instructions for debugging
-void dump_ir_operation(const General &);
+void dump_ir_operation(const Atom &);
 
 // Reindexing integer elements during compaction
-void reindex_ir_operation(const wrapped::reindex <index_t> &, General &);
+void reindex_ir_operation(const wrapped::reindex <index_t> &, Atom &);
 
 // Synthesizing GLSL source code
-std::string synthesize_glsl_body(const General *const,
+std::string synthesize_glsl_body(const Atom *const,
 		                 const wrapped::hash_table <int, std::string> &,
-		                 const std::unordered_set <atom::index_t> &,
+		                 const std::unordered_set <index_t> &,
 				 size_t);
 
-} // namespace jvl::atom
+} // namespace jvl::thunder

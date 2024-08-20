@@ -4,7 +4,7 @@
 
 #include "atom.hpp"
 
-namespace jvl::atom {
+namespace jvl::thunder {
 
 // Linkage requirements of a kernel
 struct Linkage {
@@ -30,7 +30,7 @@ struct Linkage {
 
 	// Block information
 	using struct_map_t = wrapped::hash_table <index_t, index_t>;
-	using source_block_t = std::vector <General>;
+	using source_block_t = std::vector <Atom>;
 
 	struct block_t {
 		wrapped::hash_table <index_t, index_t> parameters;

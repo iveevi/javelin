@@ -26,44 +26,44 @@ using mat4 = mat <float, 4, 4>;
 
 // Type matching
 template <typename T>
-constexpr atom::PrimitiveType synthesize_primitive_type()
+constexpr thunder::PrimitiveType synthesize_primitive_type()
 {
 	if constexpr (std::is_same_v <T, bool>)
-		return atom::boolean;
+		return thunder::boolean;
 	if constexpr (std::is_same_v <T, int>)
-		return atom::i32;
+		return thunder::i32;
 	if constexpr (std::is_same_v <T, float>)
-		return atom::f32;
+		return thunder::f32;
 
 	if constexpr (std::is_same_v <T, primitive_t <bool>>)
-		return atom::boolean;
+		return thunder::boolean;
 	if constexpr (std::is_same_v <T, primitive_t <int>>)
-		return atom::i32;
+		return thunder::i32;
 	if constexpr (std::is_same_v <T, primitive_t <float>>)
-		return atom::f32;
+		return thunder::f32;
 
 	if constexpr (std::is_same_v <T, vec2>)
-		return atom::vec2;
+		return thunder::vec2;
 	if constexpr (std::is_same_v <T, vec3>)
-		return atom::vec3;
+		return thunder::vec3;
 	if constexpr (std::is_same_v <T, vec4>)
-		return atom::vec4;
+		return thunder::vec4;
 
 	if constexpr (std::is_same_v <T, ivec2>)
-		return atom::ivec2;
+		return thunder::ivec2;
 	if constexpr (std::is_same_v <T, ivec3>)
-		return atom::ivec3;
+		return thunder::ivec3;
 	if constexpr (std::is_same_v <T, ivec4>)
-		return atom::ivec4;
+		return thunder::ivec4;
 
 	if constexpr (std::is_same_v <T, mat2>)
-		return atom::mat2;
+		return thunder::mat2;
 	if constexpr (std::is_same_v <T, mat3>)
-		return atom::mat3;
+		return thunder::mat3;
 	if constexpr (std::is_same_v <T, mat4>)
-		return atom::mat4;
+		return thunder::mat4;
 
-	return atom::bad;
+	return thunder::bad;
 }
 
 } // namespace jvl::ire

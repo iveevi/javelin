@@ -1,8 +1,8 @@
-#include "atom/atom.hpp"
-#include "atom/kernel.hpp"
-#include "atom/linkage.hpp"
+#include "thunder/atom.hpp"
+#include "thunder/kernel.hpp"
+#include "thunder/linkage.hpp"
 
-namespace jvl::atom {
+namespace jvl::thunder {
 
 // Linkage model from the kernel
 Linkage Kernel::linkage() const
@@ -20,11 +20,11 @@ Linkage Kernel::linkage() const
 
 		index_t i = index;
 		while (i != -1) {
-			atom::General g = atoms[i];
-			if (!g.is <atom::TypeField> ())
+			Atom g = atoms[i];
+			if (!g.is <TypeField> ())
 				abort();
 
-			atom::TypeField tf = g.as <atom::TypeField> ();
+			TypeField tf = g.as <TypeField> ();
 
 			Linkage::struct_element element;
 			if (tf.down != -1)
@@ -116,7 +116,7 @@ void Kernel::dump() const
 			fmt::print(" ");
 
 		fmt::print(" [{:4d}]: ", i);
-			atom::dump_ir_operation(atoms[i]);
+			dump_ir_operation(atoms[i]);
 		fmt::print("\n");
 	}
 }
