@@ -1,12 +1,12 @@
 #pragma once
 
+#include <type_traits>
+
 #include "../atom/atom.hpp"
 #include "../atom/kernel.hpp"
-#include "primitive.hpp"
 #include "uniform_layout.hpp"
 #include "type_synthesis.hpp"
 #include "emitter.hpp"
-#include <type_traits>
 
 namespace jvl::ire {
 
@@ -52,7 +52,7 @@ struct Callable {
 
 // Internal construction of callables
 // TODO: type restrictions with concepts
-template <typename R, typename ... Args>
+template <generic R, generic ... Args>
 struct callable_t : Callable {
 	template <size_t index>
 	void __fill_parameter_references(std::tuple <Args...> &tpl) {
@@ -128,7 +128,7 @@ concept acceptable_callable = std::is_function_v <F> || requires(const F &ftn) {
 	{ std::function(ftn) };
 };
 
-template <typename R, typename ... Args>
+template <generic R, generic ... Args>
 struct signature_pair {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;
@@ -165,7 +165,7 @@ struct signature {
 };
 
 // Exception for real functions, which cannot be instantiated
-template <typename R, typename ... Args>
+template <generic R, generic ... Args>
 struct signature <R (Args...)> {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;
@@ -195,7 +195,7 @@ auto callable(F ftn)
 }
 
 // Void functions are presumbed to contain returns(...) statements already
-template <typename R, detail::acceptable_callable F>
+template <generic R, detail::acceptable_callable F>
 requires (std::same_as <typename detail::signature <F> ::return_t, void>)
 auto callable(F ftn)
 {

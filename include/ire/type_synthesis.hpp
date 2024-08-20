@@ -1,19 +1,23 @@
 #pragma once
 
 #include "../atom/atom.hpp"
-#include "ire/uniform_layout.hpp"
+#include "primitive.hpp"
+#include "uniform_layout.hpp"
 #include "tagged.hpp"
 #include "emitter.hpp"
 
 namespace jvl::ire {
 
 // Forward declarations
-template <typename ... Args>
-requires (sizeof...(Args) > 0)
-struct __uniform_layout;
-
 template <typename T>
 constexpr atom::PrimitiveType synthesize_primitive_type();
+
+// Fundamental types for IRE
+template <typename T>
+concept generic = primitive_type <T> || synthesizable <T> || uniform_compatible <T>;
+
+template <typename T>
+concept non_trivial_generic = synthesizable <T> || uniform_compatible <T>;
 
 // Synthesize types for an entire sequence of arguments
 template <typename T, typename ... Args>

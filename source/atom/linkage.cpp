@@ -54,7 +54,6 @@ Linkage &Linkage::resolve()
 
 		Linkage linkage = cbl_kernel.linkage();
 		linkage.resolve();
-		linkage.dump();
 
 		for (auto [j, b] : linkage.blocks) {
 			struct_map_t map;
@@ -180,7 +179,6 @@ std::string Linkage::synthesize_glsl(const std::string &version)
 		std::vector <std::string> args;
 		for (index_t i = 0; i < b.parameters.size(); i++) {
 			index_t t = b.parameters.at(i);
-			fmt::println("argument with type: {}", t);
 			std::string arg = fmt::format("{} _arg{}", translate_type(t), i);
 			args.push_back(arg);
 		}

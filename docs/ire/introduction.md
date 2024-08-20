@@ -11,6 +11,7 @@ This document describes the design choices taken to establish a framework to mak
 - [Atom IR Specification](atom.md)
 - [Type System](types.md)
 - [Callables in Javelin](callable.md)
+- [Linkage Model in Atom IR Kernels](linkage.md)
 - [Automatic Differentiation (Prototype)](autodiff.md)
 
 # Overview

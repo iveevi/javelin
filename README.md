@@ -14,12 +14,12 @@ A realtime rendering framework.
   - [x] Standard vector operations (dot, cross, etc.)
   - [x] Return calls
   - [x] Callable functions from ordinary functions
+  - [x] Linkage model for resolving block of instructions
   - [ ] Standard floating point functions (sin, cos, exp, log, etc.)
   - [ ] Named structures for synthesizing compatible code
   - [ ] Branching (if, else if, else)
   - [ ] While loops (while, do-while)
   - [ ] For loops (for, foreach)
-  - [ ] Kernel modules for linking chunks of Atom IR
 - **Automatic differentiation:**
   - [ ] Dual type generation through `dual_t` and construction with `dual`
   - [ ] Forward derivative functions of simple callables
@@ -45,6 +45,8 @@ A realtime rendering framework.
   - [ ] Direct translation of basic atoms to SPIRV ASM
 - **JIT executable:**
   - [ ] Implementation using `libgccjit`
+- **Thunder VM:**
+  - [ ] Emulation of callables with a stack machine
 
 ## CPU Rendering
 
@@ -66,3 +68,7 @@ A realtime rendering framework.
 - **Code synthesis:**
   - [x] Simple compatibility test for C++ synthesis
   - [x] Simple compatibility test for GLSL synthesis
+
+## Refactoring
+
+- [ ] Atom IR to Thunder
