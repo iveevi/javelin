@@ -33,6 +33,7 @@ add_library(imgui SHARED
 add_library(jvl-ire STATIC
 	source/atom/dump.cpp
 	source/atom/kernel.cpp
+	source/atom/linkage.cpp
 	source/atom/reindex.cpp
 	source/atom/synthesize_glsl.cpp
 	source/atom/type_name.cpp

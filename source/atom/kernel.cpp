@@ -1,21 +1,93 @@
-#include <array>
-#include <map>
-#include <type_traits>
-
 #include "atom/atom.hpp"
 #include "atom/kernel.hpp"
-#include "ire/callable.hpp"
-#include "ire/emitter.hpp"
-#include "ire/tagged.hpp"
-#include "wrapped_types.hpp"
+#include "atom/linkage.hpp"
 
 namespace jvl::atom {
 
-// Printing the IR stored in a kernel
-// TODO: debug only?
-void Kernel::dump()
+// Linkage model from the kernel
+Linkage Kernel::linkage() const
 {
-	// TODO: more properties
+	Linkage linkage;
+
+	// TODO: preserve the cid if present
+	linkage.blocks[-1] = Linkage::block_t { {}, synthesized, {}, atoms };
+	linkage.sorted = { -1 };
+
+	// Generate struct information for linkage
+	std::function <index_t (index_t)> generate_type_declaration;
+	generate_type_declaration = [&](index_t index) -> index_t {
+		Linkage::struct_declaration decl;
+
+		index_t i = index;
+		while (i != -1) {
+			atom::General g = atoms[i];
+			if (!g.is <atom::TypeField> ())
+				abort();
+
+			atom::TypeField tf = g.as <atom::TypeField> ();
+
+			Linkage::struct_element element;
+			if (tf.down != -1)
+				element.nested = generate_type_declaration(tf.down);
+			else
+				element.item = tf.item;
+
+			decl.push_back(element);
+
+			i = tf.next;
+		}
+
+		index_t s = linkage.insert(decl);
+		linkage.blocks[-1].struct_map[index] = s;
+		return s;
+	};
+
+	// Go through all USED instructions
+	for (int i = 0; i < atoms.size(); i++) {
+		if (!used.count(i))
+			continue;
+
+		auto op = atoms[i];
+		if (auto call = op.get <Call> ()) {
+			linkage.callables.insert(call->cid);
+		} else if (auto global = op.get <Global> ()) {
+			index_t type = generate_type_declaration(global->type);
+			index_t binding = global->binding;
+
+			// TODO: the kernel must undergo validation
+			switch (global->qualifier) {
+			case Global::layout_in:
+				linkage.lins[binding] = type;
+				break;
+			case Global::layout_out:
+				linkage.louts[binding] = type;
+				break;
+			case Global::parameter:
+				linkage.blocks[-1].parameters[binding] = type;
+				break;
+			case Global::push_constant:
+				linkage.push_constant = type;
+				break;
+			default:
+				abort();
+			}
+		} else if (auto returns = op.get <Returns> ()) {
+			linkage.blocks[-1].returns = generate_type_declaration(returns->type);
+		}
+
+		if (!synthesized.count(i))
+			continue;
+
+		if (auto tf = op.get <TypeField> ())
+			linkage.blocks[-1].struct_map[i] = generate_type_declaration(i);
+	}
+
+	return linkage;
+}
+
+// Printing the IR stored in a kernel
+void Kernel::dump() const
+{
 	fmt::println("------------------------------");
 	fmt::println("KERNEL:");
 	fmt::println("~~~~~~~");
@@ -49,384 +121,16 @@ void Kernel::dump()
 	}
 }
 
-// Generating structs
-std::string synthesize_struct(const std::vector <atom::General> &atoms, int i,
-		              wrapped::hash_table <int, std::string> &struct_names,
-			      int &struct_index)
-{
-	std::string dependent_struct_defs;
-
-	atom::General g = atoms[i];
-	if (!g.is <atom::TypeField>())
-		return "";
-
-	atom::TypeField tf = g.as <atom::TypeField>();
-	if (tf.next == -1 && tf.down == -1) {
-		struct_names[i] = atom::type_table[tf.item];
-		return "";
-	}
-
-	// TODO: handle nested structs (down)
-	std::string struct_name = fmt::format("s{}_t", struct_index++);
-
-	struct_names[i] = struct_name;
-
-	std::string struct_source;
-	struct_source = fmt::format("struct {} {{\n", struct_name);
-
-	int field_index = 0;
-	int j = i;
-	while (j != -1) {
-		atom::General g = atoms[j];
-		if (!g.is <atom::TypeField> ())
-			abort();
-
-		atom::TypeField tf = g.as <atom::TypeField> ();
-
-		std::string tf_type_name;
-		if (tf.down != -1) {
-			// TODO: made sure we are not making duplicates
-			std::string nested_struct_source = synthesize_struct(atoms, tf.down, struct_names, struct_index);
-			dependent_struct_defs += nested_struct_source;
-			tf_type_name = struct_names[tf.down];
-		} else {
-			tf_type_name = atom::type_table[tf.item];
-		}
-
-		struct_source += fmt::format("    {} f{};\n", tf_type_name, field_index++);
-
-		// TODO: nested
-		// TODO: put this whole thing in a method
-
-		j = tf.next;
-	}
-
-	struct_source += "};\n\n";
-
-	return dependent_struct_defs + struct_source;
-}
-
-// Gathering the input/output structure of the kernel
-struct kernel_synthesis_structure {
-	std::unordered_set <size_t> callables;
-	std::map <int, std::string> lins;
-	std::map <int, std::string> louts;
-	std::map <int, std::string> parameters;
-	std::string push_constant;
-
-	static kernel_synthesis_structure from(const std::vector <atom::General> &atoms,
-			         const wrapped::hash_table <int, std::string> &struct_names,
-				 const std::unordered_set <atom::index_t> &used) {
-		kernel_synthesis_structure ios;
-
-		for (int i = 0; i < atoms.size(); i++) {
-			if (!used.count(i))
-				continue;
-
-			auto op = atoms[i];
-			if (auto global = op.get <atom::Global> ()) {
-				auto type = atom::type_name(atoms.data(), struct_names, i, -1);
-
-				if (global->qualifier == atom::Global::layout_in)
-					ios.lins[global->binding] = type;
-				else if (global->qualifier == atom::Global::layout_out)
-					ios.louts[global->binding] = type;
-				else if (global->qualifier == atom::Global::parameter)
-					ios.parameters[global->binding] = type;
-				else if (global->qualifier == atom::Global::push_constant)
-					ios.push_constant = type;
-			} else if (auto call = op.get <atom::Call> ()) {
-				ios.callables.insert(call->cid);
-			}
-		}
-
-		return ios;
-	}
-};
-
 // Generating GLSL source code
-// TODO: need to pass stage type...
 std::string Kernel::synthesize_glsl(const std::string &version_number)
 {
-	// Final generated source
-	std::string source;
-
-	if (is_compatible(eVertexShader) || is_compatible(eFragmentShader)) {
-		// Version header
-		source += "#version " + version_number + "\n";
-		source += "\n";
-	}
-
-	// Gather all necessary structs
-	wrapped::hash_table <int, std::string> struct_names;
-
-	int struct_index = 0;
-	for (int i = 0; i < atoms.size(); i++) {
-		if (!synthesized.contains(i))
-			continue;
-
-		source += synthesize_struct(atoms, i, struct_names, struct_index);
-	}
-
-	// TODO: gather the required structs, uniquely
-	auto ios = kernel_synthesis_structure::from(atoms, struct_names, used);
-
-	if (is_compatible(eVertexShader) || is_compatible(eFragmentShader)) {
-		// Global shader variables
-		for (const auto &[binding, type] : ios.lins) {
-			source += fmt::format("layout (location = {}) in {} _lin{};\n",
-					binding, type, binding);
-		}
-
-		if (ios.lins.size())
-			source += "\n";
-
-		for (const auto &[binding, type] : ios.louts)
-			source += fmt::format("layout (location = {}) out {} _lout{};\n",
-					binding, type, binding);
-
-		if (ios.louts.size())
-			source += "\n";
-
-		// TODO: check for vulkan or opengl, etc
-		// might need to add #require statements
-		if (ios.push_constant.size()) {
-			source += "layout (push_constant) uniform constants\n";
-			source += "{\n";
-			source += "     " + ios.push_constant + " _pc;\n";
-			source += "};\n";
-			source += "\n";
-		}
-	}
-
-	// Synthesize all callable functions
-	for (size_t cid : ios.callables) {
-		// TODO: some other method (find_tracked() -> nil if not exists)
-		ire::Callable *cbl = ire::Callable::tracked()[cid];
-		auto kernel = cbl->export_to_kernel();
-		std::string ksource = kernel.synthesize_glsl(version_number);
-		source += ksource + "\n";
-	}
-
-	if (!is_compatible(eVertexShader) && !is_compatible(eFragmentShader)) {
-		// Input signature for the function
-		std::vector <std::string> parameters;
-		for (const auto &[binding, type] : ios.parameters)
-			parameters.emplace_back(fmt::format("{} _arg{}", type, binding));
-
-		// Output type
-		std::string return_type;
-
-		// TODO: return consistency validation
-		for (auto g : atoms) {
-			if  (auto ret = g.get <Returns> ()) {
-				return_type = atom::type_name(atoms.data(), struct_names, ret->type, -1);
-				break;
-			}
-		}
-
-		// Synthesize the function signature
-		std::string parameter_string;
-
-		for (size_t i = 0; i < parameters.size(); i++) {
-			parameter_string += parameters[i];
-			if (i + 1 < parameters.size())
-				parameter_string += ", ";
-		}
-
-		source += fmt::format("{} {}({})\n", return_type, name, parameter_string);
-	} else {
-		// Main function
-		source += "void main()\n";
-	}
-
-	// Function body, return statements are automatically synthesized below
-	source += "{\n";
-	source += atom::synthesize_glsl_body(atoms.data(), struct_names, synthesized, atoms.size());
-	source += "}\n";
-
-	return source;
+	return linkage().resolve().synthesize();
 }
 
 // Generating C++ source code
-template <typename T>
-std::string cpp_primitive_type_as_string()
-{
-	if constexpr (std::is_same_v <T, int>)
-		return "int";
-
-	if constexpr (std::is_same_v <T, float>)
-		return "float";
-
-	if constexpr (std::is_same_v <T, bool>)
-		return "bool";
-
-	return "?";
-}
-
-template <typename T, size_t N>
-std::string jvl_vector_type_as_string(const std::string &name)
-{
-	static const std::string components[] = { "x", "y", "z", "w" };
-
-	std::string ret = fmt::format("struct {} {{\n", name);
-	for (size_t i = 0; i < N; i++) {
-		ret += fmt::format("    {} {};\n",
-				cpp_primitive_type_as_string <T> (),
-				components[i]);
-	};
-
-	return ret + "};\n\n";
-}
-
-std::string jvl_primitive_type_as_string(atom::PrimitiveType type)
-{
-	switch (type) {
-	case i32:
-	case f32:
-	case boolean:
-		return "";
-	case ivec2:
-		return jvl_vector_type_as_string <int, 2> ("ivec2");
-	case ivec3:
-		return jvl_vector_type_as_string <int, 3> ("ivec3");
-	case ivec4:
-		return jvl_vector_type_as_string <int, 4> ("ivec4");
-	case vec2:
-		return jvl_vector_type_as_string <float, 2> ("vec2");
-	case vec3:
-		return jvl_vector_type_as_string <float, 3> ("vec3");
-	case vec4:
-		return jvl_vector_type_as_string <float, 4> ("vec4");
-	default:
-		break;
-	}
-
-	return "?";
-}
-
 std::string Kernel::synthesize_cplusplus()
 {
-	// Final generated source
-	std::string source;
-
-	// All the includes
-	source += "#include <tuple>";
-	source += "\n";
-
-	// Generate structs for the used primitive types
-	// TODO: unless told to use jvl structures...
-	std::unordered_set <int> synthesized_primitives;
-	for (int i = 0; i < atoms.size(); i++) {
-		if (!used.contains(i))
-			continue;
-
-		atom::General g = atoms[i];
-		if (!g.is <atom::TypeField>())
-			continue;
-
-		atom::TypeField tf = g.as <atom::TypeField>();
-		if (tf.next != -1 || tf.down != -1)
-			continue;
-
-		if (synthesized_primitives.count(tf.item))
-			continue;
-
-		// If we are here, it means that the type is a primitive
-		source += jvl_primitive_type_as_string(tf.item);
-
-		synthesized_primitives.insert(tf.item);
-	}
-
-	// Gather all necessary structs
-	wrapped::hash_table <int, std::string> struct_names;
-
-	int struct_index = 0;
-	for (int i = 0; i < atoms.size(); i++) {
-		if (!synthesized.contains(i))
-			continue;
-
-		source += synthesize_struct(atoms, i, struct_names, struct_index);
-	}
-
-	auto ios = kernel_synthesis_structure::from(atoms, struct_names, used);
-
-	// TODO: name hint for layout output structure (as a replacement for a tuple)
-
-	// Input signature for the function
-	std::vector <std::string> parameters;
-	for (const auto &[binding, type] : ios.lins)
-		parameters.emplace_back(fmt::format("{} _lin{}", type, binding));
-
-	// Output type
-	std::string return_type;
-
-	if (ios.louts.size() == 1) {
-		auto it = ios.louts.begin();
-		return_type = it->second;
-	} else {
-		size_t count = 0;
-		for (auto [_, type] : ios.louts) {
-			return_type += type;
-			if (count + 1 < ios.louts.size()) {
-				return_type += ", ";
-			}
-
-			count++;
-		}
-
-		return_type = "std::tuple <" + return_type + ">";
-	}
-
-	// Synthesize the function signature
-	std::string parameter_string;
-
-	if (ios.push_constant.size()) {
-		parameter_string += fmt::format("const {} &_pc", ios.push_constant);
-		if (ios.lins.size())
-			parameter_string += ", ";
-	}
-
-	for (size_t i = 0; i < parameters.size(); i++) {
-		parameter_string += parameters[i];
-		if (i + 1 < parameters.size())
-			parameter_string += ", ";
-	}
-
-	source += fmt::format("{} {}({})\n", return_type, name, parameter_string);
-
-	// Fill in the outputs
-	source += "{\n";
-
-	for (auto [binding, type] : ios.louts)
-		source += fmt::format("    {} _lout{};\n", type, binding);
-
-	// Process the body of the function
-	source += atom::synthesize_glsl_body(atoms.data(), struct_names, synthesized, atoms.size());
-
-	// Synthesizing the return statement
-	if (ios.louts.size() == 1) {
-		source += "    return _lout0;\n";
-	} else {
-		size_t count = 0;
-
-		// At the end, create the tuple and return it
-		std::string returns;
-		for (auto [binding, _] : ios.louts) {
-			returns += fmt::format("_lout{}", binding);
-			if (count + 1 < ios.louts.size()) {
-				returns += ", ";
-			}
-
-			count++;
-		}
-
-		source += fmt::format("    return std::make_tuple({});\n", returns);
-	}
-
-	source += "}\n";
-
-	return source;
+	return linkage().resolve().synthesize();
 }
 
 } // namespace jvl::atom

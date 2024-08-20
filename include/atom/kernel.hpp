@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <vector>
 
 #include "../profiles/targets.hpp"
@@ -7,12 +8,19 @@
 
 namespace jvl::atom {
 
+struct Linkage;
+
 class Kernel {
 	std::string synthesize_glsl(const std::string &);
 	std::string synthesize_cplusplus();
 public:
 	// Name of the kernel, usually not set by the user
 	std::string name;
+
+	// At this point the IR atoms are unlikely to change
+	std::vector <General> atoms;
+	std::unordered_set <index_t> used;
+	std::unordered_set <index_t> synthesized;
 
 	// Possible kernel flags, which enable certain paths of synthesis
 	enum Kind {
@@ -26,28 +34,26 @@ public:
 	// Must specify the type by the time of construction
 	Kernel(Kind k) : name("kernel"), kind(k) {}
 
-	// At this point the IR atoms are unlikely to change
-	std::vector <atom::General> atoms;
-	std::unordered_set <atom::index_t> used;
-	std::unordered_set <atom::index_t> synthesized;
+	// Get linkage model for the kernel
+	Linkage linkage() const;
 
 	// Synthesizing targets
 	std::string synthesize(const profiles::glsl_version version) {
 		return synthesize_glsl(version.str);
 	}
 
-	// TODO: potentially pass a name for the function
 	std::string synthesize(const profiles::cpp_standard standard) {
 		return synthesize_cplusplus();
 	}
 
+	// Checking for capabilities
 	[[gnu::always_inline]]
-	inline bool is_compatible(Kind k) {
+	inline bool is_compatible(Kind k) const {
 		return (k & kind) == k;
 	}
 
 	// Printing the stored IR
-	void dump();
+	void dump() const;
 };
 
 } // namespace jvl::atom

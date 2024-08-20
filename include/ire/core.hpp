@@ -16,3 +16,6 @@
 // TODO: organize into different targets, i.e. core/glsl.hpp, core/spirv.hpp, etc.
 // TODO: debug only
 #include "guarantees.hpp"
+
+#include "../atom/linkage.hpp"
+#include "../atom/kernel.hpp"

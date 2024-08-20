@@ -62,6 +62,7 @@ struct TypeField {
 	index_t next = -1;
 };
 
+#pragma pack(push, 1)
 struct Primitive {
 	union {
 		bool b;
@@ -71,6 +72,7 @@ struct Primitive {
 
 	PrimitiveType type = bad;
 };
+#pragma pack(pop)
 
 struct Swizzle {
 	enum Kind : int8_t {
@@ -176,17 +178,22 @@ struct Returns {
 
 struct End {};
 
-using General = wrapped::variant <
+// General instructions
+using __generic_base = wrapped::variant <
 	Global, TypeField, Primitive,
 	Swizzle, Operation, Construct, Call,
 	Intrinsic, List, Store, Load,
 	Cond, Elif, While, Returns, End
 >;
 
+struct alignas(4) General : __generic_base {
+	using __generic_base::__generic_base;
+};
+
 // TODO: move to guarantees.hpp
 static_assert(sizeof(Global)    == 6);
 static_assert(sizeof(TypeField) == 6);
-static_assert(sizeof(Primitive) == 8);
+static_assert(sizeof(Primitive) == 5);
 static_assert(sizeof(Swizzle)   == 4);
 static_assert(sizeof(Operation) == 6);
 static_assert(sizeof(Intrinsic) == 12);

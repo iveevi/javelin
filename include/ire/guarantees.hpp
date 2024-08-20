@@ -2,26 +2,28 @@
 
 #include "primitive.hpp"
 #include "layout_io.hpp"
+#include "vector.hpp"
 
-// TODO: import the aliases
 namespace jvl::ire {
 
-// static_assert(synthesizable <vec4>);
-
+static_assert(synthesizable <primitive_t <bool>>);
 static_assert(synthesizable <primitive_t <int>>);
+static_assert(synthesizable <primitive_t <float>>);
 
-// static_assert(synthesizable <boolean>);
+static_assert(synthesizable <vec <bool, 2>>);
+static_assert(synthesizable <vec <bool, 3>>);
+static_assert(synthesizable <vec <bool, 4>>);
 
+static_assert(synthesizable <vec <int, 2>>);
+static_assert(synthesizable <vec <int, 3>>);
+static_assert(synthesizable <vec <int, 4>>);
+
+static_assert(synthesizable <vec <float, 2>>);
+static_assert(synthesizable <vec <float, 3>>);
+static_assert(synthesizable <vec <float, 4>>);
+
+static_assert(synthesizable <layout_in <bool, 0>>);
 static_assert(synthesizable <layout_in <int, 0>>);
-
-// static_assert(synthesizable <ivec2>);
-// static_assert(synthesizable <ivec3>);
-// static_assert(synthesizable <ivec4>);
-//
-// static_assert(synthesizable <vec2>);
-// static_assert(synthesizable <vec3>);
-// static_assert(synthesizable <vec4>);
-//
-// static_assert(synthesizable <mat4>);
+static_assert(synthesizable <layout_in <float, 0>>);
 
 } // namespace jvl::ire

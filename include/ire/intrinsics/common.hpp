@@ -24,6 +24,18 @@ primitive_t <T> tan(const primitive_t <T> &x)
 	return platform_intrinsic_from_args <primitive_t <T>> ("tan", x);
 }
 
+template <primitive_type T>
+primitive_t <T> pow(const primitive_t <T> &x, const primitive_t <T> &exp)
+{
+	return platform_intrinsic_from_args <primitive_t <T>> ("pow", x, exp);
+}
+
+template <primitive_type T, size_t N>
+vec <T, N> pow(const vec <T, N> &v, const primitive_t <T> &exp)
+{
+	return platform_intrinsic_from_args <vec <T, N>> ("pow", v, exp);
+}
+
 template <primitive_type T, size_t N>
 vec <T, N> clamp(const vec <T, N> &x, const primitive_t <T> &min, const primitive_t <T> &max)
 {

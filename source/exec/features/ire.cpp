@@ -1,7 +1,6 @@
 #include <fmt/format.h>
 
 #include "ire/core.hpp"
-#include "ire/emitter.hpp"
 #include "profiles/targets.hpp"
 
 // TODO: immutability for shader inputs types
@@ -21,13 +20,14 @@ using namespace jvl::ire;
 struct lighting {
 	vec3 direction;
 	vec3 color;
+	f32 area;
 
 	vec3 lambert(vec3 n) const {
-		return color * dot(direction, n);
+		return color * dot(direction, n) * area;
 	}
 
 	auto layout() const {
-		return uniform_layout(direction, color);
+		return uniform_layout(direction, color, area);
 	}
 };
 
@@ -40,10 +40,14 @@ struct surface_hit {
 	}
 };
 
+auto gamma_correct = callable([](const vec3 &x) {
+	return pow(x, f32(1.0f/2.2f));
+}).named("gamma_correct");
+
 auto shade = callable([](const lighting &light,
 			 const surface_hit &sh)
 {
-	return light.lambert(sh.n) * sh.p;
+	return gamma_correct(light.lambert(sh.n) * sh.p);
 }).named("shade");
 
 void shader()
@@ -73,34 +77,10 @@ void shader()
 
 int main()
 {
-	{
-		auto k = shade.export_to_kernel();
-		k.dump();
-		std::string source = k.synthesize(profiles::opengl_450);
-		fmt::print("\nSOURCE:\n{}", source);
-	}
+	auto main_kernel = kernel_from_args(shader);
+	auto main_kernel_linkage = main_kernel.linkage();
+	main_kernel_linkage.resolve();
+	main_kernel_linkage.dump();
 
-	{
-		auto k = kernel_from_args(shader);
-		k.dump();
-		std::string source = k.synthesize(profiles::opengl_450);
-		fmt::print("\nSOURCE:\n{}", source);
-	}
-
-	auto l = [](f32 x) -> void { returns(pow(x, 2)); };
-
-	auto kl = callable <f32> (l).named("lamdba");
-	kl.export_to_kernel().dump();
-	fmt::println("\n{}", kl.export_to_kernel().synthesize(profiles::opengl_450));
-
-	struct functor {
-		i32 operator()(i32 x) {
-			return x;
-		}
-	};
-
-	auto x = functor();
-	auto kop = callable(x).named("functor");
-	kop.export_to_kernel().dump();
-	fmt::println("\n{}", kop.export_to_kernel().synthesize(profiles::opengl_450));
+	fmt::println("\n{}", main_kernel_linkage.synthesize());
 }
