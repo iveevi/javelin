@@ -90,12 +90,12 @@ Linkage &Linkage::resolve()
 	return *this;
 }
 
-std::string Linkage::synthesize()
+std::string Linkage::synthesize_glsl(const std::string &version)
 {
 	wrapped::hash_table <int, std::string> struct_names;
 
 	// Final source code
-	std::string source;
+	std::string source = fmt::format("#version {}\n\n", version);
 
 	// Translating types
 	auto translate_type = [&](index_t i) -> std::string {
@@ -143,12 +143,21 @@ std::string Linkage::synthesize()
 	if (lins.size())
 		source += "\n";
 
-	for (const auto &[binding, t] : louts)
+	for (const auto &[binding, t] : louts) {
 		source += fmt::format("layout (location = {}) out {} _lout{};\n",
 				binding, translate_type(t), binding);
+	}
 
 	if (louts.size())
 		source += "\n";
+
+	if (push_constant != -1) {
+		source += "layout (push_constant) uniform constants\n";
+		source += "{\n";
+		source += fmt::format("     {} _pc;\n", translate_type(push_constant));
+		source += "};\n";
+		source += "\n";
+	}
 
 	// Synthesize all blocks
 	for (auto &i : sorted) {
@@ -158,7 +167,7 @@ std::string Linkage::synthesize()
 		for (auto &[i, t] : b.struct_map)
 			local_struct_names[i] = translate_type(t);
 
-		std::string name = "origin";
+		std::string name = "main";
 		if (i != -1) {
 			ire::Callable *cbl = ire::Callable::search_tracked(i);
 			name = cbl->name;
@@ -236,7 +245,7 @@ void Linkage::dump() const
 	fmt::println("Blocks: {}", blocks.size());
 	for (auto &[i, b] : blocks) {
 		if (i == -1) {
-			fmt::println("  Block $origin:");
+			fmt::println("  Block $main:");
 		} else {
 			ire::Callable *cbl = ire::Callable::search_tracked(i);
 			fmt::println("  Block ${}:", cbl->name);
@@ -258,7 +267,7 @@ void Linkage::dump() const
 	fmt::println("Dependency order:");
 	for (auto &i : sorted) {
 		if (i == -1) {
-			fmt::print("$origin ");
+			fmt::print("$main ");
 		} else {
 			ire::Callable *cbl = ire::Callable::search_tracked(i);
 			fmt::print("${} ", cbl->name);

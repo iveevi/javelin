@@ -69,7 +69,7 @@ Linkage Kernel::linkage() const
 				linkage.push_constant = type;
 				break;
 			default:
-				abort();
+				break;
 			}
 		} else if (auto returns = op.get <Returns> ()) {
 			linkage.blocks[-1].returns = generate_type_declaration(returns->type);
@@ -122,15 +122,15 @@ void Kernel::dump() const
 }
 
 // Generating GLSL source code
-std::string Kernel::synthesize_glsl(const std::string &version_number)
+std::string Kernel::synthesize_glsl(const std::string &version)
 {
-	return linkage().resolve().synthesize();
+	return linkage().resolve().synthesize_glsl(version);
 }
 
 // Generating C++ source code
 std::string Kernel::synthesize_cplusplus()
 {
-	return linkage().resolve().synthesize();
+	return linkage().resolve().synthesize_glsl("?");
 }
 
 } // namespace jvl::atom

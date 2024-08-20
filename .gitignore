@@ -1,3 +1,4 @@
+*.jvls
 .cache/
 .vscode/
 build/

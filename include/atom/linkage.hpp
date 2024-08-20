@@ -55,7 +55,7 @@ struct Linkage {
 	Linkage &resolve();
 
 	// Synthesizing the final output
-	std::string synthesize();
+	std::string synthesize_glsl(const std::string &);
 
 	// Printing linkage state
 	void dump() const;

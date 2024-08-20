@@ -79,8 +79,5 @@ int main()
 {
 	auto main_kernel = kernel_from_args(shader);
 	auto main_kernel_linkage = main_kernel.linkage();
-	main_kernel_linkage.resolve();
-	main_kernel_linkage.dump();
-
-	fmt::println("\n{}", main_kernel_linkage.synthesize());
+	fmt::println("\n{}", main_kernel.synthesize(profiles::opengl_450));
 }
