@@ -10,7 +10,7 @@
 
 namespace jvl::ire {
 
-struct Callable {
+struct Callable : Scratch {
 	// Global list of callables
 	static auto &tracked() {
 		static std::unordered_map <size_t, Callable *> map;
@@ -25,13 +25,10 @@ struct Callable {
 		return nullptr;
 	}
 
-	// Ordinary information, same as Emitter
-	// but lacks the used and synthesized members
-	std::vector <thunder::Atom> pool;
-	size_t pointer;
+	// Unique id
 	size_t cid;
 
-	// An optional name
+	// An optional name (defaults to "callable<cid>")
 	std::string name;
 
 	// For callables we can track back used and synthesized
@@ -44,8 +41,6 @@ struct Callable {
 	// TODO: destructor, which offloads it from the global list
 
 	thunder::Kernel export_to_kernel();
-
-	int emit(const thunder::Atom &);
 
 	void dump();
 };

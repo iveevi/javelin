@@ -10,7 +10,19 @@
 // Wrappers on standard types
 namespace jvl::wrapped {
 
-// Easier to work with variants
+// Simpler variant type
+template <typename T, typename U, typename ... Args>
+constexpr int variant_index(int i)
+{
+	if constexpr (std::same_as <T, U>)
+		return i;
+
+	if constexpr (sizeof...(Args))
+		return variant_index <T, Args...> (i + 1);
+
+	return -1;
+}
+
 template <typename ... Args>
 struct variant : std::variant <Args...> {
 	using std::variant <Args...> ::variant;
@@ -36,6 +48,11 @@ struct variant : std::variant <Args...> {
 			return std::get <T> (*this);
 
 		return std::nullopt;
+	}
+
+	template <typename T>
+	static constexpr int type_index() {
+		return variant_index <T, Args...> (0);
 	}
 };
 

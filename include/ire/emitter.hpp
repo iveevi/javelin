@@ -12,24 +12,37 @@
 
 namespace jvl::ire {
 
-struct Callable;
-
-struct Emitter {
-	// By default the program begins at index 0
+// Arbitrary pools of atoms
+struct Scratch {
 	std::vector <thunder::Atom> pool;
 	size_t pointer;
 
+	Scratch();
+	
+	int emit(const thunder::Atom &);
+
+	void clear();
+
+	void dump();
+};
+
+// More advanced pool which manages control flow as well as scopes of pools
+struct Emitter : Scratch {
 	std::stack <thunder::index_t> control_flow_ends;
 	std::unordered_set <thunder::index_t> used;
 	std::unordered_set <thunder::index_t> synthesized;
 
-	std::stack <std::reference_wrapper <Callable>> scopes;
+	std::stack <std::reference_wrapper <Scratch>> scopes;
 
 	Emitter();
 
 	// Resizing and compaction
 	void clear();
 	void compact();
+
+	// Managing the scope
+	void push(Scratch &);
+	void pop();
 
 	// Dead code elimination, always conservative
 	void mark_used(int, bool);

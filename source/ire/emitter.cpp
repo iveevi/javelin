@@ -12,16 +12,45 @@
 
 namespace jvl::ire {
 
-Emitter::Emitter() : pointer(0) {}
+Scratch::Scratch() : pointer(0) {}
+
+int Scratch::emit(const thunder::Atom &atom)
+{
+	if (pointer >= pool.size())
+		pool.resize(1 + (pool.size() << 2));
+
+	pool[pointer] = atom;
+	return pointer++;
+}
+
+void Scratch::clear()
+{
+	// Preserves the pool memory
+	pointer = 0;
+	std::memset(pool.data(), 0, pool.size() * sizeof(thunder::Atom));
+}
+
+void Scratch::dump()
+{
+	fmt::println("------------------------------");
+	fmt::println("SCRATCH ({}/{})", pointer, pool.size());
+	fmt::println("------------------------------");
+	for (size_t i = 0; i < pointer; i++) {
+		fmt::print("   [{:4d}]: ", i);
+			thunder::dump_ir_operation(pool[i]);
+		fmt::print("\n");
+	}
+}
+
+Emitter::Emitter() : Scratch() {}
 
 void Emitter::clear()
 {
-	pointer = 0;
-	std::memset(pool.data(), 0, pool.size() * sizeof(thunder::Atom));
-
 	// Reset usages
 	used.clear();
 	synthesized.clear();
+	
+	Scratch::clear();
 }
 
 void Emitter::compact()
@@ -35,6 +64,17 @@ void Emitter::compact()
 	used = reindexer(used);
 }
 
+// Scope management
+void Emitter::push(Scratch &scratch)
+{
+	scopes.push(std::ref(scratch));
+}
+
+void Emitter::pop()
+{
+	scopes.pop();
+}
+
 // Dead code elimination
 void Emitter::mark_used(int index, bool syn)
 {
@@ -46,22 +86,17 @@ void Emitter::mark_used(int index, bool syn)
 }
 
 // Emitting instructions during function invocation
-int Emitter::emit(const thunder::Atom &op)
+int Emitter::emit(const thunder::Atom &atom)
 {
 	if (scopes.size())
-		return scopes.top().get().emit(op);
+		return scopes.top().get().emit(atom);
 
-	if (pointer >= pool.size())
-		pool.resize(1 + (pool.size() << 2));
-
-	pool[pointer] = op;
-
-	return pointer++;
+	return Scratch::emit(atom);
 }
 
-int Emitter::emit_main(const thunder::Atom &op)
+int Emitter::emit_main(const thunder::Atom &atom)
 {
-	int p = emit(op);
+	int p = emit(atom);
 	synthesized.insert(p);
 	mark_used(p, true);
 	return p;

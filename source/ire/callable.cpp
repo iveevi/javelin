@@ -1,8 +1,9 @@
 #include "ire/callable.hpp"
+#include "ire/emitter.hpp"
 
 namespace jvl::ire {
 
-Callable::Callable() : pointer(0)
+Callable::Callable() : Scratch()
 {
 	static size_t id = 0;
 	cid = id++;
@@ -31,16 +32,6 @@ Callable &Callable::operator=(const Callable &other)
 	}
 
 	return *this;
-}
-
-int Callable::emit(const thunder::Atom &op)
-{
-	if (pointer >= pool.size())
-		pool.resize(1 + (pool.size() << 2));
-
-	pool[pointer] = op;
-
-	return pointer++;
 }
 
 thunder::Kernel Callable::export_to_kernel()
@@ -81,7 +72,7 @@ thunder::Kernel Callable::export_to_kernel()
 void Callable::dump()
 {
 	fmt::println("------------------------------");
-	fmt::println("CALLABLE ({}/{})", pointer, pool.size());
+	fmt::println("CALLABLE ${} ({}/{})", name, pointer, pool.size());
 	fmt::println("------------------------------");
 	for (size_t i = 0; i < pointer; i++) {
 		fmt::print("   [{:4d}]: ", i);
