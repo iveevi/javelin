@@ -30,7 +30,7 @@ add_library(imgui SHARED
 	thirdparty/imgui/backends/imgui_impl_glfw.cpp
 	thirdparty/imgui/backends/imgui_impl_vulkan.cpp)
 
-add_library(jvl-ire STATIC
+add_library(javelin-ire STATIC
 	source/thunder/dump.cpp
 	source/thunder/kernel.cpp
 	source/thunder/linkage.cpp
@@ -88,8 +88,8 @@ set(VULKAN_LIBRARY_SET
 	glslang
 	glslang-default-resource-limits)
 
-target_link_libraries(jvl-ire fmt::fmt)
-target_link_libraries(javelin fmt::fmt ${VULKAN_LIBRARY_SET} imgui jvl-ire)
-target_link_libraries(ire-features glfw fmt::fmt jvl-ire)
+target_link_libraries(javelin-ire fmt::fmt)
+target_link_libraries(javelin fmt::fmt ${VULKAN_LIBRARY_SET} imgui javelin-ire)
+target_link_libraries(ire-features glfw fmt::fmt javelin-ire)
 target_link_libraries(lang-features fmt::fmt -fsanitize=address)
-target_link_libraries(test GTest::gtest_main jvl-ire glfw)
+target_link_libraries(test GTest::gtest_main javelin-ire glfw)

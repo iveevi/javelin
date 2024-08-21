@@ -165,14 +165,19 @@ std::optional <Preset> Preset::from(const std::filesystem::path &path)
 		m.values[Material::ambient_key] = to_float3(material.ambient);
 		m.values[Material::diffuse_key] = to_float3(material.diffuse);
 		m.values[Material::specular_key] = to_float3(material.specular);
-		m.values[Material::emission_key] = to_float3(material.emission);
 		m.values[Material::roughness_key] = material.roughness;
+
+		// Emission should only be added if it is non-zero
+		float3 emission = to_float3(material.emission);
+		if (length(emission) > 0)
+			m.values[Material::emission_key] = emission;
+
 		fmt::println("MATERIAL>>>");
 		fmt::println("  roughness: {}", material.roughness);
 		fmt::println("  emission: ({}, {}, {})",
-				material.emission[0],
-				material.emission[1],
-				material.emission[2]);
+				emission[0],
+				emission[1],
+				emission[2]);
 		preset.materials.push_back(m);
 	}
 

@@ -13,6 +13,12 @@ struct Intersection {
 	bool backfacing;
 	int material;
 
+	// TODO: handle if backfacing
+	float3 offset() const {
+		static constexpr float epsilon = 1e-3f;
+		return point + epsilon * normal;
+	}
+
 	void update(const Intersection &other) {
 		if (other.time < 0)
 			return;

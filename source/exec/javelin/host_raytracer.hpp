@@ -5,6 +5,7 @@
 #include "core/material.hpp"
 #include "core/ray.hpp"
 #include "core/transform.hpp"
+#include "gfx/cpu/intersection.hpp"
 #include "gfx/cpu/scene.hpp"
 #include "math_types.hpp"
 
@@ -12,12 +13,43 @@ using namespace jvl;
 using namespace jvl::core;
 using namespace jvl::gfx;
 
+static float random_uniform_float()
+{
+	static thread_local std::random_device dev;
+	static thread_local std::mt19937 random(dev());
+	static thread_local std::uniform_real_distribution <float> distribution;
+	return distribution(random);
+}
+
+static float2 random_uniform_float2()
+{
+	return float2 {
+		random_uniform_float(),
+		random_uniform_float(),
+	};
+}
+
+static float3 random_uniform_float3()
+{
+	return float3 {
+		random_uniform_float(),
+		random_uniform_float(),
+		random_uniform_float(),
+	};
+}
+
 inline float3 reflect(const float3 &v, const float3 &n)
 {
     return normalize(v - 2 * dot(v, n) * n);
 }
 
-inline std::pair <float3, float> sample_hemisphere(float u, float v)
+template <typename T>
+struct RandomSample {
+	T data;
+	float pdf;
+};
+
+inline RandomSample <float3> sample_hemisphere(float u, float v)
 {
 	assert(u >= 0 && u < 1);
 	assert(v >= 0 && v < 1);
@@ -25,13 +57,13 @@ inline std::pair <float3, float> sample_hemisphere(float u, float v)
 	float phi = 2 * M_PI * u;
 	float z = sqrt(1 - v);
 
-	return {
-		float3 {
+	return RandomSample {
+		.data = float3 {
 			std::cos(phi) * std::sqrt(v),
 			std::sin(phi) * std::sqrt(v),
 			z
 		},
-		z/M_PI
+		.pdf = z/pi <float>
 	};
 }
 
@@ -40,6 +72,14 @@ struct OrthonormalBasis {
 
 	float3 local(const float3 &a) const {
 		return a.x * u + a.y * v + a.z * w;
+	}
+
+	RandomSample <float3> random_hemisphere(float2 rnd) const {
+		auto t = sample_hemisphere(rnd.x, rnd.y);
+		return RandomSample <float3> {
+			.data = local(t.data),
+			.pdf = t.pdf
+		};
 	}
 
 	static OrthonormalBasis from(const float3 &n) {
@@ -53,6 +93,62 @@ struct OrthonormalBasis {
 		return onb;
 	}
 };
+
+struct ScatteringEvent {
+	float3 brdf;
+	float3 wo;
+	float pdf;
+};
+
+struct SurfaceScattering {
+	const cpu::Intersection &sh;
+
+	OrthonormalBasis onb;
+
+	SurfaceScattering(const cpu::Intersection &sh_)
+			: sh(sh_), onb(OrthonormalBasis::from(sh.normal)) {}
+};
+
+struct Diffuse : SurfaceScattering {
+	using SurfaceScattering::SurfaceScattering;
+
+	float3 kd;
+
+	Diffuse &load(const Material &material) {
+		if (auto diffuse = material.values.get("diffuse"))
+			kd = diffuse->as <float3> ();
+
+		return *this;
+	}
+
+	float3 brdf(const float3 &wi, const float3 &wo) const {
+		float lambertian = std::max(dot(wo, sh.normal), 0.0f);
+		return lambertian * (kd/pi <float>);
+	}
+
+	float pdf(const float3 &wi, const float3 &wo) const {
+		return std::max(dot(wo, sh.normal), 0.0f)/pi <float>;
+	}
+
+	ScatteringEvent sample(const float3 &wi) const {
+		float2 rnd = random_uniform_float2();
+		auto sample = onb.random_hemisphere(rnd);
+
+		return ScatteringEvent {
+			.brdf = brdf(wi, sample.data),
+			.wo = sample.data,
+			.pdf = sample.pdf,
+		};
+	}
+};
+
+inline wrapped::optional <float3> emission(const Material &material)
+{
+	if (auto emission = material.values.get("emission"))
+		return emission.as <float3> ();
+
+	return std::nullopt;
+}
 
 struct HostRaytracer {
 	core::Transform transform;
@@ -81,31 +177,17 @@ struct HostRaytracer {
 		assert(sh.material < scene.materials.size());
 		Material &material = scene.materials[sh.material];
 
-		Phong phong = Phong::from(material);
-		float3 emission = phong.emission.as <float3> ();
-		if (length(emission) > 0)
-			return emission;
+		if (auto em = emission(material))
+			return em.value();
 
-		float3 kd = phong.kd.as <float3> ();
-
-		constexpr float epsilon = 1e-3f;
-
-		float u = distribution(random);
-		float v = distribution(random);
-
-		auto [sampled, pdf] = sample_hemisphere(u, v);
-
-		auto onb = OrthonormalBasis::from(sh.normal);
+		auto diffuse = Diffuse(sh).load(material);
+		auto scattering = diffuse.sample(-ray.direction);
 
 		Ray next = ray;
-		next.origin = sh.point + epsilon * sh.normal;
-		next.direction = onb.local(sampled);
+		next.origin = sh.offset();
+		next.direction = scattering.wo;
 
-		float lambertian = std::max(dot(sh.normal, next.direction), 0.0f);
-		float3 brdf = lambertian * (kd/pi <float>);
-		float3 Le = radiance(next, depth - 1);
-		float3 ret = Le * kd;
-		return brdf * Le/pdf;
+		return radiance(next, depth - 1) * scattering.brdf/scattering.pdf;
 	}
 
 	float3 radiance_samples(const Ray &ray, size_t samples) {

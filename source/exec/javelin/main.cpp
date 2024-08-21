@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
 	{
 		auto scene = core::Scene();
 		scene.add(preset);
-		scene.write("main.jvls");
+		scene.write("main.jvlx");
 	}
 
 	//////////////////
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
 			.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
 			.done();
 
-	vk::RenderPass render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
+	vk::RenderPass viewport_render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
 		.add_attachment(littlevk::default_color_attachment(drc.swapchain.format))
 		.add_attachment(littlevk::default_depth_attachment())
 		.add_subpass(vk::PipelineBindPoint::eGraphics)
@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
 	imgui_initialize_vulkan(drc, ui_render_pass);
 
 	std::vector <vk::Framebuffer> ui_framebuffers;
-	std::vector <vk::Framebuffer> framebuffers;
+	std::vector <vk::Framebuffer> viewport_framebuffers;
 	std::vector <littlevk::Image> render_color_targets;
 
 	auto command_buffers = littlevk::command_buffers(drc.device,
@@ -175,7 +175,7 @@ int main(int argc, char *argv[])
 		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 
 	littlevk::Pipeline ppl = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
-		.with_render_pass(render_pass, 0)
+		.with_render_pass(viewport_render_pass, 0)
 		.with_vertex_layout(vertex_layout)
 		.with_shader_bundle(bundle)
 		.with_push_constant <MVP> (vk::ShaderStageFlagBits::eVertex, 0)
@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
 		}
 	};
 
-	core::Aperature primary_aperature;
+	core::Aperature aperature;
 	core::Transform transform;
 
 	ImGuiIO &io = ImGui::GetIO();
@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
 
 	MVP mvp;
 	mvp.model = float4x4::identity();
-	mvp.proj = core::perspective(primary_aperature);
+	mvp.proj = core::perspective(aperature);
 
 	auto resize = [&]() {
 		drc.combined().resize(drc.surface, drc.window, drc.swapchain);
@@ -229,15 +229,15 @@ int main(int argc, char *argv[])
 		}
 
 		littlevk::FramebufferGenerator ui_generator(drc.device, ui_render_pass, drc.window.extent, drc.dal);
-		littlevk::FramebufferGenerator generator(drc.device, render_pass, drc.window.extent, drc.dal);
+		littlevk::FramebufferGenerator viewport_generator(drc.device, viewport_render_pass, drc.window.extent, drc.dal);
 
 		for (size_t i = 0; i < drc.swapchain.images.size(); i++) {
 			ui_generator.add(drc.swapchain.image_views[i]);
-			generator.add(render_color_targets[i].view, depth.view);
+			viewport_generator.add(render_color_targets[i].view, depth.view);
 		}
 
 		ui_framebuffers = ui_generator.unpack();
-		framebuffers = generator.unpack();
+		viewport_framebuffers = viewport_generator.unpack();
 
 		export_render_targets_to_imgui();
 
@@ -324,7 +324,7 @@ int main(int argc, char *argv[])
 		handle_input();
 
 		// TODO: method instead of function
-		mvp.proj = core::perspective(primary_aperature);
+		mvp.proj = core::perspective(aperature);
 		mvp.view = transform.to_view_matrix();
 
                 glfwPollEvents();
@@ -346,7 +346,7 @@ int main(int argc, char *argv[])
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(drc.window));
 
 		const auto &render_rpbi = littlevk::default_rp_begin_info <2>
-			(render_pass, framebuffers[op.index], drc.window);
+			(viewport_render_pass, viewport_framebuffers[op.index], drc.window);
 
 		// Update framebuffer buffer and copy to the image
 		fb.refresh(cmd);
@@ -415,7 +415,7 @@ int main(int argc, char *argv[])
 				ImGui::Image(imgui_descriptors[frame], size);
 
 				ImVec2 viewport = ImGui::GetItemRectSize();
-				primary_aperature.aspect = viewport.x/viewport.y;
+				aperature.aspect = viewport.x/viewport.y;
 
 				ImVec2 min = ImGui::GetItemRectMin();
 				ImVec2 max = ImGui::GetItemRectMax();

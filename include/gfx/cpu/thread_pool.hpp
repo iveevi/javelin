@@ -130,21 +130,11 @@ public:
 	}
 
 	void reset() {
-		auto it = status.begin();
-		for (size_t i = 0; i < count; i++) {
-			auto &t = threads[i];
-			auto &s = *it++;
+		for (auto &s : status)
+			s.kill = true;
 
-			if (s.done) {
-				t.join();
-				continue;
-			}
-
-			pthread_t tid = t.native_handle();
-			t.detach();
-
-			pthread_cancel(tid);
-		}
+		for (auto &t : threads)
+			t.join();
 
 		status.clear();
 		threads.clear();
