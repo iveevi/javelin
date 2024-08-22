@@ -5,6 +5,7 @@
 #include <functional>
 
 #include "ire/core.hpp"
+#include "ire/emitter.hpp"
 #include "profiles/targets.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
@@ -150,30 +151,28 @@ usage_graph usage(const std::vector <Atom> &pool)
 	return graph;
 }
 
-}
-
-// Conventional synthesis will have the first type field be the primal value,
-// and the secnod be the dual/derivative value
-void synthesize_differential_type(const std::vector <thunder::Atom> &pool, const thunder::TypeField &tf)
+// Conventional synthesis will have the first type field be the
+// primal value, and the secnod be the dual/derivative value
+void synthesize_differential_type(const std::vector <Atom> &pool, const TypeField &tf)
 {
 	auto &em = Emitter::active;
 
 	// Primitive types
 	if (tf.down == -1 && tf.next == -1) {
 		switch (tf.item) {
-		case jvl::thunder::f32:
+		case f32:
 		{
 			auto primal = tf;
 			auto dual = tf;
 
-			thunder::index_t id = em.emit(dual);
+			index_t id = em.emit(dual);
 			primal.next = id;
 			em.emit(primal);
 		} return;
 
 		default:
 			fmt::println("primitive type does not have a differential type: {}",
-				thunder::tbl_primitive_types[tf.item]);
+				tbl_primitive_types[tf.item]);
 			abort();
 		}
 	}
@@ -182,241 +181,154 @@ void synthesize_differential_type(const std::vector <thunder::Atom> &pool, const
 	abort();
 }
 
-template <typename R, typename ... Args>
-requires differentiable_type <R> && (differentiable_type <Args> && ...)
-auto dfwd(const callable_t <R, Args...> &callable)
-{
-	using namespace thunder;
+// In the post-transform stitching process, there
+// are two kinds of indices which need to be reindexed:
+//
+//   1. Local indices, which are references to atoms in
+//	the same scratch pool, and simply need to be offset
+//
+//   2. Global indices, which were derived from the original atom,
+//      and need to be reindexed to the end of that atom's transformed
+//	scratch pool
+//
+// The latter is easier to keep track of, so we store addresses to those
+// indices in a per-atom list after the atoms have been emitted.
 
-	callable_t <dual_t <R>, dual_t <Args>...> result;
+// Each original instruction is mapped to:
+//   - a scratch pool of atoms as its transformed code
+//   - a list of references to indices pointing to original atoms
+using ref_index_t = std::reference_wrapper <index_t>;
 
-	// TODO: the internals of this can be moved to a non-template function
-	auto &em = Emitter::active;
-	auto &pool = callable.pool;
+struct ad_fwd_mapped_t {
+	Scratch transformed;
+	std::vector <ref_index_t> refs;
 
-	// Map each atom to a potentially new list of atoms
-	std::vector <Scratch> promoted;
-	promoted.resize(callable.pointer);
-
-	// In the post-transform stiching process, there
-	// are two kinds of indices which need to be reindexed:
-	//
-	//   1. Local indices, which are references to atoms in
-	//	the same scratch pool, and simply need to be offset
-	//
-	//   2. Global indices, which were derived from the original atom,
-	//      and need to be reindexed to the end of that atom's transformed
-	//	scratch pool
-	//
-	// The latter is easier to keep track of, so we store addresses to those
-	// indices in a per-atom list after the atoms have been emitted.
-	// TODO: transform block which hosts both the scratch and references list
-	using reference_list = std::vector <std::reference_wrapper <index_t>>;
-	std::vector <reference_list> globals;
-	globals.resize(callable.pointer);
-
-	// Marking each differentiable parameter
-	std::deque <index_t> propogation;
-	for (index_t i = 0; i < pool.size(); i++) {
-		auto &atom = pool[i];
-		if (auto global = atom.template get <Global> ()) {
-			if (global->qualifier == GlobalQualifier::parameter)
-				propogation.push_back(i);
-		}
-
-		// Default population of scratches is preservation
-		em.push(promoted[i]);
-		em.emit(atom);
-		em.pop();
+	Atom &operator[](size_t index) {
+		return transformed.pool[index];
 	}
 
-	auto usage_graph = usage(pool);
+	void track(thunder::Addresses &&addrs) {
+		if (addrs.a0 != -1) refs.push_back(std::ref(addrs.a0));
+		if (addrs.a1 != -1) refs.push_back(std::ref(addrs.a1));
+	}
+};
 
-	// fmt::println("usage graph:");
-	// for (index_t i = 0; i < usage_graph.size(); i++) {
-	// 	fmt::print("    {:4d}: ", i);
-	// 	for (auto &j : usage_graph[i])
-	// 		fmt::print("{} ", j);
-	// 	fmt::print("\n");
-	// }
-
+struct ad_fwd_iteration_context_t {
+	std::deque <index_t> queue;
 	std::unordered_set <index_t> diffed;
-	while (propogation.size()) {
-		index_t i = propogation.front();
-		propogation.pop_front();
+	const std::vector <Atom> &pool;
+};
 
-		if (diffed.count(i))
-			continue;
+void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
+                		  ad_fwd_mapped_t &mapped,
+				  index_t i)
+{
+	auto &em = Emitter::active;
+	auto &atom = context.pool[i];
+	auto &diffed = context.diffed;
+	auto &queue = context.queue;
+	auto &refs = mapped.refs;
 
-		// Clear the currently present scratch as it will likely be overwritten
-		promoted[i].clear();
+	// Clear the currently present scratch and add it for recording
+	mapped.transformed.clear();
+	em.push(mapped.transformed);
 
-		auto &atom = pool[i];
-		auto &prom = promoted[i];
-		auto &refs = globals[i];
+	switch (atom.index()) {
 
-		// fmt::println("prop index: {} (size={})", i, propogation.size());
-		// fmt::print("\t");
-		// dump_ir_operation(atom);
-		// fmt::print("\n");
+	// Promote the type field to the
+	// corresponding differential type
+	case Atom::type_index <TypeField> ():
+	{
+		auto tf = atom.template as <TypeField> ();
 
-		switch (atom.index()) {
+		diffed.insert(i);
 
-		// Promote the type field to the
-		// corresponding differential type
-		case Atom::type_index <TypeField> ():
-		{
-			auto tf = atom.template as <TypeField> ();
+		// Create the differentiated type
+		synthesize_differential_type(context.pool, tf);
 
+		// Everything should be a local index by now
+	} break;
+
+	// Nothing to do for the global itself,
+	// but for the differentiated parameters,
+	// new types need to be instantiated
+	case Atom::type_index <Global> ():
+	{
+		auto global = atom.template as <Global> ();
+		if (global.qualifier == GlobalQualifier::parameter) {
+			// NOTE: assuming this a differentiated parameter...
 			diffed.insert(i);
 
-			// Create the differentiated type
-			em.push(prom);
-			synthesize_differential_type(pool, tf);
-			em.pop();
-
-			// Everything should be a local index by now
-		} break;
-
-		// Nothing to do for the global itself,
-		// but for the differentiated parameters,
-		// new types need to be instantiated
-		case Atom::type_index <Global> ():
-		{
-			auto global = atom.template as <Global> ();
-			if (global.qualifier == GlobalQualifier::parameter) {
-				// NOTE: assuming this a differentiated parameter...
-				diffed.insert(i);
-
-				// Dependencies are pushed front
-				propogation.push_front(global.type);
-			}
-
-			em.push(prom);
-			em.emit(global);
-			em.pop();
-
-			// Type of the global references an original atom
-			refs.push_back(std::ref(prom.pool[0].as <Global> ().type));
-		} break;
-
-		case Atom::type_index <Returns> ():
-		{
-			auto returns = atom.template as <Returns> ();
-
-			// Dependencies
-			propogation.push_front(returns.args);
-			propogation.push_front(returns.type);
-
-			diffed.insert(i);
-
-			em.push(prom);
-			em.emit(returns);
-			em.pop();
-
-			// Both the type and arguments are references to original atoms
-			auto &r = prom.pool[0].as <Returns> ();
-			refs.push_back(std::ref(r.args));
-			refs.push_back(std::ref(r.type));
-		} break;
-
-		case Atom::type_index <List> ():
-		{
-			auto &list = atom.template as <List> ();
-
-			diffed.insert(i);
-
-			// Dependencies
-			propogation.push_front(list.item);
-
-			if (list.next != -1)
-				propogation.push_front(list.next);
-
-			em.push(prom);
-			em.emit(list);
-			em.pop();
-
-			auto &l = prom.pool[0].as <List> ();
-			refs.push_back(std::ref(l.item));
-			if (list.next != -1)
-				refs.push_back(std::ref(l.next));
-		} break;
-
-		// NOTE: the bulk goes into hanlding operations and intrinsics/callables
-
-		// Simple pass through for others which are
-		// unaffected such as list chains
-		default:
-		{
-			diffed.insert(i);
-
-			em.push(prom);
-			em.emit(atom);
-			em.pop();
-		} break;
-
+			// Dependencies are pushed front
+			queue.push_front(global.type);
 		}
 
-		// Add all uses
-		for (auto &index : usage_graph[i])
-			propogation.push_back(index);
+		em.emit(global);
+
+		mapped.track(mapped[0].addresses());
+	} break;
+
+	case Atom::type_index <Returns> ():
+	{
+		auto returns = atom.template as <Returns> ();
+
+		// Dependencies
+		queue.push_front(returns.args);
+		queue.push_front(returns.type);
+
+		diffed.insert(i);
+
+		em.emit(returns);
+
+		mapped.track(mapped[0].addresses());
+	} break;
+
+	case Atom::type_index <List> ():
+	{
+		auto &list = atom.template as <List> ();
+
+		diffed.insert(i);
+
+		// Dependencies
+		queue.push_front(list.item);
+		if (list.next != -1)
+			queue.push_front(list.next);
+
+		em.emit(list);
+
+		mapped.track(mapped[0].addresses());
+	} break;
+
+	// NOTE: the bulk goes into hanlding operations and intrinsics/callables
+
+	// Simple pass through for others which are
+	// unaffected such as list chains
+	default:
+	{
+		diffed.insert(i);
+		em.emit(atom);
+	} break;
+
 	}
+	
+	return em.pop();
+}
 
-	// TODO: everything that is untouched needs to populate the global refs
-	for (index_t i = 0; i < promoted.size(); i++) {
-		if (diffed.contains(i))
-			continue;
-
-		// These are the atoms which were simply forwarded in transformation
-		auto &atom = promoted[i].pool[0];
-		auto &refs = globals[i];
-
-		// TODO: method to add refs to list (reusable?)
-		switch (atom.index()) {
-
-		case Atom::type_index <List> ():
-		{
-			auto &list = atom.as <List> ();
-			refs.push_back(std::ref(list.item));
-			if (list.next != -1)
-				refs.push_back(std::ref(list.next));
-		} break;
-
-		default:
-			// Nothing to do, e.g. primitives
-			break;
-		}
-	}
-
-	auto dump_scratches = [&]() {
-		fmt::println("Promoted scratches");
-		for (index_t i = 0; i < promoted.size(); i++) {
-			fmt::print("[AD] for: ");
-			dump_ir_operation(pool[i]);
-			fmt::print("\n");
-
-			promoted[i].dump();
-
-			fmt::print("\n");
-		}
-	};
-
-	// dump_scratches();
-
-	// Stitch the independent scratches
-
+void ad_fwd_transform_stitch_mapped(Scratch &result, std::vector <ad_fwd_mapped_t> &mapped)
+{
 	// Reindex locals by offset
 	std::vector <size_t> block_offsets;
 
 	size_t offset = 0;
-	for (index_t i = 0; i < callable.pointer; i++) {
-		auto &s = promoted[i];
-		auto &g = globals[i];
+	for (index_t i = 0; i < mapped.size(); i++) {
+		auto &s = mapped[i].transformed;
+		auto &g = mapped[i].refs;
 
+		// Create a map which offsets
+		// TODO: just use the addresses()
 		wrapped::reindex <index_t> reindex;
-		for (size_t i = 0; i < s.pointer; i++) {
+		for (size_t i = 0; i < s.pointer; i++)
 			reindex[i] = i + offset;
-		}
 
 		// Preserve global refs
 		std::vector <index_t> store;
@@ -436,32 +348,90 @@ auto dfwd(const callable_t <R, Args...> &callable)
 		block_offsets.push_back(offset - 1);
 	}
 
-	// Reindex the globals
-	for (index_t i = 0; i < globals.size(); i++) {
-		auto &g = globals[i];
+	// Reindex the globals; doing it after because
+	// some instructions (e.g. branches/loops) have
+	// forward looking addresses
+	for (index_t i = 0; i < mapped.size(); i++) {
+		auto &g = mapped[i].refs;
 
-		// fmt::print("\n");
-		// fmt::print("[AD] for ");
-		// dump_ir_operation(pool[i]);
-		// fmt::print("\n");
 		for (auto &r : g) {
 			index_t p = r.get();
 			r.get() = block_offsets[p];
-			// fmt::println("  reference in global: {} ({} -> {})", (void *) &r.get(), p, r.get());
 		}
 	}
 
-	// dump_scratches();
-
-	// TODO: reindex inside each block first, and then combine as follows
-	for (auto &s : promoted) {
+	// Stitch the independent scratches
+	for (auto &m : mapped) {
+		auto &s = m.transformed;
 		for (size_t i = 0; i < s.pointer; i++)
 			result.emit(s.pool[i]);
 	}
-
-	return result.named("__dfwd_" + callable.name);
 }
 
+void ad_fwd_transform(Scratch &result, const Scratch &source)
+{
+	auto &em = Emitter::active;
+	auto &pool = source.pool;
+
+	// Map each atom to a potentially new list of atoms
+	std::vector <ad_fwd_mapped_t> mapped(source.pointer);
+
+	// Marking each differentiable parameter
+	ad_fwd_iteration_context_t context { .pool = pool };
+
+	for (index_t i = 0; i < pool.size(); i++) {
+		auto &atom = pool[i];
+		if (auto global = atom.template get <Global> ()) {
+			if (global->qualifier == GlobalQualifier::parameter)
+				context.queue.push_back(i);
+		}
+
+		// Default population of scratches is preservation
+		em.push(mapped[i].transformed);
+		em.emit(atom);
+		em.pop();
+	}
+
+	auto usage_graph = usage(pool);
+
+	// Transform all differentiable instructions and their relatives
+	while (context.queue.size()) {
+		index_t i = context.queue.front();
+		context.queue.pop_front();
+
+		if (context.diffed.count(i))
+			continue;
+
+		ad_fwd_transform_instruction(context, mapped[i], i);
+
+		// Add all uses
+		for (auto &index : usage_graph[i])
+			context.queue.push_back(index);
+	}
+
+	// Everything that is untouched needs to be populated into the global refs
+	for (index_t i = 0; i < mapped.size(); i++) {
+		if (context.diffed.contains(i))
+			continue;
+
+		// These are the atoms which were simply forwarded in transformation
+		mapped[i].track(mapped[i][0].addresses());
+	}
+
+	// Stitch the transformed blocks
+	ad_fwd_transform_stitch_mapped(result, mapped);
+}
+
+}
+
+template <typename R, typename ... Args>
+requires differentiable_type <R> && (differentiable_type <Args> && ...)
+auto dfwd(const callable_t <R, Args...> &callable)
+{
+	callable_t <dual_t <R>, dual_t <Args>...> result;
+	thunder::ad_fwd_transform(result, callable);
+	return result.named("__dfwd_" + callable.name);
+}
 
 // Sandbox application
 f32 __id(f32 x)

@@ -1,7 +1,9 @@
 #pragma once
 
-#include <fmt/printf.h>
+#include <cassert>
 #include <unordered_set>
+
+#include <fmt/printf.h>
 
 #include "enumerations.hpp"
 #include "../wrapped_types.hpp"
@@ -19,6 +21,7 @@ struct Addresses {
 
 	static index_t &null() {
 		static thread_local index_t null = -1;
+		assert(null == -1);
 		return null;
 	}
 };
@@ -295,7 +298,14 @@ using __atom_base = wrapped::variant <
 
 struct alignas(4) Atom : __atom_base {
 	using __atom_base::__atom_base;
+
+	Addresses addresses() {
+		auto ftn = [](auto &x) -> Addresses { return x.addresses(); };
+		return std::visit(ftn, *this);
+	}
 };
+
+static_assert(__atom_instruction <Atom>);
 
 // TODO: move to guarantees.hpp
 static_assert(sizeof(Global)    == 6);
