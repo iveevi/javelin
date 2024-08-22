@@ -46,9 +46,9 @@ struct Callable : Scratch {
 };
 
 // Internal construction of callables
-// TODO: type restrictions with concepts
-template <generic R, generic ... Args>
+template <non_trivial_generic R, generic ... Args>
 struct callable_t : Callable {
+	// TODO: only R needs to be restricted, the rest can be filtered depending on synthesizable or not...
 	template <size_t index>
 	void __fill_parameter_references(std::tuple <Args...> &tpl) {
 		auto &em = Emitter::active;
@@ -103,6 +103,25 @@ struct callable_t : Callable {
 	R operator()(const Args &... args) {
 		auto &em = Emitter::active;
 
+		// If R is uniform compatible, then we need to bind its members...
+		if constexpr (uniform_compatible <R>) {
+			R instance;
+
+			auto layout = instance.layout().remove_const();
+
+			thunder::Call call;
+			call.cid = cid;
+			call.ret = type_field_from_args(layout).id;
+			call.args = list_from_args(args...);
+
+			cache_index_t cit;
+			cit = em.emit(call);
+
+			layout.__ref_with(cit);
+			return instance;
+		}
+
+		// For primitives
 		thunder::Call call;
 		call.cid = cid;
 		call.ret = type_field_from_args <R> ().id;
@@ -110,8 +129,6 @@ struct callable_t : Callable {
 
 		cache_index_t cit;
 		cit = em.emit(call);
-
-		// TODO: if R is uniform compatible, then we need to bind its members...
 		return R(cit);
 	}
 };
@@ -125,7 +142,7 @@ concept acceptable_callable = std::is_function_v <F> || requires(const F &ftn) {
 	{ std::function(ftn) };
 };
 
-template <generic R, generic ... Args>
+template <non_trivial_generic R, generic ... Args>
 struct signature_pair {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;
@@ -162,7 +179,7 @@ struct signature {
 };
 
 // Exception for real functions, which cannot be instantiated
-template <generic R, generic ... Args>
+template <non_trivial_generic R, generic ... Args>
 struct signature <R (Args...)> {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;

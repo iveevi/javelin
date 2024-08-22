@@ -30,6 +30,7 @@ struct f32_derivative_t {
 	f32 dual;
 
 	auto layout() const {
+		// TODO: this should be named
 		return uniform_layout(primal, dual);
 	}
 };
@@ -475,10 +476,11 @@ int main()
 	did.dump();
 	
 	auto shader = [&]() {
+		// TODO: remove binding in the template, make it layout_in <float> input(0)
 		layout_in <float, 0> input;
 		layout_out <float, 0> output;
 	
-		output = did(dual(input, f32(1.0f))).dual;
+		output = did(dual(id(input), f32(1.0f))).dual;
 	};
 	
 	auto kernel = kernel_from_args(shader);

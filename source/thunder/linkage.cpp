@@ -125,7 +125,7 @@ std::string Linkage::synthesize_glsl(const std::string &version)
 			else
 				ft_name = struct_names[elem.nested];
 
-			struct_source += fmt::format("  {} f{};\n", ft_name, field++);
+			struct_source += fmt::format("    {} f{};\n", ft_name, field++);
 		}
 
 		struct_source += "};\n";
