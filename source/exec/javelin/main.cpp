@@ -461,10 +461,8 @@ int main(int argc, char *argv[])
         }
 
 	drc.device.waitIdle();
-
 	drc.window.drop();
-
 	drc.dal.drop();
 
-	thread_pool.reset();
+	thread_pool.drop();
 }

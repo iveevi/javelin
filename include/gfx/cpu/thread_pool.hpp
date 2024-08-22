@@ -130,6 +130,11 @@ public:
 	}
 
 	void reset() {
+		drop();
+		__init();
+	}
+
+	void drop() {
 		for (auto &s : status)
 			s.kill = true;
 
@@ -139,8 +144,6 @@ public:
 		status.clear();
 		threads.clear();
 		queue.clear();
-
-		__init();
 	}
 };
 
