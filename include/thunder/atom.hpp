@@ -11,14 +11,22 @@ namespace jvl::thunder {
 // Index type, small to create compact IR
 using index_t = int16_t;
 
-// Addresses referenced in an instruction
+// Addresses referenced in an instruction,
+// useful for a variety of reindexing operations
 struct Addresses {
-	index_t a0;
-	index_t a1;
+	index_t &a0;
+	index_t &a1;
+
+	static index_t &null() {
+		static thread_local index_t null = -1;
+		return null;
+	}
 };
 
+// Interface to enforce guarantees about operations,
+// useful when enforcing decisions to change the layout
 template <typename T>
-concept __atom_instruction = requires(const T &t) {
+concept __atom_instruction = requires(T &t) {
 	{
 		t.addresses()
 	} -> std::same_as <Addresses>;
@@ -27,109 +35,262 @@ concept __atom_instruction = requires(const T &t) {
 // TODO: pack everything, manually pad to align
 
 // Global variable or parameter:
-//        [type] reference to the type of the variable/parameter
-//     [binding] binding index, if applicable
-//   [qualifier] qualifier type for the global variable/parameter
+//
+//   type: reference to the type of the variable/parameter
+//   binding: binding location, if applicable
+//   qualifier: qualifier type for the global variable/parameter
 struct Global {
 	index_t type = -1;
 	index_t binding = -1;
 	GlobalQualifier qualifier;
 
-	Addresses addresses() const {
-		return { type, -1 };
+	Addresses addresses() {
+		return { type, Addresses::null() };
 	}
 };
 
 static_assert(__atom_instruction <Global>);
 
+// Struct field of a uniform compatible type
+//
+//   down: if valid (!= -1), points to a nested struct
+//   next: if valid (!= -1), points to the next field in the struct
+//   item: if valid (!= BAD), indicates the primitive type of the current field
 struct TypeField {
 	index_t down = -1;
 	index_t next = -1;
 	PrimitiveType item = bad;
+
+	Addresses addresses() {
+		return { down, next };
+	}
 };
 
+static_assert(__atom_instruction <TypeField>);
+
+// Primitive value
+//
+//   bdata: boolean value
+//   fdata: floating point value
+//   idate: integer value
+//   type: type of the primitive (limited)
 #pragma pack(push, 1)
 struct Primitive {
 	union {
-		bool b;
-		float fdata;
+		bool bdata;
 		int idata;
+		float fdata;
 	};
 
 	PrimitiveType type = bad;
+	
+	Addresses addresses() {
+		return { Addresses::null(), Addresses::null() };
+	}
 };
 #pragma pack(pop)
 
+static_assert(__atom_instruction <Primitive>);
+
+// Swizzle instruction
+//
+//   src: reference to the value to swizzle
+//   code: swizzle index (SwizzleCode)
 struct Swizzle {
 	index_t src = -1;
 	SwizzleCode code;
+
+	Addresses addresses() {
+		return { src, Addresses::null() };
+	}
 };
 
+static_assert(__atom_instruction <Swizzle>);
+
+// Operation instruction
+//
+//   args: reference to a List chain of operands
+//   type: return type of the operation
+//   code: operation type (OperationCode)
 struct Operation {
 	index_t args = -1;
 	index_t type = -1;
 	OperationCode code;
 
+	Addresses addresses() {
+		return { args, type };
+	}
 };
 
+static_assert(__atom_instruction <Operation>);
+
+// Intrinsic instruction, for invoking platform intrinsics
+//
+//   args: reference to a List chain of operands
+//   type: return type of the instrinsic
+//   name: string name value
 #pragma pack(push, 1)
 struct Intrinsic {
 	index_t args = -1;
 	index_t type = -1;
 	// TODO: index into a table of names
 	const char *name = nullptr;
+
+	Addresses addresses() {
+		return { args, type };
+	}
 };
 #pragma pack(pop)
 
+static_assert(__atom_instruction <Intrinsic>);
+
+// List chain node
+//
+//   item: if valid, points to the value of the node
+//   next: if valid, points to the next List chain node
 struct List {
 	index_t item = -1;
 	index_t next = -1;
+
+	Addresses addresses() {
+		return { item, next };
+	}
 };
 
+static_assert(__atom_instruction <List>);
+
+// Constructing a (complex) primitive or composite type
+//
+//   type: type to construct
+//   args: reference to a List chain of arguments
 struct Construct {
 	index_t type = -1;
 	index_t args = -1;
+
+	Addresses addresses() {
+		return { type, args };
+	}
 };
 
+static_assert(__atom_instruction <Construct>);
+
+// Invoking a callable function (subroutine)
+//
+//   cid: unique index of the callable
+//   args: reference to a List chain of arguments
+//   type: return type of the callable
 struct Call {
 	index_t cid = -1;
 	index_t args = -1;
 	index_t type = -1;
+
+	Addresses addresses() {
+		return { args, type };
+	}
 };
 
+// Store instruction
+//
+//   dst: reference to store into
+//   src: reference to the value
 struct Store {
 	index_t dst = -1;
 	index_t src = -1;
+
+	Addresses addresses() {
+		return { dst, src };
+	}
 };
 
+static_assert(__atom_instruction <Store>);
+
+// Load instruction, with fields
+//
+//   src: reference to the value to load from
+//   idx: field index of the value, unless invalid (==-1)
 struct Load {
 	index_t src = -1;
 	index_t idx = -1;
+
+	Addresses addresses() {
+		return { src, Addresses::null() };
+	}
 };
 
+static_assert(__atom_instruction <Load>);
+
+// Branching instruction
+//
+//   cond: reference to the condition value
+//   failto: reference to the jump address (for failure)
 struct Branch {
 	index_t cond = -1;
 	index_t failto = -1;
+
+	Addresses addresses() {
+		return { cond, failto };
+	}
 };
 
+static_assert(__atom_instruction <Branch>);
+
+// Looping instruction
+//
+//   cond: reference to the condition value
+//   failto: reference to the jump address (for failure)
 struct While {
 	index_t cond = -1;
 	index_t failto = -1;
+	
+	Addresses addresses() {
+		return { cond, failto };
+	}
 };
 
+static_assert(__atom_instruction <While>);
+
+// Returning values from subroutines and kernels
+//
+//   args: reference to List chain of return values
+//   type: return type
 struct Returns {
-	index_t type = -1;
 	index_t args = -1;
+	index_t type = -1;
+
+	Addresses addresses() {
+		return { args, type };
+	}
 };
 
-struct End {};
+static_assert(__atom_instruction <Returns>);
+
+// Target address of a branch/loop failto index
+// TODO: remove end
+struct End {
+	Addresses addresses() {
+		return { Addresses::null(), Addresses::null() };
+	}
+};
+
+static_assert(__atom_instruction <End>);
 
 // Atom instructions
 using __atom_base = wrapped::variant <
-	Global, TypeField, Primitive,
-	Swizzle, Operation, Construct, Call,
-	Intrinsic, List, Store, Load,
-	Branch, While, Returns, End
+	Global,
+	TypeField,
+	Primitive,
+	Swizzle,
+	Operation,
+	Construct,
+	Call,
+	Intrinsic,
+	List,
+	Store,
+	Load,
+	Branch,
+	While,
+	Returns,
+	End
 >;
 
 struct alignas(4) Atom : __atom_base {
