@@ -3,63 +3,49 @@
 #include <fmt/printf.h>
 #include <unordered_set>
 
+#include "enumerations.hpp"
 #include "../wrapped_types.hpp"
 
 namespace jvl::thunder {
 
+// Index type, small to create compact IR
 using index_t = int16_t;
 
-enum PrimitiveType : int8_t {
-	bad, none,
-	boolean, i32, f32,
-	vec2, vec3, vec4,
-	ivec2, ivec3, ivec4,
-	mat2, mat3, mat4,
+// Addresses referenced in an instruction
+struct Addresses {
+	index_t a0;
+	index_t a1;
 };
 
-// Type translation
-static const char *type_table[] = {
-	"<BAD>", "void",
-	"bool", "int", "float",
-	"vec2", "vec3", "vec4",
-	"ivec2", "ivec3", "ivec4",
-	"mat2", "mat3", "mat4",
+template <typename T>
+concept __atom_instruction = requires(const T &t) {
+	{
+		t.addresses()
+	} -> std::same_as <Addresses>;
 };
 
 // TODO: pack everything, manually pad to align
 
-// Atomic types
+// Global variable or parameter:
+//        [type] reference to the type of the variable/parameter
+//     [binding] binding index, if applicable
+//   [qualifier] qualifier type for the global variable/parameter
 struct Global {
 	index_t type = -1;
 	index_t binding = -1;
+	GlobalQualifier qualifier;
 
-	enum : int8_t {
-		parameter,
-		layout_in,
-		layout_out,
-		push_constant,
-		glsl_vertex_intrinsic_gl_Position,
-	} qualifier;
-
-       static constexpr const char *name[] = {
-	       "parameter",
-	       "layout input",
-	       "layout output",
-	       "push_constant",
-	       "glsl:vertex:gl_Position"
-	};
+	Addresses addresses() const {
+		return { type, -1 };
+	}
 };
 
+static_assert(__atom_instruction <Global>);
+
 struct TypeField {
-	// If the current field is a
-	// primitive, then item != BAD
-	PrimitiveType item = bad;
-
-	// Otherwise it is a nested struct
 	index_t down = -1;
-
-	// Next field
 	index_t next = -1;
+	PrimitiveType item = bad;
 };
 
 #pragma pack(push, 1)
@@ -75,60 +61,23 @@ struct Primitive {
 #pragma pack(pop)
 
 struct Swizzle {
-	enum Kind : int8_t {
-		x, y, z, w, xy
-	} type;
-
 	index_t src = -1;
-
-	static constexpr const char *name[] = {
-		"x", "y", "z", "w", "xy"
-	};
+	SwizzleCode code;
 };
 
 struct Operation {
-enum : uint8_t {
-		unary_negation,
-
-		addition,
-		subtraction,
-		multiplication,
-		division,
-
-		equals,
-		not_equals,
-		cmp_ge,
-		cmp_geq,
-		cmp_le,
-		cmp_leq,
-	} type;
-
 	index_t args = -1;
-	index_t ret = -1;
+	index_t type = -1;
+	OperationCode code;
 
-	static constexpr const char *name[] = {
-		"negation",
-
-		"addition",
-		"subtraction",
-		"multiplication",
-		"division",
-
-		"equals",
-		"not_equals",
-		"cmp_ge",
-		"cmp_geq",
-		"cmp_le",
-		"cmp_leq",
-	};
 };
 
 #pragma pack(push, 1)
 struct Intrinsic {
-	// TODO: index in a table of intrinsics, then cache intrinsics?
-	const char *name = nullptr;
 	index_t args = -1;
-	index_t ret = -1;
+	index_t type = -1;
+	// TODO: index into a table of names
+	const char *name = nullptr;
 };
 #pragma pack(pop)
 
@@ -145,7 +94,7 @@ struct Construct {
 struct Call {
 	index_t cid = -1;
 	index_t args = -1;
-	index_t ret = -1;
+	index_t type = -1;
 };
 
 struct Store {
@@ -155,10 +104,10 @@ struct Store {
 
 struct Load {
 	index_t src = -1;
-	index_t idx = -1; // Arrays or structures
+	index_t idx = -1;
 };
 
-struct Cond {
+struct Branch {
 	index_t cond = -1;
 	index_t failto = -1;
 };
@@ -167,9 +116,6 @@ struct While {
 	index_t cond = -1;
 	index_t failto = -1;
 };
-
-// TODO: is any distinction necessary?
-struct Elif : Cond {}; // If cond is (-1) then it is an else branch
 
 struct Returns {
 	index_t type = -1;
@@ -183,7 +129,7 @@ using __atom_base = wrapped::variant <
 	Global, TypeField, Primitive,
 	Swizzle, Operation, Construct, Call,
 	Intrinsic, List, Store, Load,
-	Cond, Elif, While, Returns, End
+	Branch, While, Returns, End
 >;
 
 struct alignas(4) Atom : __atom_base {
@@ -202,9 +148,8 @@ static_assert(sizeof(Construct) == 4);
 static_assert(sizeof(Call)      == 6);
 static_assert(sizeof(Store)     == 4);
 static_assert(sizeof(Load)      == 4);
-static_assert(sizeof(Cond)      == 4);
+static_assert(sizeof(Branch)    == 4);
 static_assert(sizeof(While)     == 4);
-static_assert(sizeof(Elif)      == 4);
 static_assert(sizeof(Returns)   == 4);
 static_assert(sizeof(End)       == 1);
 static_assert(sizeof(Atom)      == 16);

@@ -3,6 +3,7 @@
 
 #include "thunder/atom.hpp"
 #include "ire/callable.hpp"
+#include "thunder/enumerations.hpp"
 #include "wrapped_types.hpp"
 
 namespace jvl::thunder {
@@ -10,15 +11,15 @@ namespace jvl::thunder {
 std::string glsl_global_ref(const Global &global)
 {
 	switch (global.qualifier) {
-	case Global::layout_in:
+	case GlobalQualifier::layout_in:
 		return fmt::format("_lin{}", global.binding);
-	case Global::layout_out:
+	case GlobalQualifier::layout_out:
 		return fmt::format("_lout{}", global.binding);
-	case Global::parameter:
+	case GlobalQualifier::parameter:
 		return fmt::format("_arg{}", global.binding);
-	case Global::push_constant:
+	case GlobalQualifier::push_constant:
 		return "_pc";
-	case Global::glsl_vertex_intrinsic_gl_Position:
+	case GlobalQualifier::glsl_vertex_intrinsic_gl_Position:
 		return "gl_Position";
 	default:
 		break;
@@ -46,23 +47,23 @@ std::string glsl_format_operation(int type, const std::vector <std::string> &arg
 	// TODO: check # of args
 
 	switch (type) {
-	case Operation::unary_negation:
+	case OperationCode::unary_negation:
 		return fmt::format("-{}", args[0]);
-	case Operation::addition:
+	case OperationCode::addition:
 		return fmt::format("({} + {})", args[0], args[1]);
-	case Operation::subtraction:
+	case OperationCode::subtraction:
 		return fmt::format("({} - {})", args[0], args[1]);
-	case Operation::multiplication:
+	case OperationCode::multiplication:
 		return fmt::format("({} * {})", args[0], args[1]);
-	case Operation::division:
+	case OperationCode::division:
 		return fmt::format("({} / {})", args[0], args[1]);
-	case Operation::cmp_ge:
+	case OperationCode::cmp_ge:
 		return fmt::format("({} > {})", args[0], args[1]);
-	case Operation::cmp_le:
+	case OperationCode::cmp_le:
 		return fmt::format("({} < {})", args[0], args[1]);
-	case Operation::cmp_geq:
+	case OperationCode::cmp_geq:
 		return fmt::format("({} >= {})", args[0], args[1]);
-	case Operation::cmp_leq:
+	case OperationCode::cmp_leq:
 		return fmt::format("({} <= {})", args[0], args[1]);
 	default:
 		break;
@@ -117,7 +118,7 @@ std::string synthesize_glsl_body(const Atom *const pool,
 				accessor = fmt::format(".f{}", load->idx);
 			return ref(load->src) + accessor;
 		} else if (auto swizzle = g.get <Swizzle> ()) {
-			std::string accessor = Swizzle::name[swizzle->type];
+			std::string accessor = tbl_swizzle_code[swizzle->code];
 			return ref(swizzle->src) + "." + accessor;
 		} else if (!variables.count(index)) {
 			fmt::println("unexpected IR requested for ref(...)");
@@ -210,10 +211,10 @@ std::string synthesize_glsl_body(const Atom *const pool,
 				accessor = fmt::format(".f{}", load->idx);
 			return inlined(load->src) + accessor;
 		} else if (auto swizzle = g.get <Swizzle> ()) {
-			std::string accessor = Swizzle::name[swizzle->type];
+			std::string accessor = tbl_swizzle_code[swizzle->code];
 			return ref(swizzle->src) + "." + accessor;
 		} else if (auto op = g.get <Operation> ()) {
-			return glsl_format_operation(op->type, arglist(op->args));
+			return glsl_format_operation(op->code, arglist(op->args));
 		} else if (auto intr = g.get <Intrinsic> ()) {
 			auto args = arglist(intr->args);
 			return intr->name + strargs(args);
@@ -229,10 +230,10 @@ std::string synthesize_glsl_body(const Atom *const pool,
 
 	auto intrinsic = [&](const Intrinsic &intr, int index) -> std::string {
 		// Keyword intrinsic
-		if (intr.ret == -1)
+		if (intr.type == -1)
 			return finish(intr.name);
 
-		Atom g = pool[intr.ret];
+		Atom g = pool[intr.type];
 		if (!g.is <TypeField> ())
 			return "?";
 
@@ -244,7 +245,7 @@ std::string synthesize_glsl_body(const Atom *const pool,
 			return finish(v);
 		} else {
 			auto args = arglist(intr.args);
-			std::string t = type_name(pool, struct_names, intr.ret, -1);
+			std::string t = type_name(pool, struct_names, intr.type, -1);
 			std::string v = intr.name + strargs(args);
 			return assign_new(t, v, index);
 		}
@@ -255,8 +256,8 @@ std::string synthesize_glsl_body(const Atom *const pool,
 
 	auto synthesize = [&](const Atom &g, int index) -> void {
 		// TODO: index-based switch?
-		if (auto cond = g.get <Cond> ()) {
-			std::string v = inlined(cond->cond);
+		if (auto branch = g.get <Branch> ()) {
+			std::string v = inlined(branch->cond);
 			std::string ifs = "if (" + v + ") {";
 			source += finish(ifs, false);
 			indentation++;
@@ -265,18 +266,18 @@ std::string synthesize_glsl_body(const Atom *const pool,
 			std::string whiles = "while (" + v + ") {";
 			source += finish(whiles, false);
 			indentation++;
-		} else if (auto elif = g.get <Elif> ()) {
-			indentation--;
+		// } else if (auto elif = g.get <Elif> ()) {
+		// 	indentation--;
 
-			std::string elifs = "} else {";
-			if (elif->cond != -1) {
-				std::string v = inlined(elif->cond);
-				std::string ifs = "} else if (" + v + ") {";
-			}
+		// 	std::string elifs = "} else {";
+		// 	if (elif->cond != -1) {
+		// 		std::string v = inlined(elif->cond);
+		// 		std::string ifs = "} else if (" + v + ") {";
+		// 	}
 
-			source += finish(elifs, false);
+		// 	source += finish(elifs, false);
 
-			indentation++;
+		// 	indentation++;
 		} else if (auto ctor = g.get <Construct> ()) {
 			std::string t = type_name(pool, struct_names, ctor->type, -1);
 			if (ctor->args == -1) {
@@ -292,7 +293,7 @@ std::string synthesize_glsl_body(const Atom *const pool,
 			if (call->args != -1)
 				args = strargs(arglist(call->args));
 
-			std::string t = type_name(pool, struct_names, call->ret, -1);
+			std::string t = type_name(pool, struct_names, call->type, -1);
 			std::string v = cbl->name + args;
 			source += assign_new(t, v, index);
 		} else if (auto load = g.get <Load> ()) {
@@ -313,15 +314,15 @@ std::string synthesize_glsl_body(const Atom *const pool,
 			std::string v = inlined(store->src);
 			source += assign_to(store->dst, v);
 		} else if (auto prim = g.get <Primitive> ()) {
-			std::string t = type_table[prim->type];
+			std::string t = tbl_primitive_types[prim->type];
 			std::string v = glsl_primitive(*prim);
 			source += assign_new(t, v, index);
 		} else if (auto intr = g.get <Intrinsic> ()) {
 			source += intrinsic(intr.value(), index);
 		} else if (auto op = g.get <Operation> ()) {
 			// TODO: lambda shortcut
-			std::string t = type_name(pool, struct_names, op->ret, -1);
-			std::string v = glsl_format_operation(op->type, arglist(op->args));
+			std::string t = type_name(pool, struct_names, op->type, -1);
+			std::string v = glsl_format_operation(op->code, arglist(op->args));
 			source += assign_new(t, v, index);
 		} else if (auto ret = g.get <Returns> ()) {
 			// TODO: create a tuple type struct if necesary

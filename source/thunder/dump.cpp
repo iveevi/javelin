@@ -1,5 +1,6 @@
 #include "thunder/atom.hpp"
 #include "ire/callable.hpp"
+#include "thunder/enumerations.hpp"
 
 namespace jvl::thunder {
 
@@ -8,12 +9,12 @@ void dump_ir_operation(const Atom &g)
 	if (auto global = g.get <Global> ()) {
 		fmt::print("global: %{} = ({}, {})",
 			global->type,
-			Global::name[global->qualifier],
+			tbl_global_qualifier[global->qualifier],
 			global->binding);
 	} else if (auto tf = g.get <TypeField> ()) {
 		fmt::print("type: ");
 		if (tf->item != bad)
-			fmt::print("{}", type_table[tf->item]);
+			fmt::print("{}", tbl_primitive_types[tf->item]);
 		else if (tf->down != -1)
 			fmt::print("%{}", tf->down);
 		else
@@ -25,7 +26,7 @@ void dump_ir_operation(const Atom &g)
 		else
 			fmt::print("(nil)");
 	} else if (auto p = g.get <Primitive> ()) {
-		fmt::print("primitive: {} = ", type_table[p->type]);
+		fmt::print("primitive: {} = ", tbl_primitive_types[p->type]);
 
 		switch (p->type) {
 		case i32:
@@ -57,7 +58,7 @@ void dump_ir_operation(const Atom &g)
 			fmt::print(" (nil) -> ");
 		else
 			fmt::print(" %{} -> ", call->args);
-		fmt::print("%{}", call->ret);
+		fmt::print("%{}", call->type);
 	} else if (auto store = g.get <Store> ()) {
 		fmt::print("store %{} -> %{}", store->src, store->dst);
 	} else if (auto load = g.get <Load> ()) {
@@ -65,18 +66,18 @@ void dump_ir_operation(const Atom &g)
 	} else if (auto swizzle = g.get <Swizzle> ()) {
 		fmt::print("swizzle %{} #{}",
 				swizzle->src,
-				Swizzle::name[swizzle->type]);
+				tbl_swizzle_code[swizzle->code]);
 	} else if (auto op = g.get <Operation> ()) {
-		fmt::print("op ${} %{} -> %{}", Operation::name[op->type], op->args, op->ret);
+		fmt::print("op ${} %{} -> %{}",
+				tbl_operation_code[op->code],
+				op->args, op->type);
 	} else if (auto intr = g.get <Intrinsic> ()) {
-		fmt::print("intr ${} %{} -> %{}", intr->name, intr->args, intr->ret);
-	} else if (auto cond = g.get <Cond> ()) {
-		fmt::print("cond %{} -> %{}", cond->cond, cond->failto);
-	} else if (auto elif = g.get <Elif> ()) {
-		if (elif->cond >= 0)
-			fmt::print("elif %{} -> %{}", elif->cond, elif->failto);
+		fmt::print("intr ${} %{} -> %{}", intr->name, intr->args, intr->type);
+	} else if (auto branch = g.get <Branch> ()) {
+		if (branch->cond >= 0)
+			fmt::print("elif %{} -> %{}", branch->cond, branch->failto);
 		else
-			fmt::print("elif (nil) -> %{}", elif->failto);
+			fmt::print("elif (nil) -> %{}", branch->failto);
 	} else if (auto loop = g.get <While> ()) {
 		fmt::print("while %{} -> %{}", loop->cond, loop->failto);
 	} else if (auto ret = g.get <Returns> ()) {

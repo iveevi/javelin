@@ -51,8 +51,7 @@ struct Emitter : Scratch {
 	int emit(const thunder::Atom &);
 
 	int emit_main(const thunder::Atom &);
-	int emit_main(const thunder::Cond &);
-	int emit_main(const thunder::Elif &);
+	int emit_main(const thunder::Branch &);
 	int emit_main(const thunder::While &);
 	int emit_main(const thunder::End &);
 

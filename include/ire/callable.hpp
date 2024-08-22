@@ -61,7 +61,7 @@ struct callable_t : Callable {
 			auto layout = x.layout().remove_const();
 
 			thunder::Global global;
-			global.qualifier = thunder::Global::parameter;
+			global.qualifier = thunder::GlobalQualifier::parameter;
 			global.type = type_field_from_args(layout).id;
 			global.binding = index;
 
@@ -74,7 +74,7 @@ struct callable_t : Callable {
 			using type_of_x = std::decay_t <decltype(x)>;
 
 			thunder::Global global;
-			global.qualifier = thunder::Global::parameter;
+			global.qualifier = thunder::GlobalQualifier::parameter;
 			global.type = type_field_from_args <type_of_x> ().id;
 			global.binding = index;
 
@@ -111,7 +111,7 @@ struct callable_t : Callable {
 
 			thunder::Call call;
 			call.cid = cid;
-			call.ret = type_field_from_args(layout).id;
+			call.type = type_field_from_args(layout).id;
 			call.args = list_from_args(args...);
 
 			cache_index_t cit;
@@ -124,7 +124,7 @@ struct callable_t : Callable {
 		// For primitives
 		thunder::Call call;
 		call.cid = cid;
-		call.ret = type_field_from_args <R> ().id;
+		call.type = type_field_from_args <R> ().id;
 		call.args = list_from_args(args...);
 
 		cache_index_t cit;

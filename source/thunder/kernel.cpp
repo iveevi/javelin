@@ -56,16 +56,16 @@ Linkage Kernel::linkage() const
 
 			// TODO: the kernel must undergo validation
 			switch (global->qualifier) {
-			case Global::layout_in:
+			case GlobalQualifier::layout_in:
 				linkage.lins[binding] = type;
 				break;
-			case Global::layout_out:
+			case GlobalQualifier::layout_out:
 				linkage.louts[binding] = type;
 				break;
-			case Global::parameter:
+			case GlobalQualifier::parameter:
 				linkage.blocks[-1].parameters[binding] = type;
 				break;
-			case Global::push_constant:
+			case GlobalQualifier::push_constant:
 				linkage.push_constant = type;
 				break;
 			default:

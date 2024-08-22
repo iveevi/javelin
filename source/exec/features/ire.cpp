@@ -7,6 +7,7 @@
 #include "ire/core.hpp"
 #include "profiles/targets.hpp"
 #include "thunder/atom.hpp"
+#include "thunder/enumerations.hpp"
 
 // TODO: immutability for shader inputs types
 // TODO: demote variables to inline if they are not modified later
@@ -164,14 +165,15 @@ void synthesize_differential_type(const std::vector <thunder::Atom> &pool, const
 		{
 			auto primal = tf;
 			auto dual = tf;
-			
+
 			thunder::index_t id = em.emit(dual);
 			primal.next = id;
 			em.emit(primal);
 		} return;
+
 		default:
 			fmt::println("primitive type does not have a differential type: {}",
-				thunder::type_table[tf.item]);
+				thunder::tbl_primitive_types[tf.item]);
 			abort();
 		}
 	}
@@ -218,7 +220,7 @@ auto dfwd(const callable_t <R, Args...> &callable)
 	for (index_t i = 0; i < pool.size(); i++) {
 		auto &atom = pool[i];
 		if (auto global = atom.template get <Global> ()) {
-			if (global->qualifier == Global::parameter)
+			if (global->qualifier == GlobalQualifier::parameter)
 				propogation.push_back(i);
 		}
 
@@ -272,7 +274,7 @@ auto dfwd(const callable_t <R, Args...> &callable)
 			em.push(prom);
 			synthesize_differential_type(pool, tf);
 			em.pop();
-			
+
 			// Everything should be a local index by now
 		} break;
 
@@ -282,7 +284,7 @@ auto dfwd(const callable_t <R, Args...> &callable)
 		case Atom::type_index <Global> ():
 		{
 			auto global = atom.template as <Global> ();
-			if (global.qualifier == Global::parameter) {
+			if (global.qualifier == GlobalQualifier::parameter) {
 				// NOTE: assuming this a differentiated parameter...
 				diffed.insert(i);
 
@@ -317,19 +319,19 @@ auto dfwd(const callable_t <R, Args...> &callable)
 			refs.push_back(std::ref(r.args));
 			refs.push_back(std::ref(r.type));
 		} break;
-		
+
 		case Atom::type_index <List> ():
 		{
 			auto &list = atom.template as <List> ();
 
 			diffed.insert(i);
-			
+
 			// Dependencies
 			propogation.push_front(list.item);
 
 			if (list.next != -1)
 				propogation.push_front(list.next);
-			
+
 			em.push(prom);
 			em.emit(list);
 			em.pop();
@@ -394,7 +396,7 @@ auto dfwd(const callable_t <R, Args...> &callable)
 			fmt::print("\n");
 
 			promoted[i].dump();
-			
+
 			fmt::print("\n");
 		}
 	};
@@ -448,7 +450,7 @@ auto dfwd(const callable_t <R, Args...> &callable)
 			// fmt::println("  reference in global: {} ({} -> {})", (void *) &r.get(), p, r.get());
 		}
 	}
-	
+
 	// dump_scratches();
 
 	// TODO: reindex inside each block first, and then combine as follows
@@ -474,17 +476,17 @@ int main()
 	id.dump();
 	auto did = dfwd(id);
 	did.dump();
-	
+
 	auto shader = [&]() {
 		// TODO: remove binding in the template, make it layout_in <float> input(0)
 		layout_in <float, 0> input;
 		layout_out <float, 0> output;
-	
+
 		output = did(dual(id(input), f32(1.0f))).dual;
 	};
-	
+
 	auto kernel = kernel_from_args(shader);
-	
+
 	kernel.dump();
 
 	fmt::println("{}", kernel.synthesize(profiles::opengl_450));

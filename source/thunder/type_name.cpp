@@ -1,4 +1,5 @@
 #include "thunder/atom.hpp"
+#include "thunder/enumerations.hpp"
 
 namespace jvl::thunder {
 
@@ -22,7 +23,7 @@ std::string type_name(const Atom *const pool,
 		if (tf->down != -1)
 			return type_name(pool, struct_names, tf->down, -1);
 		if (tf->item != bad)
-			return type_table[tf->item];
+			return tbl_primitive_types[tf->item];
 	}
 
 	return "<BAD>";

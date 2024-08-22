@@ -9,10 +9,10 @@ namespace jvl::ire {
 struct __gl_Position_t {
 	using self = __gl_Position_t;
 
-	swizzle_element <float, self, thunder::Swizzle::x> x;
-	swizzle_element <float, self, thunder::Swizzle::y> y;
-	swizzle_element <float, self, thunder::Swizzle::z> z;
-	swizzle_element <float, self, thunder::Swizzle::w> w;
+	swizzle_element <float, self, thunder::SwizzleCode::x> x;
+	swizzle_element <float, self, thunder::SwizzleCode::y> y;
+	swizzle_element <float, self, thunder::SwizzleCode::z> z;
+	swizzle_element <float, self, thunder::SwizzleCode::w> w;
 
 	__gl_Position_t() : x(this), y(this), z(this), w(this) {}
 
@@ -21,7 +21,7 @@ struct __gl_Position_t {
 
 		thunder::Global global;
 		global.type = type_field_from_args <vec <float, 4>> ().id;
-		global.qualifier = thunder::Global::glsl_vertex_intrinsic_gl_Position;
+		global.qualifier = thunder::GlobalQualifier::glsl_vertex_intrinsic_gl_Position;
 
 		thunder::Store store;
 		store.dst = em.emit(global);
@@ -37,7 +37,7 @@ struct __gl_Position_t {
 
 		thunder::Global global;
 		global.type = type_field_from_args <vec <float, 4>> ().id;
-		global.qualifier = thunder::Global::glsl_vertex_intrinsic_gl_Position;
+		global.qualifier = thunder::GlobalQualifier::glsl_vertex_intrinsic_gl_Position;
 
 		cache_index_t cit;
 		return (cit = em.emit_main(global));

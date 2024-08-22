@@ -8,7 +8,7 @@ namespace jvl::ire {
 inline void cond(const boolean &b)
 {
 	auto &em = Emitter::active;
-	thunder::Cond branch;
+	thunder::Branch branch;
 	branch.cond = b.synthesize().id;
 	em.emit_main(branch);
 }
@@ -16,7 +16,7 @@ inline void cond(const boolean &b)
 inline void elif(const boolean &b)
 {
 	auto &em = Emitter::active;
-	thunder::Elif branch;
+	thunder::Branch branch;
 	branch.cond = b.synthesize().id;
 	em.emit_main(branch);
 }
@@ -25,7 +25,7 @@ inline void elif()
 {
 	// Treated as an else
 	auto &em = Emitter::active;
-	thunder::Elif branch;
+	thunder::Branch branch;
 	branch.cond = -1;
 	em.emit_main(branch);
 }

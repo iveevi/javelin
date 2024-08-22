@@ -30,7 +30,7 @@ void reindex_ir_operation(const wrapped::reindex <index_t> &reindexer, Atom &g)
 	case Atom::type_index <Intrinsic> ():
 	{
 		reindexer(g.as <Intrinsic> ().args);
-		reindexer(g.as <Intrinsic> ().ret);
+		reindexer(g.as <Intrinsic> ().type);
 	} break;
 
 	// Returns
@@ -56,7 +56,7 @@ void reindex_ir_operation(const wrapped::reindex <index_t> &reindexer, Atom &g)
 	// Callables
 	case Atom::type_index <Call> ():
 	{
-		reindexer(g.as <Call> ().ret);
+		reindexer(g.as <Call> ().type);
 		reindexer(g.as <Call> ().args);
 	} break;
 
@@ -80,17 +80,10 @@ void reindex_ir_operation(const wrapped::reindex <index_t> &reindexer, Atom &g)
 	} break;
 
 	// Conditions
-	case Atom::type_index <Cond> ():
+	case Atom::type_index <Branch> ():
 	{
-		reindexer(g.as <Cond> ().cond);
-		reindexer(g.as <Cond> ().failto);
-	} break;
-
-	// Posterior conditions
-	case Atom::type_index <Elif> ():
-	{
-		reindexer(g.as <Elif> ().cond);
-		reindexer(g.as <Elif> ().failto);
+		reindexer(g.as <Branch> ().cond);
+		reindexer(g.as <Branch> ().failto);
 	} break;
 
 	// Loops

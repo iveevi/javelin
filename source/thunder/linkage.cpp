@@ -1,5 +1,6 @@
 #include "thunder/linkage.hpp"
 #include "ire/callable.hpp"
+#include "thunder/enumerations.hpp"
 
 namespace jvl::thunder {
 
@@ -101,7 +102,7 @@ std::string Linkage::synthesize_glsl(const std::string &version)
 		const auto &decl = structs[i];
 		if (decl.size() == 1) {
 			auto &elem = decl[0];
-			return type_table[elem.item];
+			return tbl_primitive_types[elem.item];
 		}
 
 		return struct_names[i];
@@ -121,7 +122,7 @@ std::string Linkage::synthesize_glsl(const std::string &version)
 		for (auto &elem : decl) {
 			std::string ft_name;
 			if (elem.nested == -1)
-				ft_name = type_table[elem.item];
+				ft_name = tbl_primitive_types[elem.item];
 			else
 				ft_name = struct_names[elem.nested];
 
@@ -236,7 +237,7 @@ void Linkage::dump() const
 			if (element.nested >= 0)
 				fmt::println("    -> %{}", element.nested);
 			else
-				fmt::println("    -> {}", type_table[element.item]);
+				fmt::println("    -> {}", tbl_primitive_types[element.item]);
 		}
 	}
 

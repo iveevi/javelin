@@ -64,7 +64,7 @@ struct primitive_t : tagged {
 
 		thunder::Operation neg;
 		neg.args = em.emit(list);
-		neg.type = thunder::Operation::unary_negation;
+		neg.code = thunder::OperationCode::unary_negation;
 
 		cache_index_t cit;
 		cit = em.emit(neg);
@@ -119,46 +119,46 @@ struct primitive_t : tagged {
 
 	// Arithmetic operators
 	friend primitive_t operator+(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (thunder::Operation::addition, a, b);
+		return operation_from_args <primitive_t> (thunder::OperationCode::addition, a, b);
 	}
 
 	friend primitive_t operator-(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (thunder::Operation::subtraction, a, b);
+		return operation_from_args <primitive_t> (thunder::OperationCode::subtraction, a, b);
 	}
 
 	friend primitive_t operator/(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (thunder::Operation::division, a, b);
+		return operation_from_args <primitive_t> (thunder::OperationCode::division, a, b);
 	}
 
 	friend primitive_t operator*(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (thunder::Operation::multiplication, a, b);
+		return operation_from_args <primitive_t> (thunder::OperationCode::multiplication, a, b);
 	}
 
 	// Comparison operators
 	using bool_t = primitive_t <bool>;
 
 	friend bool_t operator==(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (thunder::Operation::equals, a, b);
+		return operation_from_args <bool_t> (thunder::OperationCode::equals, a, b);
 	}
 
 	friend bool_t operator!=(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (thunder::Operation::not_equals, a, b);
+		return operation_from_args <bool_t> (thunder::OperationCode::not_equals, a, b);
 	}
 
 	friend bool_t operator>(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (thunder::Operation::cmp_ge, a, b);
+		return operation_from_args <bool_t> (thunder::OperationCode::cmp_ge, a, b);
 	}
 
 	friend bool_t operator<(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (thunder::Operation::cmp_le, a, b);
+		return operation_from_args <bool_t> (thunder::OperationCode::cmp_le, a, b);
 	}
 
 	friend bool_t operator>=(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (thunder::Operation::cmp_geq, a, b);
+		return operation_from_args <bool_t> (thunder::OperationCode::cmp_geq, a, b);
 	}
 
 	friend bool_t operator<=(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (thunder::Operation::cmp_leq, a, b);
+		return operation_from_args <bool_t> (thunder::OperationCode::cmp_leq, a, b);
 	}
 };
 

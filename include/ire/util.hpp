@@ -58,14 +58,14 @@ int list_from_args(const T &t, const Args &... args)
 }
 
 template <typename R, typename ... Args>
-R operation_from_args(decltype(thunder::Operation::type) type, const Args &... args)
+R operation_from_args(thunder::OperationCode type, const Args &... args)
 {
 	auto &em = Emitter::active;
 
 	thunder::Operation intr;
-	intr.type = type;
+	intr.code = type;
 	intr.args = list_from_args(args...);
-	intr.ret = type_field_from_args <R> ().id;
+	intr.type = type_field_from_args <R> ().id;
 
 	cache_index_t cit;
 	cit = em.emit(intr);
@@ -81,7 +81,7 @@ R platform_intrinsic_from_args(const char *name, const Args &... args)
 	thunder::Intrinsic intr;
 	intr.name = name;
 	intr.args = list_from_args(args...);
-	intr.ret = type_field_from_args <R> ().id;
+	intr.type = type_field_from_args <R> ().id;
 
 	cache_index_t cit;
 	cit = em.emit_main(intr);
@@ -99,7 +99,7 @@ void void_platform_intrinsic_from_args(const char *name, const Args &... args)
 
 	thunder::Intrinsic intr;
 	intr.name = name;
-	intr.ret = em.emit(tf);
+	intr.type = em.emit(tf);
 
 	if constexpr (sizeof...(Args))
 		intr.args = list_from_args(args...);

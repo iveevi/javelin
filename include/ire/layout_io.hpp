@@ -31,7 +31,7 @@ struct layout_in : layout_in_base <T> {
 		thunder::Global global;
 		global.type = type_field_from_args <T> ().id;
 		global.binding = binding;
-		global.qualifier = thunder::Global::layout_in;
+		global.qualifier = thunder::GlobalQualifier::layout_in;
 
 		this->ref = em.emit(global);
 	}
@@ -46,7 +46,7 @@ struct layout_in : layout_in_base <T> {
 		thunder::Global global;
 		global.type = type_field_from_args(layout).id;
 		global.binding = binding;
-		global.qualifier = thunder::Global::layout_in;
+		global.qualifier = thunder::GlobalQualifier::layout_in;
 
 		cache_index_t ref;
 		ref = em.emit(global);
@@ -63,7 +63,7 @@ struct layout_in : layout_in_base <T> {
 		thunder::Global global;
 		global.type = type_field_from_args <T> ().id;
 		global.binding = binding;
-		global.qualifier = thunder::Global::layout_in;
+		global.qualifier = thunder::GlobalQualifier::layout_in;
 
 		thunder::Load load;
 		load.src = em.emit(global);
@@ -97,7 +97,7 @@ struct layout_out : layout_out_base <T> {
 		thunder::Global global;
 		global.type = type_field_from_args <T> ().id;
 		global.binding = binding;
-		global.qualifier = thunder::Global::layout_out;
+		global.qualifier = thunder::GlobalQualifier::layout_out;
 
 		this->ref = em.emit(global);
 	}
@@ -112,7 +112,7 @@ struct layout_out : layout_out_base <T> {
 		thunder::Global global;
 		global.type = type_field_from_args(layout).id;
 		global.binding = binding;
-		global.qualifier = thunder::Global::layout_out;
+		global.qualifier = thunder::GlobalQualifier::layout_out;
 
 		cache_index_t ref;
 		ref = em.emit(global);
@@ -126,7 +126,7 @@ struct layout_out : layout_out_base <T> {
 		thunder::Global global;
 		global.type = type_field_from_args <T> ().id;
 		global.binding = binding;
-		global.qualifier = thunder::Global::layout_out;
+		global.qualifier = thunder::GlobalQualifier::layout_out;
 
 		thunder::Store store;
 		store.dst = em.emit(global);
@@ -143,7 +143,7 @@ struct layout_out : layout_out_base <T> {
 		thunder::Global global;
 		global.type = type_field_from_args <T> ().id;
 		global.binding = binding;
-		global.qualifier = thunder::Global::layout_out;
+		global.qualifier = thunder::GlobalQualifier::layout_out;
 
 		thunder::Store store;
 		store.dst = em.emit(global);

@@ -26,7 +26,7 @@ struct push_constant : push_constant_base <T> {
 		thunder::Global global;
 		global.type = type_field_from_args <T> ().id;
 		global.binding = -1;
-		global.qualifier = thunder::Global::push_constant;
+		global.qualifier = thunder::GlobalQualifier::push_constant;
 
 		this->ref = em.emit(global);
 	}
@@ -41,7 +41,7 @@ struct push_constant : push_constant_base <T> {
 		thunder::Global global;
 		global.type = type_field_from_args(layout).id;
 		global.binding = -1;
-		global.qualifier = thunder::Global::push_constant;
+		global.qualifier = thunder::GlobalQualifier::push_constant;
 
 		cache_index_t ref;
 		ref = em.emit(global);
@@ -58,7 +58,7 @@ struct push_constant : push_constant_base <T> {
 		thunder::Global global;
 		global.type = type_field_from_args <T> ().id;
 		global.binding = -1;
-		global.qualifier = thunder::Global::push_constant;
+		global.qualifier = thunder::GlobalQualifier::push_constant;
 
 		thunder::Load load;
 		load.src = em.emit(global);

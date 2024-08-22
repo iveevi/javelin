@@ -19,7 +19,7 @@ void mark_used(const std::vector <thunder::Atom> &pool,
 		mark_used(pool, used, synthesized, ctor->type, true);
 		mark_used(pool, used, synthesized, ctor->args, true);
 	} else if (auto call = g.get <thunder::Call> ()) {
-		mark_used(pool, used, synthesized, call->ret, true);
+		mark_used(pool, used, synthesized, call->type, true);
 		mark_used(pool, used, synthesized, call->args, true);
 	} else if (auto list = g.get <thunder::List> ()) {
 		// TODO: get size for nodes...
@@ -42,11 +42,11 @@ void mark_used(const std::vector <thunder::Atom> &pool,
 		mark_used(pool, used, synthesized, op->args, false);
 	} else if (auto intr = g.get <thunder::Intrinsic> ()) {
 		mark_used(pool, used, synthesized, intr->args, false);
-		mark_used(pool, used, synthesized, intr->ret, false);
+		mark_used(pool, used, synthesized, intr->type, false);
 	} else if (auto ret = g.get <thunder::Returns> ()) {
 		mark_used(pool, used, synthesized, ret->args, true);
-	} else if (auto cond = g.get <thunder::Cond> ()) {
-		mark_used(pool, used, synthesized, cond->cond, true);
+	} else if (auto branch = g.get <thunder::Branch> ()) {
+		mark_used(pool, used, synthesized, branch->cond, true);
 	}
 
 	if (syn)

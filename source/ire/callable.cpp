@@ -47,8 +47,7 @@ thunder::Kernel Callable::export_to_kernel()
 			detail::mark_used(pool, used, synthesized, i, true);
 		}
 
-		if (pool[i].is <thunder::Cond> ()
-			|| pool[i].is <thunder::Elif> ()
+		if (pool[i].is <thunder::Branch> ()
 			|| pool[i].is <thunder::While> ()
 			|| pool[i].is <thunder::End> ())
 			detail::mark_used(pool, used, synthesized, i, true);

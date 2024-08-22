@@ -19,7 +19,7 @@ struct swizzle_base : tagged {};
 struct __gl_Position_t;
 
 // Swizzle element
-template <primitive_type T, typename Up, thunder::Swizzle::Kind swz>
+template <primitive_type T, typename Up, thunder::SwizzleCode swz>
 class swizzle_element : tagged {
 	Up *upper;
 
@@ -36,8 +36,8 @@ public:
 		auto &em = Emitter::active;
 
 		thunder::Swizzle swizzle;
-		swizzle.type = swz;
 		swizzle.src = upper->synthesize().id;
+		swizzle.code = swz;
 
 		em.mark_used(swizzle.src, true);
 
@@ -74,8 +74,8 @@ class swizzle_base <T, 2> : public tagged {
 
 	T initial[2];
 public:
-	swizzle_element <T, self, thunder::Swizzle::x> x;
-	swizzle_element <T, self, thunder::Swizzle::y> y;
+	swizzle_element <T, self, thunder::SwizzleCode::x> x;
+	swizzle_element <T, self, thunder::SwizzleCode::y> y;
 
 	explicit swizzle_base(T x = T(0), T y = T(0))
 			: x(this), y(this) {
@@ -106,9 +106,9 @@ class swizzle_base <T, 3> : public tagged {
 
 	T initial[3];
 public:
-	swizzle_element <T, self, thunder::Swizzle::x> x;
-	swizzle_element <T, self, thunder::Swizzle::y> y;
-	swizzle_element <T, self, thunder::Swizzle::z> z;
+	swizzle_element <T, self, thunder::SwizzleCode::x> x;
+	swizzle_element <T, self, thunder::SwizzleCode::y> y;
+	swizzle_element <T, self, thunder::SwizzleCode::z> z;
 
 	explicit swizzle_base(T x = T(0), T y = T(0), T z = T(0))
 			: x(this), y(this), z(this) {
@@ -149,10 +149,10 @@ class swizzle_base <T, 4> : public tagged {
 
 	T initial[4];
 public:
-	swizzle_element <T, self, thunder::Swizzle::x> x;
-	swizzle_element <T, self, thunder::Swizzle::y> y;
-	swizzle_element <T, self, thunder::Swizzle::z> z;
-	swizzle_element <T, self, thunder::Swizzle::w> w;
+	swizzle_element <T, self, thunder::SwizzleCode::x> x;
+	swizzle_element <T, self, thunder::SwizzleCode::y> y;
+	swizzle_element <T, self, thunder::SwizzleCode::z> z;
+	swizzle_element <T, self, thunder::SwizzleCode::w> w;
 
 	explicit swizzle_base(T x = T(0), T y = T(0), T z = T(0), T w = T(0))
 			: x(this), y(this), z(this), w(this) {
@@ -208,32 +208,32 @@ struct vec : swizzle_base <T, N> {
 
 	// Arithmetic operators
 	vec operator-() const {
-		return operation_from_args <vec> (thunder::Operation::unary_negation, *this);
+		return operation_from_args <vec> (thunder::OperationCode::unary_negation, *this);
 	}
 
 	friend vec operator+(const vec &a, const vec &b) {
-		return operation_from_args <vec> (thunder::Operation::addition, a, b);
+		return operation_from_args <vec> (thunder::OperationCode::addition, a, b);
 	}
 
 	friend vec operator-(const vec &a, const vec &b) {
-		return operation_from_args <vec> (thunder::Operation::subtraction, a, b);
+		return operation_from_args <vec> (thunder::OperationCode::subtraction, a, b);
 	}
 
 	friend vec operator/(const vec &a, const vec &b) {
-		return operation_from_args <vec> (thunder::Operation::division, a, b);
+		return operation_from_args <vec> (thunder::OperationCode::division, a, b);
 	}
 
 	friend vec operator*(const vec &a, const vec &b) {
-		return operation_from_args <vec> (thunder::Operation::multiplication, a, b);
+		return operation_from_args <vec> (thunder::OperationCode::multiplication, a, b);
 	}
 
 	// Mixed arithmetic operators
 	#define MIXED_OP(sym, code)								\
 		friend vec operator sym(const vec &a, const primitive_t <T> &b) {		\
-			return operation_from_args <vec> (thunder::Operation::code, a, b);		\
+			return operation_from_args <vec> (thunder::OperationCode::code, a, b);		\
 		}										\
 		friend vec operator sym(const primitive_t <T> &a, const vec &b) {		\
-			return operation_from_args <vec> (thunder::Operation::code, a, b);		\
+			return operation_from_args <vec> (thunder::OperationCode::code, a, b);		\
 		}
 
 	MIXED_OP(+, addition);

@@ -67,11 +67,11 @@ void synthesize_layout_io_inner()
 	shader();
 
 	thunder::Global lin;
-	lin.qualifier = thunder::Global::layout_in;
+	lin.qualifier = thunder::GlobalQualifier::layout_in;
 	lin.binding = 0;
 
 	thunder::Global lout;
-	lout.qualifier = thunder::Global::layout_out;
+	lout.qualifier = thunder::GlobalQualifier::layout_out;
 	lout.binding = 0;
 
 	thunder::TypeField type_field;

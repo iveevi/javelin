@@ -99,23 +99,24 @@ int Emitter::emit_main(const thunder::Atom &atom)
 	return p;
 }
 
-int Emitter::emit_main(const thunder::Cond &cond)
+int Emitter::emit_main(const thunder::Branch &branch)
 {
-	int p = emit_main((thunder::Atom) cond);
+	int p = emit_main((thunder::Atom) branch);
 	control_flow_ends.push(p);
 	return p;
 }
 
-int Emitter::emit_main(const thunder::Elif &elif)
-{
-	int p = emit_main((thunder::Atom) elif);
-	assert(control_flow_ends.size());
-	auto ref = control_flow_ends.top();
-	control_flow_ends.pop();
-	control_flow_callback(ref, p);
-	control_flow_ends.push(p);
-	return p;
-}
+// TODO: fix the state of branching
+// int Emitter::emit_main(const thunder::Elif &elif)
+// {
+// 	int p = emit_main((thunder::Atom) elif);
+// 	assert(control_flow_ends.size());
+// 	auto ref = control_flow_ends.top();
+// 	control_flow_ends.pop();
+// 	control_flow_callback(ref, p);
+// 	control_flow_ends.push(p);
+// 	return p;
+// }
 
 int Emitter::emit_main(const thunder::While &loop)
 {
@@ -142,17 +143,14 @@ void Emitter::control_flow_callback(int ref, int p)
 	else
 		op = pool[ref];
 
-	if (op.is <thunder::Cond> ()) {
-		op.as <thunder::Cond> ().failto = p;
-	} else if (op.is <thunder::Elif> ()) {
-		op.as <thunder::Elif> ().failto = p;
+	if (op.is <thunder::Branch> ()) {
+		op.as <thunder::Branch> ().failto = p;
 	} else if (op.is <thunder::While> ()) {
 		op.as <thunder::While> ().failto = p;
 	} else {
 		fmt::print("op not conditional, is actually:");
-			thunder::dump_ir_operation(op);
+		thunder::dump_ir_operation(op);
 		fmt::print("\n");
-
 		abort();
 	}
 }
@@ -175,14 +173,14 @@ void Emitter::validate() const
 			continue;
 
 		thunder::Global global = g.as <thunder::Global> ();
-		if (global.qualifier == thunder::Global::layout_in) {
+		if (global.qualifier == thunder::GlobalQualifier::layout_in) {
 			int type = global.type;
 			int binding = global.binding;
 			if (inputs.count(binding) && inputs[binding] != type)
 				fmt::println("JVL (error): layout in type conflict with binding #{}", binding);
 			else
 				inputs[binding] = type;
-		} else if (global.qualifier == thunder::Global::layout_out) {
+		} else if (global.qualifier == thunder::GlobalQualifier::layout_out) {
 			int type = global.type;
 			int binding = global.binding;
 			if (outputs.count(binding) && outputs[binding] != type)
