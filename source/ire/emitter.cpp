@@ -1,14 +1,11 @@
 #include <cassert>
-#include <map>
 #include <unordered_map>
 #include <unordered_set>
 
 #include <fmt/core.h>
 
 #include "ire/emitter.hpp"
-#include "ire/tagged.hpp"
 #include "wrapped_types.hpp"
-#include "ire/callable.hpp"
 
 namespace jvl::ire {
 

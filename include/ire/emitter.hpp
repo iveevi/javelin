@@ -2,13 +2,11 @@
 
 #include <functional>
 #include <stack>
-#include <unordered_map>
 #include <unordered_set>
 
 #include "../thunder/atom.hpp"
 #include "../thunder/kernel.hpp"
 #include "../wrapped_types.hpp"
-#include "tagged.hpp"
 
 namespace jvl::ire {
 
@@ -38,6 +36,8 @@ struct Emitter : Scratch {
 
 	// Resizing and compaction
 	void clear();
+
+	// TODO: compaction is really optimization
 	void compact();
 
 	// Managing the scope

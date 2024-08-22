@@ -110,6 +110,8 @@ struct callable_t : Callable {
 
 		cache_index_t cit;
 		cit = em.emit(call);
+
+		// TODO: if R is uniform compatible, then we need to bind its members...
 		return R(cit);
 	}
 };

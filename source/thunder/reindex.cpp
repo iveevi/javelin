@@ -4,44 +4,109 @@ namespace jvl::thunder {
 
 void reindex_ir_operation(const wrapped::reindex <index_t> &reindexer, Atom &g)
 {
-	if (g.is <Global> ()) {
+	switch (g.index()) {
+
+	// Globals
+	case Atom::type_index <Global> ():
+	{
 		reindexer(g.as <Global> ().type);
-	} else if (g.is <TypeField> ()) {
+	} break;
+
+	// Type fields
+	case Atom::type_index <TypeField> ():
+	{
 		reindexer(g.as <TypeField> ().down);
 		reindexer(g.as <TypeField> ().next);
-	} else if (g.is <Operation> ()) {
-		reindexer(g.as <Operation> ().args);
-		reindexer(g.as <Operation> ().ret);
-	} else if (g.is <Intrinsic> ()) {
+	} break;
+
+	// Operations
+	case Atom::type_index <Operation> ():
+	{
+		reindexer(g.as <TypeField> ().down);
+		reindexer(g.as <TypeField> ().next);
+	} break;
+
+	// Intrinsic
+	case Atom::type_index <Intrinsic> ():
+	{
 		reindexer(g.as <Intrinsic> ().args);
 		reindexer(g.as <Intrinsic> ().ret);
-	} else if (g.is <Returns> ()) {
+	} break;
+
+	// Returns
+	case Atom::type_index <Returns> ():
+	{
 		reindexer(g.as <Returns> ().args);
-	} else if (g.is <List> ()) {
+	} break;
+
+	// List chains
+	case Atom::type_index <List> ():
+	{
 		reindexer(g.as <List> ().item);
 		reindexer(g.as <List> ().next);
-	} else if (g.is <Construct> ()) {
+	} break;
+
+	// Constructors
+	case Atom::type_index <Construct> ():
+	{
 		reindexer(g.as <Construct> ().type);
 		reindexer(g.as <Construct> ().args);
-	} else if (g.is <Call> ()) {
+	} break;
+
+	// Callables
+	case Atom::type_index <Call> ():
+	{
 		reindexer(g.as <Call> ().ret);
 		reindexer(g.as <Call> ().args);
-	} else if (g.is <Store> ()) {
+	} break;
+
+	// Stores
+	case Atom::type_index <Store> ():
+	{
 		reindexer(g.as <Store> ().dst);
 		reindexer(g.as <Store> ().src);
-	} else if (g.is <Load> ()) {
+	} break;
+
+	// Loads
+	case Atom::type_index <Load> ():
+	{
 		reindexer(g.as <Load> ().src);
-	} else if (g.is <Swizzle> ()) {
+	} break;
+
+	// Swizzles
+	case Atom::type_index <Swizzle> ():
+	{
 		reindexer(g.as <Swizzle> ().src);
-	} else if (g.is <Cond> ()) {
+	} break;
+
+	// Conditions
+	case Atom::type_index <Cond> ():
+	{
 		reindexer(g.as <Cond> ().cond);
 		reindexer(g.as <Cond> ().failto);
-	} else if (g.is <Elif> ()) {
+	} break;
+
+	// Posterior conditions
+	case Atom::type_index <Elif> ():
+	{
 		reindexer(g.as <Elif> ().cond);
 		reindexer(g.as <Elif> ().failto);
-	} else if (g.is <While> ()) {
+	} break;
+
+	// Loops
+	case Atom::type_index <While> ():
+	{
 		reindexer(g.as <While> ().cond);
 		reindexer(g.as <While> ().failto);
+	} break;
+
+	// Exception
+	default:
+	{
+		fmt::println("unexpected atom encountered during reindexing");
+		abort();
+	} break;
+
 	}
 }
 

@@ -1,11 +1,10 @@
 #include <concepts>
-#include <list>
 #include <deque>
 
 #include <fmt/format.h>
+#include <functional>
 
 #include "ire/core.hpp"
-#include "ire/emitter.hpp"
 #include "profiles/targets.hpp"
 #include "thunder/atom.hpp"
 
@@ -196,7 +195,24 @@ auto dfwd(const callable_t <R, Args...> &callable)
 	std::vector <Scratch> promoted;
 	promoted.resize(callable.pointer);
 
-	// Marking each 
+	// In the post-transform stiching process, there
+	// are two kinds of indices which need to be reindexed:
+	//
+	//   1. Local indices, which are references to atoms in
+	//	the same scratch pool, and simply need to be offset
+	//
+	//   2. Global indices, which were derived from the original atom,
+	//      and need to be reindexed to the end of that atom's transformed
+	//	scratch pool
+	//
+	// The latter is easier to keep track of, so we store addresses to those
+	// indices in a per-atom list after the atoms have been emitted.
+	// TODO: transform block which hosts both the scratch and references list
+	using reference_list = std::vector <std::reference_wrapper <index_t>>;
+	std::vector <reference_list> globals;
+	globals.resize(callable.pointer);
+
+	// Marking each differentiable parameter
 	std::deque <index_t> propogation;
 	for (index_t i = 0; i < pool.size(); i++) {
 		auto &atom = pool[i];
@@ -213,13 +229,13 @@ auto dfwd(const callable_t <R, Args...> &callable)
 
 	auto usage_graph = usage(pool);
 
-	fmt::println("usage graph:");
-	for (index_t i = 0; i < usage_graph.size(); i++) {
-		fmt::print("    {:4d}: ", i);
-		for (auto &j : usage_graph[i])
-			fmt::print("{} ", j);
-		fmt::print("\n");
-	}
+	// fmt::println("usage graph:");
+	// for (index_t i = 0; i < usage_graph.size(); i++) {
+	// 	fmt::print("    {:4d}: ", i);
+	// 	for (auto &j : usage_graph[i])
+	// 		fmt::print("{} ", j);
+	// 	fmt::print("\n");
+	// }
 
 	std::unordered_set <index_t> diffed;
 	while (propogation.size()) {
@@ -233,13 +249,16 @@ auto dfwd(const callable_t <R, Args...> &callable)
 		promoted[i].clear();
 
 		auto &atom = pool[i];
+		auto &prom = promoted[i];
+		auto &refs = globals[i];
 
-		fmt::println("prop index: {} (size={})", i, propogation.size());
-		fmt::print("\t");
-		dump_ir_operation(atom);
-		fmt::print("\n");
+		// fmt::println("prop index: {} (size={})", i, propogation.size());
+		// fmt::print("\t");
+		// dump_ir_operation(atom);
+		// fmt::print("\n");
 
 		switch (atom.index()) {
+
 		// Promote the type field to the
 		// corresponding differential type
 		case Atom::type_index <TypeField> ():
@@ -249,9 +268,11 @@ auto dfwd(const callable_t <R, Args...> &callable)
 			diffed.insert(i);
 
 			// Create the differentiated type
-			em.push(promoted[i]);
+			em.push(prom);
 			synthesize_differential_type(pool, tf);
 			em.pop();
+			
+			// Everything should be a local index by now
 		} break;
 
 		// Nothing to do for the global itself,
@@ -268,9 +289,12 @@ auto dfwd(const callable_t <R, Args...> &callable)
 				propogation.push_front(global.type);
 			}
 
-			em.push(promoted[i]);
+			em.push(prom);
 			em.emit(global);
 			em.pop();
+
+			// Type of the global references an original atom
+			refs.push_back(std::ref(prom.pool[0].as <Global> ().type));
 		} break;
 
 		case Atom::type_index <Returns> ():
@@ -283,9 +307,36 @@ auto dfwd(const callable_t <R, Args...> &callable)
 
 			diffed.insert(i);
 
-			em.push(promoted[i]);
+			em.push(prom);
 			em.emit(returns);
 			em.pop();
+
+			// Both the type and arguments are references to original atoms
+			auto &r = prom.pool[0].as <Returns> ();
+			refs.push_back(std::ref(r.args));
+			refs.push_back(std::ref(r.type));
+		} break;
+		
+		case Atom::type_index <List> ():
+		{
+			auto &list = atom.template as <List> ();
+
+			diffed.insert(i);
+			
+			// Dependencies
+			propogation.push_front(list.item);
+
+			if (list.next != -1)
+				propogation.push_front(list.next);
+			
+			em.push(prom);
+			em.emit(list);
+			em.pop();
+
+			auto &l = prom.pool[0].as <List> ();
+			refs.push_back(std::ref(l.item));
+			if (list.next != -1)
+				refs.push_back(std::ref(l.next));
 		} break;
 
 		// NOTE: the bulk goes into hanlding operations and intrinsics/callables
@@ -294,10 +345,13 @@ auto dfwd(const callable_t <R, Args...> &callable)
 		// unaffected such as list chains
 		default:
 		{
-			em.push(promoted[i]);
+			diffed.insert(i);
+
+			em.push(prom);
 			em.emit(atom);
 			em.pop();
 		} break;
+
 		}
 
 		// Add all uses
@@ -305,19 +359,98 @@ auto dfwd(const callable_t <R, Args...> &callable)
 			propogation.push_back(index);
 	}
 
-	// fmt::println("Promoted scratches");
-	// for (index_t i = 0; i < promoted.size(); i++) {
-	// 	fmt::print("[AD] for: ");
-	// 	dump_ir_operation(pool[i]);
-	// 	fmt::print("\n");
+	// TODO: everything that is untouched needs to populate the global refs
+	for (index_t i = 0; i < promoted.size(); i++) {
+		if (diffed.contains(i))
+			continue;
 
-	// 	promoted[i].dump();
-		
-	// 	fmt::print("\n");
-	// }
+		// These are the atoms which were simply forwarded in transformation
+		auto &atom = promoted[i].pool[0];
+		auto &refs = globals[i];
+
+		// TODO: method to add refs to list (reusable?)
+		switch (atom.index()) {
+
+		case Atom::type_index <List> ():
+		{
+			auto &list = atom.as <List> ();
+			refs.push_back(std::ref(list.item));
+			if (list.next != -1)
+				refs.push_back(std::ref(list.next));
+		} break;
+
+		default:
+			// Nothing to do, e.g. primitives
+			break;
+		}
+	}
+
+	auto dump_scratches = [&]() {
+		fmt::println("Promoted scratches");
+		for (index_t i = 0; i < promoted.size(); i++) {
+			fmt::print("[AD] for: ");
+			dump_ir_operation(pool[i]);
+			fmt::print("\n");
+
+			promoted[i].dump();
+			
+			fmt::print("\n");
+		}
+	};
+
+	// dump_scratches();
 
 	// Stitch the independent scratches
-	// TODO: still need to undergo reindexing
+
+	// Reindex locals by offset
+	std::vector <size_t> block_offsets;
+
+	size_t offset = 0;
+	for (index_t i = 0; i < callable.pointer; i++) {
+		auto &s = promoted[i];
+		auto &g = globals[i];
+
+		wrapped::reindex <index_t> reindex;
+		for (size_t i = 0; i < s.pointer; i++) {
+			reindex[i] = i + offset;
+		}
+
+		// Preserve global refs
+		std::vector <index_t> store;
+		for (auto &r : g)
+			store.push_back(r.get());
+
+		// Reindex each atom
+		for (size_t i = 0; i < s.pointer; i++)
+			reindex_ir_operation(reindex, s.pool[i]);
+
+		// Restore global refs
+		for (index_t i = 0; i < store.size(); i++)
+			g[i].get() = store[i];
+
+		offset += s.pointer;
+
+		block_offsets.push_back(offset - 1);
+	}
+
+	// Reindex the globals
+	for (index_t i = 0; i < globals.size(); i++) {
+		auto &g = globals[i];
+
+		// fmt::print("\n");
+		// fmt::print("[AD] for ");
+		// dump_ir_operation(pool[i]);
+		// fmt::print("\n");
+		for (auto &r : g) {
+			index_t p = r.get();
+			r.get() = block_offsets[p];
+			// fmt::println("  reference in global: {} ({} -> {})", (void *) &r.get(), p, r.get());
+		}
+	}
+	
+	// dump_scratches();
+
+	// TODO: reindex inside each block first, and then combine as follows
 	for (auto &s : promoted) {
 		for (size_t i = 0; i < s.pointer; i++)
 			result.emit(s.pool[i]);
@@ -341,12 +474,16 @@ int main()
 	auto did = dfwd(id);
 	did.dump();
 	
-	// auto shader = [&]() {
-	// 	layout_in <float, 0> input;
-	// 	layout_out <float, 0> output;
-	//
-	// 	output = dsquare(dual(input, f32(1.0f))).dual;
-	// };
-	//
-	// kernel_from_args(shader).dump();
+	auto shader = [&]() {
+		layout_in <float, 0> input;
+		layout_out <float, 0> output;
+	
+		output = did(dual(input, f32(1.0f))).dual;
+	};
+	
+	auto kernel = kernel_from_args(shader);
+	
+	kernel.dump();
+
+	fmt::println("{}", kernel.synthesize(profiles::opengl_450));
 }
