@@ -2,6 +2,7 @@
 
 #include "emitter.hpp"
 #include "tagged.hpp"
+#include "thunder/enumerations.hpp"
 
 namespace jvl::ire {
 
@@ -106,59 +107,59 @@ struct primitive_t : tagged {
 
 	// Common intrinsics
 	friend primitive_t clamp(const primitive_t &x, const primitive_t &min, const primitive_t &max) {
-		return platform_intrinsic_from_args <primitive_t> ("clamp", x, min, max);
+		return platform_intrinsic_from_args <primitive_t> (thunder::clamp, x, min, max);
 	}
 
 	friend primitive_t sqrt(const primitive_t &x)  {
-		return platform_intrinsic_from_args <primitive_t> ("sqrt", x);
+		return platform_intrinsic_from_args <primitive_t> (thunder::sqrt, x);
 	}
 
 	friend primitive_t pow(const primitive_t &x, const primitive_t &p) {
-		return platform_intrinsic_from_args <primitive_t> ("pow", x, p);
+		return platform_intrinsic_from_args <primitive_t> (thunder::pow, x, p);
 	}
 
 	// Arithmetic operators
 	friend primitive_t operator+(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (thunder::OperationCode::addition, a, b);
+		return operation_from_args <primitive_t> (thunder::addition, a, b);
 	}
 
 	friend primitive_t operator-(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (thunder::OperationCode::subtraction, a, b);
+		return operation_from_args <primitive_t> (thunder::subtraction, a, b);
 	}
 
 	friend primitive_t operator/(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (thunder::OperationCode::division, a, b);
+		return operation_from_args <primitive_t> (thunder::division, a, b);
 	}
 
 	friend primitive_t operator*(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (thunder::OperationCode::multiplication, a, b);
+		return operation_from_args <primitive_t> (thunder::multiplication, a, b);
 	}
 
 	// Comparison operators
 	using bool_t = primitive_t <bool>;
 
 	friend bool_t operator==(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (thunder::OperationCode::equals, a, b);
+		return operation_from_args <bool_t> (thunder::equals, a, b);
 	}
 
 	friend bool_t operator!=(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (thunder::OperationCode::not_equals, a, b);
+		return operation_from_args <bool_t> (thunder::not_equals, a, b);
 	}
 
 	friend bool_t operator>(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (thunder::OperationCode::cmp_ge, a, b);
+		return operation_from_args <bool_t> (thunder::cmp_ge, a, b);
 	}
 
 	friend bool_t operator<(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (thunder::OperationCode::cmp_le, a, b);
+		return operation_from_args <bool_t> (thunder::cmp_le, a, b);
 	}
 
 	friend bool_t operator>=(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (thunder::OperationCode::cmp_geq, a, b);
+		return operation_from_args <bool_t> (thunder::cmp_geq, a, b);
 	}
 
 	friend bool_t operator<=(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <bool_t> (thunder::OperationCode::cmp_leq, a, b);
+		return operation_from_args <bool_t> (thunder::cmp_leq, a, b);
 	}
 };
 

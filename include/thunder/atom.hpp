@@ -131,19 +131,16 @@ static_assert(__atom_instruction <Operation>);
 //
 //   args: reference to a List chain of operands
 //   type: return type of the instrinsic
-//   name: string name value
-#pragma pack(push, 1)
+//   opn: intrinsic operation code
 struct Intrinsic {
 	index_t args = -1;
 	index_t type = -1;
-	// TODO: index into a table of names
-	const char *name = nullptr;
+	IntrinsicOperation opn;
 
 	Addresses addresses() {
 		return { args, type };
 	}
 };
-#pragma pack(pop)
 
 static_assert(__atom_instruction <Intrinsic>);
 
@@ -313,7 +310,7 @@ static_assert(sizeof(TypeField) == 6);
 static_assert(sizeof(Primitive) == 5);
 static_assert(sizeof(Swizzle)   == 4);
 static_assert(sizeof(Operation) == 6);
-static_assert(sizeof(Intrinsic) == 12);
+static_assert(sizeof(Intrinsic) == 6);
 static_assert(sizeof(List)      == 4);
 static_assert(sizeof(Construct) == 4);
 static_assert(sizeof(Call)      == 6);
@@ -323,7 +320,7 @@ static_assert(sizeof(Branch)    == 4);
 static_assert(sizeof(While)     == 4);
 static_assert(sizeof(Returns)   == 4);
 static_assert(sizeof(End)       == 1);
-static_assert(sizeof(Atom)      == 16);
+static_assert(sizeof(Atom)      == 8);
 
 // Dispatcher types (vd = variadic dispatcher)
 std::string type_name(const Atom *const,

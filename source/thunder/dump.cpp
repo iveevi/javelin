@@ -70,9 +70,13 @@ void dump_ir_operation(const Atom &g)
 	} else if (auto op = g.get <Operation> ()) {
 		fmt::print("op ${} %{} -> %{}",
 				tbl_operation_code[op->code],
-				op->args, op->type);
+				op->args,
+				op->type);
 	} else if (auto intr = g.get <Intrinsic> ()) {
-		fmt::print("intr ${} %{} -> %{}", intr->name, intr->args, intr->type);
+		fmt::print("intr ${} %{} -> %{}",
+				tbl_intrinsic_operation[intr->opn],
+				intr->args,
+				intr->type);
 	} else if (auto branch = g.get <Branch> ()) {
 		if (branch->cond >= 0)
 			fmt::print("elif %{} -> %{}", branch->cond, branch->failto);

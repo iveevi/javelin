@@ -2,6 +2,8 @@
 
 #include "../vector.hpp"
 #include "../util.hpp"
+#include "thunder/atom.hpp"
+#include "thunder/enumerations.hpp"
 
 namespace jvl::ire {
 
@@ -48,25 +50,25 @@ struct __gl_Position_t {
 template <typename T, size_t N>
 vec <T, N> dFdx(const vec <T, N> &v)
 {
-	return platform_intrinsic_from_args <vec <T, N>> ("dFdx", v);
+	return platform_intrinsic_from_args <vec <T, N>> (thunder::IntrinsicOperation::glsl_dFdx, v);
 }
 
 template <typename T, size_t N>
 vec <T, N> dFdy(const vec <T, N> &v)
 {
-	return platform_intrinsic_from_args <vec <T, N>> ("dFdy", v);
+	return platform_intrinsic_from_args <vec <T, N>> (thunder::IntrinsicOperation::glsl_dFdy, v);
 }
 
 template <typename T, size_t N>
 vec <T, N> dFdxFine(const vec <T, N> &v)
 {
-	return platform_intrinsic_from_args <vec <T, N>> ("dFdxFine", v);
+	return platform_intrinsic_from_args <vec <T, N>> (thunder::IntrinsicOperation::glsl_dFdxFine, v);
 }
 
 template <typename T, size_t N>
 vec <T, N> dFdyFine(const vec <T, N> &v)
 {
-	return platform_intrinsic_from_args <vec <T, N>> ("dFdyFine", v);
+	return platform_intrinsic_from_args <vec <T, N>> (thunder::IntrinsicOperation::glsl_dFdyFine, v);
 }
 
 } // namespace jvl::ire

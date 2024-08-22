@@ -44,7 +44,7 @@ struct mat : mat_base <T, N, M> {
 	using mat_base <T, N, M> ::mat_base;
 
 	friend vec <T, N> operator*(const mat &m, const vec <T, M> &v) {
-		return operation_from_args <vec <T, N>> (thunder::OperationCode::multiplication, m, v);
+		return operation_from_args <vec <T, N>> (thunder::multiplication, m, v);
 	}
 };
 

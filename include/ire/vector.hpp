@@ -208,32 +208,32 @@ struct vec : swizzle_base <T, N> {
 
 	// Arithmetic operators
 	vec operator-() const {
-		return operation_from_args <vec> (thunder::OperationCode::unary_negation, *this);
+		return operation_from_args <vec> (thunder::unary_negation, *this);
 	}
 
 	friend vec operator+(const vec &a, const vec &b) {
-		return operation_from_args <vec> (thunder::OperationCode::addition, a, b);
+		return operation_from_args <vec> (thunder::addition, a, b);
 	}
 
 	friend vec operator-(const vec &a, const vec &b) {
-		return operation_from_args <vec> (thunder::OperationCode::subtraction, a, b);
+		return operation_from_args <vec> (thunder::subtraction, a, b);
 	}
 
 	friend vec operator/(const vec &a, const vec &b) {
-		return operation_from_args <vec> (thunder::OperationCode::division, a, b);
+		return operation_from_args <vec> (thunder::division, a, b);
 	}
 
 	friend vec operator*(const vec &a, const vec &b) {
-		return operation_from_args <vec> (thunder::OperationCode::multiplication, a, b);
+		return operation_from_args <vec> (thunder::multiplication, a, b);
 	}
 
 	// Mixed arithmetic operators
 	#define MIXED_OP(sym, code)								\
 		friend vec operator sym(const vec &a, const primitive_t <T> &b) {		\
-			return operation_from_args <vec> (thunder::OperationCode::code, a, b);		\
+			return operation_from_args <vec> (thunder::code, a, b);		\
 		}										\
 		friend vec operator sym(const primitive_t <T> &a, const vec &b) {		\
-			return operation_from_args <vec> (thunder::OperationCode::code, a, b);		\
+			return operation_from_args <vec> (thunder::code, a, b);		\
 		}
 
 	MIXED_OP(+, addition);

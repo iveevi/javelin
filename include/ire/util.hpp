@@ -5,6 +5,7 @@
 #include "ire/type_synthesis.hpp"
 #include "ire/uniform_layout.hpp"
 #include "primitive.hpp"
+#include "thunder/enumerations.hpp"
 
 namespace jvl::ire {
 
@@ -74,12 +75,12 @@ R operation_from_args(thunder::OperationCode type, const Args &... args)
 }
 
 template <synthesizable R, synthesizable ... Args>
-R platform_intrinsic_from_args(const char *name, const Args &... args)
+R platform_intrinsic_from_args(thunder::IntrinsicOperation opn, const Args &... args)
 {
 	auto &em = Emitter::active;
 
 	thunder::Intrinsic intr;
-	intr.name = name;
+	intr.opn = opn;
 	intr.args = list_from_args(args...);
 	intr.type = type_field_from_args <R> ().id;
 
@@ -90,7 +91,7 @@ R platform_intrinsic_from_args(const char *name, const Args &... args)
 }
 
 template <synthesizable ... Args>
-void void_platform_intrinsic_from_args(const char *name, const Args &... args)
+void void_platform_intrinsic_from_args(thunder::IntrinsicOperation opn, const Args &... args)
 {
 	auto &em = Emitter::active;
 
@@ -98,7 +99,7 @@ void void_platform_intrinsic_from_args(const char *name, const Args &... args)
 	tf.item = thunder::PrimitiveType::none;
 
 	thunder::Intrinsic intr;
-	intr.name = name;
+	intr.opn = opn;
 	intr.type = em.emit(tf);
 
 	if constexpr (sizeof...(Args))
@@ -107,12 +108,12 @@ void void_platform_intrinsic_from_args(const char *name, const Args &... args)
 	em.emit_main(intr);
 }
 
-inline void platform_intrinsic_keyword(const char *name)
+inline void platform_intrinsic_keyword(thunder::IntrinsicOperation opn)
 {
 	auto &em = Emitter::active;
 
 	thunder::Intrinsic intr;
-	intr.name = name;
+	intr.opn = opn;
 
 	em.emit_main(intr);
 }

@@ -217,7 +217,7 @@ std::string synthesize_glsl_body(const Atom *const pool,
 			return glsl_format_operation(op->code, arglist(op->args));
 		} else if (auto intr = g.get <Intrinsic> ()) {
 			auto args = arglist(intr->args);
-			return intr->name + strargs(args);
+			return tbl_intrinsic_operation[intr->opn] + strargs(args);
 		} else {
 			fmt::println("not sure how to inline atom:");
 			dump_ir_operation(g);
@@ -231,7 +231,7 @@ std::string synthesize_glsl_body(const Atom *const pool,
 	auto intrinsic = [&](const Intrinsic &intr, int index) -> std::string {
 		// Keyword intrinsic
 		if (intr.type == -1)
-			return finish(intr.name);
+			return finish(tbl_intrinsic_operation[intr.opn]);
 
 		Atom g = pool[intr.type];
 		if (!g.is <TypeField> ())
@@ -241,12 +241,12 @@ std::string synthesize_glsl_body(const Atom *const pool,
 		if (tf.item == none) {
 			// Void return type, so no assignment
 			auto args = arglist(intr.args);
-			std::string v = intr.name + strargs(args);
+			std::string v = tbl_intrinsic_operation[intr.opn] + strargs(args);
 			return finish(v);
 		} else {
 			auto args = arglist(intr.args);
 			std::string t = type_name(pool, struct_names, intr.type, -1);
-			std::string v = intr.name + strargs(args);
+			std::string v = tbl_intrinsic_operation[intr.opn] + strargs(args);
 			return assign_new(t, v, index);
 		}
 	};
