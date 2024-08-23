@@ -9,12 +9,12 @@
 
 namespace jvl::ire {
 
-Scratch::Scratch() : pointer(0) {}
+Scratch::Scratch() : pointer(0), pool(4) {}
 
 int Scratch::emit(const thunder::Atom &atom)
 {
 	if (pointer >= pool.size())
-		pool.resize(1 + (pool.size() << 2));
+		pool.resize((pool.size() << 1));
 
 	pool[pointer] = atom;
 	return pointer++;

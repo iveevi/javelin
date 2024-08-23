@@ -6,6 +6,7 @@
 
 #include "ire/core.hpp"
 #include "ire/emitter.hpp"
+#include "ire/util.hpp"
 #include "profiles/targets.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
@@ -68,24 +69,10 @@ using dual_t = manifested_dual_type <T> ::type;
 template <typename T>
 concept differentiable_type = generic <dual_t <T>>;
 
-template <generic T>
-dual_t <T> dual(const T &p, const T &d)
-{
-	return dual_t <T> (p, d);
-}
-
-template <non_trivial_generic T, generic U>
-requires std::convertible_to <U, T>
+template <generic T, typename U>
 dual_t <T> dual(const T &p, const U &d)
 {
-	return dual_t <T> (p, T(d));
-}
-
-template <generic T, non_trivial_generic U>
-requires std::convertible_to <T, U>
-dual_t <U> dual(const T &p, const U &d)
-{
-	return dual_t <U> (U(p), d);
+	return dual_t <T> (p, d);
 }
 
 static_assert(differentiable_type <f32>);
@@ -97,36 +84,11 @@ namespace jvl::thunder {
 
 using usage_list = std::vector <index_t>;
 
-bool uses(Atom atom, index_t i)
+[[gnu::always_inline]]
+inline bool uses(Atom atom, index_t i)
 {
-	switch (atom.index()) {
-	case Atom::type_index <Load> ():
-	{
-		return (atom.as <Load> ().src == i);
-	}
-
-	case Atom::type_index <List> ():
-	{
-		auto list = atom.as <List> ();
-		return (list.item == i) || (list.next == i);
-	}
-
-	case Atom::type_index <Global> ():
-	{
-		return (atom.as <Global> ().type == i);
-	}
-
-	case Atom::type_index <Returns> ():
-	{
-		auto returns = atom.as <Returns> ();
-		return (returns.type == i) || (returns.args == i);
-	}
-
-	default:
-		break;
-	}
-
-	return false;
+	auto &&addresses = atom.addresses();
+	return (i != -1) && ((addresses.a0 == i) || (addresses.a1 == i));
 }
 
 usage_list usage(const std::vector <Atom> &pool, index_t index)
@@ -142,18 +104,18 @@ usage_list usage(const std::vector <Atom> &pool, index_t index)
 
 using usage_graph = std::vector <usage_list>;
 
-usage_graph usage(const std::vector <Atom> &pool)
+usage_graph usage(const Scratch &scratch)
 {
-	usage_graph graph(pool.size());
+	usage_graph graph(scratch.pointer);
 	for (index_t i = 0; i < graph.size(); i++)
-		graph[i] = usage(pool, i);
+		graph[i] = usage(scratch.pool, i);
 
 	return graph;
 }
 
 // Conventional synthesis will have the first type field be the
 // primal value, and the secnod be the dual/derivative value
-void synthesize_differential_type(const std::vector <Atom> &pool, const TypeField &tf)
+int synthesize_differential_type(const std::vector <Atom> &pool, const TypeField &tf)
 {
 	auto &em = Emitter::active;
 
@@ -167,8 +129,8 @@ void synthesize_differential_type(const std::vector <Atom> &pool, const TypeFiel
 
 			index_t id = em.emit(dual);
 			primal.next = id;
-			em.emit(primal);
-		} return;
+			return em.emit(primal);
+		};
 
 		default:
 			fmt::println("primitive type does not have a differential type: {}",
@@ -207,9 +169,12 @@ struct ad_fwd_mapped_t {
 		return transformed.pool[index];
 	}
 
-	void track(thunder::Addresses &&addrs) {
-		if (addrs.a0 != -1) refs.push_back(std::ref(addrs.a0));
-		if (addrs.a1 != -1) refs.push_back(std::ref(addrs.a1));
+	void track(thunder::Addresses &&addrs, int8_t mask = 0b11) {
+		if (addrs.a0 != -1 && (mask & 0b01) == 0b01)
+			refs.push_back(std::ref(addrs.a0));
+
+		if (addrs.a1 != -1 && (mask & 0b10) == 0b10)
+			refs.push_back(std::ref(addrs.a1));
 	}
 };
 
@@ -232,6 +197,10 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 	// Clear the currently present scratch and add it for recording
 	mapped.transformed.clear();
 	em.push(mapped.transformed);
+
+	fmt::print("atom: ");
+	dump_ir_operation(atom);
+	fmt::print("\n");
 
 	switch (atom.index()) {
 
@@ -272,8 +241,8 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 	{
 		auto returns = atom.template as <Returns> ();
 
-		// Dependencies
-		queue.push_front(returns.args);
+		// Dependencies; must have come from
+		// args, so no need to revisit it
 		queue.push_front(returns.type);
 
 		diffed.insert(i);
@@ -312,14 +281,73 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 
 		// Dependencies
 		queue.push_front(opn.args);
-		queue.push_front(opn.type);
 
-		em.emit(opn);
+		// Get arguments (assuming binary)
+		std::vector <index_t> args;
 
-		mapped.track(mapped[0].addresses());
+		index_t li = opn.args;
+		while (li != -1) {
+			Atom arg = context.pool[li];
+			if (!arg.is <List> ()) {
+				fmt::println("expected opn args to be a list chain");
+				abort();
+			}
+
+			List list = arg.as <List> ();
+			args.push_back(list.item);
+
+			li = list.next;
+		}
+
+		fmt::println("# of args: {}", args.size());
+		for (auto arg : args) {
+			dump_ir_operation(context.pool[arg]);
+			fmt::print("\n");
+		}
+
+		auto tf = context.pool[opn.type].as <TypeField> ();
+		fmt::println("operation return type:");
+		dump_ir_operation(tf);
+		fmt::print("\n");
+		
+		// Now fill in the actuall operation
+		index_t arg0_primal = em.emit(Load(args[0], 0));
+		index_t arg1_primal = em.emit(Load(args[1], 0));
+		
+		index_t arg0_dual = em.emit(Load(args[0], 1));
+		index_t arg1_dual = em.emit(Load(args[1], 1));
+
+		index_t opn_primal_args;
+		opn_primal_args = em.emit(List(arg1_primal, -1));
+		opn_primal_args = em.emit(List(arg0_primal, opn_primal_args));
+		
+		index_t opn_dual_args;
+		opn_dual_args = em.emit(List(arg1_dual, -1));
+		opn_dual_args = em.emit(List(arg0_dual, opn_dual_args));
+
+		index_t primal = em.emit(Operation(opn_primal_args, opn.type, opn.code));
+
+		// This would be the bulk
+		index_t dual = em.emit(Operation(opn_dual_args, opn.type, opn.code));
+
+		mapped.track(mapped[arg0_primal].addresses(), 0b01);
+		mapped.track(mapped[arg1_primal].addresses(), 0b01);
+		mapped.track(mapped[arg0_dual].addresses(), 0b01);
+		mapped.track(mapped[arg1_dual].addresses(), 0b01);
+		mapped.track(mapped[primal].addresses(), 0b10);
+		mapped.track(mapped[dual].addresses(), 0b10);
+
+		// Dual type storage
+		index_t ctor_args;
+		ctor_args = em.emit(List(dual, -1));
+		ctor_args = em.emit(List(primal, ctor_args));
+
+		Construct dual_ctor;
+		dual_ctor.type = synthesize_differential_type(context.pool, tf);
+		dual_ctor.args = ctor_args;
+
+		em.emit(dual_ctor);
 	} break;
-
-	// NOTE: the bulk goes into hanlding operations and intrinsics/callables
 
 	// Simple pass through for others which are
 	// unaffected such as list chains
@@ -331,7 +359,7 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 
 	}
 	
-	return em.pop();
+	em.pop();
 }
 
 void ad_fwd_transform_stitch_mapped(Scratch &result, std::vector <ad_fwd_mapped_t> &mapped)
@@ -412,7 +440,15 @@ void ad_fwd_transform(Scratch &result, const Scratch &source)
 		em.pop();
 	}
 
-	auto usage_graph = usage(pool);
+	auto usage_graph = usage(source);
+
+	fmt::println("usage graph:");
+	for (index_t i = 0; i < usage_graph.size(); i++) {
+		fmt::print("{:4d}: ", i);
+		for (auto j : usage_graph[i])
+			fmt::print("{} ", j);
+		fmt::print("\n");
+	}
 
 	// Transform all differentiable instructions and their relatives
 	while (context.queue.size()) {
@@ -454,9 +490,9 @@ auto dfwd(const callable_t <R, Args...> &callable)
 }
 
 // Sandbox application
-f32 __id(f32 x)
+f32 __id(f32 x, f32 y)
 {
-	return x + x;
+	return x + y;
 }
 
 auto id = callable(__id).named("id");
@@ -472,7 +508,9 @@ int main()
 		layout_in <float, 0> input;
 		layout_out <float, 0> output;
 
-		output = did(dual(id(input), f32(1.0f))).dual;
+		dual_t <f32> dx = dual(id(input, 1), f32(1.0f));
+		dual_t <f32> dy = dual(id(1, (f32) input / 2.0f), input);
+		output = did(dx, dy).dual;
 	};
 
 	auto kernel = kernel_from_args(shader);

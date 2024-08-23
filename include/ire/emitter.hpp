@@ -15,6 +15,8 @@ struct Scratch {
 	std::vector <thunder::Atom> pool;
 	size_t pointer;
 
+	// TODO: buffering with a static sized array
+
 	Scratch();
 	
 	int emit(const thunder::Atom &);
