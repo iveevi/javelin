@@ -22,8 +22,8 @@ void reindex_ir_operation(const wrapped::reindex <index_t> &reindexer, Atom &g)
 	// Operations
 	case Atom::type_index <Operation> ():
 	{
-		reindexer(g.as <TypeField> ().down);
-		reindexer(g.as <TypeField> ().next);
+		reindexer(g.as <Operation> ().args);
+		reindexer(g.as <Operation> ().type);
 	} break;
 
 	// Intrinsic

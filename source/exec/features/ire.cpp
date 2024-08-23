@@ -299,6 +299,26 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 		mapped.track(mapped[0].addresses());
 	} break;
 
+	case Atom::type_index <Operation> ():
+	{
+		auto &opn = atom.template as <Operation> ();
+
+		// Assuming that the primal version was semantically
+		// correct, the only thing that needs to be done here
+		// is to separate the operation for both primal and dual
+		// counterparts, and then add any extra operations
+
+		diffed.insert(i);
+
+		// Dependencies
+		queue.push_front(opn.args);
+		queue.push_front(opn.type);
+
+		em.emit(opn);
+
+		mapped.track(mapped[0].addresses());
+	} break;
+
 	// NOTE: the bulk goes into hanlding operations and intrinsics/callables
 
 	// Simple pass through for others which are
@@ -379,7 +399,7 @@ void ad_fwd_transform(Scratch &result, const Scratch &source)
 	// Marking each differentiable parameter
 	ad_fwd_iteration_context_t context { .pool = pool };
 
-	for (index_t i = 0; i < pool.size(); i++) {
+	for (index_t i = 0; i < mapped.size(); i++) {
 		auto &atom = pool[i];
 		if (auto global = atom.template get <Global> ()) {
 			if (global->qualifier == GlobalQualifier::parameter)
@@ -436,7 +456,7 @@ auto dfwd(const callable_t <R, Args...> &callable)
 // Sandbox application
 f32 __id(f32 x)
 {
-	return x;
+	return x + x;
 }
 
 auto id = callable(__id).named("id");
@@ -457,7 +477,7 @@ int main()
 
 	auto kernel = kernel_from_args(shader);
 
-	kernel.dump();
+	// kernel.dump();
 
 	fmt::println("{}", kernel.synthesize(profiles::opengl_450));
 }
