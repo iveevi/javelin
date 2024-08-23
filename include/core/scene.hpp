@@ -18,8 +18,20 @@ struct ImportedAsset;
 namespace jvl::core {
 
 struct Scene {
-	std::vector <Mesh> meshes;
-	std::vector <Material> materials;
+	// Element of a scene
+	struct Object {
+		// Identifier for the object
+		std::string name;
+
+		// At most one geometry instance per object
+		std::optional <Mesh> geometry;
+
+		// An object can have multiple materials which
+		// are references from the geometry
+		std::vector <Material> materials;
+	};
+
+	std::vector <Object> objects;
 
 	void add(const engine::ImportedAsset &);
 

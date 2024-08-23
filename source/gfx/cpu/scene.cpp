@@ -1,27 +1,33 @@
 #include <stack>
 
 #include "gfx/cpu/scene.hpp"
-#include "engine/imported_asset.hpp"
 
 namespace jvl::gfx::cpu {
 
-void Scene::add(const engine::ImportedAsset &imported_asset)
+// TODO: generate the kernels for each material on demand
+Scene Scene::from(const core::Scene &scene)
 {
-	// Add the materials first, then the geometry (to offset)
-	size_t offset = materials.size();
-	for (auto &m : imported_asset.materials) {
-		// TODO: generate the kernels for each material
-		// and then compile on demand
-		materials.push_back(m);
+	Scene result;
+	for (auto &obj : scene.objects) {
+		if (obj.geometry) {
+			auto g = obj.geometry.value();
+			auto &mids = g.face_properties
+					.at(core::Mesh::material_key)
+					.as <buffer <int>> ();
+			
+			size_t offset = result.materials.size();
+			for (auto &i : mids)
+				i += offset;
+
+			auto tmesh = core::TriangleMesh::from(g).value();
+			result.meshes.push_back(tmesh);
+		}
+
+		for (auto &material : obj.materials)
+			result.materials.push_back(material);
 	}
 
-	for (auto &g : imported_asset.geometries) {
-		auto tmesh = core::TriangleMesh::from(g).value();
-		for (auto &i : tmesh.materials)
-			i += offset;
-
-		meshes.push_back(tmesh);
-	}
+	return result;
 }
 
 void Scene::build_bvh()

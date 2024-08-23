@@ -1,30 +1,53 @@
 #include <array>
 #include <cassert>
 #include <fstream>
+#include <unordered_map>
+#include <unordered_set>
 
 #include <fmt/printf.h>
 
 #include "core/scene.hpp"
 #include "core/material.hpp"
 #include "engine/imported_asset.hpp"
+#include "math_types.hpp"
 
 namespace jvl::core {
 
-void Scene::add(const engine::ImportedAsset &imported_asset)
+void Scene::add(const engine::ImportedAsset &asset)
 {
-	size_t offset = materials.size();
-	for (auto &material : imported_asset.materials)
-		materials.push_back(material);
+	// Each geometry is its own object
+	for (size_t i = 0; i < asset.geometries.size(); i++) {
+		auto name = asset.names[i];
+		auto geometry = asset.geometries[i];
 
-	for (auto geometry : imported_asset.geometries) {
-		// Reindex the materials
-		if (geometry.face_properties.contains(Mesh::material_key)) {
-			auto &mids = geometry.face_properties.at(Mesh::material_key).as <buffer <int>> ();
-			for (auto &i : mids)
-				i += offset;
+		auto &mids = geometry.face_properties
+			.at(Mesh::material_key)
+			.as <buffer <int>> ();
+
+		// Find the unique materials
+		std::unordered_set <int> ref;
+		for (auto &i : mids)
+			ref.insert(i);
+
+		// Generate list of materials and the reindex map
+		std::unordered_map <int, int> reindex;
+
+		std::vector <Material> materials;
+		for (auto i : ref) {
+			reindex[i] = materials.size();
+			materials.push_back(asset.materials[i]);
 		}
 
-		meshes.push_back(geometry);
+		for (auto &i : mids)
+			i = reindex[i];
+
+		// Add the object
+		Object obj;
+		obj.name = name;
+		obj.geometry = geometry;
+		obj.materials = materials;
+
+		objects.push_back(obj);
 	}
 }
 
@@ -91,13 +114,6 @@ void write_mesh(std::ofstream &fout, const Mesh &mesh)
 	}
 }
 
-void write_meshes(std::ofstream &fout, const std::vector <Mesh> &meshes)
-{
-	write_int(fout, meshes.size());
-	for (const auto &m : meshes)
-		write_mesh(fout, m);
-}
-
 void write_material_property_value(std::ofstream &fout, const material_property_value &value)
 {
 	write_int(fout, value.index());
@@ -128,13 +144,6 @@ void write_material(std::ofstream &fout, const Material &material)
 	}
 }
 
-void write_materials(std::ofstream &fout, const std::vector <Material> &materials)
-{
-	write_int(fout, materials.size());
-	for (const auto &m : materials)
-		write_material(fout, m);
-}
-
 void Scene::write(const std::filesystem::path &path)
 {
 	std::ofstream fout(path);
@@ -144,8 +153,16 @@ void Scene::write(const std::filesystem::path &path)
 	// TODO: add version as well...
 	fout.write(JVL_SCENE_FOURCC.data(), JVL_SCENE_FOURCC.size());
 
-	write_meshes(fout, meshes);
-	write_materials(fout, materials);
+	write_int(fout, objects.size());
+	for (auto &obj : objects) {
+		write_int(fout, obj.geometry.has_value());
+		if (obj.geometry)
+			write_mesh(fout, obj.geometry.value());
+
+		write_int(fout, obj.materials.size());
+		for (auto &material : obj.materials)
+			write_material(fout, material);
+	}
 
 	fout.close();
 }

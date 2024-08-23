@@ -107,8 +107,7 @@ int main(int argc, char *argv[])
 	scene.write("main.jvlx");
 
 	// TODO: non blocking bvh construction (std promise equivalent?)
-	auto cpu_scene = cpu::Scene();
-	cpu_scene.add(asset);
+	auto cpu_scene = cpu::Scene::from(scene);
 	cpu_scene.build_bvh();
 	
 	//////////////////
@@ -382,7 +381,13 @@ int main(int argc, char *argv[])
 
 			ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 
-			if (ImGui::Begin("Interface")) {
+			if (ImGui::Begin("Scene")) {
+				for (auto &obj : scene.objects)
+					ImGui::Text("%s", obj.name.c_str());
+				ImGui::End();
+			}
+			
+			if (ImGui::Begin("Inspector")) {
 				ImGui::End();
 			}
 
@@ -428,7 +433,7 @@ int main(int argc, char *argv[])
 				ImGui::End();
 			}
 
-			if (ImGui::Begin("Framebuffer")) {
+			if (ImGui::Begin("CPU Raytracer")) {
 				viewport = ImGui::GetContentRegionAvail();
 				rtx.aperature.aspect = viewport.x/viewport.y;
 				if (!fb.empty())
