@@ -1,20 +1,21 @@
 #include <stack>
 
 #include "gfx/cpu/scene.hpp"
+#include "engine/imported_asset.hpp"
 
 namespace jvl::gfx::cpu {
 
-void Scene::add(const core::Preset &preset)
+void Scene::add(const engine::ImportedAsset &imported_asset)
 {
 	// Add the materials first, then the geometry (to offset)
 	size_t offset = materials.size();
-	for (auto &m : preset.materials) {
+	for (auto &m : imported_asset.materials) {
 		// TODO: generate the kernels for each material
 		// and then compile on demand
 		materials.push_back(m);
 	}
 
-	for (auto &g : preset.geometry) {
+	for (auto &g : imported_asset.geometries) {
 		auto tmesh = core::TriangleMesh::from(g).value();
 		for (auto &i : tmesh.materials)
 			i += offset;

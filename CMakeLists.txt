@@ -44,8 +44,8 @@ add_library(javelin-ire STATIC
 
 add_executable(javelin
 	source/core/aabb.cpp
-	source/core/preset.cpp
 	source/core/scene.cpp
+	source/engine/imported_asset.cpp
 	source/exec/javelin/device_resource_collection.cpp
 	source/exec/javelin/glio.cpp
 	source/exec/javelin/main.cpp

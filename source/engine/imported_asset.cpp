@@ -5,7 +5,7 @@
 #include <fmt/printf.h>
 #include <fmt/std.h>
 
-#include "core/preset.hpp"
+#include "engine/imported_asset.hpp"
 
 template <>
 struct std::hash <tinyobj::index_t> {
@@ -25,12 +25,16 @@ inline bool operator==(const tinyobj::index_t &a, const tinyobj::index_t &b)
 
 } // namespace tinyobj
 
-namespace jvl::core {
+namespace jvl::engine {
 
-std::optional <Preset> Preset::from(const std::filesystem::path &path)
+std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &path)
 {
-	Preset preset;
-	preset.path = path;
+	using core::Mesh;
+	using core::Material;
+	using core::Phong;
+
+	ImportedAsset imported_asset;
+	imported_asset.path = path;
 
 	tinyobj::ObjReader reader;
 	tinyobj::ObjReaderConfig reader_config;
@@ -51,8 +55,6 @@ std::optional <Preset> Preset::from(const std::filesystem::path &path)
 	auto &shapes = reader.GetShapes();
 
 	for (size_t s = 0; s < shapes.size(); s++) {
-		fmt::println("SHAPE>>>");
-
 		buffer <float3> positions;
 		buffer <float3> normals;
 		buffer <float2> uvs;
@@ -65,6 +67,9 @@ std::optional <Preset> Preset::from(const std::filesystem::path &path)
 		std::unordered_map <tinyobj::index_t, int32_t> index_map;
 
 		const tinyobj::shape_t &shape = shapes[s];
+		
+		fmt::println("shape: {}", shape.name);
+		imported_asset.names.push_back(shape.name);
 
 		// Loop over faces (polygon)
 		size_t index_offset = 0;
@@ -150,7 +155,7 @@ std::optional <Preset> Preset::from(const std::filesystem::path &path)
 		if (materials.size())
 			mesh.face_properties[Mesh::material_key] = materials;
 
-		preset.geometry.push_back(mesh);
+		imported_asset.geometries.push_back(mesh);
 	}
 
 	auto to_float3 = [](const tinyobj::real_t *const values) {
@@ -172,16 +177,10 @@ std::optional <Preset> Preset::from(const std::filesystem::path &path)
 		if (length(emission) > 0)
 			m.values[Material::emission_key] = emission;
 
-		fmt::println("MATERIAL>>>");
-		fmt::println("  roughness: {}", material.roughness);
-		fmt::println("  emission: ({}, {}, {})",
-				emission[0],
-				emission[1],
-				emission[2]);
-		preset.materials.push_back(m);
+		imported_asset.materials.push_back(m);
 	}
 
-	return preset;
+	return imported_asset;
 }
 
 } // namespace jvl::core

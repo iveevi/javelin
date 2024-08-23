@@ -6,16 +6,17 @@
 
 #include "core/scene.hpp"
 #include "core/material.hpp"
+#include "engine/imported_asset.hpp"
 
 namespace jvl::core {
 
-void Scene::add(const Preset &preset)
+void Scene::add(const engine::ImportedAsset &imported_asset)
 {
 	size_t offset = materials.size();
-	for (auto &material : preset.materials)
+	for (auto &material : imported_asset.materials)
 		materials.push_back(material);
 
-	for (auto geometry : preset.geometry) {
+	for (auto geometry : imported_asset.geometries) {
 		// Reindex the materials
 		if (geometry.face_properties.contains(Mesh::material_key)) {
 			auto &mids = geometry.face_properties.at(Mesh::material_key).as <buffer <int>> ();

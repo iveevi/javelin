@@ -11,10 +11,11 @@
 // JVL headers
 #include "constants.hpp"
 #include "core/aperature.hpp"
-#include "core/preset.hpp"
 #include "core/scene.hpp"
 #include "core/transform.hpp"
 #include "core/triangle_mesh.hpp"
+#include "engine/imported_asset.hpp"
+#include "engine/imported_asset.hpp"
 #include "gfx/cpu/bvh.hpp"
 #include "gfx/cpu/framebuffer.hpp"
 #include "gfx/cpu/intersection.hpp"
@@ -91,24 +92,25 @@ using namespace jvl::gfx;
 
 int main(int argc, char *argv[])
 {
+	littlevk::config().enable_logging = false;
+	littlevk::config().abort_on_validation_error = true;
+
 	assert(argc >= 2);
 
 	std::filesystem::path path = argv[1];
 	fmt::println("path to scene: {}", path);
 
-	auto preset = core::Preset::from(path).value();
+	auto asset = engine::ImportedAsset::from(path).value();
+
+	auto scene = core::Scene();
+	scene.add(asset);
+	scene.write("main.jvlx");
 
 	// TODO: non blocking bvh construction (std promise equivalent?)
-	auto scene = cpu::Scene();
-	scene.add(preset);
-	scene.build_bvh();
-
-	{
-		auto scene = core::Scene();
-		scene.add(preset);
-		scene.write("main.jvlx");
-	}
-
+	auto cpu_scene = cpu::Scene();
+	cpu_scene.add(asset);
+	cpu_scene.build_bvh();
+	
 	//////////////////
 	// VULKAN SETUP //
 	//////////////////
@@ -156,8 +158,8 @@ int main(int argc, char *argv[])
 	std::vector <core::TriangleMesh> tmeshes;
 	std::vector <gfx::vulkan::TriangleMesh> vmeshes;
 
-	for (size_t i = 0; i < preset.geometry.size(); i++) {
-		auto tmesh = core::TriangleMesh::from(preset.geometry[i]).value();
+	for (auto &g : asset.geometries) {
+		auto tmesh = core::TriangleMesh::from(g).value();
 		tmeshes.push_back(tmesh);
 
 		auto vmesh = gfx::vulkan::TriangleMesh::from(drc.allocator(), tmesh).value();
@@ -284,7 +286,7 @@ int main(int argc, char *argv[])
 
 	auto fb = HostFramebufferCollection(drc.allocator(), drc.commander());
 
-	HostRaytracer rtx(scene);
+	HostRaytracer rtx(cpu_scene);
 
 	struct Extra {
 		int accumulated;
