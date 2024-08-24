@@ -6,7 +6,6 @@
 #include <fmt/format.h>
 #include <fmt/printf.h>
 #include <fmt/std.h>
-#include <random>
 
 // JVL headers
 #include "constants.hpp"
@@ -22,6 +21,7 @@
 #include "gfx/cpu/scene.hpp"
 #include "gfx/cpu/thread_pool.hpp"
 #include "gfx/vk/triangle_mesh.hpp"
+#include "imgui.h"
 #include "ire/callable.hpp"
 #include "ire/core.hpp"
 #include "ire/emitter.hpp"
@@ -90,29 +90,117 @@ void fragment()
 using namespace jvl::core;
 using namespace jvl::gfx;
 
+// Prelude information for the global context
+struct GlobalContextPrelude {
+	vk::PhysicalDevice phdev;
+	vk::Extent2D extent;
+	std::string title;
+	std::vector <const char *> extensions;
+};
+
+// Global state of the engine backend
+struct GlobalContext {
+	// GPU (active) resources
+	DeviceResourceCollection drc;
+
+	// Active scene
+	core::Scene scene;
+
+	// If this fails, there is no point in continuing
+	static GlobalContext from(const GlobalContextPrelude &prelude) {
+		GlobalContext gctx;
+		
+		auto &drc = gctx.drc;
+		drc.phdev = prelude.phdev;
+		drc.configure_display(prelude.extent, prelude.title);
+		drc.configure_device(prelude.extensions);
+
+		return gctx;
+	}
+};
+
+// Viewport information
+struct ViewportContext {
+	// Reference to 'parent'
+	GlobalContext &gctx;
+
+	// Viewing information
+	core::Aperature aperature;
+	core::Transform transform;
+
+	// Vulkan structures
+	vk::RenderPass render_pass;
+
+	// Pipeline structuring
+	enum : int {
+		eAlbedo,
+		eNormal,
+		eDepth,
+		eCount,
+	};
+
+	std::array <littlevk::Pipeline, eCount> pipelines;
+
+	// Device goemetry instances
+	// TODO: gfx::vulkan::Scene
+	std::vector <vulkan::TriangleMesh> meshes;
+
+	// Framebuffers and ImGui descriptor handle
+	std::vector <littlevk::Image> targets;
+	std::vector <vk::Framebuffer> framebuffers;
+	vk::DescriptorSet imgui_descriptor;
+	ivec2 extent;
+};
+
+// User interface information
+struct UserInterfaceContext {
+	// Reference to 'parent'
+	GlobalContext &gctx;
+
+	// Vulkan structures
+	vk::RenderPass render_pass;
+
+	void configure_render_pass() {
+		auto &drc = gctx.drc;
+		render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
+			.add_attachment(littlevk::default_color_attachment(drc.swapchain.format))
+			.add_subpass(vk::PipelineBindPoint::eGraphics)
+				.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
+				.done();
+	}
+
+	// Framebuffers
+	std::vector <vk::Framebuffer> framebuffers;
+
+	void configure_framebuffers() {
+		auto &drc = gctx.drc;
+		auto &swapchain = drc.swapchain;
+		
+		littlevk::FramebufferGenerator generator {
+			drc.device, render_pass,
+			drc.window.extent, drc.dal
+		};
+
+		for (size_t i = 0; i < swapchain.images.size(); i++)
+			generator.add(swapchain.image_views[i]);
+
+		framebuffers = generator.unpack();
+	}
+
+	static UserInterfaceContext from(GlobalContext &gctx) {
+		UserInterfaceContext uictx { gctx };
+		uictx.configure_render_pass();
+		uictx.configure_framebuffers();
+		return uictx;
+	}
+};
+
 int main(int argc, char *argv[])
 {
 	littlevk::config().enable_logging = false;
 	littlevk::config().abort_on_validation_error = true;
 
 	assert(argc >= 2);
-
-	std::filesystem::path path = argv[1];
-	fmt::println("path to scene: {}", path);
-
-	auto asset = engine::ImportedAsset::from(path).value();
-
-	auto scene = core::Scene();
-	scene.add(asset);
-	scene.write("main.jvlx");
-
-	// TODO: non blocking bvh construction (std promise equivalent?)
-	auto cpu_scene = cpu::Scene::from(scene);
-	cpu_scene.build_bvh();
-	
-	//////////////////
-	// VULKAN SETUP //
-	//////////////////
 
 	// Device extensions
 	static const std::vector <const char *> EXTENSIONS {
@@ -124,11 +212,29 @@ int main(int argc, char *argv[])
 		return littlevk::physical_device_able(phdev, EXTENSIONS);
 	};
 
-	DeviceResourceCollection drc;
+	GlobalContextPrelude prelude;
+	prelude.phdev = littlevk::pick_physical_device(predicate);
+	prelude.extent = vk::Extent2D(1920, 1080);
+	prelude.title = "Javelin Engine";
+	prelude.extensions = EXTENSIONS;
 
-	drc.phdev = littlevk::pick_physical_device(predicate);
-	drc.configure_display(vk::Extent2D(1920, 1080), "javelin");
-	drc.configure_device(EXTENSIONS);
+	auto gctx = GlobalContext::from(prelude);
+	auto &drc = gctx.drc;
+
+	std::filesystem::path path = argv[1];
+	fmt::println("path to asset: {}", path);
+
+	auto asset = engine::ImportedAsset::from(path).value();
+
+	gctx.scene.add(asset);
+	gctx.scene.write("main.jvlx");
+
+	// TODO: non blocking bvh construction (std promise equivalent?)
+	auto cpu_scene = cpu::Scene::from(gctx.scene);
+	cpu_scene.build_bvh();
+
+	// Rendering contexts
+	auto uictx = UserInterfaceContext::from(gctx);
 
 	vk::RenderPass ui_render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
 		.add_attachment(littlevk::default_color_attachment(drc.swapchain.format))
@@ -248,6 +354,8 @@ int main(int argc, char *argv[])
 		};
 
 		drc.commander().submit_and_wait(transition);
+
+		uictx.configure_framebuffers();
 	};
 
 	resize();
@@ -320,7 +428,8 @@ int main(int argc, char *argv[])
 	// TODO: dynamic render pass
 	ImVec2 viewport;
 
-	uint32_t frame = 0;
+	int32_t selected = -1;
+	int32_t frame = 0;
         while (true) {
 		handle_input();
 
@@ -382,12 +491,33 @@ int main(int argc, char *argv[])
 			ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 
 			if (ImGui::Begin("Scene")) {
-				for (auto &obj : scene.objects)
-					ImGui::Text("%s", obj.name.c_str());
+				for (int32_t i = 0; i < gctx.scene.objects.size(); i++) {
+					if (ImGui::Selectable(gctx.scene.objects[i].name.c_str(), selected == i)) {
+						selected = i;
+					}
+				}
+
+				// if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+				// 	selected = -1;
+
 				ImGui::End();
 			}
 			
 			if (ImGui::Begin("Inspector")) {
+				if (selected >= 0) {
+					auto &obj = gctx.scene.objects[selected];
+
+					ImGui::Text("%s", obj.name.c_str());
+
+					if (ImGui::CollapsingHeader("Meshes")) {
+
+					}
+					
+					if (ImGui::CollapsingHeader("Materials")) {
+						ImGui::Text("Count: %d", obj.materials.size());
+					}
+				}
+
 				ImGui::End();
 			}
 
