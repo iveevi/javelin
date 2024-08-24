@@ -6,6 +6,7 @@
 #include <list>
 #include <vector>
 #include <csignal>
+#include <functional>
 
 #include <pthread.h>
 
@@ -21,38 +22,8 @@ struct worker_status {
 	bool kill = false;
 };
 
-template <typename T, typename F>
-requires std::same_as <std::invoke_result_t <F, T &>, void>
-void worker_loop(const F &kernel, wrapped::thread_safe_queue <T> &queue, worker_status &status)
-{
-	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
-
-	// TODO: sleep
-	while (!status.begin) {
-		if (status.kill)
-			return;
-	}
-
-	while (!status.kill) {
-		T item;
-
-		{
-			std::lock_guard guard(queue.lock);
-			if (queue.size_locked())
-				item = queue.pop_locked();
-			else
-				break;
-		}
-
-		kernel(item);
-	}
-
-	status.done = true;
-}
-
-template <typename T, typename F>
-requires std::same_as <std::invoke_result_t <F, T &>, bool>
-void worker_loop(const F &kernel, wrapped::thread_safe_queue <T> &queue, worker_status &status)
+template <typename T>
+void worker_loop(const std::function <bool (T &)> &kernel, wrapped::thread_safe_queue <T> &queue, worker_status &status)
 {
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
 
@@ -83,10 +54,10 @@ void worker_loop(const F &kernel, wrapped::thread_safe_queue <T> &queue, worker_
 	status.done = true;
 }
 
-template <typename T, typename F>
-requires std::same_as <std::invoke_result_t <F, T &>, void>
-	|| std::same_as <std::invoke_result_t <F, T &>, bool>
+template <typename T>
 class fixed_function_thread_pool {
+	using F = std::function <bool (T &)>;
+
 	F kernel;
 	size_t count;
 
@@ -99,7 +70,7 @@ class fixed_function_thread_pool {
 		for (size_t i = 0; i < count; i++) {
 			worker_status s;
 			status.push_back(s);
-			threads.emplace_back(worker_loop <T, F>, kernel, std::ref(queue), std::ref(status.back()));
+			threads.emplace_back(worker_loop <T>, kernel, std::ref(queue), std::ref(status.back()));
 		}
 	}
 public:
