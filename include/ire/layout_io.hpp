@@ -6,6 +6,7 @@
 #include "uniform_layout.hpp"
 #include "type_synthesis.hpp"
 #include "upcast.hpp"
+#include <cstddef>
 
 namespace jvl::ire {
 
@@ -17,15 +18,17 @@ using layout_in_base = std::conditional_t <synthesizable <T> || uniform_compatib
 template <typename T>
 using layout_out_base = std::conditional_t <synthesizable <T> || uniform_compatible <T>, T, __empty>;
 
-template <global_qualifier_compatible T, size_t binding>
+template <global_qualifier_compatible T>
 struct layout_in : layout_in_base <T> {
 	using upcast_t = decltype(upcast(T()));
 
-	layout_in()
-	requires primitive_type <T> = default;
+	const size_t binding;
 
-	layout_in()
-	requires synthesizable <T> {
+	layout_in(size_t binding_)
+	requires primitive_type <T> : binding(binding_) {}
+
+	layout_in(size_t binding_)
+	requires synthesizable <T> : binding(binding_) {
 		auto &em = Emitter::active;
 
 		thunder::Global global;
@@ -37,8 +40,8 @@ struct layout_in : layout_in_base <T> {
 	}
 
 	template <typename ... Args>
-	layout_in(const Args &... args)
-	requires uniform_compatible <T> : T(args...) {
+	layout_in(size_t binding_, const Args &... args)
+	requires uniform_compatible <T> : T(args...), binding(binding_) {
 		auto &em = Emitter::active;
 
 		auto layout = this->layout().remove_const();
@@ -82,16 +85,18 @@ struct layout_in : layout_in_base <T> {
 	}
 };
 
-template <typename T, size_t binding>
+template <typename T>
 requires primitive_type <T> || synthesizable <T> || uniform_compatible <T>
 struct layout_out : layout_out_base <T> {
 	using upcast_t = decltype(upcast(T()));
 
-	layout_out()
-	requires primitive_type <T> = default;
+	size_t binding;
 
-	layout_out()
-	requires synthesizable <T> {
+	layout_out(size_t binding_)
+	requires primitive_type <T> : binding(binding_) {}
+
+	layout_out(size_t binding_)
+	requires synthesizable <T> : binding(binding_) {
 		auto &em = Emitter::active;
 
 		thunder::Global global;
@@ -103,8 +108,8 @@ struct layout_out : layout_out_base <T> {
 	}
 
 	template <typename ... Args>
-	layout_out(const Args &... args)
-	requires uniform_compatible <T> : T(args...) {
+	layout_out(size_t binding_, const Args &... args)
+	requires uniform_compatible <T> : T(args...), binding(binding_) {
 		auto &em = Emitter::active;
 
 		auto layout = this->layout().remove_const();

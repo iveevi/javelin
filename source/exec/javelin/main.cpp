@@ -64,8 +64,8 @@ struct mvp {
 // TODO: with regular input/output semantics?
 void vertex()
 {
-	layout_in <vec3, 0> position;
-	layout_out <vec3, 0> color;
+	layout_in <vec3> position(0);
+	layout_out <vec3> color(0);
 
 	push_constant <mvp> mvp;
 
@@ -76,8 +76,8 @@ void vertex()
 
 void fragment()
 {
-	layout_in <vec3, 0> position;
-	layout_out <vec4, 0> fragment;
+	layout_in <vec3> position(0);
+	layout_out <vec4> fragment(0);
 
 	vec3 dU = dFdxFine(position);
 	vec3 dV = dFdyFine(position);

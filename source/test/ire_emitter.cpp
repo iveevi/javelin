@@ -43,7 +43,7 @@ TEST(ire_emitter, synthesize_empty)
 	Emitter::active.clear();
 
 	auto shader = []() {
-		layout_in <float, 0> lin;
+		layout_in <float> lin(0);
 	};
 
 	shader();
@@ -59,8 +59,8 @@ void synthesize_layout_io_inner()
 	Emitter::active.clear();
 
 	auto shader = []() {
-		layout_in <T, 0> lin;
-		layout_out <T, 0> lout;
+		layout_in <T> lin(0);
+		layout_out <T> lout(0);
 		lout = lin;
 	};
 

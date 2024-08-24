@@ -58,8 +58,8 @@ template <typename T>
 void simple_io()
 {
 	auto shader = []() {
-		layout_in <T, 0> lin;
-		layout_out <T, 0> lout;
+		layout_in <T> lin(0);
+		layout_out <T> lout(0);
 		lout = lin;
 	};
 
@@ -82,8 +82,8 @@ template <typename T, size_t N>
 void simple_vector_io()
 {
 	auto shader = []() {
-		layout_in <vec <T, N>, 0> lin;
-		layout_out <vec <T, N>, 0> lout;
+		layout_in <vec <T, N>> lin(0);
+		layout_out <vec <T, N>> lout(0);
 		lout = lin;
 	};
 

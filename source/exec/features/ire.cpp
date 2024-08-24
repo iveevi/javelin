@@ -544,8 +544,8 @@ int main()
 
 	auto shader = [&]() {
 		// TODO: remove binding in the template, make it layout_in <float> input(0)
-		layout_in <float, 0> input;
-		layout_out <float, 0> output;
+		layout_in <float> input(0);
+		layout_out <float> output(0);
 
 		dual_t <f32> dx = dual(id(input, 1), f32(1.0f));
 		dual_t <f32> dy = dual(id(1, (f32) input / 2.0f), input);

@@ -22,8 +22,8 @@ static_assert(synthesizable <vec <float, 2>>);
 static_assert(synthesizable <vec <float, 3>>);
 static_assert(synthesizable <vec <float, 4>>);
 
-static_assert(synthesizable <layout_in <bool, 0>>);
-static_assert(synthesizable <layout_in <int, 0>>);
-static_assert(synthesizable <layout_in <float, 0>>);
+static_assert(synthesizable <layout_in <bool>>);
+static_assert(synthesizable <layout_in <int>>);
+static_assert(synthesizable <layout_in <float>>);
 
 } // namespace jvl::ire
