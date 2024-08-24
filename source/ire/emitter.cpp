@@ -1,4 +1,5 @@
 #include <cassert>
+#include <initializer_list>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -11,7 +12,7 @@ namespace jvl::ire {
 
 Scratch::Scratch() : pointer(0), pool(4) {}
 
-int Scratch::emit(const thunder::Atom &atom)
+Scratch::index_t Scratch::emit(const thunder::Atom &atom)
 {
 	if (pointer >= pool.size())
 		pool.resize((pool.size() << 1));
@@ -83,7 +84,7 @@ void Emitter::mark_used(int index, bool syn)
 }
 
 // Emitting instructions during function invocation
-int Emitter::emit(const thunder::Atom &atom)
+Emitter::index_t Emitter::emit(const thunder::Atom &atom)
 {
 	if (scopes.size())
 		return scopes.top().get().emit(atom);
@@ -91,7 +92,7 @@ int Emitter::emit(const thunder::Atom &atom)
 	return Scratch::emit(atom);
 }
 
-int Emitter::emit_main(const thunder::Atom &atom)
+Emitter::index_t Emitter::emit_main(const thunder::Atom &atom)
 {
 	int p = emit(atom);
 	synthesized.insert(p);
@@ -99,7 +100,7 @@ int Emitter::emit_main(const thunder::Atom &atom)
 	return p;
 }
 
-int Emitter::emit_main(const thunder::Branch &branch)
+Emitter::index_t Emitter::emit_main(const thunder::Branch &branch)
 {
 	int p = emit_main((thunder::Atom) branch);
 	control_flow_ends.push(p);
@@ -118,14 +119,14 @@ int Emitter::emit_main(const thunder::Branch &branch)
 // 	return p;
 // }
 
-int Emitter::emit_main(const thunder::While &loop)
+Emitter::index_t Emitter::emit_main(const thunder::While &loop)
 {
 	int p = emit_main((thunder::Atom) loop);
 	control_flow_ends.push(p);
 	return p;
 }
 
-int Emitter::emit_main(const thunder::End &end)
+Emitter::index_t Emitter::emit_main(const thunder::End &end)
 {
 	int p = emit_main((thunder::Atom) end);
 	assert(control_flow_ends.size());
@@ -133,6 +134,29 @@ int Emitter::emit_main(const thunder::End &end)
 	control_flow_ends.pop();
 	control_flow_callback(ref, p);
 	return p;
+}
+
+Emitter::index_t Emitter::emit_list_chain(const std::initializer_list <index_t> &atoms)
+{
+	thunder::List list;
+
+	index_t next = -1;
+	for (auto it = std::rbegin(atoms); it != std::rend(atoms); it++) {
+		list.item = *it;
+		list.next = next;
+		next = emit(list);
+	}
+
+	return next;
+}
+
+std::vector <Emitter::index_t> Emitter::emit_sequence(const std::initializer_list <thunder::Atom> &atoms)
+{
+	std::vector <index_t> result;
+	for (auto &atom : atoms)
+		result.push_back(emit(atom));
+
+	return result;
 }
 
 void Emitter::control_flow_callback(int ref, int p)

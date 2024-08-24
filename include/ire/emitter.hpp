@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <initializer_list>
 #include <stack>
 #include <unordered_set>
 
@@ -12,6 +13,8 @@ namespace jvl::ire {
 
 // Arbitrary pools of atoms
 struct Scratch {
+	using index_t = thunder::index_t;
+
 	std::vector <thunder::Atom> pool;
 	size_t pointer;
 
@@ -19,7 +22,7 @@ struct Scratch {
 
 	Scratch();
 	
-	int emit(const thunder::Atom &);
+	index_t emit(const thunder::Atom &);
 
 	void clear();
 
@@ -50,13 +53,40 @@ struct Emitter : Scratch {
 	void mark_used(int, bool);
 
 	// Emitting instructions during function invocation
-	int emit(const thunder::Atom &);
+	index_t emit(const thunder::Atom &);
 
-	int emit_main(const thunder::Atom &);
-	int emit_main(const thunder::Branch &);
-	int emit_main(const thunder::While &);
-	int emit_main(const thunder::End &);
+	index_t emit_main(const thunder::Atom &);
+	index_t emit_main(const thunder::Branch &);
+	index_t emit_main(const thunder::While &);
+	index_t emit_main(const thunder::End &);
 
+	// Easier ways to construct list chains
+	index_t emit_list_chain(const std::initializer_list <index_t> &);
+
+	template <std::integral ... Args>
+	index_t emit_list_chain(const Args &... args) {
+		return emit_list_chain(std::initializer_list <index_t> { args... });
+	}	
+
+	// Easier ways to emit multiple instructions in a sequence
+	std::vector <index_t> emit_sequence(const std::initializer_list <thunder::Atom> &);
+
+	template <size_t N, size_t I, thunder::atom_instruction T, thunder::atom_instruction ... Args>
+	void __emit_sequence(std::array <index_t, N> &result, const T &t, const Args &... args) {
+		result[I] = emit(t);
+		if constexpr (I + 1 < N)
+			__emit_sequence <N, I + 1> (result, args...);
+	}
+
+	template <thunder::atom_instruction T, thunder::atom_instruction ... Args>
+	auto emit_sequence(const T &t, const Args &... args) {
+		constexpr size_t N = sizeof...(Args) + 1;
+		std::array <index_t, N> result;
+		__emit_sequence <N, 0> (result, t, args...);
+		return result;
+	}
+
+	// Callbacks for control flow types
 	void control_flow_callback(int, int);
 
 	// Validating IR

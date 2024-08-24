@@ -72,7 +72,7 @@ std::string glsl_format_operation(int type, const std::vector <std::string> &arg
 	return "<op:?>";
 }
 
-std::string synthesize_glsl_body(const Atom *const pool,
+std::string synthesize_glsl_body(const std::vector <Atom> &pool,
 		                 const wrapped::hash_table <int, std::string> &struct_names,
 		                 const std::unordered_set <index_t> &synthesized,
 				 size_t size)

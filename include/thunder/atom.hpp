@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <unordered_set>
+#include <vector>
 
 #include <fmt/printf.h>
 
@@ -29,7 +30,7 @@ struct Addresses {
 // Interface to enforce guarantees about operations,
 // useful when enforcing decisions to change the layout
 template <typename T>
-concept __atom_instruction = requires(T &t) {
+concept atom_instruction = requires(T &t) {
 	{
 		t.addresses()
 	} -> std::same_as <Addresses>;
@@ -52,7 +53,7 @@ struct Global {
 	}
 };
 
-static_assert(__atom_instruction <Global>);
+static_assert(atom_instruction <Global>);
 
 // Struct field of a uniform compatible type
 //
@@ -69,7 +70,7 @@ struct TypeField {
 	}
 };
 
-static_assert(__atom_instruction <TypeField>);
+static_assert(atom_instruction <TypeField>);
 
 // Primitive value
 //
@@ -93,7 +94,7 @@ struct Primitive {
 };
 #pragma pack(pop)
 
-static_assert(__atom_instruction <Primitive>);
+static_assert(atom_instruction <Primitive>);
 
 // Swizzle instruction
 //
@@ -108,7 +109,10 @@ struct Swizzle {
 	}
 };
 
-static_assert(__atom_instruction <Swizzle>);
+static_assert(atom_instruction <Swizzle>);
+
+// TODO: specialize into binary args (second could be null),
+// and type should be a primitive type (int8_t)
 
 // Operation instruction
 //
@@ -125,7 +129,7 @@ struct Operation {
 	}
 };
 
-static_assert(__atom_instruction <Operation>);
+static_assert(atom_instruction <Operation>);
 
 // Intrinsic instruction, for invoking platform intrinsics
 //
@@ -142,7 +146,7 @@ struct Intrinsic {
 	}
 };
 
-static_assert(__atom_instruction <Intrinsic>);
+static_assert(atom_instruction <Intrinsic>);
 
 // List chain node
 //
@@ -157,7 +161,7 @@ struct List {
 	}
 };
 
-static_assert(__atom_instruction <List>);
+static_assert(atom_instruction <List>);
 
 // Constructing a (complex) primitive or composite type
 //
@@ -172,7 +176,7 @@ struct Construct {
 	}
 };
 
-static_assert(__atom_instruction <Construct>);
+static_assert(atom_instruction <Construct>);
 
 // Invoking a callable function (subroutine)
 //
@@ -202,7 +206,7 @@ struct Store {
 	}
 };
 
-static_assert(__atom_instruction <Store>);
+static_assert(atom_instruction <Store>);
 
 // Load instruction, with fields
 //
@@ -217,7 +221,7 @@ struct Load {
 	}
 };
 
-static_assert(__atom_instruction <Load>);
+static_assert(atom_instruction <Load>);
 
 // Branching instruction
 //
@@ -232,7 +236,7 @@ struct Branch {
 	}
 };
 
-static_assert(__atom_instruction <Branch>);
+static_assert(atom_instruction <Branch>);
 
 // Looping instruction
 //
@@ -247,7 +251,7 @@ struct While {
 	}
 };
 
-static_assert(__atom_instruction <While>);
+static_assert(atom_instruction <While>);
 
 // Returning values from subroutines and kernels
 //
@@ -262,7 +266,7 @@ struct Returns {
 	}
 };
 
-static_assert(__atom_instruction <Returns>);
+static_assert(atom_instruction <Returns>);
 
 // Target address of a branch/loop failto index
 // TODO: remove end
@@ -272,10 +276,10 @@ struct End {
 	}
 };
 
-static_assert(__atom_instruction <End>);
+static_assert(atom_instruction <End>);
 
 // Atom instructions
-using __atom_base = wrapped::variant <
+using atom_base = wrapped::variant <
 	Global,
 	TypeField,
 	Primitive,
@@ -293,8 +297,8 @@ using __atom_base = wrapped::variant <
 	End
 >;
 
-struct alignas(4) Atom : __atom_base {
-	using __atom_base::__atom_base;
+struct alignas(4) Atom : atom_base {
+	using atom_base::atom_base;
 
 	Addresses addresses() {
 		auto ftn = [](auto &x) -> Addresses { return x.addresses(); };
@@ -302,7 +306,7 @@ struct alignas(4) Atom : __atom_base {
 	}
 };
 
-static_assert(__atom_instruction <Atom>);
+static_assert(atom_instruction <Atom>);
 
 // TODO: move to guarantees.hpp
 static_assert(sizeof(Global)    == 6);
@@ -323,9 +327,9 @@ static_assert(sizeof(End)       == 1);
 static_assert(sizeof(Atom)      == 8);
 
 // Dispatcher types (vd = variadic dispatcher)
-std::string type_name(const Atom *const,
+std::string type_name(const std::vector <Atom> &,
 		      const wrapped::hash_table <int, std::string> &,
-		      int, int);
+		      index_t, index_t);
 
 // Printing instructions for debugging
 void dump_ir_operation(const Atom &);
@@ -334,7 +338,7 @@ void dump_ir_operation(const Atom &);
 void reindex_ir_operation(const wrapped::reindex <index_t> &, Atom &);
 
 // Synthesizing GLSL source code
-std::string synthesize_glsl_body(const Atom *const,
+std::string synthesize_glsl_body(const std::vector <Atom> &,
 		                 const wrapped::hash_table <int, std::string> &,
 		                 const std::unordered_set <index_t> &,
 				 size_t);

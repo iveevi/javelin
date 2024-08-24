@@ -184,9 +184,74 @@ struct ad_fwd_iteration_context_t {
 	const std::vector <Atom> &pool;
 };
 
-void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
-                		  ad_fwd_mapped_t &mapped,
-				  index_t i)
+index_t ad_fwd_binary_operation_dual_value
+(
+	ad_fwd_mapped_t &mapped,
+	const std::array <index_t, 2> &arg0,
+	const std::array <index_t, 2> &arg1,
+	OperationCode code,
+	index_t type
+)
+{
+	auto &em = Emitter::active;
+
+	switch (code) {
+	
+	case addition:
+	case subtraction:
+	{
+		index_t dual_args = em.emit_list_chain(arg0[1], arg1[1]);
+		index_t dual = em.emit(Operation(dual_args, type, code));
+		mapped.track(mapped[dual].addresses(), 0b10);
+		return dual;
+	}
+
+	case multiplication:
+	{
+		index_t base_type = em.emit(TypeField(-1, -1, f32));
+		index_t df_g = em.emit_list_chain(arg0[1], arg1[0]);
+		index_t f_dg = em.emit_list_chain(arg0[0], arg1[1]);
+		auto products = em.emit_sequence(Operation(df_g, base_type, multiplication),
+						 Operation(f_dg, base_type, multiplication));
+		index_t sum_args = em.emit_list_chain(products[0], products[1]);
+		return em.emit(Operation(sum_args, base_type, addition));
+	}
+
+	case division:
+	{
+		index_t base_type = em.emit(TypeField(-1, -1, f32));
+		index_t df_g = em.emit_list_chain(arg0[1], arg1[0]);
+		index_t f_dg = em.emit_list_chain(arg0[0], arg1[1]);
+		auto products = em.emit_sequence(Operation(df_g, base_type, multiplication),
+						 Operation(f_dg, base_type, multiplication));
+		index_t sub_args = em.emit_list_chain(products[0], products[1]);
+		index_t numerator = em.emit(Operation(sub_args, base_type, subtraction));
+		
+		auto square_args = em.emit_list_chain(arg1[0], arg1[0]);
+		index_t demoninator = em.emit(Operation(square_args, base_type, multiplication));
+
+		auto div_args = em.emit_list_chain(numerator, demoninator);
+		return em.emit(Operation(div_args, base_type, division));
+	}
+
+	default:
+	{
+		fmt::println("unsupported operation <{}> encountered in fwd AD",
+			tbl_operation_code[code]);
+		abort();
+	}
+
+	}
+
+	return -1;
+}
+
+void ad_fwd_transform_instruction
+(
+	ad_fwd_iteration_context_t &context,
+	ad_fwd_mapped_t &mapped,
+	index_t i
+)
 {
 	auto &em = Emitter::active;
 	auto &atom = context.pool[i];
@@ -298,53 +363,27 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 
 			li = list.next;
 		}
-
-		fmt::println("# of args: {}", args.size());
-		for (auto arg : args) {
-			dump_ir_operation(context.pool[arg]);
-			fmt::print("\n");
-		}
-
-		auto tf = context.pool[opn.type].as <TypeField> ();
-		fmt::println("operation return type:");
-		dump_ir_operation(tf);
-		fmt::print("\n");
 		
 		// Now fill in the actuall operation
-		index_t arg0_primal = em.emit(Load(args[0], 0));
-		index_t arg1_primal = em.emit(Load(args[1], 0));
-		
-		index_t arg0_dual = em.emit(Load(args[0], 1));
-		index_t arg1_dual = em.emit(Load(args[1], 1));
-
-		index_t opn_primal_args;
-		opn_primal_args = em.emit(List(arg1_primal, -1));
-		opn_primal_args = em.emit(List(arg0_primal, opn_primal_args));
-		
-		index_t opn_dual_args;
-		opn_dual_args = em.emit(List(arg1_dual, -1));
-		opn_dual_args = em.emit(List(arg0_dual, opn_dual_args));
+		auto arg0 = em.emit_sequence(Load(args[0], 0), Load(args[0], 1));
+		auto arg1 = em.emit_sequence(Load(args[1], 0), Load(args[1], 1));
+		index_t opn_primal_args = em.emit_list_chain(arg0[0], arg1[0]);
 
 		index_t primal = em.emit(Operation(opn_primal_args, opn.type, opn.code));
+		index_t dual = ad_fwd_binary_operation_dual_value(mapped, arg0, arg1, opn.code, opn.type);
 
-		// This would be the bulk
-		index_t dual = em.emit(Operation(opn_dual_args, opn.type, opn.code));
-
-		mapped.track(mapped[arg0_primal].addresses(), 0b01);
-		mapped.track(mapped[arg1_primal].addresses(), 0b01);
-		mapped.track(mapped[arg0_dual].addresses(), 0b01);
-		mapped.track(mapped[arg1_dual].addresses(), 0b01);
+		mapped.track(mapped[arg0[0]].addresses(), 0b01);
+		mapped.track(mapped[arg1[0]].addresses(), 0b01);
+		mapped.track(mapped[arg0[1]].addresses(), 0b01);
+		mapped.track(mapped[arg1[1]].addresses(), 0b01);
 		mapped.track(mapped[primal].addresses(), 0b10);
-		mapped.track(mapped[dual].addresses(), 0b10);
 
 		// Dual type storage
-		index_t ctor_args;
-		ctor_args = em.emit(List(dual, -1));
-		ctor_args = em.emit(List(primal, ctor_args));
+		auto tf = context.pool[opn.type].as <TypeField> ();
 
 		Construct dual_ctor;
 		dual_ctor.type = synthesize_differential_type(context.pool, tf);
-		dual_ctor.args = ctor_args;
+		dual_ctor.args = em.emit_list_chain(primal, dual);
 
 		em.emit(dual_ctor);
 	} break;
@@ -492,7 +531,7 @@ auto dfwd(const callable_t <R, Args...> &callable)
 // Sandbox application
 f32 __id(f32 x, f32 y)
 {
-	return x + y;
+	return (x / y) + x;
 }
 
 auto id = callable(__id).named("id");

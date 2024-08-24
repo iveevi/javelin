@@ -193,7 +193,7 @@ std::string Linkage::synthesize_glsl(const std::string &version)
 
 		source += fmt::format("{} {}({})\n", returns, name, parameters);
 		source += "{\n";
-		source += synthesize_glsl_body(b.unit.data(),
+		source += synthesize_glsl_body(b.unit,
 				               local_struct_names,
 					       b.synthesized,
 					       b.unit.size());
