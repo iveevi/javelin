@@ -159,7 +159,12 @@ int synthesize_differential_type(const std::vector <Atom> &pool, const TypeField
 // Each original instruction is mapped to:
 //   - a scratch pool of atoms as its transformed code
 //   - a list of references to indices pointing to original atoms
-using ref_index_t = std::reference_wrapper <index_t>;
+// using ref_index_t = std::reference_wrapper <index_t>;
+
+struct ref_index_t {
+	index_t index;
+	int8_t mask = 0b11;
+};
 
 struct ad_fwd_mapped_t {
 	Scratch transformed;
@@ -169,12 +174,8 @@ struct ad_fwd_mapped_t {
 		return transformed.pool[index];
 	}
 
-	void track(thunder::Addresses &&addrs, int8_t mask = 0b11) {
-		if (addrs.a0 != -1 && (mask & 0b01) == 0b01)
-			refs.push_back(std::ref(addrs.a0));
-
-		if (addrs.a1 != -1 && (mask & 0b10) == 0b10)
-			refs.push_back(std::ref(addrs.a1));
+	void track(index_t index, int8_t mask = 0b11) {
+		refs.push_back(ref_index_t(index, mask));
 	}
 };
 
@@ -202,7 +203,7 @@ index_t ad_fwd_binary_operation_dual_value
 	{
 		index_t dual_args = em.emit_list_chain(arg0[1], arg1[1]);
 		index_t dual = em.emit(Operation(dual_args, type, code));
-		mapped.track(mapped[dual].addresses(), 0b10);
+		mapped.track(dual, 0b10);
 		return dual;
 	}
 
@@ -214,6 +215,7 @@ index_t ad_fwd_binary_operation_dual_value
 		auto products = em.emit_sequence(Operation(df_g, base_type, multiplication),
 						 Operation(f_dg, base_type, multiplication));
 		index_t sum_args = em.emit_list_chain(products[0], products[1]);
+		// TODO: track values?
 		return em.emit(Operation(sum_args, base_type, addition));
 	}
 
@@ -243,6 +245,54 @@ index_t ad_fwd_binary_operation_dual_value
 
 	}
 
+	return -1;
+}
+
+index_t ad_fwd_intrinsic_dual_value
+(
+	ad_fwd_mapped_t &mapped,
+	const std::array <index_t, 2> &arg0,
+	IntrinsicOperation opn,
+	index_t type
+)
+{
+	auto &em = Emitter::active;
+
+	switch (opn) {
+	
+	case sin:
+	{
+		index_t args = em.emit_list_chain(arg0[1]);
+		index_t result = em.emit(Intrinsic(args, type, cos));
+		mapped.track(result, 0b10);
+		return result;
+	}
+	
+	case cos:
+	{
+		index_t args;
+		index_t result;
+
+		args = em.emit_list_chain(arg0[1]);
+		result = em.emit(Intrinsic(args, type, sin));
+		mapped.track(result, 0b10);
+
+		args = em.emit_list_chain(result);
+		result = em.emit(Operation(args, type, unary_negation));
+		mapped.track(result, 0b10);
+
+		return result;
+	}
+
+	default:
+	{
+		fmt::println("unsupported intrinsic <{}> encountered in fwd AD",
+			tbl_intrinsic_operation[opn]);
+		abort();
+	}
+
+	}
+	
 	return -1;
 }
 
@@ -299,7 +349,7 @@ void ad_fwd_transform_instruction
 
 		em.emit(global);
 
-		mapped.track(mapped[0].addresses());
+		mapped.track(0);
 	} break;
 
 	case Atom::type_index <Returns> ():
@@ -314,7 +364,7 @@ void ad_fwd_transform_instruction
 
 		em.emit(returns);
 
-		mapped.track(mapped[0].addresses());
+		mapped.track(0);
 	} break;
 
 	case Atom::type_index <List> ():
@@ -330,7 +380,7 @@ void ad_fwd_transform_instruction
 
 		em.emit(list);
 
-		mapped.track(mapped[0].addresses());
+		mapped.track(0);
 	} break;
 
 	case Atom::type_index <Operation> ():
@@ -372,11 +422,11 @@ void ad_fwd_transform_instruction
 		index_t primal = em.emit(Operation(opn_primal_args, opn.type, opn.code));
 		index_t dual = ad_fwd_binary_operation_dual_value(mapped, arg0, arg1, opn.code, opn.type);
 
-		mapped.track(mapped[arg0[0]].addresses(), 0b01);
-		mapped.track(mapped[arg1[0]].addresses(), 0b01);
-		mapped.track(mapped[arg0[1]].addresses(), 0b01);
-		mapped.track(mapped[arg1[1]].addresses(), 0b01);
-		mapped.track(mapped[primal].addresses(), 0b10);
+		mapped.track(arg0[0], 0b01);
+		mapped.track(arg1[0], 0b01);
+		mapped.track(arg0[1], 0b01);
+		mapped.track(arg1[1], 0b01);
+		mapped.track(primal, 0b10);
 
 		// Dual type storage
 		auto tf = context.pool[opn.type].as <TypeField> ();
@@ -388,12 +438,59 @@ void ad_fwd_transform_instruction
 		em.emit(dual_ctor);
 	} break;
 
+	case Atom::type_index <Intrinsic> ():
+	{
+		auto &intr = atom.as <Intrinsic> ();
+
+		diffed.insert(i);
+		
+		// Dependencies
+		queue.push_front(intr.args);
+		
+		// Get arguments (assuming binary)
+		std::vector <index_t> args;
+
+		index_t li = intr.args;
+		while (li != -1) {
+			Atom arg = context.pool[li];
+			if (!arg.is <List> ()) {
+				fmt::println("expected opn args to be a list chain");
+				abort();
+			}
+
+			List list = arg.as <List> ();
+			args.push_back(list.item);
+
+			li = list.next;
+		}
+
+		// Assuming unary intrinsic operations	
+		auto arg0 = em.emit_sequence(Load(args[0], 0), Load(args[0], 1));
+		index_t arg0_p = em.emit_list_chain(arg0[0]);
+		index_t primal = em.emit(Intrinsic(arg0_p, intr.type, intr.opn));
+		index_t dual = ad_fwd_intrinsic_dual_value(mapped, arg0, intr.opn, intr.type);
+		
+		// Dual type storage
+		auto tf = context.pool[intr.type].as <TypeField> ();
+
+		Construct dual_ctor;
+		dual_ctor.type = synthesize_differential_type(context.pool, tf);
+		dual_ctor.args = em.emit_list_chain(primal, dual);
+
+		em.emit(dual_ctor);
+
+		mapped.track(arg0[0], 0b01);
+		mapped.track(arg0[1], 0b01);
+		mapped.track(primal, 0b10);
+	} break;
+
 	// Simple pass through for others which are
 	// unaffected such as list chains
 	default:
 	{
 		diffed.insert(i);
 		em.emit(atom);
+		mapped.track(0);
 	} break;
 
 	}
@@ -412,15 +509,35 @@ void ad_fwd_transform_stitch_mapped(Scratch &result, std::vector <ad_fwd_mapped_
 		auto &g = mapped[i].refs;
 
 		// Create a map which offsets
-		// TODO: just use the addresses()
 		wrapped::reindex <index_t> reindex;
 		for (size_t i = 0; i < s.pointer; i++)
 			reindex[i] = i + offset;
 
 		// Preserve global refs
-		std::vector <index_t> store;
+		struct ref_state_t : ref_index_t {
+			index_t v0 = -1;
+			index_t v1 = -1;
+		};
+
+		auto ref_state_from = [&](const ref_index_t &ri) {
+			ref_state_t state(ri);
+			auto &&addrs = s.pool[ri.index].addresses();
+			state.v0 = addrs.a0;
+			state.v1 = addrs.a1;
+			return state;
+		};
+
+		auto ref_state_restore = [&](const ref_state_t &state) {
+			auto &&addrs = s.pool[state.index].addresses();
+			if (state.v0 != -1 && (state.mask & 0b01) == 0b01)
+				addrs.a0 = state.v0;
+			if (state.v1 != -1 && (state.mask & 0b10) == 0b10)
+				addrs.a1 = state.v1;
+		};
+
+		std::vector <ref_state_t> store;
 		for (auto &r : g)
-			store.push_back(r.get());
+			store.emplace_back(ref_state_from(r));
 
 		// Reindex each atom
 		for (size_t i = 0; i < s.pointer; i++)
@@ -428,7 +545,7 @@ void ad_fwd_transform_stitch_mapped(Scratch &result, std::vector <ad_fwd_mapped_
 
 		// Restore global refs
 		for (index_t i = 0; i < store.size(); i++)
-			g[i].get() = store[i];
+			ref_state_restore(store[i]);
 
 		offset += s.pointer;
 
@@ -439,11 +556,15 @@ void ad_fwd_transform_stitch_mapped(Scratch &result, std::vector <ad_fwd_mapped_
 	// some instructions (e.g. branches/loops) have
 	// forward looking addresses
 	for (index_t i = 0; i < mapped.size(); i++) {
+		auto &s = mapped[i].transformed;
 		auto &g = mapped[i].refs;
 
 		for (auto &r : g) {
-			index_t p = r.get();
-			r.get() = block_offsets[p];
+			auto &&addrs = s.pool[r.index].addresses();
+			if (addrs.a0 != -1 && (r.mask & 0b01) == 0b01)
+				addrs.a0 = block_offsets[addrs.a0];
+			if (addrs.a1 != -1 && (r.mask & 0b10) == 0b10)
+				addrs.a1 = block_offsets[addrs.a1];
 		}
 	}
 
@@ -481,14 +602,6 @@ void ad_fwd_transform(Scratch &result, const Scratch &source)
 
 	auto usage_graph = usage(source);
 
-	fmt::println("usage graph:");
-	for (index_t i = 0; i < usage_graph.size(); i++) {
-		fmt::print("{:4d}: ", i);
-		for (auto j : usage_graph[i])
-			fmt::print("{} ", j);
-		fmt::print("\n");
-	}
-
 	// Transform all differentiable instructions and their relatives
 	while (context.queue.size()) {
 		index_t i = context.queue.front();
@@ -510,7 +623,7 @@ void ad_fwd_transform(Scratch &result, const Scratch &source)
 			continue;
 
 		// These are the atoms which were simply forwarded in transformation
-		mapped[i].track(mapped[i][0].addresses());
+		mapped[i].track(0);
 	}
 
 	// Stitch the transformed blocks
@@ -531,7 +644,8 @@ auto dfwd(const callable_t <R, Args...> &callable)
 // Sandbox application
 f32 __id(f32 x, f32 y)
 {
-	return (x / y) + x;
+	return cos(x);
+	// return (x / y) + x;
 }
 
 auto id = callable(__id).named("id");
@@ -543,12 +657,12 @@ int main()
 	did.dump();
 
 	auto shader = [&]() {
-		// TODO: remove binding in the template, make it layout_in <float> input(0)
 		layout_in <float> input(0);
 		layout_out <float> output(0);
 
 		dual_t <f32> dx = dual(id(input, 1), f32(1.0f));
 		dual_t <f32> dy = dual(id(1, (f32) input / 2.0f), input);
+
 		output = did(dx, dy).dual;
 	};
 

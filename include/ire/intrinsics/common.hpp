@@ -8,9 +8,9 @@
 namespace jvl::ire {
 
 template <primitive_type T>
-primitive_t <T> acos(const primitive_t <T> &x)
+primitive_t <T> sin(const primitive_t <T> &x)
 {
-	return platform_intrinsic_from_args <primitive_t <T>> (thunder::acos, x);
+	return platform_intrinsic_from_args <primitive_t <T>> (thunder::sin, x);
 }
 
 template <primitive_type T>
@@ -23,6 +23,24 @@ template <primitive_type T>
 primitive_t <T> tan(const primitive_t <T> &x)
 {
 	return platform_intrinsic_from_args <primitive_t <T>> (thunder::tan, x);
+}
+
+template <primitive_type T>
+primitive_t <T> asin(const primitive_t <T> &x)
+{
+	return platform_intrinsic_from_args <primitive_t <T>> (thunder::asin, x);
+}
+
+template <primitive_type T>
+primitive_t <T> acos(const primitive_t <T> &x)
+{
+	return platform_intrinsic_from_args <primitive_t <T>> (thunder::acos, x);
+}
+
+template <primitive_type T>
+primitive_t <T> atan(const primitive_t <T> &x)
+{
+	return platform_intrinsic_from_args <primitive_t <T>> (thunder::atan, x);
 }
 
 template <primitive_type T>

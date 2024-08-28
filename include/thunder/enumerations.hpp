@@ -139,7 +139,9 @@ enum IntrinsicOperation : uint16_t {
 	cos,
 	tan,
 
+	asin,
 	acos,
+	atan,
 	
 	sqrt,
 	exp,
@@ -165,7 +167,9 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"cos",
 	"tan",
 
+	"asin",
 	"acos",
+	"atan",
 
 	"sqrt",
 	"exp",
