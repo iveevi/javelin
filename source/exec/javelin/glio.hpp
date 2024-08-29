@@ -1,3 +1,5 @@
+#pragma once
+
 #include <littlevk/littlevk.hpp>
 
 #include "math_types.hpp"

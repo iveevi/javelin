@@ -46,6 +46,10 @@ add_executable(javelin
 	source/core/aabb.cpp
 	source/core/scene.cpp
 	source/engine/imported_asset.cpp
+	source/exec/javelin/attachment_inspectors.cpp
+	source/exec/javelin/attachment_raytracing_cpu.cpp
+	source/exec/javelin/attachment_ui.cpp
+	source/exec/javelin/attachment_viewport.cpp
 	source/exec/javelin/device_resource_collection.cpp
 	source/exec/javelin/glio.cpp
 	source/exec/javelin/main.cpp
