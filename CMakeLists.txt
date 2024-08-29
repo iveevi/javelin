@@ -31,6 +31,7 @@ add_library(imgui SHARED
 	thirdparty/imgui/backends/imgui_impl_vulkan.cpp)
 
 add_library(javelin-ire STATIC
+	source/thunder/ad_fwd.cpp
 	source/thunder/dump.cpp
 	source/thunder/kernel.cpp
 	source/thunder/linkage.cpp
