@@ -21,6 +21,8 @@ struct Scratch {
 	// TODO: buffering with a static sized array
 
 	Scratch();
+
+	void reserve(size_t);
 	
 	index_t emit(const thunder::Atom &);
 

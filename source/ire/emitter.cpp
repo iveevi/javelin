@@ -12,6 +12,11 @@ namespace jvl::ire {
 
 Scratch::Scratch() : pointer(0), pool(4) {}
 
+void Scratch::reserve(size_t size)
+{
+	pool.resize(std::max(pool.size(), pointer + size));
+}
+
 Scratch::index_t Scratch::emit(const thunder::Atom &atom)
 {
 	if (pointer >= pool.size())

@@ -258,14 +258,25 @@ index_t ad_fwd_intrinsic_dual_value
 {
 	auto &em = Emitter::active;
 
+	auto chain_rule = [&](index_t result) -> index_t {
+		index_t args = em.emit_list_chain(result, arg0[1]);
+		result = em.emit(Operation(args, type, multiplication));
+		mapped.track(result, 0b10);
+		return result;
+	};
+
 	switch (opn) {
 	
 	case sin:
 	{
-		index_t args = em.emit_list_chain(arg0[1]);
-		index_t result = em.emit(Intrinsic(args, type, cos));
+		index_t args;
+		index_t result;
+
+		args = em.emit_list_chain(arg0[0]);
+		result = em.emit(Intrinsic(args, type, cos));
 		mapped.track(result, 0b10);
-		return result;
+
+		return chain_rule(result);
 	}
 	
 	case cos:
@@ -273,7 +284,7 @@ index_t ad_fwd_intrinsic_dual_value
 		index_t args;
 		index_t result;
 
-		args = em.emit_list_chain(arg0[1]);
+		args = em.emit_list_chain(arg0[0]);
 		result = em.emit(Intrinsic(args, type, sin));
 		mapped.track(result, 0b10);
 
@@ -281,7 +292,7 @@ index_t ad_fwd_intrinsic_dual_value
 		result = em.emit(Operation(args, type, unary_negation));
 		mapped.track(result, 0b10);
 
-		return result;
+		return chain_rule(result);
 	}
 
 	default:
@@ -644,7 +655,7 @@ auto dfwd(const callable_t <R, Args...> &callable)
 // Sandbox application
 f32 __id(f32 x, f32 y)
 {
-	return cos(x);
+	return sin(x * x);
 	// return (x / y) + x;
 }
 
