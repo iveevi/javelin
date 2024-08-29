@@ -37,4 +37,7 @@ void imgui_initialize_vulkan(DeviceResourceCollection &drc, const vk::RenderPass
 	init_info.RenderPass = render_pass;
 
 	ImGui_ImplVulkan_Init(&init_info);
+
+	ImGuiIO &io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 }

@@ -117,6 +117,7 @@ struct Attachment {
 
 	render_impl renderer;
 	resize_impl resizer;
+	void *user;
 };
 
 // Global state of the engine backend
@@ -127,18 +128,22 @@ struct GlobalContext {
 	// Active scene
 	core::Scene scene;
 
-	// Users for each attachment
-	wrapped::hash_table <std::string, void *> lut;
-
 	// Attachments from other contexts
-	// TODO: attach with the user address,
-	// and then a hash table
-	std::vector <Attachment> attachments;
+	wrapped::hash_table< std::string, Attachment> attachments;
+
+	void attach(const std::string &key, const Attachment &attachment) {
+		attachments[key] = attachment;
+	}
+
+	template <typename T>
+	T *attachment_user() {
+		return reinterpret_cast <T *> (attachments[T::key].user);
+	}
 
 	// Resizing
 	void resize() {
 		drc.combined().resize(drc.surface, drc.window, drc.swapchain);
-		for (auto &attachment : attachments)
+		for (auto &[k, attachment] : attachments)
 			attachment.resizer();
 	}
 
@@ -182,7 +187,7 @@ struct GlobalContext {
 			rs.frame = frame.index;
 			rs.sop = sop;
 
-			for (auto &attachment : attachments)
+			for (auto &[k, attachment] : attachments)
 				attachment.renderer(rs);
 		
 			cmd.end();
@@ -230,6 +235,7 @@ struct AttachmentRaytracingCPU {
 	std::uniform_real_distribution <float> distribution;
 
 	int2 extent;
+	int samples = 1;
 
 	float3 radiance(const Ray &ray, int depth = 0) {
 		if (depth <= 0)
@@ -240,7 +246,7 @@ struct AttachmentRaytracingCPU {
 
 		// TODO: get environment map lighting from scene...
 		if (sh.time <= 0.0)
-			return float3(0.3, 0.3, 0.4);
+			return float3(0.6, 0.6, 0.7);
 
 		assert(sh.material < scene.materials.size());
 		Material &material = scene.materials[sh.material];
@@ -297,6 +303,8 @@ struct AttachmentRaytracingCPU {
 		prior += color;
 		prior = prior / float(extra.accumulated + 1);
 
+		sample_count++;
+
 		return float4(clamp(prior, 0, 1), 1);
 	}
 
@@ -315,9 +323,20 @@ struct AttachmentRaytracingCPU {
 		return (++tile.data.accumulated) < tile.data.expected;
 	}
 
-	// ImGui callback
-	void render_imgui() {
-		ImGui::Begin("CPU Raytracer");
+	// ImGui callbacks
+	std::atomic <int> sample_count = 0;
+	std::atomic <int> sample_total = 0;
+
+	void render_imgui_synthesized() {
+		ImGui::Begin("CPU Raytracer (Output)");
+
+		ImGui::Text("Progress");
+		ImGui::SameLine();
+
+		float progress = float(sample_count)/float(sample_total);
+		ImGui::ProgressBar(progress);
+
+		ImGui::Separator();
 
 		ImVec2 size = ImGui::GetContentRegionAvail();
 		extent = { int(size.x), int(size.y) };
@@ -328,13 +347,25 @@ struct AttachmentRaytracingCPU {
 		ImGui::End();
 	}
 
+	void render_imgui_options() {
+		ImGui::Begin("CPU Raytracer (Options)");
+
+		ImGui::Text("Sample count");
+		ImGui::InputInt("samples", &samples);
+
+		ImGui::End();
+	}
+
 	// Trigger the rendering
 	void trigger(const Transform &transform_) {
 		fb->resize(extent.x, extent.y);
 		contributions.resize(extent.x, extent.y);
 
+		sample_count = 0;
+		sample_total = samples * extent.x * extent.y;
+
 		int2 size { 32, 32 };
-		auto tiles = fb->host.tiles <AttachmentRaytracingCPU::Extra> (size, AttachmentRaytracingCPU::Extra(0, 64));
+		auto tiles = fb->host.tiles <AttachmentRaytracingCPU::Extra> (size, AttachmentRaytracingCPU::Extra(0, samples));
 
 		transform = transform_;
 		rayframe = core::rayframe(aperature, transform);
@@ -346,10 +377,17 @@ struct AttachmentRaytracingCPU {
 		thread_pool->begin();
 	}
 
+	// Global context attachment description
+	Attachment attachment() {
+		return Attachment {
+			.renderer = [&](const RenderState &rs) { fb->refresh(rs.cmd); },
+			.resizer = []() { /* Nothing */ },
+			.user = this,
+		};
+	}
+
 	AttachmentRaytracingCPU(const std::unique_ptr <GlobalContext> &global_context) {
 		auto &drc = global_context->drc;
-
-		global_context->lut[key] = this;
 
 		scene = cpu::Scene::from(global_context->scene);
 		random = std::mt19937(std::random_device()());
@@ -548,7 +586,7 @@ struct AttachmentViewport {
 
 		if (ImGui::BeginMenuBar()) {
 			if (ImGui::Button("Render")) {
-				auto rtx = (AttachmentRaytracingCPU *) gctx.lut[AttachmentRaytracingCPU::key];
+				auto rtx = gctx.attachment_user <AttachmentRaytracingCPU> ();
 				rtx->trigger(transform);
 			}
 
@@ -571,6 +609,14 @@ struct AttachmentViewport {
 		viewport_region.max = { max.x, max.y };
 
 		ImGui::End();
+	}
+
+	Attachment attachment() {
+		return Attachment {
+			.renderer = std::bind(&AttachmentViewport::render, this, std::placeholders::_1),
+			.resizer = std::bind(&AttachmentViewport::configure_framebuffers, this),
+			.user = this
+		};
 	}
 	
 	// Construction
@@ -615,10 +661,16 @@ struct AttachmentUI {
 
 		framebuffers = generator.unpack();
 	}
-
-	// Rendering
+	
+	// Drawing callbacks
 	std::vector <std::function <void ()>> callbacks;
 
+	template <typename ... Args>
+	void subscribe(Args ... args) {
+		callbacks.push_back(std::bind(args...));
+	}
+
+	// Rendering
 	void render(const RenderState &rs) {
 		const auto &rpbi = littlevk::default_rp_begin_info <1> (render_pass, framebuffers[rs.sop.index], gctx.drc.window);
 		
@@ -638,6 +690,14 @@ struct AttachmentUI {
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), rs.cmd);
 
 		rs.cmd.endRenderPass();
+	}
+
+	Attachment attachment() {
+		return Attachment {
+			.renderer = std::bind(&AttachmentUI::render, this, std::placeholders::_1),
+			.resizer = std::bind(&AttachmentUI::configure_framebuffers, this),
+			.user = this
+		};
 	}
 
 	// Construction
@@ -741,33 +801,19 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	ImGuiIO &io = ImGui::GetIO();
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-
 	glfwSetWindowUserPointer(drc.window.handle, &attachment_viewport->transform);
 	glfwSetMouseButtonCallback(drc.window.handle, button_callback);
 	glfwSetCursorPosCallback(drc.window.handle, cursor_callback);
 
-	attatchment_ui->callbacks.push_back(std::bind(&AttachmentInspectors::scene_hierarchy, attachment_inspectors.get()));
-	attatchment_ui->callbacks.push_back(std::bind(&AttachmentInspectors::object_inspector, attachment_inspectors.get()));
-	attatchment_ui->callbacks.push_back(std::bind(&AttachmentViewport::render_imgui, attachment_viewport.get()));
-	attatchment_ui->callbacks.push_back(std::bind(&AttachmentRaytracingCPU::render_imgui, attachment_rtx_cpu.get()));
+	attatchment_ui->subscribe(&AttachmentInspectors::scene_hierarchy, attachment_inspectors.get());
+	attatchment_ui->subscribe(&AttachmentInspectors::object_inspector, attachment_inspectors.get());
+	attatchment_ui->subscribe(&AttachmentViewport::render_imgui, attachment_viewport.get());
+	attatchment_ui->subscribe(&AttachmentRaytracingCPU::render_imgui_synthesized, attachment_rtx_cpu.get());
+	attatchment_ui->subscribe(&AttachmentRaytracingCPU::render_imgui_options, attachment_rtx_cpu.get());
 
-	Attachment ui_attachment;
-	ui_attachment.renderer = std::bind(&AttachmentUI::render, attatchment_ui.get(), std::placeholders::_1);
-	ui_attachment.resizer = std::bind(&AttachmentUI::configure_framebuffers, attatchment_ui.get());
-	
-	Attachment viewport_attachment;
-	viewport_attachment.renderer = std::bind(&AttachmentViewport::render, attachment_viewport.get(), std::placeholders::_1);
-	viewport_attachment.resizer = std::bind(&AttachmentViewport::configure_framebuffers, attachment_viewport.get());
-
-	Attachment rtx_attachment;
-	rtx_attachment.renderer = [&](const RenderState &rs) { attachment_rtx_cpu->fb->refresh(rs.cmd); };
-	rtx_attachment.resizer = []() { /* Nothing */ };
-
-	global_context->attachments.push_back(rtx_attachment);
-	global_context->attachments.push_back(viewport_attachment);
-	global_context->attachments.push_back(ui_attachment);
+	global_context->attach(AttachmentRaytracingCPU::key, attachment_rtx_cpu->attachment());
+	global_context->attach("viewport", attachment_viewport->attachment());
+	global_context->attach("ui", attatchment_ui->attachment());
 
 	global_context->loop();
 
