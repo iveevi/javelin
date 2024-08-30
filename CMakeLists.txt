@@ -39,10 +39,12 @@ add_library(javelin-ire STATIC
 	source/thunder/reindex.cpp
 	source/thunder/synthesize_glsl.cpp
 	source/thunder/type_name.cpp
+	source/thunder/usage.cpp
 	source/ire/callable.cpp
 	source/ire/compaction.cpp
 	source/ire/emitter.cpp
-	source/ire/marking.cpp)
+	source/ire/marking.cpp
+	source/ire/scratch.cpp)
 
 add_executable(javelin
 	source/core/aabb.cpp

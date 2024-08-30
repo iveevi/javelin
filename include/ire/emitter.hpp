@@ -5,31 +5,12 @@
 #include <stack>
 #include <unordered_set>
 
+#include "scratch.hpp"
 #include "../thunder/atom.hpp"
 #include "../thunder/kernel.hpp"
 #include "../wrapped_types.hpp"
 
 namespace jvl::ire {
-
-// Arbitrary pools of atoms
-struct Scratch {
-	using index_t = thunder::index_t;
-
-	std::vector <thunder::Atom> pool;
-	size_t pointer;
-
-	// TODO: buffering with a static sized array
-
-	Scratch();
-
-	void reserve(size_t);
-	
-	index_t emit(const thunder::Atom &);
-
-	void clear();
-
-	void dump();
-};
 
 // More advanced pool which manages control flow as well as scopes of pools
 struct Emitter : Scratch {

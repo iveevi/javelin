@@ -11,15 +11,19 @@ std::string type_name
 	index_t field
 )
 {
+	Atom g = pool[index];
 	if (struct_names.contains(index)) {
 		if (field == -1)
 			return struct_names.at(index);
 
-		index -= std::max(index_t(0), field);
-		field = 0;
+		assert(g.is <TypeField> ());
+		if (field > 0) {
+			index_t i = g.as <TypeField> ().next;
+			// TODO: traverse inline
+			return type_name(pool, struct_names, i, field - 1);
+		}
 	}
 
-	Atom g = pool[index];
 	if (auto global = g.get <Global> ()) {
 		return type_name(pool, struct_names, global->type, field);
 	} else if (auto ctor = g.get <Construct> ()) {
@@ -29,6 +33,10 @@ std::string type_name
 			return type_name(pool, struct_names, tf->down, -1);
 		if (tf->item != bad)
 			return tbl_primitive_types[tf->item];
+	} else {
+		fmt::println("failed to resolve type name for");
+		dump_ir_operation(g);
+		fmt::print("\n");
 	}
 
 	return "<BAD>";

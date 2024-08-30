@@ -6,7 +6,7 @@
 #include "../thunder/kernel.hpp"
 #include "uniform_layout.hpp"
 #include "type_synthesis.hpp"
-#include "emitter.hpp"
+#include "scratch.hpp"
 
 namespace jvl::ire {
 

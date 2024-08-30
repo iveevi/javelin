@@ -9,7 +9,9 @@
 #include "ire/emitter.hpp"
 #include "profiles/targets.hpp"
 #include "thunder/atom.hpp"
+#include "thunder/opt.hpp"
 #include "thunder/enumerations.hpp"
+#include "wrapped_types.hpp"
 
 // TODO: immutability for shader inputs types
 // TODO: demote variables to inline if they are not modified later
@@ -27,7 +29,7 @@ using namespace jvl::ire;
 
 namespace jvl::thunder {
 
-void opt_compact_transform(Scratch &result, const Scratch &source)
+void opt_transform_compact(Scratch &result, const Scratch &source)
 {
 	// Always begin with a copy
 	result = source;
@@ -78,52 +80,111 @@ void opt_compact_transform(Scratch &result, const Scratch &source)
 		if (reindex[i] != i)
 			continue;
 
-		auto &&addrs = result.pool[i].addresses();
-		if (addrs.a0 != -1) relocation(addrs.a0);
-		if (addrs.a1 != -1) relocation(addrs.a1);
+		result.pool[i].reindex(relocation);
+		// auto &&addrs = result.pool[i].addresses();
+		// if (addrs.a0 != -1) relocation(addrs.a0);
+		// if (addrs.a1 != -1) relocation(addrs.a1);
 
 		doubled.emit(result.pool[i]);
 	}
 
 	std::swap(result, doubled);
+
+	// TODO: do this step in place, without creating a duplicate buffer
+	// just mark the unused  for dead-code-elimination later...
 }
+
+void opt_transform_constructor_elision(Scratch &result)
+{
+	// Find places where load from a constructed struct's field
+	// can be skipped by simply forwarding the result it was
+	// constructed with; if the constructor is completely useless,
+	// then it will be removed during dead code elimination
+				
+	auto constructor_elision = [&](const std::vector <index_t> &fields,
+				       const Load &ld,
+				       index_t user) {
+		if (ld.idx == -1)
+			return;
+
+		usage_list loaders = usage(result, user);
+
+		wrapped::reindex <index_t> relocation;
+		for (index_t i = 0; i < result.pointer; i++)
+			relocation[i] = i;
+
+		relocation[user] = fields[ld.idx];
+
+		for (auto i : loaders)
+			result.pool[i].reindex(relocation);
+	};
+
+	for (index_t i = 0; i < result.pointer; i++) {
+		// Find all the construct calls
+		auto &atom = result.pool[i];
+		if (!atom.is <Construct> ())
+			continue;
+
+		// Gather the arguments
+		// NOTE: this assumes that the constructor is a
+		// plain initializer list and that it is in order
+		Construct ctor = atom.as <Construct> ();
+
+		std::vector <index_t> fields;
+
+		index_t arg = ctor.args;
+		while (arg != -1) {
+			auto &atom = result.pool[arg];
+			assert(atom.is <List> ());
+
+			const List &list = atom.as <List> ();
+			fields.push_back(list.item);
+			arg = list.next;
+		}
+
+		usage_list users = usage(result, i);
+
+		for (auto user : users) {
+			auto &atom = result.pool[user];
+			if (atom.is <Load> ())
+				constructor_elision(fields, atom.as <Load> (), user);
+
+			// TODO: if we get a store instruction,
+			// we should stop...
+		}
+	}
+}
+
+// TODO: opt_transform_dead_code_elimination(...)
 
 }
 
 // Sandbox application
 f32 __id(f32 x, f32 y)
 {
-	return sin(x * x);
-	// return (x / y) + x;
+	// return sin(x * x);
+	return (x / y) + x;
 }
 
 auto id = callable(__id).named("id");
 
 int main()
 {
-	Scratch s;
-
-	id.dump();
-	thunder::opt_compact_transform(s, id);
-	s.dump();
+	Callable optimized;
 
 	auto did = dfwd(id);
 
-	did.dump();
-	thunder::opt_compact_transform(s, did);
-	s.dump();
+	// did.dump();
+	thunder::opt_transform_compact(optimized, did);
+	thunder::opt_transform_compact(optimized, Callable(optimized));
+	
+	optimized.dump();
+	thunder::opt_transform_constructor_elision(optimized);
 
-	auto shader = [&]() {
-		layout_in <float> input(0);
-		layout_out <float> output(0);
+	optimized.dump();
 
-		dual_t <f32> dx = dual(id(input, 1), f32(1.0f));
-		dual_t <f32> dy = dual(id(1, (f32) input / 2.0f), input);
+	Callable original = did;
 
-		output = did(dx, dy).dual;
-	};
-
-	auto kernel = kernel_from_args(shader);
-
-	fmt::println("{}", kernel.synthesize(profiles::opengl_450));
+	fmt::println("{}", original.export_to_kernel().synthesize(profiles::opengl_450));
+	fmt::println("{}", optimized.export_to_kernel().synthesize(profiles::opengl_450));
 }

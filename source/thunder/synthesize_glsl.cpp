@@ -44,26 +44,33 @@ std::string glsl_primitive(const Primitive &p)
 
 std::string glsl_format_operation(int type, const std::vector <std::string> &args)
 {
-	// TODO: check # of args
-
 	switch (type) {
 	case OperationCode::unary_negation:
+		assert(args.size() == 1);
 		return fmt::format("-{}", args[0]);
 	case OperationCode::addition:
+		assert(args.size() == 2);
 		return fmt::format("({} + {})", args[0], args[1]);
 	case OperationCode::subtraction:
+		assert(args.size() == 2);
 		return fmt::format("({} - {})", args[0], args[1]);
 	case OperationCode::multiplication:
+		assert(args.size() == 2);
 		return fmt::format("({} * {})", args[0], args[1]);
 	case OperationCode::division:
+		assert(args.size() == 2);
 		return fmt::format("({} / {})", args[0], args[1]);
 	case OperationCode::cmp_ge:
+		assert(args.size() == 2);
 		return fmt::format("({} > {})", args[0], args[1]);
 	case OperationCode::cmp_le:
+		assert(args.size() == 2);
 		return fmt::format("({} < {})", args[0], args[1]);
 	case OperationCode::cmp_geq:
+		assert(args.size() == 2);
 		return fmt::format("({} >= {})", args[0], args[1]);
 	case OperationCode::cmp_leq:
+		assert(args.size() == 2);
 		return fmt::format("({} <= {})", args[0], args[1]);
 	default:
 		break;
@@ -266,18 +273,6 @@ std::string synthesize_glsl_body(const std::vector <Atom> &pool,
 			std::string whiles = "while (" + v + ") {";
 			source += finish(whiles, false);
 			indentation++;
-		// } else if (auto elif = g.get <Elif> ()) {
-		// 	indentation--;
-
-		// 	std::string elifs = "} else {";
-		// 	if (elif->cond != -1) {
-		// 		std::string v = inlined(elif->cond);
-		// 		std::string ifs = "} else if (" + v + ") {";
-		// 	}
-
-		// 	source += finish(elifs, false);
-
-		// 	indentation++;
 		} else if (auto ctor = g.get <Construct> ()) {
 			std::string t = type_name(pool, struct_names, ctor->type, -1);
 			if (ctor->args == -1) {

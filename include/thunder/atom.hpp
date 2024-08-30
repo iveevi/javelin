@@ -390,6 +390,12 @@ struct alignas(4) Atom : atom_base {
 		auto ftn = [](auto &x) -> Addresses { return x.addresses(); };
 		return std::visit(ftn, *this);
 	}
+
+	void reindex(const wrapped::reindex <index_t> &reindexer) {
+		auto &&addrs = addresses();
+		if (addrs.a0 != -1) reindexer(addrs.a0);
+		if (addrs.a1 != -1) reindexer(addrs.a1);
+	}
 };
 
 static_assert(atom_instruction <Atom>);

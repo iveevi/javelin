@@ -1,39 +1,9 @@
 #include "thunder/atom.hpp"
 #include "thunder/ad.hpp"
+#include "thunder/opt.hpp"
 #include "ire/emitter.hpp"
 
 namespace jvl::thunder {
-
-using usage_list = std::vector <index_t>;
-
-[[gnu::always_inline]]
-inline bool uses(Atom atom, index_t i)
-{
-	auto &&addresses = atom.addresses();
-	return (i != -1) && ((addresses.a0 == i) || (addresses.a1 == i));
-}
-
-usage_list usage(const std::vector <Atom> &pool, index_t index)
-{
-	usage_list indices;
-	for (index_t i = index + 1; i < pool.size(); i++) {
-		if (uses(pool[i], index))
-			indices.push_back(i);
-	}
-
-	return indices;
-}
-
-using usage_graph = std::vector <usage_list>;
-
-usage_graph usage(const ire::Scratch &scratch)
-{
-	usage_graph graph(scratch.pointer);
-	for (index_t i = 0; i < graph.size(); i++)
-		graph[i] = usage(scratch.pool, i);
-
-	return graph;
-}
 
 // Conventional synthesis will have the first type field be the
 // primal value, and the secnod be the dual/derivative value
