@@ -48,6 +48,12 @@ struct Global {
 	index_t binding = -1;
 	GlobalQualifier qualifier;
 
+	bool operator==(const Global &other) const {
+		return (type == other.type)
+			&& (binding == other.binding)
+			&& (qualifier == other.qualifier);
+	}
+
 	Addresses addresses() {
 		return { type, Addresses::null() };
 	}
@@ -64,6 +70,12 @@ struct TypeField {
 	index_t down = -1;
 	index_t next = -1;
 	PrimitiveType item = bad;
+	
+	bool operator==(const TypeField &other) const {
+		return (down == other.down)
+			&& (next == other.next)
+			&& (item == other.item);
+	}
 
 	Addresses addresses() {
 		return { down, next };
@@ -87,6 +99,20 @@ struct Primitive {
 	};
 
 	PrimitiveType type = bad;
+
+	bool operator==(const Primitive &other) const {
+		if (type != other.type)
+			return false;
+
+		switch (type) {
+		case i32: return idata == other.idata;
+		case f32: return fdata == other.fdata;
+		default:
+			break;
+		}
+
+		return false;
+	}
 	
 	Addresses addresses() {
 		return { Addresses::null(), Addresses::null() };
@@ -103,6 +129,11 @@ static_assert(atom_instruction <Primitive>);
 struct Swizzle {
 	index_t src = -1;
 	SwizzleCode code;
+
+	bool operator==(const Swizzle &other) const {
+		return (src == other.src)
+			&& (code == other.code);
+	}
 
 	Addresses addresses() {
 		return { src, Addresses::null() };
@@ -124,6 +155,12 @@ struct Operation {
 	index_t type = -1;
 	OperationCode code;
 
+	bool operator==(const Operation &other) const {
+		return (args == other.args)
+			&& (type == other.type)
+			&& (code == other.code);
+	}
+
 	Addresses addresses() {
 		return { args, type };
 	}
@@ -141,6 +178,12 @@ struct Intrinsic {
 	index_t type = -1;
 	IntrinsicOperation opn;
 
+	bool operator==(const Intrinsic &other) const {
+		return (args == other.args)
+			&& (type == other.type)
+			&& (opn == other.opn);
+	}
+
 	Addresses addresses() {
 		return { args, type };
 	}
@@ -156,6 +199,11 @@ struct List {
 	index_t item = -1;
 	index_t next = -1;
 
+	bool operator==(const List &other) const {
+		return (item == other.item)
+			&& (next == other.next);
+	}
+
 	Addresses addresses() {
 		return { item, next };
 	}
@@ -170,6 +218,11 @@ static_assert(atom_instruction <List>);
 struct Construct {
 	index_t type = -1;
 	index_t args = -1;
+	
+	bool operator==(const Construct &other) const {
+		return (type == other.type)
+			&& (args == other.args);
+	}
 
 	Addresses addresses() {
 		return { type, args };
@@ -187,6 +240,12 @@ struct Call {
 	index_t cid = -1;
 	index_t args = -1;
 	index_t type = -1;
+	
+	bool operator==(const Call &other) const {
+		return (type == other.type)
+			&& (args == other.args)
+			&& (cid == other.cid);
+	}
 
 	Addresses addresses() {
 		return { args, type };
@@ -200,6 +259,11 @@ struct Call {
 struct Store {
 	index_t dst = -1;
 	index_t src = -1;
+
+	bool operator==(const Store &other) const {
+		return (dst == other.dst)
+			&& (src == other.src);
+	}
 
 	Addresses addresses() {
 		return { dst, src };
@@ -216,6 +280,11 @@ struct Load {
 	index_t src = -1;
 	index_t idx = -1;
 
+	bool operator==(const Load &other) const {
+		return (src == other.src)
+			&& (idx == other.idx);
+	}
+
 	Addresses addresses() {
 		return { src, Addresses::null() };
 	}
@@ -231,6 +300,11 @@ struct Branch {
 	index_t cond = -1;
 	index_t failto = -1;
 
+	bool operator==(const Branch &other) const {
+		return (cond == other.cond)
+			&& (failto == other.failto);
+	}
+
 	Addresses addresses() {
 		return { cond, failto };
 	}
@@ -245,6 +319,11 @@ static_assert(atom_instruction <Branch>);
 struct While {
 	index_t cond = -1;
 	index_t failto = -1;
+
+	bool operator==(const While &other) const {
+		return (cond == other.cond)
+			&& (failto == other.failto);
+	}
 	
 	Addresses addresses() {
 		return { cond, failto };
@@ -260,6 +339,11 @@ static_assert(atom_instruction <While>);
 struct Returns {
 	index_t args = -1;
 	index_t type = -1;
+
+	bool operator==(const Returns &other) const {
+		return (args == other.args)
+			&& (type == other.type);
+	}
 
 	Addresses addresses() {
 		return { args, type };
@@ -299,6 +383,8 @@ using atom_base = wrapped::variant <
 
 struct alignas(4) Atom : atom_base {
 	using atom_base::atom_base;
+
+	bool operator==(const Atom &) const;
 
 	Addresses addresses() {
 		auto ftn = [](auto &x) -> Addresses { return x.addresses(); };

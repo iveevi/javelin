@@ -32,6 +32,7 @@ add_library(imgui SHARED
 
 add_library(javelin-ire STATIC
 	source/thunder/ad_fwd.cpp
+	source/thunder/comparison.cpp
 	source/thunder/dump.cpp
 	source/thunder/kernel.cpp
 	source/thunder/linkage.cpp
