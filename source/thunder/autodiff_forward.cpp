@@ -216,9 +216,9 @@ void ad_fwd_transform_instruction
 	mapped.transformed.clear();
 	em.push(mapped.transformed);
 
-	fmt::print("atom: ");
-	dump_ir_operation(atom);
-	fmt::print("\n");
+	// fmt::print("atom: ");
+	// dump_ir_operation(atom);
+	// fmt::print("\n");
 
 	switch (atom.index()) {
 

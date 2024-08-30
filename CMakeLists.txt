@@ -31,11 +31,12 @@ add_library(imgui SHARED
 	thirdparty/imgui/backends/imgui_impl_vulkan.cpp)
 
 add_library(javelin-ire STATIC
-	source/thunder/ad_fwd.cpp
+	source/thunder/autodiff_forward.cpp
 	source/thunder/comparison.cpp
 	source/thunder/dump.cpp
 	source/thunder/kernel.cpp
 	source/thunder/linkage.cpp
+	source/thunder/optimization.cpp
 	source/thunder/reindex.cpp
 	source/thunder/synthesize_glsl.cpp
 	source/thunder/type_name.cpp
