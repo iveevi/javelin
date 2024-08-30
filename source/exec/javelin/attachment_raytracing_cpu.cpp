@@ -262,7 +262,7 @@ float3 AttachmentRaytracingCPU::radiance(const Ray &ray, int depth)
 
 	// TODO: get environment map lighting from scene...
 	if (sh.time <= 0.0) {
-		float y = -0.5 * ray.direction.y;
+		float y = 0.2 * ray.direction.y;
 		return float3(exp(y/0.1), exp(y/0.3), exp(y/0.6));
 	}
 

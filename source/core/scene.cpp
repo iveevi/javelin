@@ -15,6 +15,9 @@ namespace jvl::core {
 
 void Scene::add(const engine::ImportedAsset &asset)
 {
+	Object top;
+	top.name = asset.path.stem();
+
 	// Each geometry is its own object
 	for (size_t i = 0; i < asset.geometries.size(); i++) {
 		auto name = asset.names[i];
@@ -48,7 +51,12 @@ void Scene::add(const engine::ImportedAsset &asset)
 		obj.materials = materials;
 
 		objects.push_back(obj);
+
+		top.children.push_back(&objects.back());
 	}
+
+	objects.push_back(top);
+	root.push_back(&objects.back());
 }
 
 // Serializing to a file

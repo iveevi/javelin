@@ -7,7 +7,7 @@ struct AttachmentInspectors {
 	jvl::core::Scene &scene;
 
 	// Currently highlighted object
-	int32_t selected = -1;
+	jvl::core::Scene::Object::ref_t selected = nullptr;
 
 	// Construction
 	AttachmentInspectors(const std::unique_ptr <GlobalContext> &);

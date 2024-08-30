@@ -13,12 +13,13 @@ int64_t build_bvh(BVH &destination, const std::vector <BVHNode> &source, const c
 	static std::mt19937 rng;
 	static std::uniform_int_distribution <int> axis_dist(0, 2);
 
-	if (source.size() == 1) {
+	if (source.size() == 0) {
+		fmt::println("no nodes given, failed to generate BVH structure");
+		abort();
+	} else if (source.size() == 1) {
 		destination.push_back(source[0]);
 		return 1;
-	}
-
-	if (source.size() == 2) {
+	} else if (source.size() == 2) {
 		BVHNode node;
 		node.aabb = combined;
 		node.left = 1;

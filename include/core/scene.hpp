@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <list>
 #include <vector>
 
 #include "core/mesh.hpp"
@@ -20,6 +21,8 @@ namespace jvl::core {
 struct Scene {
 	// Element of a scene
 	struct Object {
+		using ref_t = const Object *;
+
 		// Identifier for the object
 		std::string name;
 
@@ -29,9 +32,13 @@ struct Scene {
 		// An object can have multiple materials which
 		// are references from the geometry
 		std::vector <Material> materials;
+
+		// Children
+		std::vector <ref_t> children;
 	};
 
-	std::vector <Object> objects;
+	std::vector <Object::ref_t> root;
+	std::list <Object> objects;
 
 	void add(const engine::ImportedAsset &);
 
