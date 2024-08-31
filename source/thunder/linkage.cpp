@@ -90,7 +90,7 @@ Linkage &Linkage::resolve()
 	return *this;
 }
 
-std::string Linkage::synthesize_glsl(const std::string &version)
+std::string Linkage::generate_glsl(const std::string &version)
 {
 	wrapped::hash_table <int, std::string> struct_names;
 

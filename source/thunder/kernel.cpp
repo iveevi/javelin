@@ -124,13 +124,13 @@ void Kernel::dump() const
 // Generating GLSL source code
 std::string Kernel::synthesize_glsl(const std::string &version)
 {
-	return linkage().resolve().synthesize_glsl(version);
+	return linkage().resolve().generate_glsl(version);
 }
 
 // Generating C++ source code
 std::string Kernel::synthesize_cplusplus()
 {
-	return linkage().resolve().synthesize_glsl("?");
+	return linkage().resolve().generate_glsl("?");
 }
 
 } // namespace jvl::atom

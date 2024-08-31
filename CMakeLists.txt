@@ -102,7 +102,7 @@ set(VULKAN_LIBRARY_SET
 
 target_link_libraries(javelin-ire fmt::fmt)
 target_link_libraries(javelin fmt::fmt ${VULKAN_LIBRARY_SET} imgui javelin-ire)
-target_link_libraries(ire-features glfw fmt::fmt javelin-ire)
+target_link_libraries(ire-features glfw fmt::fmt javelin-ire gccjit)
 target_link_libraries(lang-features fmt::fmt -fsanitize=address)
 target_link_libraries(vm-features fmt::fmt javelin-ire)
 target_link_libraries(test GTest::gtest_main javelin-ire glfw)

@@ -54,11 +54,19 @@ struct Linkage {
 	// Recursively resolving all linkage information
 	Linkage &resolve();
 
-	// Synthesizing the final output
-	std::string synthesize_glsl(const std::string &);
+	// Generate GLSL source code
+	std::string generate_glsl(const std::string &);
+
+	// Synthesizing binary code...
+	struct jit_result_t {
+		void *result;
+	};
+
+	// ..through libgccjit
+	jit_result_t generate_jit_gcc();
 
 	// Printing linkage state
 	void dump() const;
 };
 
-} // namespace jvl::atom
+} // namespace jvl::thunder
