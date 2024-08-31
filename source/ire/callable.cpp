@@ -34,7 +34,7 @@ Callable &Callable::operator=(const Callable &other)
 	return *this;
 }
 
-thunder::Kernel Callable::export_to_kernel()
+thunder::Kernel Callable::export_to_kernel() const
 {
 	// Determine the set of used and synthesizable instructions
 	std::unordered_set <thunder::index_t> used;

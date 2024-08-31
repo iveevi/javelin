@@ -214,18 +214,35 @@ Linkage::jit_result_t Linkage::generate_jit_gcc()
 
 }
 
+template <typename T>
+struct demote_to_native_t {
+	using type = void;
+};
+
+template <>
+struct demote_to_native_t <f32> {
+	using type = float;
+};
+
+template <typename T>
+using demote_to_native = demote_to_native_t <T> ::type;
+
+template <typename R, typename ... Args>
+auto jit(const callable_t <R, Args...> &callable)
+{
+	using function_t = demote_to_native <R> (*)(demote_to_native <Args> ...);
+	auto kernel = callable.export_to_kernel();
+	auto linkage = kernel.linkage().resolve();
+	auto jr = linkage.generate_jit_gcc();
+	return function_t(jr.result);
+}
+
 int main()
 {
 	thunder::opt_transform_compact(id);
 	thunder::opt_transform_dead_code_elimination(id);
 	id.dump();
 
-	auto kernel = id.export_to_kernel();
-	auto linkage = kernel.linkage().resolve();
-
-	auto jit = linkage.generate_jit_gcc();
-
-	using ftn_t = float (*)(float, float);
-	auto jit_ftn = (ftn_t) jit.result;
+	auto jit_ftn = jit(id);
 	fmt::println("result: {}", jit_ftn(1, 1));
 }

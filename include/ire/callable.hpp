@@ -40,7 +40,7 @@ struct Callable : Scratch {
 
 	// TODO: destructor, which offloads it from the global list
 
-	thunder::Kernel export_to_kernel();
+	thunder::Kernel export_to_kernel() const;
 
 	void dump();
 };
