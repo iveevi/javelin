@@ -1,11 +1,14 @@
 #include <fmt/format.h>
 
 #include <libgccjit.h>
+#include <type_traits>
 
 #include "ire/core.hpp"
+#include "ire/uniform_layout.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
 #include "thunder/opt.hpp"
+#include "math_types.hpp"
 
 // TODO: immutability for shader inputs types
 // TODO: demote variables to inline if they are not modified later
@@ -214,28 +217,80 @@ Linkage::jit_result_t Linkage::generate_jit_gcc()
 
 }
 
-template <typename T>
-struct demote_to_native_t {
-	using type = void;
+template <typename ... Args>
+struct tuple : std::tuple <Args...> {
+	template <size_t I>
+	auto &operator[](const std::integral_constant <size_t, I> &index) {
+		return std::get <I> (*this);
+	}
+	
+	template <size_t I>
+	const auto &operator[](const std::integral_constant <size_t, I> &index) const {
+		return std::get <I> (*this);
+	}
 };
 
+template <typename T>
+struct solid_base_t {
+	struct default_invalid {};
+	using type = default_invalid;
+};
+
+template <typename T>
+using solid_t = solid_base_t <T> ::type;
+
 template <>
-struct demote_to_native_t <f32> {
+struct solid_base_t <f32> {
 	using type = float;
 };
 
-template <typename T>
-using demote_to_native = demote_to_native_t <T> ::type;
+template <>
+struct solid_base_t <mat4> {
+	using type = float4x4;
+};
+
+template <typename ... Args>
+struct solid_base_t <const_uniform_layout_t <Args...>> {
+	using type = tuple <solid_t <Args>...>;
+};
+
+template <uniform_compatible T>
+struct solid_base_t <T> {
+	using layout_t = decltype(T().layout());
+	using type = solid_base_t <layout_t> ::type;
+};
 
 template <typename R, typename ... Args>
 auto jit(const callable_t <R, Args...> &callable)
 {
-	using function_t = demote_to_native <R> (*)(demote_to_native <Args> ...);
+	using function_t = solid_t <R> (*)(solid_t <Args> ...);
 	auto kernel = callable.export_to_kernel();
 	auto linkage = kernel.linkage().resolve();
 	auto jr = linkage.generate_jit_gcc();
 	return function_t(jr.result);
 }
+
+struct mvp {
+	mat4 model;
+	mat4 view;
+	mat4 proj;
+
+	vec4 project(vec3 position) {
+		return proj * (view * (model * vec4(position, 1.0)));
+	}
+
+	auto layout() const {
+		return uniform_layout(model, view, proj);
+	}
+};
+
+auto t = solid_t <mvp> ();
+
+std::integral_constant <size_t, 0> m_model;
+std::integral_constant <size_t, 1> m_view;
+std::integral_constant <size_t, 2> m_proj;
+
+auto tx = t[m_model];
 
 int main()
 {

@@ -45,13 +45,13 @@ cache_index_t type_field_from_args()
 }
 
 template <typename ... Args>
-cache_index_t type_field_from_args(const __uniform_layout <Args...> &args)
+cache_index_t type_field_from_args(const uniform_layout_t <Args...> &args)
 {
 	return type_field_from_args <Args...> ();
 }
 
 template <typename ... Args>
-cache_index_t type_field_from_args(const __const_uniform_layout <Args...> &args)
+cache_index_t type_field_from_args(const const_uniform_layout_t <Args...> &args)
 {
 	return type_field_from_args <Args...> ();
 }
@@ -82,13 +82,13 @@ cache_index_t type_field_index_from_args(int index)
 }
 
 template <typename ... Args>
-cache_index_t type_field_index_from_args(int index, const __uniform_layout <Args...> &args)
+cache_index_t type_field_index_from_args(int index, const uniform_layout_t <Args...> &args)
 {
 	return type_field_index_from_args <Args...> (index);
 }
 
 template <typename ... Args>
-cache_index_t type_field_index_from_args(int index, const __const_uniform_layout <Args...> &args)
+cache_index_t type_field_index_from_args(int index, const const_uniform_layout_t <Args...> &args)
 {
 	return type_field_index_from_args <Args...> (index);
 }

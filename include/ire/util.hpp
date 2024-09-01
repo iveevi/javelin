@@ -119,7 +119,7 @@ inline void platform_intrinsic_keyword(thunder::IntrinsicOperation opn)
 }
 
 template <typename ... Args>
-cache_index_t default_construct_index(const __const_uniform_layout <Args...> &layout, int index)
+cache_index_t default_construct_index(const const_uniform_layout_t <Args...> &layout, int index)
 {
 	auto &em = Emitter::active;
 
@@ -134,7 +134,7 @@ cache_index_t default_construct_index(const __const_uniform_layout <Args...> &la
 
 template <typename ... Args>
 requires (sizeof...(Args) > 0)
-cache_index_t __const_uniform_layout <Args...> ::list() const
+cache_index_t const_uniform_layout_t <Args...> ::list() const
 {
 	auto &em = Emitter::active;
 

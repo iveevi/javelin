@@ -21,7 +21,7 @@ struct field {
 
 template <typename ... Args>
 requires (sizeof...(Args) > 0)
-struct __uniform_layout {
+struct uniform_layout_t {
 	std::vector <field> fields;
 
 	// TODO: move down...
@@ -42,7 +42,7 @@ struct __uniform_layout {
 			load.idx = i;
 
 			if (f.type == eNested) {
-				using tmp_layout = __uniform_layout <void>;
+				using tmp_layout = uniform_layout_t <void>;
 
 				cache_index_t cit;
 				cit = em.emit(load);
@@ -70,14 +70,14 @@ struct const_field {
 
 template <typename ... Args>
 requires (sizeof...(Args) > 0)
-struct __const_uniform_layout {
+struct const_uniform_layout_t {
 	std::vector <const_field> fields;
 	// TODO: name?
 
 	cache_index_t list() const;
 
 	auto remove_const() const {
-		__uniform_layout <Args...> layout;
+		uniform_layout_t <Args...> layout;
 		for (auto cf: fields) {
 			// TODO: might crash with pointer to layouts...
 			field f;
@@ -129,7 +129,7 @@ void __const_init(const_field *fields, int index, const T &t, const UArgs &... u
 template <typename ... Args>
 auto uniform_layout(const Args &... args)
 {
-	__const_uniform_layout <Args...> layout;
+	const_uniform_layout_t <Args...> layout;
 	layout.fields.resize(sizeof...(Args));
 	__const_init(layout.fields.data(), 0, args...);
 	return layout;

@@ -167,10 +167,30 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 		Material m;
 		// TODO: check for textures
 		m.values[Material::brdf_key] = Phong::id;
-		m.values[Material::ambient_key] = to_float3(material.ambient);
-		m.values[Material::diffuse_key] = to_float3(material.diffuse);
-		m.values[Material::specular_key] = to_float3(material.specular);
-		m.values[Material::roughness_key] = material.roughness;
+
+		// Diffuse value
+		if (material.diffuse_texname.empty())
+			m.values[Material::diffuse_key] = to_float3(material.diffuse);
+		else
+			m.values[Material::diffuse_key] = material.diffuse_texname;
+
+		// Specular value
+		if (material.specular_texname.empty())
+			m.values[Material::specular_key] = to_float3(material.specular);
+		else
+			m.values[Material::specular_key] = material.specular_texname;
+
+		// Ambient value
+		if (material.ambient_texname.empty())
+			m.values[Material::ambient_key] = to_float3(material.ambient);
+		else
+			m.values[Material::ambient_key] = material.ambient_texname;
+
+		// Roughness value
+		if (material.roughness_texname.empty())
+			m.values[Material::roughness_key] = material.roughness;
+		else
+			m.values[Material::roughness_key] = material.roughness_texname;
 
 		// Emission should only be added if it is non-zero
 		float3 emission = to_float3(material.emission);
