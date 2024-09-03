@@ -20,6 +20,7 @@
 // TODO: std.hpp for additional features
 // TODO: passing layout inputs/outputs (should ignore them)
 // TODO: test nested structs again
+// TODO: parameter qualifiers (e.g. out/inout) as wrapped types
 
 using namespace jvl;
 using namespace jvl::ire;

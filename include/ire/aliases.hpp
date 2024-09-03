@@ -7,14 +7,19 @@
 
 namespace jvl::ire {
 
-// Common types
-using i32 = primitive_t <int>;
+// Aliases for common primitive types
+using i32 = primitive_t <int32_t>;
+using u32 = primitive_t <uint32_t>;
 using f32 = primitive_t <float>;
 using boolean = primitive_t <bool>;
 
-using ivec2 = vec <int, 2>;
-using ivec3 = vec <int, 3>;
-using ivec4 = vec <int, 4>;
+using ivec2 = vec <int32_t, 2>;
+using ivec3 = vec <int32_t, 3>;
+using ivec4 = vec <int32_t, 4>;
+
+using uvec2 = vec <uint32_t, 2>;
+using uvec3 = vec <uint32_t, 3>;
+using uvec4 = vec <uint32_t, 4>;
 
 using vec2 = vec <float, 2>;
 using vec3 = vec <float, 3>;

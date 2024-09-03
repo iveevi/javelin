@@ -71,4 +71,29 @@ vec <T, N> dFdyFine(const vec <T, N> &v)
 	return platform_intrinsic_from_args <vec <T, N>> (thunder::IntrinsicOperation::glsl_dFdyFine, v);
 }
 
+// Casting intrinsics
+template <size_t N>
+vec <int32_t, N> floatBitsToInt(const vec <float, N> &v)
+{
+	return platform_intrinsic_from_args <vec <int32_t, N>> (thunder::IntrinsicOperation::glsl_floatBitsToInt, v);
+}
+
+template <size_t N>
+vec <uint32_t, N> floatBitsToUint(const vec <float, N> &v)
+{
+	return platform_intrinsic_from_args <vec <uint32_t, N>> (thunder::IntrinsicOperation::glsl_floatBitsToUint, v);
+}
+
+template <size_t N>
+vec <float, N> intBitsToFloat(const vec <int32_t, N> &v)
+{
+	return platform_intrinsic_from_args <vec <float, N>> (thunder::IntrinsicOperation::glsl_intBitsToFloat, v);
+}
+
+template <size_t N>
+vec <float, N> uintBitsToFloat(const vec <uint32_t, N> &v)
+{
+	return platform_intrinsic_from_args <vec <float, N>> (thunder::IntrinsicOperation::glsl_uintBitsToFloat, v);
+}
+
 } // namespace jvl::ire

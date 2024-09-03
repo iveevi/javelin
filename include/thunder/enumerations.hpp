@@ -13,6 +13,7 @@ enum PrimitiveType : int8_t {
 	none,
 	boolean,
 	i32,
+	u32,
 	f32,
 	vec2,
 	vec3,
@@ -31,6 +32,7 @@ static const char *tbl_primitive_types[] = {
 	"void",
 	"bool",
 	"int",
+	"uint",
 	"float",
 	"vec2",
 	"vec3",
@@ -100,6 +102,12 @@ enum OperationCode : uint8_t {
 
 	bool_or,
 	bool_and,
+	
+	bit_or,
+	bit_and,
+	bit_xor,
+	bit_shift_left,
+	bit_shift_right,
 
 	equals,
 	not_equals,
@@ -121,6 +129,12 @@ static constexpr const char *tbl_operation_code[] = {
 
 	"or",
 	"and",
+
+	"bit or",
+	"bit and",
+	"bit xor",
+	"shift left",
+	"shift right",
 
 	"equals",
 	"not_equals",
@@ -152,7 +166,16 @@ enum IntrinsicOperation : uint16_t {
 	sqrt,
 	exp,
 	pow,
+	
 	clamp,
+	min,
+	max,
+
+	fract,
+	floor,
+	ceil,
+
+	reflect,
 
 	dot,
 	cross,
@@ -162,6 +185,11 @@ enum IntrinsicOperation : uint16_t {
 	glsl_dFdy,
 	glsl_dFdxFine,
 	glsl_dFdyFine,
+
+	glsl_floatBitsToInt,
+	glsl_floatBitsToUint,
+	glsl_intBitsToFloat,
+	glsl_uintBitsToFloat,
 
 	__io_end	
 };
@@ -180,7 +208,16 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"sqrt",
 	"exp",
 	"pow",
+
 	"clamp",
+	"min",
+	"max",
+	
+	"fract",
+	"floor",
+	"ceil",
+
+	"reflect",
 
 	"dot",
 	"cross",
@@ -190,6 +227,11 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"dFdy",
 	"dFdxFine",
 	"dFdyFine",
+
+	"glsl_floatBitsToInt",
+	"glsl_floatBitsToUint",
+	"glsl_intBitsToFloat",
+	"glsl_uintBitsToFloat",
 
 	"__end"
 };

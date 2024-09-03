@@ -7,7 +7,7 @@
 namespace jvl::ire {
 
 // Way to upcast C++ primitives into a workable type
-inline int translate_primitive(bool b)
+inline thunder::index_t translate_primitive(bool b)
 {
 	auto &em = Emitter::active;
 
@@ -18,7 +18,7 @@ inline int translate_primitive(bool b)
 	return em.emit(p);
 }
 
-inline int translate_primitive(int i)
+inline thunder::index_t translate_primitive(int32_t i)
 {
 	auto &em = Emitter::active;
 
@@ -29,7 +29,18 @@ inline int translate_primitive(int i)
 	return em.emit(p);
 }
 
-inline int translate_primitive(float f)
+inline thunder::index_t translate_primitive(uint32_t i)
+{
+	auto &em = Emitter::active;
+
+	thunder::Primitive p;
+	p.type = thunder::u32;
+	p.idata = i;
+
+	return em.emit(p);
+}
+
+inline thunder::index_t translate_primitive(float f)
 {
 	auto &em = Emitter::active;
 
@@ -44,17 +55,15 @@ template <typename T>
 concept primitive_type = requires(const T &t) {
 	{
 		translate_primitive(t)
-	} -> std::same_as <int>;
+	} -> std::same_as <thunder::index_t>;
 };
 
 template <primitive_type T>
 struct primitive_t : tagged {
 	using tagged::tagged;
 
-	T value;
-
-	primitive_t(T v = T()) : tagged(), value(v) {
-		synthesize();
+	primitive_t(T v = T()) : tagged() {
+		ref = translate_primitive(v);
 	}
 
 	primitive_t operator-() const {
@@ -99,19 +108,47 @@ struct primitive_t : tagged {
 	}
 
 	cache_index_t synthesize() const {
-		if (cached())
-			return ref;
+		assert(cached());
+		return ref;
+	}
 
-		return (ref = translate_primitive(value));
+	// In place arithmetic operators
+	primitive_t &operator+=(const primitive_t &a) {
+		*this = operation_from_args <primitive_t> (thunder::addition, (*this), a);
+		return *this;
+	}
+	
+	primitive_t &operator-=(const primitive_t &a) {
+		*this = operation_from_args <primitive_t> (thunder::subtraction, (*this), a);
+		return *this;
+	}
+	
+	primitive_t &operator*=(const primitive_t &a) {
+		*this = operation_from_args <primitive_t> (thunder::multiplication, (*this), a);
+		return *this;
+	}
+	
+	primitive_t &operator/=(const primitive_t &a) {
+		*this = operation_from_args <primitive_t> (thunder::division, (*this), a);
+		return *this;
 	}
 
 	// Common intrinsics
+	friend primitive_t max(const primitive_t &a, const primitive_t &b) {
+		return platform_intrinsic_from_args <primitive_t> (thunder::max, a, b);
+	}
+	
+	friend primitive_t min(const primitive_t &a, const primitive_t &b) {
+		return platform_intrinsic_from_args <primitive_t> (thunder::min, a, b);
+	}
+	
+	friend primitive_t sqrt(const primitive_t &x) 
+	{
+		return platform_intrinsic_from_args <primitive_t> (thunder::sqrt, x);
+	}
+	
 	friend primitive_t clamp(const primitive_t &x, const primitive_t &min, const primitive_t &max) {
 		return platform_intrinsic_from_args <primitive_t> (thunder::clamp, x, min, max);
-	}
-
-	friend primitive_t sqrt(const primitive_t &x)  {
-		return platform_intrinsic_from_args <primitive_t> (thunder::sqrt, x);
 	}
 
 	friend primitive_t pow(const primitive_t &x, const primitive_t &p) {

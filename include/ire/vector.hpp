@@ -3,6 +3,7 @@
 #include "ire/type_synthesis.hpp"
 #include "primitive.hpp"
 #include "tagged.hpp"
+#include "thunder/enumerations.hpp"
 #include "util.hpp"
 
 namespace jvl::ire {
@@ -20,14 +21,16 @@ struct __gl_Position_t;
 
 // Swizzle element
 template <primitive_type T, typename Up, thunder::SwizzleCode swz>
-class swizzle_element : tagged {
+class swizzle_element : public primitive_t <T> {
 	Up *upper;
 
-	swizzle_element(Up *upper_) : upper(upper_) {}
-public:
-	operator primitive_t <T> () const {
-		return primitive_t <T> (synthesize());
+	swizzle_element(Up *upper_) : upper(upper_) {
+		// The primitive will set the cache index
+		// so we need to manually reset it here
+		this->ref = cache_index_t::null();
 	}
+public:
+	using base_type = primitive_t <T>;
 
 	cache_index_t synthesize() const {
 		if (this->cached())
@@ -44,7 +47,7 @@ public:
 		return (this->ref = em.emit(swizzle));
 	}
 
-	swizzle_element &operator=(const primitive_t <T> &v) {
+	swizzle_element &operator=(const base_type &v) {
 		auto &em = Emitter::active;
 
 		thunder::Store store;
@@ -54,10 +57,6 @@ public:
 		em.emit_main(store);
 
 		return *this;
-	}
-
-	primitive_t <T> operator-() const {
-		return primitive_t <T> (synthesize()).operator-();
 	}
 
 	template <primitive_type U, size_t N>
@@ -205,6 +204,32 @@ struct vec : swizzle_base <T, N> {
 
 		return *this;
 	}
+	
+	// In place arithmetic operators
+	vec &operator+=(const vec &a) {
+		*this = operation_from_args <vec> (thunder::addition, (*this), a);
+		return *this;
+	}
+	
+	vec &operator-=(const vec &a) {
+		*this = operation_from_args <vec> (thunder::subtraction, (*this), a);
+		return *this;
+	}
+	
+	vec &operator*=(const vec &a) {
+		*this = operation_from_args <vec> (thunder::multiplication, (*this), a);
+		return *this;
+	}
+	
+	vec &operator/=(const vec &a) {
+		*this = operation_from_args <vec> (thunder::division, (*this), a);
+		return *this;
+	}
+	
+	vec &operator^=(const vec &a) {
+		*this = operation_from_args <vec> (thunder::bit_xor, (*this), a);
+		return *this;
+	}
 
 	// Arithmetic operators
 	vec operator-() const {
@@ -225,6 +250,24 @@ struct vec : swizzle_base <T, N> {
 
 	friend vec operator*(const vec &a, const vec &b) {
 		return operation_from_args <vec> (thunder::multiplication, a, b);
+	}
+
+	// Bitwise operators	
+	friend vec operator|(const vec &a, const auto &b) {
+		return operation_from_args <vec> (thunder::bit_or, a, b);
+	}
+
+	friend vec operator&(const vec &a, const auto &b) {
+		return operation_from_args <vec> (thunder::bit_and, a, b);
+	}
+	
+	// Shifting operators
+	friend vec operator>>(const vec &a, const auto &b) {
+		return operation_from_args <vec> (thunder::bit_shift_right, a, b);
+	}
+	
+	friend vec operator<<(const vec &a, const auto &b) {
+		return operation_from_args <vec> (thunder::bit_shift_left, a, b);
 	}
 
 	// Mixed arithmetic operators
@@ -254,6 +297,15 @@ struct vec : swizzle_base <T, N> {
 	MIXED_PRIMITIVE_OP(-, subtraction);
 	MIXED_PRIMITIVE_OP(*, multiplication);
 	MIXED_PRIMITIVE_OP(/, division);
+
+	// Common intrinsic functions
+	friend vec fract(const vec &a) {
+		return platform_intrinsic_from_args <vec> (thunder::fract, a);
+	}
+	
+	friend vec reflect(const vec &a, const vec &b) {
+		return platform_intrinsic_from_args <vec> (thunder::reflect, a, b);
+	}
 };
 
 } // namespace jvl::ire
