@@ -135,6 +135,15 @@ struct primitive_t : tagged {
 		return operation_from_args <primitive_t> (thunder::multiplication, a, b);
 	}
 
+	// TODO: only for bool types	
+	friend primitive_t operator||(const primitive_t &a, const primitive_t &b) {
+		return operation_from_args <primitive_t> (thunder::bool_or, a, b);
+	}
+
+	friend primitive_t operator&&(const primitive_t &a, const primitive_t &b) {
+		return operation_from_args <primitive_t> (thunder::bool_and, a, b);
+	}
+
 	// Comparison operators
 	using bool_t = primitive_t <bool>;
 

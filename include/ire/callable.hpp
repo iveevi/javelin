@@ -46,7 +46,7 @@ struct Callable : Scratch {
 };
 
 // Internal construction of callables
-template <non_trivial_generic R, generic ... Args>
+template <non_trivial_generic_or_void R, generic ... Args>
 struct callable_t : Callable {
 	// TODO: only R needs to be restricted, the rest can be filtered depending on synthesizable or not...
 	template <size_t index>
@@ -142,7 +142,7 @@ concept acceptable_callable = std::is_function_v <F> || requires(const F &ftn) {
 	{ std::function(ftn) };
 };
 
-template <non_trivial_generic R, generic ... Args>
+template <non_trivial_generic_or_void R, generic ... Args>
 struct signature_pair {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;
@@ -154,7 +154,7 @@ struct signature_pair {
 };
 
 template <typename R, typename ... Args>
-auto function_signature(const std::function <R (Args...)> &) -> signature_pair <R, Args...>
+signature_pair <R, Args...> function_signature_cast(std::function <R (Args...)>)
 {
 	return {};
 }
@@ -162,7 +162,7 @@ auto function_signature(const std::function <R (Args...)> &) -> signature_pair <
 template <acceptable_callable F>
 auto function_signature(const F &ftn)
 {
-	return function_signature(std::function(ftn));
+	return function_signature_cast(std::function(ftn));
 }
 
 template <acceptable_callable F>

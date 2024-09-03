@@ -84,6 +84,7 @@ add_executable(test
 target_compile_options(lang-features PRIVATE
 	-Wall
 	-fno-rtti
+	-fconcepts-diagnostics-depth=4
 	-fsanitize=address)
 
 include_directories(.

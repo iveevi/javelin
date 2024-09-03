@@ -125,14 +125,4 @@ void __const_init(const_field *fields, int index, const T &t, const UArgs &... u
 		__const_init(fields, index + 1, uargs...);
 }
 
-// User end functions to specify members
-template <typename ... Args>
-auto uniform_layout(const Args &... args)
-{
-	const_uniform_layout_t <Args...> layout;
-	layout.fields.resize(sizeof...(Args));
-	__const_init(layout.fields.data(), 0, args...);
-	return layout;
-}
-
 } // namespace jvl::ire

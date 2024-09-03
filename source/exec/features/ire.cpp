@@ -2,6 +2,7 @@
 
 #include <libgccjit.h>
 #include <type_traits>
+#include <vector>
 
 #include "ire/core.hpp"
 #include "ire/uniform_layout.hpp"
@@ -26,7 +27,8 @@ using namespace jvl::ire;
 // Sandbox application
 f32 __ftn(f32 x, f32 y)
 {
-	return (x / y) + x;
+	return cos(x) * y;
+	// return (x / y) + x;
 }
 
 auto id = callable(__ftn).named("ftn");
@@ -45,14 +47,17 @@ gcc_jit_type *libgccjit_type_field(gcc_jit_context *const context, const Linkage
 	}
 
 	switch (tf.item) {
+	
 	case i32: return gcc_jit_context_get_type(context, GCC_JIT_TYPE_INT);
 	case f32: return gcc_jit_context_get_type(context, GCC_JIT_TYPE_FLOAT);
+	
 	default:
 	{
 		fmt::println("GCC JIT unsupported type {}",
 			tbl_primitive_types[tf.item]);
 		abort();
 	}
+
 	}
 
 	return nullptr;
@@ -83,6 +88,23 @@ void libgccjit_block(gcc_jit_context *const context, const Linkage::block_t &blo
 	gcc_jit_block *primary = gcc_jit_function_new_block(function, nullptr);
 
 	std::vector <void *> cached(block.unit.size());
+	auto load_args = [&](index_t argsi) {
+		std::vector <gcc_jit_rvalue *> args;
+
+		index_t next = argsi;
+		while (next != -1) {
+			auto &g = block.unit[next];
+			assert(g.is <List> ());
+
+			auto &list = g.as <List> ();
+			args.push_back((gcc_jit_rvalue *) cached[list.item]);
+
+			next = list.next;
+		}
+
+		return args;
+	};
+
 	for (index_t i = 0; i < block.unit.size(); i++) {
 		auto &atom = block.unit[i];
 
@@ -104,19 +126,7 @@ void libgccjit_block(gcc_jit_context *const context, const Linkage::block_t &blo
 		case Atom::type_index <Operation> ():
 		{
 			auto &opn = atom.as <Operation> ();
-
-			std::vector <gcc_jit_rvalue *> args;
-
-			index_t next = opn.args;
-			while (next != -1) {
-				auto &g = block.unit[next];
-				assert(g.is <List> ());
-
-				auto &list = g.as <List> ();
-				args.push_back((gcc_jit_rvalue *) cached[list.item]);
-
-				next = list.next;
-			}
+			auto args = load_args(opn.args);
 
 			fmt::println("args: {}", args.size());
 			for (auto arg : args)
@@ -131,6 +141,13 @@ void libgccjit_block(gcc_jit_context *const context, const Linkage::block_t &blo
 			{
 				expr = gcc_jit_context_new_binary_op(context, nullptr,
 					GCC_JIT_BINARY_OP_PLUS,
+					returns, args[0], args[1]);
+			} break;
+			
+			case multiplication:
+			{
+				expr = gcc_jit_context_new_binary_op(context, nullptr,
+					GCC_JIT_BINARY_OP_MULT,
 					returns, args[0], args[1]);
 			} break;
 			
@@ -163,22 +180,49 @@ void libgccjit_block(gcc_jit_context *const context, const Linkage::block_t &blo
 		case Atom::type_index <Returns> ():
 		{
 			auto &returns = atom.as <Returns> ();
-
-			std::vector <gcc_jit_rvalue *> args;
-			index_t next = returns.args;
-			while (next != -1) {
-				auto &g = block.unit[next];
-				assert(g.is <List> ());
-
-				auto &list = g.as <List> ();
-				args.push_back((gcc_jit_rvalue *) cached[list.item]);
-
-				next = list.next;
-			}
-
+			auto args = load_args(returns.args);
 			assert(args.size() == 1);
 
 			gcc_jit_block_end_with_return(primary, nullptr, args[0]);
+		} break;
+
+		case Atom::type_index <Intrinsic> ():
+		{
+			auto &intr = atom.as <Intrinsic> ();
+			auto args = load_args(intr.args);
+			assert(args.size() == 1);
+
+			// Resulting value
+			gcc_jit_rvalue *value = nullptr;
+
+			switch (intr.opn) {
+
+			case cos:
+			{
+				gcc_jit_function *intr_ftn = gcc_jit_context_get_builtin_function(context, "cos");
+				assert(intr_ftn);
+
+				// Casting the arguments
+				gcc_jit_type *double_type = gcc_jit_context_get_type(context, GCC_JIT_TYPE_DOUBLE);
+				gcc_jit_type *float_type = gcc_jit_context_get_type(context, GCC_JIT_TYPE_FLOAT);
+
+				assert(double_type);
+				args[0] = gcc_jit_context_new_cast(context, nullptr, args[0], double_type);
+				assert(args[0]);
+				value = gcc_jit_context_new_call(context, nullptr, intr_ftn, 1, args.data());
+				value = gcc_jit_context_new_cast(context, nullptr, value, float_type);
+			} break;
+			
+			default:
+			{
+				fmt::println("GCC JIT unsupported intrinsic <{}>",
+					tbl_intrinsic_operation[intr.opn]);
+				abort();
+			}
+
+			}
+			
+			cached[i] = value;
 		} break;
 
 		default:
@@ -217,49 +261,6 @@ Linkage::jit_result_t Linkage::generate_jit_gcc()
 
 }
 
-template <typename ... Args>
-struct tuple : std::tuple <Args...> {
-	template <size_t I>
-	auto &operator[](const std::integral_constant <size_t, I> &index) {
-		return std::get <I> (*this);
-	}
-	
-	template <size_t I>
-	const auto &operator[](const std::integral_constant <size_t, I> &index) const {
-		return std::get <I> (*this);
-	}
-};
-
-template <typename T>
-struct solid_base_t {
-	struct default_invalid {};
-	using type = default_invalid;
-};
-
-template <typename T>
-using solid_t = solid_base_t <T> ::type;
-
-template <>
-struct solid_base_t <f32> {
-	using type = float;
-};
-
-template <>
-struct solid_base_t <mat4> {
-	using type = float4x4;
-};
-
-template <typename ... Args>
-struct solid_base_t <const_uniform_layout_t <Args...>> {
-	using type = tuple <solid_t <Args>...>;
-};
-
-template <uniform_compatible T>
-struct solid_base_t <T> {
-	using layout_t = decltype(T().layout());
-	using type = solid_base_t <layout_t> ::type;
-};
-
 template <typename R, typename ... Args>
 auto jit(const callable_t <R, Args...> &callable)
 {
@@ -270,27 +271,49 @@ auto jit(const callable_t <R, Args...> &callable)
 	return function_t(jr.result);
 }
 
+struct lighting {
+	vec3 direction;
+	vec3 color;
+
+	auto layout() const {
+		return uniform_layout(direction, color);
+	}
+};
+
 struct mvp {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
+
+	lighting light;
 
 	vec4 project(vec3 position) {
 		return proj * (view * (model * vec4(position, 1.0)));
 	}
 
 	auto layout() const {
-		return uniform_layout(model, view, proj);
+		return uniform_layout(model, view, proj, light);
 	}
 };
 
+tuple_index <0> m_model;
+tuple_index <1> m_view;
+tuple_index <2> m_proj;
+tuple_index <3> m_light;
+
+tuple_index <0> m_direction;
+tuple_index <1> m_color;
+
 auto t = solid_t <mvp> ();
+float x = t[m_light][m_direction].x;
 
-std::integral_constant <size_t, 0> m_model;
-std::integral_constant <size_t, 1> m_view;
-std::integral_constant <size_t, 2> m_proj;
+static_assert(std::same_as <std::decay_t <decltype(t[m_model])>, float4x4>);
+static_assert(std::same_as <std::decay_t <decltype(t[m_view])>, float4x4>);
+static_assert(std::same_as <std::decay_t <decltype(t[m_proj])>, float4x4>);
+// static_assert(std::same_as <std::decay_t <decltype(t[m_light][m_direction])>, float3>);
+// static_assert(std::same_as <std::decay_t <decltype(t[m_light][m_color])>, float3>);
 
-auto tx = t[m_model];
+static_assert(sizeof(solid_t <mvp>) == 3 * sizeof(float4x4) + 2 * sizeof(float4));
 
 int main()
 {

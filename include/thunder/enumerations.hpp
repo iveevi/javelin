@@ -98,6 +98,9 @@ enum OperationCode : uint8_t {
 	multiplication,
 	division,
 
+	bool_or,
+	bool_and,
+
 	equals,
 	not_equals,
 	cmp_ge,
@@ -115,6 +118,9 @@ static constexpr const char *tbl_operation_code[] = {
 	"subtraction",
 	"multiplication",
 	"division",
+
+	"or",
+	"and",
 
 	"equals",
 	"not_equals",

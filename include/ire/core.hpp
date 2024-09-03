@@ -9,6 +9,7 @@
 #include "matrix.hpp"
 #include "emitter.hpp"
 #include "callable.hpp"
+#include "solidify.hpp"
 
 #include "intrinsics/common.hpp"
 #include "intrinsics/glsl.hpp"

@@ -19,6 +19,28 @@ concept generic = primitive_type <T> || synthesizable <T> || uniform_compatible 
 template <typename T>
 concept non_trivial_generic = synthesizable <T> || uniform_compatible <T>;
 
+template <typename T>
+concept non_trivial_generic_or_void = synthesizable <T> || uniform_compatible <T> || std::same_as <T, void>;
+
+// User end functions to specify members
+template <typename ... Args>
+auto uniform_layout(const Args &... args)
+{
+	static_assert((non_trivial_generic <Args> && ...),
+		"uniform_layout arguments should ALL be non trivial generics "
+		"(e.g. primitive types are not allowed, maybe try primitive_t <T> alternatives)");
+
+	const_uniform_layout_t <Args...> layout;
+	layout.fields.resize(sizeof...(Args));
+
+	// Better (compile-time) error handling; no need to release
+	// the compiler's error explosion to the user
+	if constexpr ((non_trivial_generic <Args> && ...))
+		__const_init(layout.fields.data(), 0, args...);
+
+	return layout;
+}
+
 // Synthesize types for an entire sequence of arguments
 template <typename T, typename ... Args>
 cache_index_t type_field_from_args()

@@ -1,4 +1,5 @@
 #include "ire/core.hpp"
+#include "ire/uniform_layout.hpp"
 
 using namespace jvl::ire;
 
@@ -15,9 +16,14 @@ struct Material {
 	f32 shininess;
 	f32 roughness;
 
-	int type;
 	f32 has_albedo;
 	f32 has_normal;
+
+	auto layout() const {
+		return uniform_layout(diffuse, specular, emission,
+			ambient, shininess, roughness,
+			has_albedo, has_normal);
+	}
 };
 
 // GGX microfacet distribution function
@@ -47,11 +53,13 @@ void __G1(Material mat, vec3 n, vec3 v)
 	returns(2.0f/denom);
 }
 
-// // Smith shadow-masking function (double)
-// f32 G(Material mat, vec3 n, vec3 wi, vec3 wo)
-// {
-// 	return G1(mat, n, wo) * G1(mat, n, wi);
-// }
+auto G1 = callable <f32> (__G1).named("G1");
+
+// Smith shadow-masking function (double)
+f32 G(Material mat, vec3 n, vec3 wi, vec3 wo)
+{
+	return G1(mat, n, wo) * G1(mat, n, wi);
+}
 
 // Shlicks approximation to the Fresnel reflectance
 void ggx_f(Material mat, vec3 wi, vec3 h)
@@ -65,19 +73,19 @@ void ggx_f(Material mat, vec3 wi, vec3 h)
 // {
 // 	if (dot(wi, n) <= 0.0f || dot(wo, n) <= 0.0f)
 // 		return vec3(0.0f);
-//
+
 // 	vec3 h = normalize(wi + wo);
-//
+
 // 	vec3 f = ggx_f(mat, wi, h);
 // 	f32 g = G(mat, n, wi, wo);
 // 	f32 d = ggx_d(mat, n, h);
-//
+
 // 	vec3 num = f * g * d;
 // 	f32 denom = 4 * dot(wi, n) * dot(wo, n);
-//
+
 // 	return num / denom;
 // }
-//
+
 // // GGX pdf
 // f32 ggx_pdf(Material mat, vec3 n, vec3 wi, vec3 wo)
 // {
