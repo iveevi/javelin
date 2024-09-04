@@ -62,9 +62,9 @@ template <primitive_type T>
 struct primitive_t : tagged {
 	using tagged::tagged;
 
-	primitive_t(T v = T()) : tagged() {
-		ref = translate_primitive(v);
-	}
+	T value;
+
+	primitive_t(T v = T()) : tagged(), value(v) {}
 
 	primitive_t operator-() const {
 		auto &em = Emitter::active;
@@ -108,8 +108,10 @@ struct primitive_t : tagged {
 	}
 
 	cache_index_t synthesize() const {
-		assert(cached());
-		return ref;
+		if (cached())
+			return ref;
+
+		return (ref = translate_primitive(value));
 	}
 
 	// In place arithmetic operators

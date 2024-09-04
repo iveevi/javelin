@@ -14,6 +14,8 @@ void mark_used(const std::vector <thunder::Atom> &pool,
 
 	thunder::Atom g = pool[index];
 
+	// fmt::println("marking used: {}", g);
+
 	// TODO: std visit with methods
 	if (auto ctor = g.get <thunder::Construct> ()) {
 		mark_used(pool, used, synthesized, ctor->type, true);

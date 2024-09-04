@@ -9,10 +9,10 @@
 namespace jvl::ire {
 
 // Vector types
-template <primitive_type T, size_t N>
+template <primitive_type T, std::size_t N>
 struct vec;
 
-template <primitive_type T, size_t N>
+template <primitive_type T, std::size_t N>
 requires (N >= 1 && N <= 4)
 struct swizzle_base : tagged {};
 
@@ -20,14 +20,13 @@ struct swizzle_base : tagged {};
 struct __gl_Position_t;
 
 // Swizzle element
+// TODO: skip storing the value...
 template <primitive_type T, typename Up, thunder::SwizzleCode swz>
 class swizzle_element : public primitive_t <T> {
 	Up *upper;
 
 	swizzle_element(Up *upper_) : upper(upper_) {
-		// The primitive will set the cache index
-		// so we need to manually reset it here
-		this->ref = cache_index_t::null();
+		this->ref = synthesize();
 	}
 public:
 	using base_type = primitive_t <T>;

@@ -85,14 +85,16 @@ struct callable_t : Callable {
 			__fill_parameter_references <index + 1> (tpl);
 	}
 
-	void call(std::tuple <Args...> &args) {
+	void begin() {
 		Emitter::active.scopes.push(*this);
+	}
+
+	void call(std::tuple <Args...> &args) {
 		__fill_parameter_references <0> (args);
 	}
 
-	auto &end() {
+	void end() {
 		Emitter::active.scopes.pop();
-		return *this;
 	}
 
 	auto &named(const std::string &name_) {
@@ -201,11 +203,15 @@ auto callable(F ftn)
 	using S = detail::signature <F>;
 
 	typename S::callable cbl;
-	auto args = typename S::args_t();
-	cbl.call(args);
-	auto values = std::apply(ftn, args);
-	returns(values);
-	return cbl.end();
+
+	cbl.begin();
+		auto args = typename S::args_t();
+		cbl.call(args);
+		auto values = std::apply(ftn, args);
+		returns(values);
+	cbl.end();
+
+	return cbl;
 }
 
 // Void functions are presumbed to contain returns(...) statements already
@@ -216,10 +222,13 @@ auto callable(F ftn)
 	using S = detail::signature <F>;
 
 	typename S::template manual_callable <R> cbl;
-	auto args = typename S::args_t();
-	cbl.call(args);
-	std::apply(ftn, args);
-	return cbl.end();
+	cbl.begin();
+		auto args = typename S::args_t();
+		cbl.call(args);
+		std::apply(ftn, args);
+	cbl.end();
+
+	return cbl;
 }
 
 } // namespace jvl::ire

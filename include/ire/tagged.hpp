@@ -1,6 +1,6 @@
 #pragma once
 
-#include <type_traits>
+#include <concepts>
 #include <cstdlib>
 
 namespace jvl::ire {
@@ -9,6 +9,9 @@ namespace jvl::ire {
 struct cache_index_t {
 	using value_type = int;
 
+	// TODO: store scope address as well,
+	// then we can track if something is wrong
+	// or needs to be resynthesized...
 	value_type id;
 
 	cache_index_t &operator=(const value_type &v) {
