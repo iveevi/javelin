@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     defaults:
       run:
@@ -16,7 +16,8 @@ jobs:
       - name: dependencies
         run: |
           sudo apt update
-          sudo apt install -y cmake libvulkan1 libglfw3-dev glslang-tools glslang-dev libfmt-dev libgccjit-11-dev
+          sudo apt install -y cmake libvulkan1 libglfw3-dev \
+            glslang-tools glslang-dev libfmt-dev gcc-14 libgccjit-14-dev
       - uses: actions/checkout@v3
         with:
           submodules: 'true'
