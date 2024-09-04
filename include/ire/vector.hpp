@@ -152,9 +152,9 @@ public:
 
 	void refresh(const cache_index_t::value_type &ci) {
 		ref = ci;
-		x = swizzle_element <T, self, thunder::SwizzleCode::x> (this);
-		y = swizzle_element <T, self, thunder::SwizzleCode::y> (this);
-		z = swizzle_element <T, self, thunder::SwizzleCode::z> (this);
+		x.refresh();
+		y.refresh();
+		z.refresh();
 	}
 };
 
@@ -205,10 +205,10 @@ public:
 
 	void refresh(const cache_index_t::value_type &ci) {
 		ref = ci;
-		x = swizzle_element <T, self, thunder::SwizzleCode::x> (this);
-		y = swizzle_element <T, self, thunder::SwizzleCode::y> (this);
-		z = swizzle_element <T, self, thunder::SwizzleCode::z> (this);
-		w = swizzle_element <T, self, thunder::SwizzleCode::w> (this);
+		x.refresh();
+		y.refresh();
+		z.refresh();
+		w.refresh();
 	}
 };
 

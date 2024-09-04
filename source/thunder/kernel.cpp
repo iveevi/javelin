@@ -46,13 +46,9 @@ Linkage Kernel::linkage() const
 	};
 
 	// Go through all USED instructions
-	fmt::println("kernel generating linkage information:");
 	for (int i = 0; i < atoms.size(); i++) {
-		fmt::println("atom: {}", atoms[i]);
-		if (!used.count(i)) {
-			fmt::println("  detected as unused");
+		if (!used.count(i))
 			continue;
-		}
 
 		auto op = atoms[i];
 		if (auto call = op.get <Call> ()) {
@@ -136,7 +132,7 @@ std::string Kernel::synthesize_glsl(const std::string &version)
 // Generating C++ source code
 std::string Kernel::synthesize_cplusplus()
 {
-	return linkage().resolve().generate_glsl("?");
+	return linkage().resolve().generate_cplusplus();
 }
 
 } // namespace jvl::atom

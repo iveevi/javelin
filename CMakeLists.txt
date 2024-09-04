@@ -39,6 +39,8 @@ add_library(javelin-ire STATIC
 	source/thunder/autodiff_forward.cpp
 	source/thunder/comparison.cpp
 	source/thunder/dump.cpp
+	source/thunder/generate_body_c_like.cpp
+	source/thunder/generate_cplusplus.cpp
 	source/thunder/generate_glsl.cpp
 	source/thunder/jit_gcc.cpp
 	source/thunder/kernel.cpp

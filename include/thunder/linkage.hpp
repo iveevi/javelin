@@ -55,7 +55,11 @@ struct Linkage {
 	Linkage &resolve();
 
 	// Generate GLSL source code
+	// TODO: pass integer number... or enum
 	std::string generate_glsl(const std::string &);
+
+	// Generate C++ source code
+	std::string generate_cplusplus();
 
 	// Synthesizing binary code...
 	struct jit_result_t {
@@ -68,5 +72,16 @@ struct Linkage {
 	// Printing linkage state
 	void dump() const;
 };
+
+// Helper functions for code generation
+namespace detail {
+
+// For C-like languages
+std::string generate_body_c_like(const std::vector <Atom> &,
+		                 const wrapped::hash_table <int, std::string> &,
+		                 const std::unordered_set <index_t> &,
+				 size_t);
+
+}
 
 } // namespace jvl::thunder
