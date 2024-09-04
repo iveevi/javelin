@@ -14,6 +14,9 @@ Linkage Kernel::linkage() const
 	linkage.sorted = { -1 };
 
 	// Generate struct information for linkage
+	// TODO: use a one to one mapping without reductions, optimization will take
+	// care of the rest...
+	// TODO: use name mangling to redeclare structs deterministically
 	std::function <index_t (index_t)> generate_type_declaration;
 	generate_type_declaration = [&](index_t index) -> index_t {
 		Linkage::struct_declaration decl;
@@ -43,9 +46,13 @@ Linkage Kernel::linkage() const
 	};
 
 	// Go through all USED instructions
+	fmt::println("kernel generating linkage information:");
 	for (int i = 0; i < atoms.size(); i++) {
-		if (!used.count(i))
+		fmt::println("atom: {}", atoms[i]);
+		if (!used.count(i)) {
+			fmt::println("  detected as unused");
 			continue;
+		}
 
 		auto op = atoms[i];
 		if (auto call = op.get <Call> ()) {
@@ -63,6 +70,7 @@ Linkage Kernel::linkage() const
 				linkage.louts[binding] = type;
 				break;
 			case GlobalQualifier::parameter:
+				fmt::println("KERNEL found parameter @{} -> {}", binding, type);
 				linkage.blocks[-1].parameters[binding] = type;
 				break;
 			case GlobalQualifier::push_constant:
@@ -72,7 +80,7 @@ Linkage Kernel::linkage() const
 				break;
 			}
 		} else if (auto returns = op.get <Returns> ()) {
-			linkage.blocks[-1].returns = generate_type_declaration(returns->type);
+			linkage.blocks[-1].returns = returns->type;
 		}
 
 		if (!synthesized.count(i))

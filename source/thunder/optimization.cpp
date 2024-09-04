@@ -36,7 +36,7 @@ void opt_transform_constructor_elision(ire::Scratch &result)
 	// can be skipped by simply forwarding the result it was
 	// constructed with; if the constructor is completely useless,
 	// then it will be removed during dead code elimination
-				
+
 	auto constructor_elision = [&](const std::vector <index_t> &fields,
 				       const Load &ld,
 				       index_t user) {
@@ -91,20 +91,25 @@ void opt_transform_constructor_elision(ire::Scratch &result)
 	}
 }
 
+bool opt_transform_dce_exempt(const Atom &atom)
+{
+	return atom.is <Returns> () || atom.is <Store> ();
+}
+
 void opt_transform_dead_code_elimination(ire::Scratch &result)
 {
 	usage_graph graph = usage(result);
 
 	index_t pointer = 0;
-	
+
 	wrapped::reindex <index_t> relocation;
 	for (index_t i = 0; i < result.pointer; i++) {
 		auto &atom = result.pool[i];
-		bool exempt = atom.is <Returns> ();
+		bool exempt = opt_transform_dce_exempt(atom);
 		if (graph[i].size() || exempt)
 			relocation[i] = pointer++;
 	}
-	
+
 	ire::Scratch doubled;
 	for (index_t i = 0; i < result.pointer; i++) {
 		if (relocation.contains(i)) {

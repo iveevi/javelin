@@ -74,6 +74,10 @@ struct layout_in : layout_in_base <T> {
 		return (this->ref = em.emit_main(load));
 	}
 
+	void refresh(const cache_index_t::value_type &) {
+		// Do nothing for now...
+	}
+
 	operator upcast_t() const
 	requires synthesizable <T> {
 		return upcast_t(synthesize());

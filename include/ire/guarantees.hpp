@@ -3,6 +3,7 @@
 #include "primitive.hpp"
 #include "layout_io.hpp"
 #include "vector.hpp"
+#include "matrix.hpp"
 
 namespace jvl::ire {
 
@@ -21,6 +22,10 @@ static_assert(synthesizable <vec <int, 4>>);
 static_assert(synthesizable <vec <float, 2>>);
 static_assert(synthesizable <vec <float, 3>>);
 static_assert(synthesizable <vec <float, 4>>);
+
+static_assert(synthesizable <mat <float, 2, 2>>);
+static_assert(synthesizable <mat <float, 3, 3>>);
+static_assert(synthesizable <mat <float, 4, 4>>);
 
 static_assert(synthesizable <layout_in <bool>>);
 static_assert(synthesizable <layout_in <int>>);

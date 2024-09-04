@@ -53,10 +53,14 @@ struct tagged {
 };
 
 template <typename T>
-concept synthesizable = requires(const T &t) {
+concept synthesizable = requires(const T &t, T &lt, const cache_index_t::value_type &ci) {
 	{
 		t.synthesize()
 	} -> std::same_as <cache_index_t>;
+
+	{
+		lt.refresh(ci)
+	} -> std::same_as <void>;
 };
 
 } // namespace jvl::ire

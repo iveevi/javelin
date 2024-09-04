@@ -26,6 +26,11 @@ class swizzle_element : public primitive_t <T> {
 	Up *upper;
 
 	swizzle_element(Up *upper_) : upper(upper_) {
+		refresh();
+	}
+
+	void refresh() {
+		this->ref = cache_index_t::null();
 		this->ref = synthesize();
 	}
 public:
@@ -81,8 +86,7 @@ public:
 		initial[1] = y;
 	}
 
-	swizzle_base(cache_index_t cit)
-			: tagged(cit), x(this), y(this) {}
+	swizzle_base(cache_index_t cit) : tagged(cit), x(this), y(this) {}
 
 	cache_index_t synthesize() const {
 		if (cached())
@@ -95,6 +99,12 @@ public:
 		ctor.args = list_from_args(initial[0], initial[1]);
 
 		return (ref = em.emit(ctor));
+	}
+
+	void refresh(const cache_index_t::value_type &ci) {
+		ref = ci;
+		x.refresh();
+		y.refresh();
 	}
 };
 
@@ -115,7 +125,8 @@ public:
 		initial[2] = z;
 	}
 
-	swizzle_base(const primitive_t <T> &x, const primitive_t <T> &y, const primitive_t <T> &z) : swizzle_base() {
+	swizzle_base(const primitive_t <T> &x, const primitive_t <T> &y, const primitive_t <T> &z)
+			: swizzle_base() {
 		auto &em = Emitter::active;
 
 		thunder::Construct ctor;
@@ -125,8 +136,7 @@ public:
 		ref = em.emit(ctor);
 	}
 
-	swizzle_base(cache_index_t cit)
-			: tagged(cit), x(this), y(this), z(this) {}
+	swizzle_base(cache_index_t cit) : tagged(cit), x(this), y(this), z(this) {}
 
 	cache_index_t synthesize() const {
 		if (cached())
@@ -138,6 +148,13 @@ public:
 		ctor.args = list_from_args(initial[0], initial[1], initial[2]);
 
 		return (ref = em.emit(ctor));
+	}
+
+	void refresh(const cache_index_t::value_type &ci) {
+		ref = ci;
+		x = swizzle_element <T, self, thunder::SwizzleCode::x> (this);
+		y = swizzle_element <T, self, thunder::SwizzleCode::y> (this);
+		z = swizzle_element <T, self, thunder::SwizzleCode::z> (this);
 	}
 };
 
@@ -160,7 +177,8 @@ public:
 		initial[3] = w;
 	}
 
-	swizzle_base(const swizzle_base <T, 3> &v, const primitive_t <T> &x) : swizzle_base() {
+	swizzle_base(const swizzle_base <T, 3> &v, const primitive_t <T> &x)
+			: swizzle_base() {
 		auto &em = Emitter::active;
 
 		thunder::Construct ctor;
@@ -170,8 +188,7 @@ public:
 		ref = em.emit(ctor);
 	}
 
-	swizzle_base(cache_index_t cit)
-			: tagged(cit), x(this), y(this), z(this), w(this) {}
+	swizzle_base(cache_index_t cit) : tagged(cit), x(this), y(this), z(this), w(this) {}
 
 	cache_index_t synthesize() const {
 		if (cached())
@@ -185,10 +202,18 @@ public:
 
 		return (ref = em.emit(ctor));
 	}
+
+	void refresh(const cache_index_t::value_type &ci) {
+		ref = ci;
+		x = swizzle_element <T, self, thunder::SwizzleCode::x> (this);
+		y = swizzle_element <T, self, thunder::SwizzleCode::y> (this);
+		z = swizzle_element <T, self, thunder::SwizzleCode::z> (this);
+		w = swizzle_element <T, self, thunder::SwizzleCode::w> (this);
+	}
 };
 
 // Final vector type
-template <primitive_type T, size_t N>
+template <primitive_type T, std::size_t N>
 struct vec : swizzle_base <T, N> {
 	using swizzle_base <T, N> ::swizzle_base;
 
@@ -203,28 +228,28 @@ struct vec : swizzle_base <T, N> {
 
 		return *this;
 	}
-	
+
 	// In place arithmetic operators
 	vec &operator+=(const vec &a) {
 		*this = operation_from_args <vec> (thunder::addition, (*this), a);
 		return *this;
 	}
-	
+
 	vec &operator-=(const vec &a) {
 		*this = operation_from_args <vec> (thunder::subtraction, (*this), a);
 		return *this;
 	}
-	
+
 	vec &operator*=(const vec &a) {
 		*this = operation_from_args <vec> (thunder::multiplication, (*this), a);
 		return *this;
 	}
-	
+
 	vec &operator/=(const vec &a) {
 		*this = operation_from_args <vec> (thunder::division, (*this), a);
 		return *this;
 	}
-	
+
 	vec &operator^=(const vec &a) {
 		*this = operation_from_args <vec> (thunder::bit_xor, (*this), a);
 		return *this;
@@ -251,7 +276,7 @@ struct vec : swizzle_base <T, N> {
 		return operation_from_args <vec> (thunder::multiplication, a, b);
 	}
 
-	// Bitwise operators	
+	// Bitwise operators
 	friend vec operator|(const vec &a, const auto &b) {
 		return operation_from_args <vec> (thunder::bit_or, a, b);
 	}
@@ -259,12 +284,12 @@ struct vec : swizzle_base <T, N> {
 	friend vec operator&(const vec &a, const auto &b) {
 		return operation_from_args <vec> (thunder::bit_and, a, b);
 	}
-	
+
 	// Shifting operators
 	friend vec operator>>(const vec &a, const auto &b) {
 		return operation_from_args <vec> (thunder::bit_shift_right, a, b);
 	}
-	
+
 	friend vec operator<<(const vec &a, const auto &b) {
 		return operation_from_args <vec> (thunder::bit_shift_left, a, b);
 	}
@@ -301,7 +326,7 @@ struct vec : swizzle_base <T, N> {
 	friend vec fract(const vec &a) {
 		return platform_intrinsic_from_args <vec> (thunder::fract, a);
 	}
-	
+
 	friend vec reflect(const vec &a, const vec &b) {
 		return platform_intrinsic_from_args <vec> (thunder::reflect, a, b);
 	}

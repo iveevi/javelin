@@ -2,6 +2,10 @@
 
 namespace jvl::ire::detail {
 
+// TODO: deprecate this, neither the kernel nor
+// the emitter needs to understand what is used
+// or what is synthesized (kernel can optionally go through
+// the set of optimizations during the exportation)
 void mark_used(const std::vector <thunder::Atom> &pool,
 	       std::unordered_set <thunder::index_t> &used,
 	       std::unordered_set <thunder::index_t> &synthesized,
@@ -13,8 +17,6 @@ void mark_used(const std::vector <thunder::Atom> &pool,
 	used.insert(index);
 
 	thunder::Atom g = pool[index];
-
-	// fmt::println("marking used: {}", g);
 
 	// TODO: std visit with methods
 	if (auto ctor = g.get <thunder::Construct> ()) {
@@ -30,6 +32,8 @@ void mark_used(const std::vector <thunder::Atom> &pool,
 		syn = false;
 	} else if (auto load = g.get <thunder::Load> ()) {
 		mark_used(pool, used, synthesized, load->src, true);
+	} else if (auto swizzle = g.get <thunder::Swizzle> ()) {
+		mark_used(pool, used, synthesized, swizzle->src, true);
 	} else if (auto store = g.get <thunder::Store> ()) {
 		mark_used(pool, used, synthesized, store->src, false);
 		mark_used(pool, used, synthesized, store->dst, false);

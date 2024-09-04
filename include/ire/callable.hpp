@@ -78,7 +78,7 @@ struct callable_t : Callable {
 			global.type = type_field_from_args <type_of_x> ().id;
 			global.binding = index;
 
-			x.ref = em.emit(global);
+			x.refresh(em.emit(global));
 		}
 
 		if constexpr (index + 1 < sizeof...(Args))

@@ -37,6 +37,10 @@ struct mat_base : tagged {
 
 		return (this->ref = em.emit(ctor));
 	}
+
+	void refresh(const cache_index_t::value_type &ci) {
+		ref = ci;
+	}
 };
 
 template <typename T, size_t N, size_t M>

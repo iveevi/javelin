@@ -4,238 +4,403 @@
 
 namespace jvl::thunder {
 
-gcc_jit_type *libgccjit_type_field(gcc_jit_context *const context, const Linkage::source_block_t &pool, index_t i)
+struct jit_struct {
+	// TODO: header with eightcc and hash for cleanup
+	gcc_jit_type *type;
+	std::vector <gcc_jit_field *> fields;
+	std::vector <jit_struct *> field_types;
+};
+
+struct jit_instruction {
+	gcc_jit_object *value;
+	jit_struct *type_info;
+};
+
+struct jit_context {
+	gcc_jit_context *const gcc;
+	gcc_jit_function *function;
+	gcc_jit_block *block;
+	std::vector <jit_instruction> parameters;
+	std::vector <jit_instruction> cached;
+	const std::vector <Atom> &pool;
+};
+
+jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType item)
 {
-	auto &atom = pool[i];
+	// TODO: add header information with a fourcc
+	jit_struct *s = new jit_struct;
+
+	switch (item) {
+
+	case i32:
+	{
+		s->type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_INT);
+	} break;
+
+	case f32:
+	{
+		s->type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
+	} break;
+
+	case vec2:
+	{
+		jit_struct *element = generate_type_field_primitive(context, f32);
+
+		s->fields.resize(2);
+		s->fields[0] = gcc_jit_context_new_field(context.gcc, nullptr, element->type, "x");
+		s->fields[1] = gcc_jit_context_new_field(context.gcc, nullptr, element->type, "y");
+
+		s->field_types.resize(2);
+		s->field_types[0] = element;
+		s->field_types[1] = element;
+
+		// TODO: materialize() method
+		s->type = (gcc_jit_type *) gcc_jit_context_new_struct_type(context.gcc, nullptr,
+		 	"vec2", s->fields.size(), s->fields.data());
+	} break;
+
+	default:
+	{
+		fmt::println("GCC JIT unsupported type {}",
+			tbl_primitive_types[item]);
+		abort();
+	}
+
+	}
+
+	return s;
+}
+
+jit_struct *generate_type_field(jit_context &context, index_t i)
+{
+	auto &atom = context.pool[i];
 	assert(atom.is <TypeField> ());
-	
+
 	TypeField tf = atom.as <TypeField> ();
 	if (tf.next != -1 || tf.down != -1) {
 		fmt::println("GCC JIT version does not supported aggregate type");
 		abort();
 	}
 
-	switch (tf.item) {
-	
-	case i32: return gcc_jit_context_get_type(context, GCC_JIT_TYPE_INT);
-	case f32: return gcc_jit_context_get_type(context, GCC_JIT_TYPE_FLOAT);
-	
-	default:
-	{
-		fmt::println("GCC JIT unsupported type {}",
-			tbl_primitive_types[tf.item]);
-		abort();
-	}
-
-	}
-
-	return nullptr;
+	return generate_type_field_primitive(context, tf.item);
 }
 
-void libgccjit_block(gcc_jit_context *const context, const Linkage::block_t &block)
+std::vector <gcc_jit_rvalue *> load_rvalue_arguments(jit_context &context, index_t argsi)
 {
-	fmt::println("generating block");
+	std::vector <gcc_jit_rvalue *> args;
 
-	// JIT the parameters
-	std::vector <gcc_jit_param *> parameters(block.parameters.size());
+	index_t next = argsi;
+	while (next != -1) {
+		auto &g = context.pool[next];
+		assert(g.is <List> ());
 
-	for (auto &[i, t] : block.parameters) {
-		std::string name = fmt::format("_arg{}", i);
-		gcc_jit_type *type = libgccjit_type_field(context, block.unit, t);
-		parameters[i] = gcc_jit_context_new_param(context, nullptr, type, name.c_str());
+		auto &list = g.as <List> ();
+		args.push_back((gcc_jit_rvalue *) context.cached[list.item].value);
+
+		next = list.next;
 	}
 
-	// Begin the function context
-	// TODO: embed the scope name in the block
-	gcc_jit_type *returns = libgccjit_type_field(context, block.unit, block.returns);
-	gcc_jit_function *function = gcc_jit_context_new_function(context, nullptr,
-		GCC_JIT_FUNCTION_EXPORTED, returns, "function",
-		parameters.size(), parameters.data(), 0);
+	return args;
+}
 
-	// TODO: distinguish between function_t and block_t
+jit_instruction generate_instruction(jit_context &context, index_t i)
+{
+	auto &atom = context.pool[i];
 
-	gcc_jit_block *primary = gcc_jit_function_new_block(function, nullptr);
+	switch (atom.index()) {
 
-	std::vector <void *> cached(block.unit.size());
-	auto load_args = [&](index_t argsi) {
-		std::vector <gcc_jit_rvalue *> args;
+	case Atom::type_index <Global> ():
+	{
+		auto &global = atom.as <Global> ();
+		assert(global.qualifier == parameter);
+		jit_instruction ji = context.parameters[global.binding];
+		ji.value = (gcc_jit_object *) gcc_jit_param_as_rvalue((gcc_jit_param *) ji.value);
+		return ji;
+	}
 
-		index_t next = argsi;
-		while (next != -1) {
-			auto &g = block.unit[next];
-			assert(g.is <List> ());
+	case Atom::type_index <TypeField> ():
+	{
+		jit_instruction ji;
+		ji.value = nullptr;
+		ji.type_info = generate_type_field(context, i);
+		return ji;
+	}
 
-			auto &list = g.as <List> ();
-			args.push_back((gcc_jit_rvalue *) cached[list.item]);
+	case Atom::type_index <Primitive> ():
+	{
+		auto &primitive = atom.as <Primitive> ();
 
-			next = list.next;
+		jit_instruction ji;
+
+		switch (primitive.type) {
+
+		case i32:
+		{
+			ji.type_info = generate_type_field_primitive(context, i32);
+			ji.value = (gcc_jit_object *) gcc_jit_context_new_rvalue_from_int(context.gcc,
+					ji.type_info->type, primitive.idata);
+			return ji;
 		}
 
-		return args;
-	};
-
-	for (index_t i = 0; i < block.unit.size(); i++) {
-		auto &atom = block.unit[i];
-
-		switch (atom.index()) {
-
-		case Atom::type_index <Global> ():
+		case f32:
 		{
-			auto &global = atom.as <Global> ();
-			assert(global.qualifier == parameter);
-			gcc_jit_param *p = parameters[global.binding];
-			cached[i] = gcc_jit_param_as_rvalue(p);
-		} break;
-
-		case Atom::type_index <TypeField> ():
-		{
-			cached[i] = libgccjit_type_field(context, block.unit, i);
-		} break;
-
-		case Atom::type_index <Operation> ():
-		{
-			auto &opn = atom.as <Operation> ();
-			auto args = load_args(opn.args);
-
-			gcc_jit_type *returns = (gcc_jit_type *) cached[opn.type];
-
-			gcc_jit_rvalue *expr;
-			switch (opn.code) {
-			
-			case addition:
-			{
-				expr = gcc_jit_context_new_binary_op(context, nullptr,
-					GCC_JIT_BINARY_OP_PLUS,
-					returns, args[0], args[1]);
-			} break;
-			
-			case subtraction:
-			{
-				expr = gcc_jit_context_new_binary_op(context, nullptr,
-					GCC_JIT_BINARY_OP_MINUS,
-					returns, args[0], args[1]);
-			} break;
-			
-			case multiplication:
-			{
-				expr = gcc_jit_context_new_binary_op(context, nullptr,
-					GCC_JIT_BINARY_OP_MULT,
-					returns, args[0], args[1]);
-			} break;
-			
-			case division:
-			{
-				expr = gcc_jit_context_new_binary_op(context, nullptr,
-					GCC_JIT_BINARY_OP_DIVIDE,
-					returns, args[0], args[1]);
-			} break;
-
-			default:
-			{
-				fmt::println("GCC JIT unsupported operation {}",
-					tbl_operation_code[opn.code]);
-				abort();
-			}
-
-			}
-
-			fmt::println("result of operation is {} -> {}", (void *) expr, i);
-
-			cached[i] = expr;
-		} break;
-
-		case Atom::type_index <List> ():
-		{
-			// Skip lists, they are only for the Thunder IR
-		} break;
-
-		case Atom::type_index <Returns> ():
-		{
-			auto &returns = atom.as <Returns> ();
-			auto args = load_args(returns.args);
-			assert(args.size() == 1);
-
-			gcc_jit_block_end_with_return(primary, nullptr, args[0]);
-		} break;
-
-		case Atom::type_index <Intrinsic> ():
-		{
-			auto &intr = atom.as <Intrinsic> ();
-			auto args = load_args(intr.args);
-			assert(args.size() == 1);
-
-			// Resulting value
-			gcc_jit_rvalue *value = nullptr;
-
-			switch (intr.opn) {
-
-			case sin:
-			{
-				gcc_jit_function *intr_ftn = gcc_jit_context_get_builtin_function(context, "sin");
-				assert(intr_ftn);
-
-				// Casting the arguments
-				gcc_jit_type *double_type = gcc_jit_context_get_type(context, GCC_JIT_TYPE_DOUBLE);
-				gcc_jit_type *float_type = gcc_jit_context_get_type(context, GCC_JIT_TYPE_FLOAT);
-
-				assert(double_type);
-				args[0] = gcc_jit_context_new_cast(context, nullptr, args[0], double_type);
-				assert(args[0]);
-				value = gcc_jit_context_new_call(context, nullptr, intr_ftn, 1, args.data());
-				value = gcc_jit_context_new_cast(context, nullptr, value, float_type);
-			} break;
-
-			case cos:
-			{
-				gcc_jit_function *intr_ftn = gcc_jit_context_get_builtin_function(context, "cos");
-				assert(intr_ftn);
-
-				// Casting the arguments
-				gcc_jit_type *double_type = gcc_jit_context_get_type(context, GCC_JIT_TYPE_DOUBLE);
-				gcc_jit_type *float_type = gcc_jit_context_get_type(context, GCC_JIT_TYPE_FLOAT);
-
-				assert(double_type);
-				args[0] = gcc_jit_context_new_cast(context, nullptr, args[0], double_type);
-				assert(args[0]);
-				value = gcc_jit_context_new_call(context, nullptr, intr_ftn, 1, args.data());
-				value = gcc_jit_context_new_cast(context, nullptr, value, float_type);
-			} break;
-			
-			default:
-			{
-				fmt::println("GCC JIT unsupported intrinsic <{}>",
-					tbl_intrinsic_operation[intr.opn]);
-				abort();
-			}
-
-			}
-			
-			cached[i] = value;
-		} break;
+			ji.type_info = generate_type_field_primitive(context, f32);
+			ji.value = (gcc_jit_object *) gcc_jit_context_new_rvalue_from_double(context.gcc,
+					ji.type_info->type, primitive.fdata);
+			return ji;
+		}
 
 		default:
 		{
-			fmt::println("GCC JIT unsupported instruction: {}", atom.to_string());
+			fmt::println("unexpected primitive type: {}", primitive);
 			abort();
 		}
 
 		}
 	}
+
+	case Atom::type_index <Construct> ():
+	{
+		auto &ctor = atom.as <Construct> ();
+		auto args = load_rvalue_arguments(context, ctor.args);
+
+		jit_struct *s = context.cached[ctor.type].type_info;
+
+		// TODO: construct() method
+		gcc_jit_rvalue *value = gcc_jit_context_new_struct_constructor(context.gcc,
+			nullptr, s->type, args.size(), s->fields.data(), args.data());
+
+		jit_instruction ji;
+		ji.type_info = s;
+		ji.value = (gcc_jit_object *) value;
+
+		return ji;
+	}
+
+	case Atom::type_index <Operation> ():
+	{
+		auto &opn = atom.as <Operation> ();
+		auto args = load_rvalue_arguments(context, opn.args);
+
+		jit_struct *returns = context.cached[opn.type].type_info;
+
+		gcc_jit_rvalue *expr;
+		switch (opn.code) {
+
+		case addition:
+		{
+			expr = gcc_jit_context_new_binary_op(context.gcc, nullptr,
+				GCC_JIT_BINARY_OP_PLUS,
+				returns->type, args[0], args[1]);
+		} break;
+
+		case subtraction:
+		{
+			expr = gcc_jit_context_new_binary_op(context.gcc, nullptr,
+				GCC_JIT_BINARY_OP_MINUS,
+				returns->type, args[0], args[1]);
+		} break;
+
+		case multiplication:
+		{
+			expr = gcc_jit_context_new_binary_op(context.gcc, nullptr,
+				GCC_JIT_BINARY_OP_MULT,
+				returns->type, args[0], args[1]);
+		} break;
+
+		case division:
+		{
+			expr = gcc_jit_context_new_binary_op(context.gcc, nullptr,
+				GCC_JIT_BINARY_OP_DIVIDE,
+				returns->type, args[0], args[1]);
+		} break;
+
+		default:
+		{
+			fmt::println("GCC JIT unsupported operation {}",
+				tbl_operation_code[opn.code]);
+			abort();
+		}
+
+		}
+
+		fmt::println("result of operation is {} -> {}", (void *) expr, i);
+
+		jit_instruction ji;
+		ji.type_info = returns;
+		ji.value = (gcc_jit_object *) expr;
+
+		return ji;
+	}
+
+	case Atom::type_index <Swizzle> ():
+	{
+		auto &swz = atom.as <Swizzle> ();
+
+		// TODO: check that the field name is correct...
+
+		jit_instruction source = context.cached[swz.src];
+
+		// NOTE: assuming that the code -> field index is valid
+		jit_struct *type_info = source.type_info;
+		gcc_jit_field *field = type_info->fields[swz.code];
+
+		jit_instruction ji;
+		ji.type_info = type_info->field_types[swz.code];
+		ji.value = (gcc_jit_object *) gcc_jit_rvalue_access_field((gcc_jit_rvalue *) source.value, nullptr, field);
+
+		return ji;
+	}
+
+	// TODO: for store instructions, need to get a chain of lvalues...
+
+	case Atom::type_index <List> ():
+		// Skip lists, they are only for the Thunder IR
+		return { nullptr, nullptr };
+
+	case Atom::type_index <Returns> ():
+	{
+		auto &returns = atom.as <Returns> ();
+		auto args = load_rvalue_arguments(context, returns.args);
+		assert(args.size() == 1);
+
+		gcc_jit_block_end_with_return(context.block, nullptr, args[0]);
+	} return { nullptr, nullptr };
+
+	case Atom::type_index <Intrinsic> ():
+	{
+		auto &intr = atom.as <Intrinsic> ();
+		auto args = load_rvalue_arguments(context, intr.args);
+		assert(args.size() == 1);
+
+		// Resulting value
+		gcc_jit_rvalue *value = nullptr;
+
+		switch (intr.opn) {
+
+		case sin:
+		{
+			gcc_jit_function *intr_ftn = gcc_jit_context_get_builtin_function(context.gcc, "sin");
+			assert(intr_ftn);
+
+			// Casting the arguments
+			gcc_jit_type *double_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_DOUBLE);
+			gcc_jit_type *float_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
+
+			assert(double_type);
+			args[0] = gcc_jit_context_new_cast(context.gcc, nullptr, args[0], double_type);
+			assert(args[0]);
+			value = gcc_jit_context_new_call(context.gcc, nullptr, intr_ftn, 1, args.data());
+			value = gcc_jit_context_new_cast(context.gcc, nullptr, value, float_type);
+		} break;
+
+		case cos:
+		{
+			gcc_jit_function *intr_ftn = gcc_jit_context_get_builtin_function(context.gcc, "cos");
+			assert(intr_ftn);
+
+			// Casting the arguments
+			gcc_jit_type *double_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_DOUBLE);
+			gcc_jit_type *float_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
+
+			assert(double_type);
+			args[0] = gcc_jit_context_new_cast(context.gcc, nullptr, args[0], double_type);
+			assert(args[0]);
+			value = gcc_jit_context_new_call(context.gcc, nullptr, intr_ftn, 1, args.data());
+			value = gcc_jit_context_new_cast(context.gcc, nullptr, value, float_type);
+		} break;
+
+		default:
+		{
+			fmt::println("GCC JIT unsupported intrinsic <{}>",
+				tbl_intrinsic_operation[intr.opn]);
+			abort();
+		}
+
+		}
+
+		jit_instruction ji;
+		ji.type_info = context.cached[intr.type].type_info;
+		ji.value = (gcc_jit_object *) value;
+
+		return ji;
+	}
+
+	default:
+	{
+		fmt::println("GCC JIT unsupported instruction: {}", atom.to_string());
+		abort();
+	}
+
+	}
+
+	return { nullptr, nullptr };
+}
+
+void generate_block(gcc_jit_context *const gcc, const Linkage::block_t &block)
+{
+	fmt::println("generating block");
+
+	jit_context context {
+		.gcc = gcc,
+		.pool = block.unit,
+	};
+
+	// JIT the parameters
+	std::vector <gcc_jit_param *> gcc_parameters;
+
+	gcc_parameters.resize(block.parameters.size());
+	context.parameters.resize(block.parameters.size());
+
+	for (auto &[i, t] : block.parameters) {
+		std::string name = fmt::format("_arg{}", i);
+
+		jit_struct *type_info = generate_type_field(context, t);
+		gcc_jit_param *parameter = gcc_jit_context_new_param(context.gcc, nullptr, type_info->type, name.c_str());
+
+		jit_instruction ji;
+		ji.type_info = type_info;
+		ji.value = (gcc_jit_object *) parameter;
+
+		gcc_parameters[i] = parameter;
+		context.parameters[i] = ji;
+	}
+
+	// Begin the function context
+	// TODO: embed the scope name in the block
+	fmt::println("block returns value: {} (ret: {})", block.unit[block.returns], block.returns);
+	gcc_jit_type *returns = generate_type_field(context, block.returns)->type;
+	context.function = gcc_jit_context_new_function(context.gcc, nullptr,
+		GCC_JIT_FUNCTION_EXPORTED, returns, "function",
+		context.parameters.size(), gcc_parameters.data(), 0);
+
+	// TODO: distinguish between function_t and block_t
+
+	context.block = gcc_jit_function_new_block(context.function, nullptr);
+	context.cached.resize(block.unit.size());
+
+	for (index_t i = 0; i < block.unit.size(); i++)
+		context.cached[i] = generate_instruction(context, i);
 }
 
 Linkage::jit_result_t Linkage::generate_jit_gcc()
 {
+	dump();
+
 	fmt::println("compiling linkage unit with gcc jit");
 
 	gcc_jit_context *context = gcc_jit_context_acquire();
 	assert(context);
-	
-	gcc_jit_context_set_bool_option(context,
-		GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, 1);
+
+	gcc_jit_context_set_int_option(context, GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 0);
+	gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
+	gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_TREE, true);
+	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_SUMMARY, true);
+	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
 
 	for (auto &[_, block] : blocks)
-		libgccjit_block(context, block);
-	
+		generate_block(context, block);
+
 	gcc_jit_result *result = gcc_jit_context_compile(context);
 	assert(result);
 
