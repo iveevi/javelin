@@ -444,7 +444,7 @@ void ad_fwd_transform_stitch_mapped(ire::Scratch &result, std::vector <ad_fwd_ma
 
 		// Reindex each atom
 		for (size_t i = 0; i < s.pointer; i++)
-			reindex_ir_operation(reindex, s.pool[i]);
+			s.pool[i].reindex(reindex);
 
 		// Restore global refs
 		for (index_t i = 0; i < store.size(); i++)

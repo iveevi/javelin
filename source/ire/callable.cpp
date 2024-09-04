@@ -73,11 +73,8 @@ void Callable::dump()
 	fmt::println("------------------------------");
 	fmt::println("CALLABLE ${} ({}/{})", name, pointer, pool.size());
 	fmt::println("------------------------------");
-	for (size_t i = 0; i < pointer; i++) {
-		fmt::print("   [{:4d}]: ", i);
-			thunder::dump_ir_operation(pool[i]);
-		fmt::print("\n");
-	}
+	for (size_t i = 0; i < pointer; i++)
+		fmt::println("   [{:4d}]: {}", i, pool[i].to_string());
 }
 
 } // namespace jvl::ire

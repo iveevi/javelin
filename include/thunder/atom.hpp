@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <fmt/printf.h>
+#include <fmt/format.h>
 
 #include "enumerations.hpp"
 #include "../wrapped_types.hpp"
@@ -30,13 +31,19 @@ struct Addresses {
 // Interface to enforce guarantees about operations,
 // useful when enforcing decisions to change the layout
 template <typename T>
-concept atom_instruction = requires(T &t) {
+concept atom_instruction = requires(T &t, const T &cta, const T &ctb) {
 	{
 		t.addresses()
 	} -> std::same_as <Addresses>;
+	
+	{
+		cta == ctb
+	} -> std::same_as <bool>;
+	
+	{
+		cta.to_string()
+	} -> std::same_as <std::string>;
 };
-
-// TODO: pack everything, manually pad to align
 
 // Global variable or parameter:
 //
@@ -48,15 +55,10 @@ struct Global {
 	index_t binding = -1;
 	GlobalQualifier qualifier;
 
-	bool operator==(const Global &other) const {
-		return (type == other.type)
-			&& (binding == other.binding)
-			&& (qualifier == other.qualifier);
-	}
+	bool operator==(const Global &) const;
+	Addresses addresses();
+	std::string to_string() const;
 
-	Addresses addresses() {
-		return { type, Addresses::null() };
-	}
 };
 
 static_assert(atom_instruction <Global>);
@@ -71,15 +73,9 @@ struct TypeField {
 	index_t next = -1;
 	PrimitiveType item = bad;
 	
-	bool operator==(const TypeField &other) const {
-		return (down == other.down)
-			&& (next == other.next)
-			&& (item == other.item);
-	}
-
-	Addresses addresses() {
-		return { down, next };
-	}
+	bool operator==(const TypeField &) const;
+	Addresses addresses();
+	std::string to_string() const;
 };
 
 static_assert(atom_instruction <TypeField>);
@@ -100,23 +96,9 @@ struct Primitive {
 
 	PrimitiveType type = bad;
 
-	bool operator==(const Primitive &other) const {
-		if (type != other.type)
-			return false;
-
-		switch (type) {
-		case i32: return idata == other.idata;
-		case f32: return fdata == other.fdata;
-		default:
-			break;
-		}
-
-		return false;
-	}
-	
-	Addresses addresses() {
-		return { Addresses::null(), Addresses::null() };
-	}
+	bool operator==(const Primitive &) const;
+	Addresses addresses();
+	std::string to_string() const;
 };
 #pragma pack(pop)
 
@@ -130,14 +112,9 @@ struct Swizzle {
 	index_t src = -1;
 	SwizzleCode code;
 
-	bool operator==(const Swizzle &other) const {
-		return (src == other.src)
-			&& (code == other.code);
-	}
-
-	Addresses addresses() {
-		return { src, Addresses::null() };
-	}
+	bool operator==(const Swizzle &) const;
+	Addresses addresses();
+	std::string to_string() const;
 };
 
 static_assert(atom_instruction <Swizzle>);
@@ -155,15 +132,9 @@ struct Operation {
 	index_t type = -1;
 	OperationCode code;
 
-	bool operator==(const Operation &other) const {
-		return (args == other.args)
-			&& (type == other.type)
-			&& (code == other.code);
-	}
-
-	Addresses addresses() {
-		return { args, type };
-	}
+	bool operator==(const Operation &) const;
+	Addresses addresses();
+	std::string to_string() const;
 };
 
 static_assert(atom_instruction <Operation>);
@@ -178,15 +149,9 @@ struct Intrinsic {
 	index_t type = -1;
 	IntrinsicOperation opn;
 
-	bool operator==(const Intrinsic &other) const {
-		return (args == other.args)
-			&& (type == other.type)
-			&& (opn == other.opn);
-	}
-
-	Addresses addresses() {
-		return { args, type };
-	}
+	bool operator==(const Intrinsic &) const;
+	Addresses addresses();
+	std::string to_string() const;
 };
 
 static_assert(atom_instruction <Intrinsic>);
@@ -199,14 +164,9 @@ struct List {
 	index_t item = -1;
 	index_t next = -1;
 
-	bool operator==(const List &other) const {
-		return (item == other.item)
-			&& (next == other.next);
-	}
-
-	Addresses addresses() {
-		return { item, next };
-	}
+	bool operator==(const List &) const;
+	Addresses addresses();
+	std::string to_string() const;
 };
 
 static_assert(atom_instruction <List>);
@@ -219,14 +179,9 @@ struct Construct {
 	index_t type = -1;
 	index_t args = -1;
 	
-	bool operator==(const Construct &other) const {
-		return (type == other.type)
-			&& (args == other.args);
-	}
-
-	Addresses addresses() {
-		return { type, args };
-	}
+	bool operator==(const Construct &) const;
+	Addresses addresses();
+	std::string to_string() const;
 };
 
 static_assert(atom_instruction <Construct>);
@@ -241,16 +196,12 @@ struct Call {
 	index_t args = -1;
 	index_t type = -1;
 	
-	bool operator==(const Call &other) const {
-		return (type == other.type)
-			&& (args == other.args)
-			&& (cid == other.cid);
-	}
-
-	Addresses addresses() {
-		return { args, type };
-	}
+	bool operator==(const Call &) const;
+	Addresses addresses();
+	std::string to_string() const;
 };
+
+static_assert(atom_instruction <Call>);
 
 // Store instruction
 //
@@ -260,14 +211,9 @@ struct Store {
 	index_t dst = -1;
 	index_t src = -1;
 
-	bool operator==(const Store &other) const {
-		return (dst == other.dst)
-			&& (src == other.src);
-	}
-
-	Addresses addresses() {
-		return { dst, src };
-	}
+	bool operator==(const Store &) const;
+	Addresses addresses();
+	std::string to_string() const;
 };
 
 static_assert(atom_instruction <Store>);
@@ -280,14 +226,9 @@ struct Load {
 	index_t src = -1;
 	index_t idx = -1;
 
-	bool operator==(const Load &other) const {
-		return (src == other.src)
-			&& (idx == other.idx);
-	}
-
-	Addresses addresses() {
-		return { src, Addresses::null() };
-	}
+	bool operator==(const Load &) const;
+	Addresses addresses();
+	std::string to_string() const;
 };
 
 static_assert(atom_instruction <Load>);
@@ -300,14 +241,9 @@ struct Branch {
 	index_t cond = -1;
 	index_t failto = -1;
 
-	bool operator==(const Branch &other) const {
-		return (cond == other.cond)
-			&& (failto == other.failto);
-	}
-
-	Addresses addresses() {
-		return { cond, failto };
-	}
+	bool operator==(const Branch &) const;
+	Addresses addresses();
+	std::string to_string() const;
 };
 
 static_assert(atom_instruction <Branch>);
@@ -320,14 +256,9 @@ struct While {
 	index_t cond = -1;
 	index_t failto = -1;
 
-	bool operator==(const While &other) const {
-		return (cond == other.cond)
-			&& (failto == other.failto);
-	}
-	
-	Addresses addresses() {
-		return { cond, failto };
-	}
+	bool operator==(const While &) const;
+	Addresses addresses();
+	std::string to_string() const;
 };
 
 static_assert(atom_instruction <While>);
@@ -340,14 +271,9 @@ struct Returns {
 	index_t args = -1;
 	index_t type = -1;
 
-	bool operator==(const Returns &other) const {
-		return (args == other.args)
-			&& (type == other.type);
-	}
-
-	Addresses addresses() {
-		return { args, type };
-	}
+	bool operator==(const Returns &) const;
+	Addresses addresses();
+	std::string to_string() const;
 };
 
 static_assert(atom_instruction <Returns>);
@@ -355,9 +281,9 @@ static_assert(atom_instruction <Returns>);
 // Target address of a branch/loop failto index
 // TODO: remove end
 struct End {
-	Addresses addresses() {
-		return { Addresses::null(), Addresses::null() };
-	}
+	bool operator==(const End &) const;
+	Addresses addresses();
+	std::string to_string() const;
 };
 
 static_assert(atom_instruction <End>);
@@ -396,11 +322,22 @@ struct alignas(4) Atom : atom_base {
 		if (addrs.a0 != -1) reindexer(addrs.a0);
 		if (addrs.a1 != -1) reindexer(addrs.a1);
 	}
+
+	std::string to_string() const {
+		auto ftn = [](const auto &x) -> std::string { return x.to_string(); };
+		return std::visit(ftn, *this);
+	}
 };
+
+// Support for direct printing through fmt
+inline auto format_as(const Atom &atom)
+{
+	return atom.to_string();
+}
 
 static_assert(atom_instruction <Atom>);
 
-// TODO: move to guarantees.hpp
+// Atom size checks
 static_assert(sizeof(Global)    == 6);
 static_assert(sizeof(TypeField) == 6);
 static_assert(sizeof(Primitive) == 5);
@@ -417,22 +354,5 @@ static_assert(sizeof(While)     == 4);
 static_assert(sizeof(Returns)   == 4);
 static_assert(sizeof(End)       == 1);
 static_assert(sizeof(Atom)      == 8);
-
-// Dispatcher types (vd = variadic dispatcher)
-std::string type_name(const std::vector <Atom> &,
-		      const wrapped::hash_table <int, std::string> &,
-		      index_t, index_t);
-
-// Printing instructions for debugging
-void dump_ir_operation(const Atom &);
-
-// Reindexing integer elements during compaction
-void reindex_ir_operation(const wrapped::reindex <index_t> &, Atom &);
-
-// Synthesizing GLSL source code
-std::string synthesize_glsl_body(const std::vector <Atom> &,
-		                 const wrapped::hash_table <int, std::string> &,
-		                 const std::unordered_set <index_t> &,
-				 size_t);
 
 } // namespace jvl::thunder

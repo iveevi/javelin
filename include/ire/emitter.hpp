@@ -25,9 +25,6 @@ struct Emitter : Scratch {
 	// Resizing and compaction
 	void clear();
 
-	// TODO: compaction is really optimization
-	void compact();
-
 	// Managing the scope
 	void push(Scratch &);
 	void pop();
@@ -95,12 +92,7 @@ thunder::Kernel kernel_from_args(const F &ftn, const Args &... args)
 
 namespace detail {
 
-std::tuple <size_t, wrapped::reindex <thunder::index_t>>
-ir_compact_deduplicate(const thunder::Atom *const,
-		       thunder::Atom *const,
-		       std::unordered_set <thunder::index_t> &,
-		       size_t);
-
+// TODO: move to emitter.cpp...
 void mark_used(const std::vector <thunder::Atom> &,
 	       std::unordered_set <thunder::index_t> &,
 	       std::unordered_set <thunder::index_t> &,

@@ -1,12 +1,47 @@
 #include <functional>
 #include <string>
 
-#include "thunder/atom.hpp"
 #include "ire/callable.hpp"
+#include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
+#include "thunder/linkage.hpp"
 #include "wrapped_types.hpp"
 
 namespace jvl::thunder {
+
+std::string type_name(const std::vector <Atom> &pool,
+		      const wrapped::hash_table <int, std::string> &struct_names,
+		      index_t index,
+		      index_t field)
+{
+	Atom g = pool[index];
+	if (struct_names.contains(index)) {
+		if (field == -1)
+			return struct_names.at(index);
+
+		assert(g.is <TypeField> ());
+		if (field > 0) {
+			index_t i = g.as <TypeField> ().next;
+			// TODO: traverse inline
+			return type_name(pool, struct_names, i, field - 1);
+		}
+	}
+
+	if (auto global = g.get <Global> ()) {
+		return type_name(pool, struct_names, global->type, field);
+	} else if (auto ctor = g.get <Construct> ()) {
+		return type_name(pool, struct_names, ctor->type, field);
+	} else if (auto tf = g.get <TypeField> ()) {
+		if (tf->down != -1)
+			return type_name(pool, struct_names, tf->down, -1);
+		if (tf->item != bad)
+			return tbl_primitive_types[tf->item];
+	} else {
+		fmt::println("failed to resolve type name for: {}", g.to_string());
+	}
+
+	return "<BAD>";
+}
 
 std::string glsl_global_ref(const Global &global)
 {
@@ -79,7 +114,7 @@ std::string glsl_format_operation(int type, const std::vector <std::string> &arg
 	return "<op:?>";
 }
 
-std::string synthesize_glsl_body(const std::vector <Atom> &pool,
+std::string generate_glsl_body(const std::vector <Atom> &pool,
 		                 const wrapped::hash_table <int, std::string> &struct_names,
 		                 const std::unordered_set <index_t> &synthesized,
 				 size_t size)
@@ -128,9 +163,7 @@ std::string synthesize_glsl_body(const std::vector <Atom> &pool,
 			std::string accessor = tbl_swizzle_code[swizzle->code];
 			return ref(swizzle->src) + "." + accessor;
 		} else if (!variables.count(index)) {
-			fmt::println("unexpected IR requested for ref(...)");
-			dump_ir_operation(g);
-			fmt::print("\n");
+			fmt::println("unexpected IR requested for ref(...): {}", g.to_string());
 			abort();
 		}
 
@@ -162,8 +195,7 @@ std::string synthesize_glsl_body(const std::vector <Atom> &pool,
 		while (l != -1) {
 			Atom h = pool[l];
 			if (!h.is <List> ()) {
-				fmt::println("unexpected atom in arglist:");
-				dump_ir_operation(h);
+				fmt::println("unexpected atom in arglist: {}", h.to_string());
 				fmt::print("\n");
 				abort();
 			}
@@ -226,9 +258,7 @@ std::string synthesize_glsl_body(const std::vector <Atom> &pool,
 			auto args = arglist(intr->args);
 			return tbl_intrinsic_operation[intr->opn] + strargs(args);
 		} else {
-			fmt::println("not sure how to inline atom:");
-			dump_ir_operation(g);
-			fmt::print("\n");
+			fmt::println("not sure how to inline atom: {}", g.to_string());
 			// abort();
 		}
 
@@ -333,10 +363,7 @@ std::string synthesize_glsl_body(const std::vector <Atom> &pool,
 			// which do not need to be synthesized
 		} else {
 			// TODO: error reporting for jvl facilities
-			fmt::println("unexpected IR requested for synthesize(...)");
-			dump_ir_operation(g);
-			fmt::print("\n");
-
+			fmt::println("unexpected IR requested for synthesize(...): {}", g.to_string());
 			source += finish("<?>", false);
 		}
 	};
@@ -351,4 +378,117 @@ std::string synthesize_glsl_body(const std::vector <Atom> &pool,
 	return source;
 }
 
-} // namespace jvl::ire::atom
+std::string Linkage::generate_glsl(const std::string &version)
+{
+	wrapped::hash_table <int, std::string> struct_names;
+
+	// Final source code
+	std::string source = fmt::format("#version {}\n\n", version);
+
+	// Translating types
+	auto translate_type = [&](index_t i) -> std::string {
+		const auto &decl = structs[i];
+		if (decl.size() == 1) {
+			auto &elem = decl[0];
+			return tbl_primitive_types[elem.item];
+		}
+
+		return struct_names[i];
+	};
+
+	// Structure declarations, should already be in order
+	for (index_t i = 0; i < structs.size(); i++) {
+		const auto &decl = structs[i];
+		if (decl.size() <= 1)
+			continue;
+
+		std::string struct_name = fmt::format("s{}_t", i);
+		std::string struct_source = fmt::format("struct {} {{\n", struct_name);
+		struct_names[i] = struct_name;
+
+		size_t field = 0;
+		for (auto &elem : decl) {
+			std::string ft_name;
+			if (elem.nested == -1)
+				ft_name = tbl_primitive_types[elem.item];
+			else
+				ft_name = struct_names[elem.nested];
+
+			struct_source += fmt::format("    {} f{};\n", ft_name, field++);
+		}
+
+		struct_source += "};\n";
+
+		source += struct_source + "\n";
+	}
+
+	// Global shader variables
+	for (const auto &[binding, t] : lins) {
+		source += fmt::format("layout (location = {}) in {} _lin{};\n",
+				binding, translate_type(t), binding);
+	}
+
+	if (lins.size())
+		source += "\n";
+
+	for (const auto &[binding, t] : louts) {
+		source += fmt::format("layout (location = {}) out {} _lout{};\n",
+				binding, translate_type(t), binding);
+	}
+
+	if (louts.size())
+		source += "\n";
+
+	if (push_constant != -1) {
+		source += "layout (push_constant) uniform constants\n";
+		source += "{\n";
+		source += fmt::format("     {} _pc;\n", translate_type(push_constant));
+		source += "};\n";
+		source += "\n";
+	}
+
+	// Synthesize all blocks
+	for (auto &i : sorted) {
+		auto &b = blocks[i];
+
+		wrapped::hash_table <int, std::string> local_struct_names;
+		for (auto &[i, t] : b.struct_map)
+			local_struct_names[i] = translate_type(t);
+
+		std::string name = "main";
+		if (i != -1) {
+			ire::Callable *cbl = ire::Callable::search_tracked(i);
+			name = cbl->name;
+		}
+
+		std::string returns = "void";
+		if (b.returns != -1)
+			returns = translate_type(b.returns);
+
+		std::vector <std::string> args;
+		for (index_t i = 0; i < b.parameters.size(); i++) {
+			index_t t = b.parameters.at(i);
+			std::string arg = fmt::format("{} _arg{}", translate_type(t), i);
+			args.push_back(arg);
+		}
+
+		std::string parameters;
+		for (index_t i = 0; i < args.size(); i++) {
+			parameters += args[i];
+			if (i + 1 < args.size())
+				parameters += ", ";
+		}
+
+		source += fmt::format("{} {}({})\n", returns, name, parameters);
+		source += "{\n";
+		source += generate_glsl_body(b.unit,
+				               local_struct_names,
+					       b.synthesized,
+					       b.unit.size());
+		source += "}\n\n";
+	}
+
+	return source;
+}
+
+} // namespace jvl::thunder

@@ -31,21 +31,20 @@ add_library(imgui SHARED
 	thirdparty/imgui/backends/imgui_impl_vulkan.cpp)
 
 add_library(javelin-ire STATIC
+	source/ire/callable.cpp
+	source/ire/emitter.cpp
+	source/ire/marking.cpp
+	source/ire/scratch.cpp
+	source/thunder/atom.cpp
 	source/thunder/autodiff_forward.cpp
 	source/thunder/comparison.cpp
 	source/thunder/dump.cpp
+	source/thunder/generate_glsl.cpp
+	source/thunder/jit_gcc.cpp
 	source/thunder/kernel.cpp
 	source/thunder/linkage.cpp
 	source/thunder/optimization.cpp
-	source/thunder/reindex.cpp
-	source/thunder/synthesize_glsl.cpp
-	source/thunder/type_name.cpp
-	source/thunder/usage.cpp
-	source/ire/callable.cpp
-	source/ire/compaction.cpp
-	source/ire/emitter.cpp
-	source/ire/marking.cpp
-	source/ire/scratch.cpp)
+	source/thunder/usage.cpp)
 
 add_executable(javelin
 	source/core/aabb.cpp

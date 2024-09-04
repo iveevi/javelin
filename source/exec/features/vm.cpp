@@ -328,10 +328,7 @@ struct VM {
 			break;
 
 		default:
-			fmt::println("VM does not support instruction type");
-			fmt::print("  ");
-			dump_ir_operation(atom);
-			fmt::print("\n");
+			fmt::println("VM does not support instruction type: {}", atom);
 			abort();
 		}
 
@@ -357,11 +354,8 @@ struct VM {
 		fmt::println("------------------------------");
 		fmt::println("HISTORY");
 		fmt::println("------------------------------");
-		for (int i = 0; i < history.size(); i++) {
-			fmt::print("[{:4d}| {:4d}] ", i, values.at(i));
-			dump_ir_operation(history.at(i));
-			fmt::print("\n");
-		}
+		for (int i = 0; i < history.size(); i++)
+			fmt::println("[{:4d}| {:4d}] {}", i, values.at(i), history.at(i).to_string());
 	}
 };
 

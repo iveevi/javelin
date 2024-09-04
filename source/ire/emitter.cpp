@@ -21,17 +21,6 @@ void Emitter::clear()
 	Scratch::clear();
 }
 
-void Emitter::compact()
-{
-	std::vector <thunder::Atom> dual(pool.size());
-	wrapped::reindex <thunder::index_t> reindexer;
-	std::tie(pointer, reindexer) = detail::ir_compact_deduplicate(pool.data(), dual.data(), synthesized, pointer);
-	std::memset(pool.data(), 0, pool.size() * sizeof(thunder::Atom));
-	std::memcpy(pool.data(), dual.data(), pointer * sizeof(thunder::Atom));
-	synthesized = reindexer(synthesized);
-	used = reindexer(used);
-}
-
 // Scope management
 void Emitter::push(Scratch &scratch)
 {
@@ -142,9 +131,7 @@ void Emitter::control_flow_callback(int ref, int p)
 	} else if (op.is <thunder::While> ()) {
 		op.as <thunder::While> ().failto = p;
 	} else {
-		fmt::print("op not conditional, is actually:");
-		thunder::dump_ir_operation(op);
-		fmt::print("\n");
+		fmt::print("op not conditional, is actually: {}", op.to_string());
 		abort();
 	}
 }
@@ -188,8 +175,6 @@ void Emitter::validate() const
 // Kernel transfer
 thunder::Kernel Emitter::export_to_kernel()
 {
-	// Compaction, validation, ...
-	// compact();
 	validate();
 
 	thunder::Kernel kernel(thunder::Kernel::eAll);
@@ -221,9 +206,7 @@ void Emitter::dump()
 		else
 			fmt::print(" ");
 
-		fmt::print(" [{:4d}]: ", i);
-			thunder::dump_ir_operation(pool[i]);
-		fmt::print("\n");
+		fmt::println(" [{:4d}]: {}", i, pool[i].to_string());
 	}
 }
 

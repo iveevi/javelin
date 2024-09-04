@@ -115,9 +115,7 @@ void Kernel::dump() const
 		else
 			fmt::print(" ");
 
-		fmt::print(" [{:4d}]: ", i);
-			dump_ir_operation(atoms[i]);
-		fmt::print("\n");
+		fmt::println(" [{:4d}]: {}", i, atoms[i].to_string());
 	}
 }
 
