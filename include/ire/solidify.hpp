@@ -24,10 +24,11 @@ struct tuple : std::tuple <Args...> {
 };
 
 // Holds the concrete native type for a given IRE generic type
+struct default_undefined_solid {};
+
 template <typename T>
 struct solid_base_t {
-	struct default_invalid {};
-	using type = default_invalid;
+	using type = default_undefined_solid;
 };
 
 // Alias to skip the explicit lookup
@@ -40,13 +41,15 @@ struct solid_base_t <f32> {
 	using type = float;
 };
 
-// Following the alignment specification from GLSL/OpenGL/SPIRV
-struct alignas(16) aligned_float3 : float3 {};
-
-template <>
-struct solid_base_t <vec3> {
-	using type = aligned_float3;
+// Vector types
+template <size_t N>
+struct solid_base_t <vec <float, N>> {
+	using type = vector <float, N>;
 };
+
+static_assert(std::same_as <solid_base_t <vec2> ::type, float2>);
+static_assert(std::same_as <solid_base_t <vec3> ::type, float3>);
+static_assert(std::same_as <solid_base_t <vec4> ::type, float4>);
 
 // Matrix types
 template <>

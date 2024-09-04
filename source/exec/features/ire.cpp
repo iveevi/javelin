@@ -25,12 +25,9 @@ using namespace jvl;
 using namespace jvl::ire;
 
 // Sandbox application
-f32 __ftn(vec2 v)
+f32 __ftn(vec3 v)
 {
-	return v.x + v.y;
-	// return cos(v);
-	// return cos(v.x);
-	// return sin(cos(v.x) - v.y);
+	return sin(cos(v.x) - v.y) / cos(v.z + 1);
 }
 
 auto id = callable(__ftn).named("ftn");
@@ -47,6 +44,11 @@ auto jit(const callable_t <R, Args...> &callable)
 
 int main()
 {
+	// auto kernel = id.export_to_kernel();
+	// auto linkage = kernel.linkage().resolve();
+	// std::string source = linkage.generate_cplusplus();
+	// fmt::println("{}", source);
+
 	thunder::opt_transform_compact(id);
 	// TODO: recursive dead code elimination in one pass...
 	thunder::opt_transform_dead_code_elimination(id);
@@ -56,6 +58,7 @@ int main()
 	thunder::opt_transform_dead_code_elimination(id);
 	thunder::opt_transform_dead_code_elimination(id);
 	id.dump();
-
 	auto jit_ftn = jit(id);
+
+	fmt::println("ftn(...) = {}", jit_ftn(float3 { -0.618, 1.618 } ));
 }

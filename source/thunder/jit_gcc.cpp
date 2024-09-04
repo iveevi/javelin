@@ -1,5 +1,6 @@
 #include <libgccjit.h>
 
+#include "thunder/enumerations.hpp"
 #include "thunder/linkage.hpp"
 
 namespace jvl::thunder {
@@ -25,50 +26,81 @@ struct jit_context {
 	const std::vector <Atom> &pool;
 };
 
-jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType item)
+jit_struct *generate_type_field_primitive_scalar(jit_context &context, PrimitiveType item)
 {
-	// TODO: add header information with a fourcc
 	jit_struct *s = new jit_struct;
 
 	switch (item) {
-
 	case i32:
-	{
 		s->type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_INT);
-	} break;
-
+		break;
 	case f32:
-	{
 		s->type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
-	} break;
-
-	case vec2:
-	{
-		jit_struct *element = generate_type_field_primitive(context, f32);
-
-		s->fields.resize(2);
-		s->fields[0] = gcc_jit_context_new_field(context.gcc, nullptr, element->type, "x");
-		s->fields[1] = gcc_jit_context_new_field(context.gcc, nullptr, element->type, "y");
-
-		s->field_types.resize(2);
-		s->field_types[0] = element;
-		s->field_types[1] = element;
-
-		// TODO: materialize() method
-		s->type = (gcc_jit_type *) gcc_jit_context_new_struct_type(context.gcc, nullptr,
-		 	"vec2", s->fields.size(), s->fields.data());
-	} break;
-
+		break;
 	default:
-	{
-		fmt::println("GCC JIT unsupported type {}",
-			tbl_primitive_types[item]);
+		fmt::println("GCC JIT unsupported type {}", tbl_primitive_types[item]);
 		abort();
 	}
 
+	return s;
+}
+
+jit_struct *generate_type_field_primitive_vector(jit_context &context, const char *name, PrimitiveType item, size_t components)
+{
+	static constexpr const char *component_names[] = { "x", "y", "z", "w" };
+
+	jit_struct *s = new jit_struct;
+
+	jit_struct *element = generate_type_field_primitive_scalar(context, item);
+
+	s->fields.resize(components);
+	for (size_t i = 0; i < components; i++) {
+		s->fields[i] = gcc_jit_context_new_field(context.gcc, nullptr,
+			element->type, component_names[i]);
 	}
 
+	s->field_types.resize(components);
+	for (size_t i = 0; i < components; i++)
+		s->field_types[i] = element;
+
+	// TODO: materialize() method
+	s->type = (gcc_jit_type *) gcc_jit_context_new_struct_type(context.gcc, nullptr,
+		name, s->fields.size(), s->fields.data());
+
 	return s;
+}
+
+jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType item)
+{
+	switch (item) {
+
+	// Scalar types
+	case i32:
+	case f32:
+		return generate_type_field_primitive_scalar(context, item);
+	
+	// Integer vector types
+	case ivec2:
+		return generate_type_field_primitive_vector(context, "ivec2", i32, 2);
+	case ivec3:
+		return generate_type_field_primitive_vector(context, "ivec3", i32, 3);
+	case ivec4:
+		return generate_type_field_primitive_vector(context, "ivec4", i32, 4);
+	
+	// Floating-point vector types
+	case vec2:
+		return generate_type_field_primitive_vector(context, "vec2", f32, 2);
+	case vec3:
+		return generate_type_field_primitive_vector(context, "vec3", f32, 3);
+	case vec4:
+		return generate_type_field_primitive_vector(context, "vec4", f32, 4);
+
+	default:
+		fmt::println("GCC JIT unsupported type {}", tbl_primitive_types[item]);
+		abort();
+	}
+
+	return nullptr;
 }
 
 jit_struct *generate_type_field(jit_context &context, index_t i)
@@ -394,7 +426,7 @@ Linkage::jit_result_t Linkage::generate_jit_gcc()
 
 	gcc_jit_context_set_int_option(context, GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 0);
 	gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
-	gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_TREE, true);
+	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_TREE, true);
 	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_SUMMARY, true);
 	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
 
