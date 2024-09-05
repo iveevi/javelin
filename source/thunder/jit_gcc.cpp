@@ -10,6 +10,27 @@ struct jit_struct {
 	gcc_jit_type *type;
 	std::vector <gcc_jit_field *> fields;
 	std::vector <jit_struct *> field_types;
+
+	jit_struct &materialize(gcc_jit_context *context, const std::string &name) {
+		gcc_jit_struct *struct_type = gcc_jit_context_new_struct_type(context,
+			nullptr,
+			name.c_str(),
+			fields.size(),
+			fields.data());
+
+		type = gcc_jit_struct_as_type(struct_type);
+
+		return *this;
+	}
+
+	gcc_jit_rvalue *construct(gcc_jit_context *context, std::vector <gcc_jit_rvalue *> &args) {
+		return gcc_jit_context_new_struct_constructor(context,
+			nullptr,
+			type,
+			args.size(),
+			fields.data(),
+			args.data());
+	}
 };
 
 struct jit_instruction {
@@ -66,11 +87,7 @@ jit_struct *generate_type_field_primitive_vector(jit_context &context,
 	for (size_t i = 0; i < components; i++)
 		s->field_types[i] = element;
 
-	// TODO: materialize() method
-	s->type = (gcc_jit_type *) gcc_jit_context_new_struct_type(context.gcc, nullptr,
-		name, s->fields.size(), s->fields.data());
-
-	return s;
+	return &s->materialize(context.gcc, name);
 }
 
 jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType item)
@@ -150,12 +167,7 @@ jit_struct *generate_type_field(jit_context &context, index_t i)
 	}
 
 	fmt::println("creating a new struct with {} fields", s->fields.size());
-
-	std::string name = fmt::format("s_");
-	s->type = (gcc_jit_type *) gcc_jit_context_new_struct_type(context.gcc, nullptr,
-		name.c_str(), s->fields.size(), s->fields.data());
-
-	return s;
+	return &s->materialize(context.gcc, fmt::format("s_"));
 }
 
 std::vector <gcc_jit_rvalue *> load_rvalue_arguments(jit_context &context, index_t argsi)
@@ -174,6 +186,37 @@ std::vector <gcc_jit_rvalue *> load_rvalue_arguments(jit_context &context, index
 	}
 
 	return args;
+}
+
+jit_instruction generate_instruction_primitive(jit_context &context,
+					       const Primitive &primitive)
+{
+	switch (primitive.type) {
+
+	case i32:
+	{
+		jit_instruction ji;
+		ji.type_info = generate_type_field_primitive(context, i32);
+		ji.value = (gcc_jit_object *) gcc_jit_context_new_rvalue_from_int(context.gcc,
+				ji.type_info->type, primitive.idata);
+		return ji;
+	}
+
+	case f32:
+	{
+		jit_instruction ji;
+		ji.type_info = generate_type_field_primitive(context, f32);
+		ji.value = (gcc_jit_object *) gcc_jit_context_new_rvalue_from_double(context.gcc,
+				ji.type_info->type, primitive.fdata);
+		return ji;
+	}
+
+	default:
+		break;
+	}
+		
+	fmt::println("GCC JIT unexpected primitive type: {}", primitive);
+	abort();
 }
 
 jit_instruction generate_instruction_binary_operation(jit_context &context,
@@ -208,6 +251,71 @@ jit_instruction generate_instruction_binary_operation(jit_context &context,
 	abort();
 }
 
+jit_instruction generate_instruction_intrinsic(jit_context &context,
+					       IntrinsicOperation opn,
+					       jit_struct *return_type,
+					       const std::vector <gcc_jit_rvalue *> &args)
+{
+	assert(args.size() == 1);
+		
+	switch (opn) {
+
+	case sin:
+	{
+		gcc_jit_function *intr_ftn = gcc_jit_context_get_builtin_function(context.gcc, "sin");
+		assert(intr_ftn);
+
+		// Casting the arguments
+		gcc_jit_type *double_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_DOUBLE);
+		gcc_jit_type *float_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
+		assert(double_type);
+		assert(float_type);
+
+		gcc_jit_rvalue *arg = gcc_jit_context_new_cast(context.gcc, nullptr, args[0], double_type);
+		assert(arg);
+
+		gcc_jit_rvalue *expr;
+		expr = gcc_jit_context_new_call(context.gcc, nullptr, intr_ftn, 1, &arg);
+		expr = gcc_jit_context_new_cast(context.gcc, nullptr, expr, float_type);
+
+		jit_instruction ji;
+		ji.value = (gcc_jit_object *) expr;
+		ji.type_info = return_type;
+		return ji;
+	}
+
+	case cos:
+	{
+		gcc_jit_function *intr_ftn = gcc_jit_context_get_builtin_function(context.gcc, "cos");
+		assert(intr_ftn);
+
+		// Casting the arguments
+		gcc_jit_type *double_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_DOUBLE);
+		gcc_jit_type *float_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
+		assert(double_type);
+		assert(float_type);
+
+		gcc_jit_rvalue *arg = gcc_jit_context_new_cast(context.gcc, nullptr, args[0], double_type);
+		assert(arg);
+
+		gcc_jit_rvalue *expr;
+		expr = gcc_jit_context_new_call(context.gcc, nullptr, intr_ftn, 1, &arg);
+		expr = gcc_jit_context_new_cast(context.gcc, nullptr, expr, float_type);
+		
+		jit_instruction ji;
+		ji.value = (gcc_jit_object *) expr;
+		ji.type_info = return_type;
+		return ji;
+	}
+
+	default:
+		break;
+	}
+		
+	fmt::println("GCC JIT unsupported intrinsic <{}>", tbl_intrinsic_operation[opn]);
+	abort();
+}
+
 jit_instruction generate_instruction(jit_context &context, index_t i)
 {
 	auto &atom = context.pool[i];
@@ -221,8 +329,6 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 		auto &global = atom.as <Global> ();
 		assert(global.qualifier == parameter);
 		jit_instruction ji = context.parameters[global.binding];
-		fmt::println("global:");
-		fmt::println("  parameter with type: {}", (void *) ji.type_info);
 		ji.value = (gcc_jit_object *) gcc_jit_param_as_rvalue((gcc_jit_param *) ji.value);
 		return ji;
 	}
@@ -233,58 +339,24 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 		jit_instruction ji;
 		ji.value = nullptr;
 		ji.type_info = generate_type_field(context, i);
-		fmt::println("generated type field at {}", (void *) ji.type_info);
 		return ji;
 	}
 
 	case Atom::type_index <Primitive> ():
 	{
 		auto &primitive = atom.as <Primitive> ();
-
-		jit_instruction ji;
-
-		switch (primitive.type) {
-
-		case i32:
-		{
-			ji.type_info = generate_type_field_primitive(context, i32);
-			ji.value = (gcc_jit_object *) gcc_jit_context_new_rvalue_from_int(context.gcc,
-					ji.type_info->type, primitive.idata);
-			return ji;
-		}
-
-		case f32:
-		{
-			ji.type_info = generate_type_field_primitive(context, f32);
-			ji.value = (gcc_jit_object *) gcc_jit_context_new_rvalue_from_double(context.gcc,
-					ji.type_info->type, primitive.fdata);
-			return ji;
-		}
-
-		default:
-		{
-			fmt::println("unexpected primitive type: {}", primitive);
-			abort();
-		}
-
-		}
+		return generate_instruction_primitive(context, primitive);
 	}
 
 	case Atom::type_index <Construct> ():
 	{
-		auto &ctor = atom.as <Construct> ();
-		auto args = load_rvalue_arguments(context, ctor.args);
-
-		jit_struct *s = context.cached[ctor.type].type_info;
-
-		// TODO: construct() method
-		gcc_jit_rvalue *value = gcc_jit_context_new_struct_constructor(context.gcc,
-			nullptr, s->type, args.size(), s->fields.data(), args.data());
-
+		auto &constructor = atom.as <Construct> ();
+		auto args = load_rvalue_arguments(context, constructor.args);
+		jit_struct *struct_type = context.cached[constructor.type].type_info;
+		
 		jit_instruction ji;
-		ji.type_info = s;
-		ji.value = (gcc_jit_object *) value;
-
+		ji.type_info = struct_type;
+		ji.value = (gcc_jit_object *) struct_type->construct(context.gcc, args);
 		return ji;
 	}
 
@@ -354,70 +426,16 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 	{
 		auto &intr = atom.as <Intrinsic> ();
 		auto args = load_rvalue_arguments(context, intr.args);
-		assert(args.size() == 1);
-
-		// Resulting value
-		gcc_jit_rvalue *value = nullptr;
-
-		switch (intr.opn) {
-
-		case sin:
-		{
-			gcc_jit_function *intr_ftn = gcc_jit_context_get_builtin_function(context.gcc, "sin");
-			assert(intr_ftn);
-
-			// Casting the arguments
-			gcc_jit_type *double_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_DOUBLE);
-			gcc_jit_type *float_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
-
-			assert(double_type);
-			args[0] = gcc_jit_context_new_cast(context.gcc, nullptr, args[0], double_type);
-			assert(args[0]);
-			value = gcc_jit_context_new_call(context.gcc, nullptr, intr_ftn, 1, args.data());
-			value = gcc_jit_context_new_cast(context.gcc, nullptr, value, float_type);
-		} break;
-
-		case cos:
-		{
-			gcc_jit_function *intr_ftn = gcc_jit_context_get_builtin_function(context.gcc, "cos");
-			assert(intr_ftn);
-
-			// Casting the arguments
-			gcc_jit_type *double_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_DOUBLE);
-			gcc_jit_type *float_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
-
-			assert(double_type);
-			args[0] = gcc_jit_context_new_cast(context.gcc, nullptr, args[0], double_type);
-			assert(args[0]);
-			value = gcc_jit_context_new_call(context.gcc, nullptr, intr_ftn, 1, args.data());
-			value = gcc_jit_context_new_cast(context.gcc, nullptr, value, float_type);
-		} break;
-
-		default:
-		{
-			fmt::println("GCC JIT unsupported intrinsic <{}>",
-				tbl_intrinsic_operation[intr.opn]);
-			abort();
-		}
-
-		}
-
-		jit_instruction ji;
-		ji.type_info = context.cached[intr.type].type_info;
-		ji.value = (gcc_jit_object *) value;
-
-		return ji;
+		auto return_type = context.cached[intr.type].type_info;
+		return generate_instruction_intrinsic(context, intr.opn, return_type, args);
 	}
 
 	default:
-	{
-		fmt::println("GCC JIT unsupported instruction: {}", atom.to_string());
-		abort();
+		break;
 	}
-
-	}
-
-	return { nullptr, nullptr };
+		
+	fmt::println("GCC JIT unsupported instruction: {}", atom.to_string());
+	abort();
 }
 
 void generate_block(gcc_jit_context *const gcc, const Linkage::block_t &block)

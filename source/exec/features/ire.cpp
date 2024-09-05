@@ -24,8 +24,8 @@ using namespace jvl::ire;
 
 // Sandbox application
 struct shuffle_pair {
-	i32 x;
-	i32 y;
+	f32 x;
+	f32 y;
 
 	auto layout() const {
 		return uniform_layout(
@@ -36,9 +36,9 @@ struct shuffle_pair {
 	}
 };
 
-i32 __ftn(shuffle_pair sp)
+f32 __ftn(shuffle_pair sp)
 {
-	return (sp.x >> 5) ^ (sp.y << 17);
+	return cos(sp.x + sp.y);
 
 	// sp.x = sp.x >> 5;
 	// sp.y = sp.y << 17;
@@ -71,5 +71,5 @@ int main()
 	parameter.get <0> () = 0x56;
 	parameter.get <1> () = 0xff;
 
-	fmt::println("compiled(parameter) = {:x}", compiled(parameter));
+	fmt::println("compiled(parameter) = {}", compiled(parameter));
 }
