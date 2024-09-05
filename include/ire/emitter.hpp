@@ -19,6 +19,7 @@ struct Emitter : Scratch {
 	std::unordered_set <thunder::index_t> synthesized;
 
 	std::stack <std::reference_wrapper <Scratch>> scopes;
+	std::vector <std::function <void ()>> scoping_callbacks;
 
 	Emitter();
 
@@ -30,6 +31,7 @@ struct Emitter : Scratch {
 	void pop();
 
 	// Dead code elimination, always conservative
+	// TODO: move out of here...
 	void mark_used(int, bool);
 
 	// Emitting instructions during function invocation
@@ -46,7 +48,7 @@ struct Emitter : Scratch {
 	template <std::integral ... Args>
 	index_t emit_list_chain(const Args &... args) {
 		return emit_list_chain(std::initializer_list <index_t> { args... });
-	}	
+	}
 
 	// Easier ways to emit multiple instructions in a sequence
 	std::vector <index_t> emit_sequence(const std::initializer_list <thunder::Atom> &);

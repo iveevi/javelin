@@ -12,7 +12,7 @@ struct TriangleMesh {
 	littlevk::Buffer triangles;
 	size_t count;
 
-	// property<littlevk::Buffer> attributes;
+	// TODO: flags for the properties interleaved in vertices
 
 	static std::optional <TriangleMesh> from(littlevk::LinkedDeviceAllocator <> allocator, const core::TriangleMesh &tmesh) {
 		TriangleMesh vmesh;

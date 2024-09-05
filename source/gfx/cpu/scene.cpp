@@ -14,7 +14,7 @@ Scene Scene::from(const core::Scene &scene)
 			auto &mids = g.face_properties
 					.at(core::Mesh::material_key)
 					.as <buffer <int>> ();
-			
+
 			size_t offset = result.materials.size();
 			for (auto &i : mids)
 				i += offset;

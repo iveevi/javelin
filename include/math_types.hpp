@@ -30,7 +30,7 @@ struct vector_base <T, 2> {
 
 	constexpr vector_base() = default;
 	constexpr vector_base(T x_, T y_) : x(x_), y(y_) {}
-	
+
 	explicit constexpr vector_base(T v) : x(v), y(v) {}
 
 	TEMPLATE_DATA_INDEX
@@ -38,7 +38,7 @@ struct vector_base <T, 2> {
 
 // Following the alignment specification from GLSL/OpenGL/SPIRV
 template <typename T>
-struct alignas(16) vector_base <T, 3> {
+struct vector_base <T, 3> {
 	union {
 		T data[3] = {0, 0, 0};
 		struct {
@@ -539,7 +539,7 @@ using fquat = quat <float>;
 
 // Gaurantees
 static_assert(sizeof(float2) == 2 * sizeof(float));
-static_assert(sizeof(float3) == 4 * sizeof(float));
+static_assert(sizeof(float3) == 3 * sizeof(float));
 
 } // namespace jvl
 

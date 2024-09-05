@@ -75,7 +75,7 @@ template <primitive_type T>
 class swizzle_base <T, 2> : public tagged {
 	using self = swizzle_base <T, 2>;
 
-	T initial[2];
+	T initial[2] = { T(), T() };
 public:
 	swizzle_element <T, self, thunder::SwizzleCode::x> x;
 	swizzle_element <T, self, thunder::SwizzleCode::y> y;
@@ -112,7 +112,7 @@ template <primitive_type T>
 class swizzle_base <T, 3> : public tagged {
 	using self = swizzle_base <T, 3>;
 
-	T initial[3];
+	T initial[3] = { T(), T() };
 public:
 	swizzle_element <T, self, thunder::SwizzleCode::x> x;
 	swizzle_element <T, self, thunder::SwizzleCode::y> y;
@@ -162,7 +162,7 @@ template <primitive_type T>
 class swizzle_base <T, 4> : public tagged {
 	using self = swizzle_base <T, 4>;
 
-	T initial[4];
+	T initial[4] = { T(), T(), T(), T() };
 public:
 	swizzle_element <T, self, thunder::SwizzleCode::x> x;
 	swizzle_element <T, self, thunder::SwizzleCode::y> y;

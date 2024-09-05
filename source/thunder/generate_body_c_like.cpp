@@ -163,7 +163,7 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 			std::string accessor = tbl_swizzle_code[swizzle->code];
 			return ref(swizzle->src) + "." + accessor;
 		} else if (!variables.count(index)) {
-			fmt::println("unexpected IR requested for ref(...): {}", g.to_string());
+			fmt::println("unexpected IR requested for ref(...): {} (@{})", g.to_string(), index);
 			abort();
 		}
 
@@ -336,6 +336,7 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 			source += assign_new(t, v, index);
 		} else if (auto store = g.get <Store> ()) {
 			// TODO: there could be a store index chain...
+			fmt::println("store instruction (@{}) = {}", index, g);
 			std::string v = inlined(store->src);
 			source += assign_to(store->dst, v);
 		} else if (auto prim = g.get <Primitive> ()) {

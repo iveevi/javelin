@@ -60,17 +60,17 @@ Linkage Kernel::linkage() const
 			// TODO: the kernel must undergo validation
 			switch (global->qualifier) {
 			case GlobalQualifier::layout_in:
-				linkage.lins[binding] = type;
+				linkage.lins[binding] = generate_type_declaration(type);
 				break;
 			case GlobalQualifier::layout_out:
-				linkage.louts[binding] = type;
+				linkage.louts[binding] = generate_type_declaration(type);
 				break;
 			case GlobalQualifier::parameter:
 				fmt::println("KERNEL found parameter @{} -> {}", binding, type);
 				linkage.blocks[-1].parameters[binding] = type;
 				break;
 			case GlobalQualifier::push_constant:
-				linkage.push_constant = type;
+				linkage.push_constant = generate_type_declaration(type);
 				break;
 			default:
 				break;

@@ -1,4 +1,5 @@
 #include "attachment_viewport.hpp"
+#include "ire/emitter.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -48,6 +49,8 @@ void fragment()
 	vec3 N = normalize(cross(dV, dU));
 	fragment = vec4(0.5f + 0.5f * N, 1.0f);
 }
+
+// TODO: linking two kernels together from complementary stages...
 
 // Concrete push constants aggregate
 struct MVP {
@@ -113,7 +116,10 @@ void AttachmentViewport::configre_normal_pipeline()
 	auto &drc = gctx.drc;
 
 	std::string vertex_shader = kernel_from_args(vertex).synthesize(jvl::profiles::opengl_450);
+	fmt::println("vertex shader:\n{}", vertex_shader);
+
 	std::string fragment_shader = kernel_from_args(fragment).synthesize(jvl::profiles::opengl_450);
+	fmt::println("fragment shader:\n{}", fragment_shader);
 
 	auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
 		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)

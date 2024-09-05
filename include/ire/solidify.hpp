@@ -38,12 +38,25 @@ struct solid_base_t <vec <T, N>> {
 	using type = vector <T, N>;
 };
 
+struct alignas(16) aligned_float3 : float3 {};
+struct alignas(16) aligned_int3   : int3 {};
+
+template <>
+struct solid_base_t <vec <float, 3>> {
+	using type = aligned_float3;
+};
+
+template <>
+struct solid_base_t <vec <int, 3>> {
+	using type = aligned_int3;
+};
+
 static_assert(std::same_as <solid_base_t <ivec2> ::type, int2>);
-static_assert(std::same_as <solid_base_t <ivec3> ::type, int3>);
+static_assert(std::same_as <solid_base_t <ivec3> ::type, aligned_int3>);
 static_assert(std::same_as <solid_base_t <ivec4> ::type, int4>);
 
 static_assert(std::same_as <solid_base_t <vec2> ::type, float2>);
-static_assert(std::same_as <solid_base_t <vec3> ::type, float3>);
+static_assert(std::same_as <solid_base_t <vec3> ::type, aligned_float3>);
 static_assert(std::same_as <solid_base_t <vec4> ::type, float4>);
 
 // Matrix types

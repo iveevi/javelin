@@ -6,29 +6,40 @@
 #include <fmt/core.h>
 
 #include "ire/emitter.hpp"
+#include "thunder/opt.hpp"
 #include "wrapped_types.hpp"
 
 namespace jvl::ire {
 
 Emitter::Emitter() : Scratch() {}
 
+// TODO: every level should have be a scratch
 void Emitter::clear()
 {
 	// Reset usages
 	used.clear();
 	synthesized.clear();
-	
+
 	Scratch::clear();
+
+	for (auto &cb : scoping_callbacks)
+		cb();
 }
 
 // Scope management
 void Emitter::push(Scratch &scratch)
 {
+	for (auto &cb : scoping_callbacks)
+		cb();
+
 	scopes.push(std::ref(scratch));
 }
 
 void Emitter::pop()
 {
+	for (auto &cb : scoping_callbacks)
+		cb();
+
 	scopes.pop();
 }
 
@@ -176,6 +187,8 @@ void Emitter::validate() const
 thunder::Kernel Emitter::export_to_kernel()
 {
 	validate();
+
+	// TODO: run through optimizations
 
 	thunder::Kernel kernel(thunder::Kernel::eAll);
 	kernel.atoms = pool;
