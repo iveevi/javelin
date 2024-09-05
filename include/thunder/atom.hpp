@@ -90,7 +90,8 @@ static_assert(atom_instruction <TypeField>);
 struct Primitive {
 	union {
 		bool bdata;
-		int idata;
+		uint32_t udata;
+		int32_t idata;
 		float fdata;
 	};
 

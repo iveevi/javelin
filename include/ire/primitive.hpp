@@ -36,7 +36,7 @@ inline thunder::index_t translate_primitive(uint32_t i)
 
 	thunder::Primitive p;
 	p.type = thunder::u32;
-	p.idata = i;
+	p.udata = i;
 
 	return em.emit(p);
 }

@@ -88,6 +88,9 @@ std::string Primitive::to_string() const
         case i32:
                 result += fmt::format("{}", idata);
                 break;
+        case u32:
+                result += fmt::format("{}", udata);
+                break;
         case f32:
                 result += fmt::format("{:.2f}", fdata);
                 break;

@@ -12,8 +12,10 @@ struct f32_derivative_t {
 	f32 dual;
 
 	auto layout() const {
-		// TODO: this should be named
-		return uniform_layout(primal, dual);
+		return uniform_layout("dual_f32",
+			field <"primal"> (primal),
+			field <"dual"> (dual)
+		);
 	}
 };
 
@@ -23,7 +25,10 @@ struct vec_derivative_t {
 	vec <float, N> dual;
 
 	auto layout() const {
-		return uniform_layout(primal, dual);
+		return uniform_layout(fmt::format("dual_vec{}", N),
+			field <"primal"> (primal),
+			field <"dual"> (dual)
+		);
 	}
 };
 

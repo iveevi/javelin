@@ -52,10 +52,6 @@ std::string Linkage::generate_glsl(const std::string &version)
 		source += struct_source + "\n";
 	}
 
-	fmt::println("(generate glsl) struct names:");
-	for (auto &[i, t] : struct_names)
-		fmt::println("  {} -> {}", i, t);
-
 	// Global shader variables
 	for (const auto &[binding, t] : lins) {
 		source += fmt::format("layout (location = {}) in {} _lin{};\n",

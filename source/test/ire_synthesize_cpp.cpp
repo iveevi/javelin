@@ -36,7 +36,7 @@ void simple_io()
 	};
 
 	auto kernel = kernel_from_args(shader);
-	auto cpp = kernel.synthesize(profiles::cplusplus_11);
+	auto cpp = kernel.compile(profiles::cplusplus_11);
 	check_cpluslpus_source(cpp);
 }
 
@@ -60,7 +60,7 @@ void simple_vector_io()
 	};
 
 	auto kernel = kernel_from_args(shader);
-	auto cpp = kernel.synthesize(profiles::cplusplus_11);
+	auto cpp = kernel.compile(profiles::cplusplus_11);
 	check_cpluslpus_source(cpp);
 }
 

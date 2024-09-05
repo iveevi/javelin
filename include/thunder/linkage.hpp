@@ -32,6 +32,7 @@ struct Linkage {
 	using struct_map_t = wrapped::hash_table <index_t, index_t>;
 
 	struct block_t {
+		std::string name;
 		wrapped::hash_table <index_t, index_t> parameters;
 		struct_map_t struct_map;
 		std::vector <Atom> unit;

@@ -10,7 +10,7 @@ Linkage Kernel::linkage() const
 	Linkage linkage;
 
 	// TODO: preserve the cid if present
-	linkage.blocks[-1] = Linkage::block_t { {}, {}, atoms };
+	linkage.blocks[-1] = Linkage::block_t { name, {}, {}, atoms };
 	linkage.sorted = { -1 };
 
 	// Generate struct information for linkage
@@ -51,23 +51,22 @@ Linkage Kernel::linkage() const
 		if (auto call = op.get <Call> ()) {
 			linkage.callables.insert(call->cid);
 		} else if (auto global = op.get <Global> ()) {
-			index_t type = global->type;
+			index_t type = generate_type_declaration(global->type);
 			index_t binding = global->binding;
 
 			// TODO: the kernel must undergo validation
 			switch (global->qualifier) {
 			case GlobalQualifier::layout_in:
-				linkage.lins[binding] = generate_type_declaration(type);
+				linkage.lins[binding] = type;
 				break;
 			case GlobalQualifier::layout_out:
-				linkage.louts[binding] = generate_type_declaration(type);
+				linkage.louts[binding] = type;
 				break;
 			case GlobalQualifier::parameter:
-				fmt::println("KERNEL found parameter @{} -> {}", binding, type);
 				linkage.blocks[-1].parameters[binding] = type;
 				break;
 			case GlobalQualifier::push_constant:
-				linkage.push_constant = generate_type_declaration(type);
+				linkage.push_constant = type;
 				break;
 			default:
 				break;
@@ -107,13 +106,13 @@ void Kernel::dump() const
 }
 
 // Generating GLSL source code
-std::string Kernel::synthesize_glsl(const std::string &version)
+std::string Kernel::generate_glsl(const std::string &version)
 {
 	return linkage().resolve().generate_glsl(version);
 }
 
 // Generating C++ source code
-std::string Kernel::synthesize_cplusplus()
+std::string Kernel::generate_cplusplus()
 {
 	return linkage().resolve().generate_cplusplus();
 }

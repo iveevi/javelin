@@ -11,38 +11,59 @@ namespace jvl::thunder {
 enum PrimitiveType : int8_t {
 	bad,
 	none,
+
+	// Scalar types
 	boolean,
 	i32,
 	u32,
 	f32,
+	
+	// Vector types
 	vec2,
 	vec3,
 	vec4,
+
 	ivec2,
 	ivec3,
 	ivec4,
+
+	uvec2,
+	uvec3,
+	uvec4,
+
+	// Matrix types
 	mat2,
 	mat3,
 	mat4,
+
 	__pt_end
 };
 
 static const char *tbl_primitive_types[] = {
 	"<BAD>",
 	"void",
+	
 	"bool",
 	"int",
 	"uint",
 	"float",
+	
 	"vec2",
 	"vec3",
 	"vec4",
+
 	"ivec2",
 	"ivec3",
 	"ivec4",
+
+	"uvec2",
+	"uvec3",
+	"uvec4",
+	
 	"mat2",
 	"mat3",
 	"mat4",
+
 	"__end"
 };
 

@@ -22,64 +22,60 @@
 using namespace jvl;
 using namespace jvl::ire;
 
-// Sandbox application
-struct shuffle_pair {
-	i32 x;
-	i32 y;
+// Material properties
+struct Material {
+	vec3 diffuse;
+	vec3 specular;
+	vec3 emission;
+	vec3 ambient;
+
+	f32 shininess;
+	f32 roughness;
+
+	f32 has_albedo;
+	f32 has_normal;
 
 	auto layout() const {
 		return uniform_layout(
-			"shuffle_pair",
-			field <"x"> (x),
-			field <"y"> (y)
+			"Material",
+			field <"diffuse"> (diffuse),
+			field <"specular"> (specular),
+			field <"emission"> (emission),
+			field <"ambient"> (ambient),
+			field <"shininess"> (shininess),
+			field <"roughness"> (roughness),
+			field <"has_albedo"> (has_albedo),
+			field <"has_normal"> (has_normal)
 		);
 	}
 };
 
-i32 __ftn(shuffle_pair sp)
+// Random number generation
+uvec3 __pcg3d(uvec3 v)
 {
-	sp.x = sp.x >> 2;
-	sp.y = sp.y << 2;
-	sp.x = (sp.x & 0xff) | (sp.y & 0b10101);
-	return sp.x & sp.y;
+	v = v * 1664525u + 1013904223u;
+	v.x += v.y * v.z;
+	// v.y += v.z * v.x;
+	// v.z += v.x * v.y;
+	// v ^= v >> 16u;
+	// v.x += v.y * v.z;
+	// v.y += v.z * v.x;
+	// v.z += v.x * v.y;
+	return v;
 }
 
-int32_t reference(solid_t <shuffle_pair> sp)
-{
-	int32_t x = sp.get <0> ();
-	int32_t y = sp.get <1> ();
-
-	x = x >> 2;
-	y = y << 2;
-	x = (x & 0xff) | (y & 0b10101);
-	return x & y;
-}
-
-auto ftn = callable(__ftn).named("ftn");
+auto pcg3d = callable(__pcg3d).named("pcg3d");
 
 int main()
 {
-	// auto kernel = id.export_to_kernel();
-	// auto linkage = kernel.linkage().resolve();
-	// std::string source = linkage.generate_cplusplus();
-	// fmt::println("{}", source);
+	thunder::opt_transform_compact(pcg3d);
+	thunder::opt_transform_dead_code_elimination(pcg3d);
+	thunder::opt_transform_dead_code_elimination(pcg3d);
+	pcg3d.dump();
 
-	thunder::opt_transform_compact(ftn);
-	// // TODO: recursive dead code elimination in one pass...
-	thunder::opt_transform_dead_code_elimination(ftn);
-	// thunder::opt_transform_dead_code_elimination(id);
-	// thunder::opt_transform_dead_code_elimination(id);
-	// thunder::opt_transform_dead_code_elimination(id);
-	// thunder::opt_transform_dead_code_elimination(id);
-	// thunder::opt_transform_dead_code_elimination(id);
-	ftn.dump();
+	// jit(pcg3d);
 
-	auto compiled = jit(ftn);
-
-	auto parameter = solid_t <shuffle_pair> ();
-	parameter.get <0> () = 0b10101;
-	parameter.get <1> () = 0b11111;
-
-	fmt::println("compiled  (parameter) = {}", compiled(parameter));
-	fmt::println("reference (parameter) = {}", reference(parameter));
+	auto k = pcg3d.export_to_kernel();
+	fmt::println("{}", k.compile(profiles::glsl_450));
+	fmt::println("{}", k.compile(profiles::cplusplus_11));
 }

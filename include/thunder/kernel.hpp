@@ -11,8 +11,8 @@ namespace jvl::thunder {
 struct Linkage;
 
 class Kernel {
-	std::string synthesize_glsl(const std::string &);
-	std::string synthesize_cplusplus();
+	std::string generate_glsl(const std::string &);
+	std::string generate_cplusplus();
 public:
 	// Name of the kernel, usually not set by the user
 	std::string name;
@@ -36,12 +36,12 @@ public:
 	Linkage linkage() const;
 
 	// Synthesizing targets
-	std::string synthesize(const profiles::glsl_version version) {
-		return synthesize_glsl(version.str);
+	std::string compile(const profiles::glsl_version version) {
+		return generate_glsl(version.str);
 	}
 
-	std::string synthesize(const profiles::cpp_standard standard) {
-		return synthesize_cplusplus();
+	std::string compile(const profiles::cpp_standard standard) {
+		return generate_cplusplus();
 	}
 
 	// Checking for capabilities

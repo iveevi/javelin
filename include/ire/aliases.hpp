@@ -35,15 +35,19 @@ constexpr thunder::PrimitiveType synthesize_primitive_type()
 {
 	if constexpr (std::is_same_v <T, bool>)
 		return thunder::boolean;
-	if constexpr (std::is_same_v <T, int>)
+	if constexpr (std::is_same_v <T, int32_t>)
 		return thunder::i32;
+	if constexpr (std::is_same_v <T, uint32_t>)
+		return thunder::u32;
 	if constexpr (std::is_same_v <T, float>)
 		return thunder::f32;
 
 	if constexpr (std::is_same_v <T, primitive_t <bool>>)
 		return thunder::boolean;
-	if constexpr (std::is_same_v <T, primitive_t <int>>)
+	if constexpr (std::is_same_v <T, primitive_t <int32_t>>)
 		return thunder::i32;
+	if constexpr (std::is_same_v <T, primitive_t <uint32_t>>)
+		return thunder::u32;
 	if constexpr (std::is_same_v <T, primitive_t <float>>)
 		return thunder::f32;
 
@@ -60,6 +64,13 @@ constexpr thunder::PrimitiveType synthesize_primitive_type()
 		return thunder::ivec3;
 	if constexpr (std::is_same_v <T, ivec4>)
 		return thunder::ivec4;
+
+	if constexpr (std::is_same_v <T, uvec2>)
+		return thunder::uvec2;
+	if constexpr (std::is_same_v <T, uvec3>)
+		return thunder::uvec3;
+	if constexpr (std::is_same_v <T, uvec4>)
+		return thunder::uvec4;
 
 	if constexpr (std::is_same_v <T, mat2>)
 		return thunder::mat2;

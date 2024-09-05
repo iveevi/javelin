@@ -55,13 +55,16 @@ jit_struct *generate_type_field_primitive_scalar(jit_context &context, Primitive
 
 	switch (item) {
 	case i32:
-		s->type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_INT);
+		s->type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_INT32_T);
+		break;
+	case u32:
+		s->type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_UINT32_T);
 		break;
 	case f32:
 		s->type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
 		break;
 	default:
-		fmt::println("GCC JIT unsupported type {}", tbl_primitive_types[item]);
+		fmt::println("GCC JIT unsupported primitive type {}", tbl_primitive_types[item]);
 		abort();
 	}
 
@@ -98,6 +101,7 @@ jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType it
 
 	// Scalar types
 	case i32:
+	case u32:
 	case f32:
 		return generate_type_field_primitive_scalar(context, item);
 	
@@ -108,6 +112,14 @@ jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType it
 		return generate_type_field_primitive_vector(context, "ivec3", i32, 3);
 	case ivec4:
 		return generate_type_field_primitive_vector(context, "ivec4", i32, 4);
+
+	// Unsigned integer vector types
+	case uvec2:
+		return generate_type_field_primitive_vector(context, "uvec2", u32, 2);
+	case uvec3:
+		return generate_type_field_primitive_vector(context, "uvec3", u32, 3);
+	case uvec4:
+		return generate_type_field_primitive_vector(context, "uvec4", u32, 4);
 	
 	// Floating-point vector types
 	case vec2:
@@ -190,8 +202,7 @@ std::vector <gcc_jit_rvalue *> load_rvalue_arguments(jit_context &context, index
 	return args;
 }
 
-jit_instruction generate_instruction_primitive(jit_context &context,
-					       const Primitive &primitive)
+jit_instruction generate_instruction_primitive(jit_context &context, const Primitive &primitive)
 {
 	switch (primitive.type) {
 
@@ -201,6 +212,15 @@ jit_instruction generate_instruction_primitive(jit_context &context,
 		ji.type_info = generate_type_field_primitive(context, i32);
 		ji.value = (gcc_jit_object *) gcc_jit_context_new_rvalue_from_int(context.gcc,
 				ji.type_info->type, primitive.idata);
+		return ji;
+	}
+	
+	case u32:
+	{
+		jit_instruction ji;
+		ji.type_info = generate_type_field_primitive(context, u32);
+		ji.value = (gcc_jit_object *) gcc_jit_context_new_rvalue_from_int(context.gcc,
+				ji.type_info->type, primitive.udata);
 		return ji;
 	}
 
@@ -217,7 +237,7 @@ jit_instruction generate_instruction_primitive(jit_context &context,
 		break;
 	}
 		
-	fmt::println("GCC JIT unexpected primitive type: {}", primitive);
+	fmt::println("GCC JIT unexpected primitive: {}", primitive);
 	abort();
 }
 
@@ -242,6 +262,8 @@ jit_instruction generate_instruction_binary_operation(jit_context &context,
 		gcc_jit_rvalue *expr = gcc_jit_context_new_binary_op(context.gcc,
 			nullptr, gcc_code.value(),
 			return_type->type, args[0], args[1]);
+
+		assert(expr);
 
 		jit_instruction ji;
 		ji.value = (gcc_jit_object *) expr;
@@ -318,9 +340,7 @@ jit_instruction generate_instruction_intrinsic(jit_context &context,
 	abort();
 }
 
-jit_instruction generate_instruction_access_field(jit_context &context,
-						  index_t src,
-						  index_t idx)
+jit_instruction generate_instruction_access_field(jit_context &context, index_t src, index_t idx)
 {
 	jit_instruction source_instruction = context.cached[src];
 	jit_struct *type_info = source_instruction.type_info;

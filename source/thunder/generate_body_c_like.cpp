@@ -68,6 +68,8 @@ std::string glsl_primitive(const Primitive &p)
 	switch (p.type) {
 	case i32:
 		return fmt::format("{}", p.idata);
+	case u32:
+		return fmt::format("{}", p.udata);
 	case f32:
 		return fmt::format("{}", p.fdata);
 	default:
@@ -336,7 +338,6 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 			source += assign_new(t, v, index);
 		} else if (auto store = g.get <Store> ()) {
 			// TODO: there could be a store index chain...
-			fmt::println("store instruction (@{}) = {}", index, g);
 			std::string v = inlined(store->src);
 			source += assign_to(store->dst, v);
 		} else if (auto prim = g.get <Primitive> ()) {

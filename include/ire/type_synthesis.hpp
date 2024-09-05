@@ -70,6 +70,12 @@ auto uniform_layout(const std::string &name, const Args &... args)
 }
 
 // Synthesize types for an entire sequence of arguments
+[[gnu::always_inline]]
+static inline bool valid(const thunder::TypeField &tf)
+{
+	return (tf.down != -1) || (tf.item != thunder::bad);
+}
+
 template <typename T, typename ... Args>
 cache_index_t type_field_from_args()
 {
@@ -83,6 +89,8 @@ cache_index_t type_field_from_args()
 	} else {
 		tf.item = synthesize_primitive_type <T> ();
 	}
+
+	assert(valid(tf));
 
 	if constexpr (sizeof...(Args))
 		tf.next = type_field_from_args <Args...> ().id;

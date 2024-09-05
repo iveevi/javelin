@@ -64,7 +64,7 @@ void simple_io()
 	};
 
 	auto kernel = kernel_from_args(shader);
-	auto glsl = kernel.synthesize(profiles::opengl_450);
+	auto glsl = kernel.compile(profiles::glsl_450);
 	check_glsl_source(glsl, GL_VERTEX_SHADER);
 }
 
@@ -88,7 +88,7 @@ void simple_vector_io()
 	};
 
 	auto kernel = kernel_from_args(shader);
-	auto glsl = kernel.synthesize(profiles::cplusplus_11);
+	auto glsl = kernel.compile(profiles::glsl_450);
 	check_glsl_source(glsl, GL_VERTEX_SHADER);
 }
 

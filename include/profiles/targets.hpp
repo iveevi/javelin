@@ -4,9 +4,9 @@ namespace jvl::profiles {
 
 struct glsl_version {
 	const char *str;
-} static opengl_330("330"),
-	 opengl_450("450"),
-	 opengl_460("460");
+} static glsl_330("330"),
+	 glsl_450("450"),
+	 glsl_460("460");
 
 struct cpp_standard {
 	// Nothing here...

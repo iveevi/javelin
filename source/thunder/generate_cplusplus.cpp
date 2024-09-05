@@ -1,3 +1,4 @@
+#include "thunder/enumerations.hpp"
 #include "thunder/linkage.hpp"
 #include "ire/callable.hpp"
 
@@ -7,16 +8,20 @@ namespace jvl::thunder {
 template <typename T>
 std::string cpp_primitive_type_as_string()
 {
-	if constexpr (std::is_same_v <T, int>)
-		return "int";
+	if constexpr (std::is_same_v <T, bool>)
+		return "bool";
+
+	if constexpr (std::is_same_v <T, int32_t>)
+		return "int32_t";
+	
+	if constexpr (std::is_same_v <T, uint32_t>)
+		return "uint32_t";
 
 	if constexpr (std::is_same_v <T, float>)
 		return "float";
 
-	if constexpr (std::is_same_v <T, bool>)
-		return "bool";
-
-	return "?";
+	fmt::println("failed to generate primitive type as string");
+	abort();
 }
 
 template <typename T, size_t N>
@@ -71,26 +76,38 @@ std::string jvl_primitive_type_as_string(PrimitiveType type)
 {
 	switch (type) {
 	case i32:
+	case u32:
 	case f32:
 	case boolean:
 		return "";
+
 	case ivec2:
-		return jvl_vector_type_as_string <int, 2> ("ivec2");
+		return jvl_vector_type_as_string <int32_t, 2> ("ivec2");
 	case ivec3:
-		return jvl_vector_type_as_string <int, 3> ("ivec3");
+		return jvl_vector_type_as_string <int32_t, 3> ("ivec3");
 	case ivec4:
-		return jvl_vector_type_as_string <int, 4> ("ivec4");
+		return jvl_vector_type_as_string <int32_t, 4> ("ivec4");
+
+	case uvec2:
+		return jvl_vector_type_as_string <uint32_t, 2> ("uvec2");
+	case uvec3:
+		return jvl_vector_type_as_string <uint32_t, 3> ("uvec3");
+	case uvec4:
+		return jvl_vector_type_as_string <uint32_t, 4> ("uvec4");
+
 	case vec2:
 		return jvl_vector_type_as_string <float, 2> ("vec2");
 	case vec3:
 		return jvl_vector_type_as_string <float, 3> ("vec3");
 	case vec4:
 		return jvl_vector_type_as_string <float, 4> ("vec4");
+
 	default:
 		break;
 	}
 
-	return "?";
+	fmt::println("failed to generate type as string for {}", tbl_primitive_types[type]);
+	abort();
 }
 
 std::string Linkage::generate_cplusplus()
@@ -123,7 +140,7 @@ std::string Linkage::generate_cplusplus()
 
 		assert(decl.size() >= 1);
 		if (decl.size() == 1) {
-			auto &item = decl[i].item;
+			auto item = decl[0].item;
 
 			// Already synthesized, no need to do it again
 			if (synthesized_primitives.count(item))
@@ -167,21 +184,13 @@ std::string Linkage::generate_cplusplus()
 		for (auto &[i, t] : b.struct_map)
 			local_struct_names[i] = translate_type(t);
 
-		std::string name = "jvl_main";
-		if (i != -1) {
-			ire::Callable *cbl = ire::Callable::search_tracked(i);
-			name = cbl->name;
-		}
-
-		// std::string returns = "void";
-		// if (b.returns != -1)
-		// 	returns = translate_type(b.returns);
-
 		// Output type
 		// TODO: respect callable return values as well...
 		std::string returns;
 
-		if (louts.size() == 0) {
+		if (b.returns != -1) {
+			returns = translate_type(b.returns);
+		} else if (louts.size() == 0) {
 			returns = "void";
 		} else if (louts.size() == 1) {
 			auto it = louts.begin();
@@ -220,7 +229,7 @@ std::string Linkage::generate_cplusplus()
 				parameters += ", ";
 		}
 
-		source += fmt::format("{} {}({})\n", returns, name, parameters);
+		source += fmt::format("{} {}({})\n", returns, b.name, parameters);
 		source += "{\n";
 
 		// Declare storage for each layout outputs (return value)

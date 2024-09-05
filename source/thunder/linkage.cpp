@@ -62,6 +62,7 @@ Linkage &Linkage::resolve()
 				map[k] = insert(linkage.structs[v]);
 
 			index_t k = (j == -1) ? i : j;
+			blocks[k].name = cbl->name;
 			blocks[k].struct_map = map;
 			blocks[k].unit = b.unit;
 

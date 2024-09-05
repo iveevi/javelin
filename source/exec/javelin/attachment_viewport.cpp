@@ -115,10 +115,10 @@ void AttachmentViewport::configre_normal_pipeline()
 
 	auto &drc = gctx.drc;
 
-	std::string vertex_shader = kernel_from_args(vertex).synthesize(jvl::profiles::opengl_450);
+	std::string vertex_shader = kernel_from_args(vertex).compile(profiles::glsl_450);
 	fmt::println("vertex shader:\n{}", vertex_shader);
 
-	std::string fragment_shader = kernel_from_args(fragment).synthesize(jvl::profiles::opengl_450);
+	std::string fragment_shader = kernel_from_args(fragment).compile(profiles::glsl_450);
 	fmt::println("fragment shader:\n{}", fragment_shader);
 
 	auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
