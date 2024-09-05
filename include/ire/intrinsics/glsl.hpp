@@ -16,19 +16,7 @@ struct __gl_Position_t {
 	swizzle_element <float, self, thunder::SwizzleCode::z> z;
 	swizzle_element <float, self, thunder::SwizzleCode::w> w;
 
-	__gl_Position_t() : x(this), y(this), z(this), w(this) {
-		auto &em = Emitter::active;
-		auto callback = std::bind(&__gl_Position_t::refresh, this);
-		em.scoping_callbacks.push_back(callback);
-	}
-
-	void refresh() {
-		fmt::println("refreshing gl position...");
-		x.refresh();
-		y.refresh();
-		z.refresh();
-		w.refresh();
-	}
+	__gl_Position_t() : x(this), y(this), z(this), w(this) {}
 
 	const __gl_Position_t &operator=(const vec <float, 4> &other) {
 		auto &em = Emitter::active;
@@ -42,8 +30,6 @@ struct __gl_Position_t {
 		store.src = other.synthesize().id;
 
 		em.emit_main(store);
-
-		refresh();
 
 		return *this;
 	}

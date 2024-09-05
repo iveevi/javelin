@@ -96,7 +96,7 @@ void __G1(Material mat, vec3 n, vec3 v)
 
 	f32 tan_theta = tan(theta);
 
-	f32 denom = 1 + sqrt(1 + alpha * alpha * tan_theta * tan_theta);
+	f32 denom = 1.0f + sqrt(1.0f + alpha * alpha * tan_theta * tan_theta);
 	returns(2.0f/denom);
 }
 
@@ -111,7 +111,7 @@ f32 G(Material mat, vec3 n, vec3 wi, vec3 wo)
 // Shlicks approximation to the Fresnel reflectance
 void __ggx_fresnel(Material mat, vec3 wi, vec3 h)
 {
-	f32 k = pow(1 - dot(wi, h), 5);
+	f32 k = pow(1.0f - dot(wi, h), 5);
 	returns(mat.specular + (1 - mat.specular) * k);
 }
 
@@ -131,7 +131,7 @@ void __ggx_brdf(Material mat, vec3 n, vec3 wi, vec3 wo)
 	f32 d = ggx_ndf(mat, n, h);
 
 	vec3 num = f * g * d;
-	f32 denom = 4 * dot(wi, n) * dot(wo, n);
+	f32 denom = 4.0f * dot(wi, n) * dot(wo, n);
 
 	returns(num / denom);
 }
@@ -158,7 +158,7 @@ void __ggx_pdf(Material mat, vec3 n, vec3 wi, vec3 wo)
 	f32 term1 = dot(n, wi)/PI;
 	f32 term2 = ggx_ndf(mat, n, h) * dot(n, h)/(4.0f * dot(wi, h));
 
-	returns((1 - t) * term1 + t * term2);
+	returns((1.0f - t) * term1 + t * term2);
 }
 
 auto ggx_pdf = callable <f32> (__ggx_pdf).named("ggx_pdf");
@@ -179,7 +179,7 @@ void __ggx_sample(Material mat, vec3 n, vec3 wo, /* inout */ vec3 seed)
 	cond(eta.x < t);
 	{
 		// Specular sampling
-		f32 k = sqrt(eta.y/(1 - eta.y));
+		f32 k = sqrt(eta.y/(1.0f - eta.y));
 		f32 theta = atan(k * mat.roughness);
 		f32 phi = 2.0f * PI * eta.z;
 

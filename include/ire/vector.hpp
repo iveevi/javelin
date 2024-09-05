@@ -20,26 +20,15 @@ struct swizzle_base : tagged {};
 struct __gl_Position_t;
 
 // Swizzle element
-// TODO: skip storing the value...
 template <primitive_type T, typename Up, thunder::SwizzleCode swz>
-class swizzle_element : public primitive_t <T> {
+class swizzle_element {
 	Up *upper;
 
-	swizzle_element(Up *upper_) : upper(upper_) {
-		refresh();
-	}
-
-	void refresh() {
-		this->ref = cache_index_t::null();
-		this->ref = synthesize();
-	}
+	swizzle_element(Up *upper_) : upper(upper_) {}
 public:
 	using base_type = primitive_t <T>;
 
 	cache_index_t synthesize() const {
-		if (this->cached())
-			return this->ref;
-
 		auto &em = Emitter::active;
 
 		thunder::Swizzle swizzle;
@@ -48,7 +37,9 @@ public:
 
 		em.mark_used(swizzle.src, true);
 
-		return (this->ref = em.emit(swizzle));
+		cache_index_t ci;
+		ci = em.emit(swizzle);
+		return ci;
 	}
 
 	swizzle_element &operator=(const base_type &v) {
@@ -60,6 +51,40 @@ public:
 
 		em.emit_main(store);
 
+		return *this;
+	}
+
+	operator base_type() const {
+		return base_type(synthesize());
+	}
+
+	// Unary minus
+	base_type operator-() const {
+		return -base_type(synthesize());
+	}
+	
+	// In place arithmetic operators
+	swizzle_element &operator+=(const base_type &a) {
+		base_type tmp = *this;
+		tmp += a;
+		return *this;
+	}
+	
+	swizzle_element &operator-=(const base_type &a) {
+		base_type tmp = *this;
+		tmp -= a;
+		return *this;
+	}
+	
+	swizzle_element &operator*=(const base_type &a) {
+		base_type tmp = *this;
+		tmp *= a;
+		return *this;
+	}
+	
+	swizzle_element &operator/=(const base_type &a) {
+		base_type tmp = *this;
+		tmp /= a;
 		return *this;
 	}
 
@@ -99,12 +124,6 @@ public:
 		ctor.args = list_from_args(initial[0], initial[1]);
 
 		return (ref = em.emit(ctor));
-	}
-
-	void refresh(const cache_index_t::value_type &ci) {
-		ref = ci;
-		x.refresh();
-		y.refresh();
 	}
 };
 
@@ -148,13 +167,6 @@ public:
 		ctor.args = list_from_args(initial[0], initial[1], initial[2]);
 
 		return (ref = em.emit(ctor));
-	}
-
-	void refresh(const cache_index_t::value_type &ci) {
-		ref = ci;
-		x.refresh();
-		y.refresh();
-		z.refresh();
 	}
 };
 
@@ -201,14 +213,6 @@ public:
 		ctor.args = list_from_args(initial[0], initial[1], initial[2], initial[3]);
 
 		return (ref = em.emit(ctor));
-	}
-
-	void refresh(const cache_index_t::value_type &ci) {
-		ref = ci;
-		x.refresh();
-		y.refresh();
-		z.refresh();
-		w.refresh();
 	}
 };
 

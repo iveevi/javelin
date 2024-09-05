@@ -3,6 +3,7 @@
 #include "emitter.hpp"
 #include "tagged.hpp"
 #include "thunder/enumerations.hpp"
+#include <type_traits>
 
 namespace jvl::ire {
 
@@ -120,6 +121,7 @@ struct primitive_t : tagged {
 
 	// In place arithmetic operators
 	primitive_t &operator+=(const primitive_t &a) {
+		// TODO: store instruction!
 		*this = operation_from_args <primitive_t> (thunder::addition, (*this), a);
 		return *this;
 	}
@@ -137,45 +139,6 @@ struct primitive_t : tagged {
 	primitive_t &operator/=(const primitive_t &a) {
 		*this = operation_from_args <primitive_t> (thunder::division, (*this), a);
 		return *this;
-	}
-
-	// Common intrinsics
-	friend primitive_t max(const primitive_t &a, const primitive_t &b) {
-		return platform_intrinsic_from_args <primitive_t> (thunder::max, a, b);
-	}
-
-	friend primitive_t min(const primitive_t &a, const primitive_t &b) {
-		return platform_intrinsic_from_args <primitive_t> (thunder::min, a, b);
-	}
-
-	friend primitive_t sqrt(const primitive_t &x)
-	{
-		return platform_intrinsic_from_args <primitive_t> (thunder::sqrt, x);
-	}
-
-	friend primitive_t clamp(const primitive_t &x, const primitive_t &min, const primitive_t &max) {
-		return platform_intrinsic_from_args <primitive_t> (thunder::clamp, x, min, max);
-	}
-
-	friend primitive_t pow(const primitive_t &x, const primitive_t &p) {
-		return platform_intrinsic_from_args <primitive_t> (thunder::pow, x, p);
-	}
-
-	// Arithmetic operators
-	friend primitive_t operator+(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (thunder::addition, a, b);
-	}
-
-	friend primitive_t operator-(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (thunder::subtraction, a, b);
-	}
-
-	friend primitive_t operator/(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (thunder::division, a, b);
-	}
-
-	friend primitive_t operator*(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (thunder::multiplication, a, b);
 	}
 
 	// Bitwise operators
