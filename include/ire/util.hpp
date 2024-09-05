@@ -142,7 +142,7 @@ cache_index_t const_uniform_layout_t <Args...> ::list() const
 
 	cache_index_t next = cache_index_t::null();
 	for (int i = fields.size() - 1; i >= 0; i--) {
-		const_field f = fields[i];
+		layout_const_field f = fields[i];
 
 		end.next = next.id;
 		if (f.type == eField) {

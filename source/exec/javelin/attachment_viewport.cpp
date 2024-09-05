@@ -16,7 +16,11 @@ struct mvp {
 	}
 
 	auto layout() const {
-		return uniform_layout(model, view, proj);
+		return uniform_layout(
+			field <"model"> (model),
+			field <"view"> (view),
+			field <"proj"> (proj)
+		);
 	}
 };
 

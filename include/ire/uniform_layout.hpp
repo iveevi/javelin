@@ -14,7 +14,8 @@ enum {
 };
 
 // Ordinary layouts
-struct field {
+struct layout_field {
+	const char *name;
 	int type;
 	void *ptr;
 };
@@ -22,7 +23,7 @@ struct field {
 template <typename ... Args>
 requires (sizeof...(Args) > 0)
 struct uniform_layout_t {
-	std::vector <field> fields;
+	std::vector <layout_field> fields;
 
 	// TODO: move down...
 	void __ref_with(cache_index_t up) {
@@ -32,7 +33,7 @@ struct uniform_layout_t {
 
 		// TODO: name hint at the first type field...
 		for (size_t i = 0; i < fields.size(); i++) {
-			field f = fields[i];
+			layout_field f = fields[i];
 
 			if (listed.contains(f.ptr))
 				fmt::println("Duplicate member in uniform layout (element #{})", i + 1);
@@ -63,7 +64,8 @@ struct uniform_layout_t {
 };
 
 // Const-qualified layouts
-struct const_field {
+struct layout_const_field {
+	const char *name;
 	int type;
 	const void *ptr;
 };
@@ -71,7 +73,7 @@ struct const_field {
 template <typename ... Args>
 requires (sizeof...(Args) > 0)
 struct const_uniform_layout_t {
-	std::vector <const_field> fields;
+	std::vector <layout_const_field> fields;
 	// TODO: name?
 
 	cache_index_t list() const;
@@ -80,7 +82,7 @@ struct const_uniform_layout_t {
 		uniform_layout_t <Args...> layout;
 		for (auto cf: fields) {
 			// TODO: might crash with pointer to layouts...
-			field f;
+			layout_field f;
 			f.type = cf.type;
 			f.ptr = const_cast <void *> (cf.ptr);
 			layout.fields.push_back(f);
@@ -95,30 +97,58 @@ template <typename T>
 concept uniform_compatible = requires(T &ref, const T &cref) {
 	{
 		cref.layout().fields
-	} -> std::same_as <std::vector <const_field> &&>;
+	} -> std::same_as <std::vector <layout_const_field> &&>;
 };
 
-// Backend methods for creating uniform layouts
-template <synthesizable T, typename ... UArgs>
-void __const_init(const_field *fields, int index, const T &t, const UArgs &... uargs)
+// Named fields
+template <size_t N>
+struct string_literal {
+	constexpr string_literal(const char (&str)[N]) {
+		std::copy_n(str, N, value);
+	}
+
+	char value[N];
+};
+
+template <string_literal name, typename T>
+struct __field {
+	const tagged *ref;
+};
+
+template <string_literal name, typename T>
+inline auto field(const T &ref)
 {
-	const_field f;
+	return __field <name, T> (&static_cast <const tagged &> (ref));
+}
+
+// Backend methods for creating uniform layouts
+template <synthesizable T, string_literal name, typename ... UArgs>
+void __const_init(layout_const_field *fields, int index, const __field <name, T> &t, const UArgs &... uargs)
+{
+	layout_const_field f;
+	f.name = name.value;
 	f.type = eField;
-	f.ptr = &static_cast <const tagged &> (t);
+	// f.ptr = &static_cast <const tagged &> (t.ref);
+	f.ptr = t.ref;
+
+	fmt::println("new field: {}", f.name);
 
 	fields[index] = f;
 	if constexpr (sizeof...(uargs) > 0)
 		__const_init(fields, index + 1, uargs...);
 }
 
-template <uniform_compatible T, typename ... UArgs>
-void __const_init(const_field *fields, int index, const T &t, const UArgs &... uargs)
+template <uniform_compatible T, string_literal name, typename ... UArgs>
+void __const_init(layout_const_field *fields, int index, const __field <name, T> &t, const UArgs &... uargs)
 {
 	using layout_t = decltype(T().layout());
 
-	const_field f;
+	layout_const_field f;
+	f.name = name.value;
 	f.type = eNested;
 	f.ptr = new layout_t(t.layout());
+	
+	fmt::println("new field: {}", f.name);
 
 	fields[index] = f;
 	if constexpr (sizeof...(uargs) > 0)

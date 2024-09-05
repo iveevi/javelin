@@ -54,7 +54,7 @@ Linkage Kernel::linkage() const
 		if (auto call = op.get <Call> ()) {
 			linkage.callables.insert(call->cid);
 		} else if (auto global = op.get <Global> ()) {
-			index_t type = generate_type_declaration(global->type);
+			index_t type = global->type;
 			index_t binding = global->binding;
 
 			// TODO: the kernel must undergo validation

@@ -28,7 +28,10 @@ struct vector_base <T, 2> {
 		};
 	};
 
-	constexpr vector_base(T x_ = 0, T y_ = 0) : x(x_), y(y_) {}
+	constexpr vector_base() = default;
+	constexpr vector_base(T x_, T y_) : x(x_), y(y_) {}
+	
+	explicit constexpr vector_base(T v) : x(v), y(v) {}
 
 	TEMPLATE_DATA_INDEX
 };

@@ -23,20 +23,45 @@ template <typename T>
 concept non_trivial_generic_or_void = synthesizable <T> || uniform_compatible <T> || std::same_as <T, void>;
 
 // User end functions to specify members
+template <typename ... Ts, typename ... Us>
+auto layout_cat(const_uniform_layout_t <Ts...>, const_uniform_layout_t <Us...>) -> const_uniform_layout_t <Ts..., Us...>;
+
+template <typename ... Args>
+struct layout_generator {
+	using type = void;
+};
+
+template <typename T, string_literal name>
+struct layout_generator <__field <name, T>> {
+	using type = const_uniform_layout_t <T>;
+};
+
+template <typename T, string_literal name, typename ... Args>
+struct layout_generator <__field <name, T>, Args...> {
+	using single_type = const_uniform_layout_t <T>;
+	using args_type = layout_generator <Args...> ::type;
+	using type = decltype(layout_cat(single_type(), args_type()));
+};
+
 template <typename ... Args>
 auto uniform_layout(const Args &... args)
 {
-	static_assert((non_trivial_generic <Args> && ...),
-		"uniform_layout arguments should ALL be non trivial generics "
-		"(e.g. primitive types are not allowed, maybe try primitive_t <T> alternatives)");
+	// TODO: should all be fields
+	// static_assert((non_trivial_generic <Args> && ...),
+	// 	"uniform_layout arguments should ALL be non trivial generics "
+	// 	"(e.g. primitive types are not allowed, maybe try primitive_t <T> alternatives)");
 
-	const_uniform_layout_t <Args...> layout;
+        // using lt = layout_generator <Args...> ::type;
+	typename layout_generator <Args...> ::type layout;
+
+	// lt layout;
+	// const_uniform_layout_t <Args...> layout;
 	layout.fields.resize(sizeof...(Args));
 
 	// Better (compile-time) error handling; no need to release
 	// the compiler's error explosion to the user
-	if constexpr ((non_trivial_generic <Args> && ...))
-		__const_init(layout.fields.data(), 0, args...);
+	// if constexpr ((non_trivial_generic <Args> && ...))
+	__const_init(layout.fields.data(), 0, args...);
 
 	return layout;
 }

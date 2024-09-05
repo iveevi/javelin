@@ -1,5 +1,4 @@
 #include "ire/core.hpp"
-#include "ire/uniform_layout.hpp"
 
 using namespace jvl::ire;
 
@@ -20,9 +19,16 @@ struct Material {
 	f32 has_normal;
 
 	auto layout() const {
-		return uniform_layout(diffuse, specular, emission,
-			ambient, shininess, roughness,
-			has_albedo, has_normal);
+		return uniform_layout(
+			field <"diffuse"> (diffuse),
+			field <"specular"> (specular),
+			field <"emission"> (emission),
+			field <"ambient"> (ambient),
+			field <"shininess"> (shininess),
+			field <"roughness"> (roughness),
+			field <"has_albedo"> (has_albedo),
+			field <"has_normal"> (has_normal)
+		);
 	}
 };
 

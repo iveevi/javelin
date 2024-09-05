@@ -178,6 +178,25 @@ struct primitive_t : tagged {
 		return operation_from_args <primitive_t> (thunder::multiplication, a, b);
 	}
 
+	// Bitwise operators
+	friend primitive_t operator&(const primitive_t &a, const primitive_t &b) {
+		return operation_from_args <primitive_t> (thunder::bit_and, a, b);
+	}
+	
+	friend primitive_t operator|(const primitive_t &a, const primitive_t &b) {
+		return operation_from_args <primitive_t> (thunder::bit_or, a, b);
+	}
+	
+	// Bitwise operators
+	friend primitive_t operator>>(const primitive_t &a, const primitive_t &b) {
+		return operation_from_args <primitive_t> (thunder::bit_shift_right, a, b);
+	}
+	
+	friend primitive_t operator<<(const primitive_t &a, const primitive_t &b) {
+		return operation_from_args <primitive_t> (thunder::bit_shift_left, a, b);
+	}
+
+	// Logical operators
 	// TODO: only for bool types
 	friend primitive_t operator||(const primitive_t &a, const primitive_t &b) {
 		return operation_from_args <primitive_t> (thunder::bool_or, a, b);
