@@ -140,15 +140,6 @@ struct primitive_t : tagged {
 		*this = operation_from_args <primitive_t> (thunder::division, (*this), a);
 		return *this;
 	}
-
-	// Bitwise operators
-	friend primitive_t operator&(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (thunder::bit_and, a, b);
-	}
-	
-	friend primitive_t operator|(const primitive_t &a, const primitive_t &b) {
-		return operation_from_args <primitive_t> (thunder::bit_or, a, b);
-	}
 	
 	// Bitwise operators
 	friend primitive_t operator>>(const primitive_t &a, const primitive_t &b) {
@@ -196,5 +187,24 @@ struct primitive_t : tagged {
 		return operation_from_args <bool_t> (thunder::cmp_leq, a, b);
 	}
 };
+
+// Bitwise operators
+template <primitive_type T>
+primitive_t <T> operator&(const primitive_t <T> &a, const primitive_t <T> &b)
+{
+	return operation_from_args <primitive_t <T>> (thunder::bit_and, a, b);
+}
+
+template <primitive_type T>
+primitive_t <T> operator|(const primitive_t <T> &a, const primitive_t <T> &b)
+{
+	return operation_from_args <primitive_t <T>> (thunder::bit_or, a, b);
+}
+
+template <primitive_type T>
+primitive_t <T> operator^(const primitive_t <T> &a, const primitive_t <T> &b)
+{
+	return operation_from_args <primitive_t <T>> (thunder::bit_xor, a, b);
+}
 
 } // namespace jvl::ire

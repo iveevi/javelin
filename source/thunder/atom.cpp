@@ -131,7 +131,7 @@ Addresses Operation::addresses()
         
 std::string Operation::to_string() const
 {
-        return fmt::format("op ${} %{} -> %{}",
+        return fmt::format("op $({}) %{} -> %{}",
                 tbl_operation_code[code],
                 args, type);
 }

@@ -45,7 +45,10 @@ jit_struct *generate_type_field_primitive_scalar(jit_context &context, Primitive
 	return s;
 }
 
-jit_struct *generate_type_field_primitive_vector(jit_context &context, const char *name, PrimitiveType item, size_t components)
+jit_struct *generate_type_field_primitive_vector(jit_context &context,
+						 const char *name,
+						 PrimitiveType item,
+						 size_t components)
 {
 	static constexpr const char *component_names[] = { "x", "y", "z", "w" };
 
@@ -173,6 +176,38 @@ std::vector <gcc_jit_rvalue *> load_rvalue_arguments(jit_context &context, index
 	return args;
 }
 
+jit_instruction generate_instruction_binary_operation(jit_context &context,
+						      OperationCode code,
+						      jit_struct *return_type,
+						      const std::vector <gcc_jit_rvalue *> &args)
+{
+	static const wrapped::hash_table <OperationCode, gcc_jit_binary_op> table {
+		{ addition,		GCC_JIT_BINARY_OP_PLUS		},
+		{ subtraction,		GCC_JIT_BINARY_OP_MINUS		},
+		{ multiplication,	GCC_JIT_BINARY_OP_MULT		},
+		{ division,		GCC_JIT_BINARY_OP_DIVIDE	},
+		{ bit_and,		GCC_JIT_BINARY_OP_BITWISE_AND	},
+		{ bit_or,		GCC_JIT_BINARY_OP_BITWISE_OR	},
+		{ bit_xor,		GCC_JIT_BINARY_OP_BITWISE_XOR	},
+		{ bit_shift_left,	GCC_JIT_BINARY_OP_LSHIFT	},
+		{ bit_shift_right,	GCC_JIT_BINARY_OP_RSHIFT	},
+	};
+
+	if (auto gcc_code = table.get(code)) {
+		gcc_jit_rvalue *expr = gcc_jit_context_new_binary_op(context.gcc,
+			nullptr, gcc_code.value(),
+			return_type->type, args[0], args[1]);
+
+		jit_instruction ji;
+		ji.value = (gcc_jit_object *) expr;
+		ji.type_info = return_type;
+		return ji;
+	}
+
+	fmt::println("GCC JIT unsupported operation {}", tbl_operation_code[code]);
+	abort();
+}
+
 jit_instruction generate_instruction(jit_context &context, index_t i)
 {
 	auto &atom = context.pool[i];
@@ -257,56 +292,8 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 	{
 		auto &opn = atom.as <Operation> ();
 		auto args = load_rvalue_arguments(context, opn.args);
-
-		jit_struct *returns = context.cached[opn.type].type_info;
-
-		gcc_jit_rvalue *expr;
-		switch (opn.code) {
-
-		case addition:
-		{
-			expr = gcc_jit_context_new_binary_op(context.gcc, nullptr,
-				GCC_JIT_BINARY_OP_PLUS,
-				returns->type, args[0], args[1]);
-		} break;
-
-		case subtraction:
-		{
-			expr = gcc_jit_context_new_binary_op(context.gcc, nullptr,
-				GCC_JIT_BINARY_OP_MINUS,
-				returns->type, args[0], args[1]);
-		} break;
-
-		case multiplication:
-		{
-			expr = gcc_jit_context_new_binary_op(context.gcc, nullptr,
-				GCC_JIT_BINARY_OP_MULT,
-				returns->type, args[0], args[1]);
-		} break;
-
-		case division:
-		{
-			expr = gcc_jit_context_new_binary_op(context.gcc, nullptr,
-				GCC_JIT_BINARY_OP_DIVIDE,
-				returns->type, args[0], args[1]);
-		} break;
-
-		default:
-		{
-			fmt::println("GCC JIT unsupported operation {}",
-				tbl_operation_code[opn.code]);
-			abort();
-		}
-
-		}
-
-		fmt::println("result of operation is {} -> {}", (void *) expr, i);
-
-		jit_instruction ji;
-		ji.type_info = returns;
-		ji.value = (gcc_jit_object *) expr;
-
-		return ji;
+		auto return_type = context.cached[opn.type].type_info;
+		return generate_instruction_binary_operation(context, opn.code, return_type, args);
 	}
 
 	case Atom::type_index <Load> ():
