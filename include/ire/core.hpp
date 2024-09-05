@@ -10,6 +10,7 @@
 #include "emitter.hpp"
 #include "callable.hpp"
 #include "solidify.hpp"
+#include "jit.hpp"
 
 #include "intrinsics/common.hpp"
 #include "intrinsics/glsl.hpp"

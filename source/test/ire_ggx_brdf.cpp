@@ -20,6 +20,7 @@ struct Material {
 
 	auto layout() const {
 		return uniform_layout(
+			"Material",
 			field <"diffuse"> (diffuse),
 			field <"specular"> (specular),
 			field <"emission"> (emission),

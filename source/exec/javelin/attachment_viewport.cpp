@@ -17,6 +17,7 @@ struct mvp {
 
 	auto layout() const {
 		return uniform_layout(
+			"mvp",
 			field <"model"> (model),
 			field <"view"> (view),
 			field <"proj"> (proj)
@@ -54,7 +55,7 @@ struct MVP {
 	float4x4 view;
 	float4x4 proj;
 };
-	
+
 // Construction
 AttachmentViewport::AttachmentViewport(const std::unique_ptr <GlobalContext> &global_context)
 		: gctx(*global_context)
@@ -191,7 +192,7 @@ void AttachmentViewport::render(const RenderState &rs)
 	const auto &rpbi = littlevk::default_rp_begin_info <2> (render_pass, framebuffers[rs.sop.index], gctx.drc.window);
 
 	rs.cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);
-	
+
 	auto &ppl = pipelines[AttachmentViewport::eNormal];
 
 	rs.cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);

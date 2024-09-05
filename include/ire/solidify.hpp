@@ -1,6 +1,7 @@
 #pragma once
 
 #include "aliases.hpp"
+#include "aggregate.hpp"
 #include "../math_types.hpp"
 
 namespace jvl::ire {
@@ -49,6 +50,18 @@ static_assert(std::same_as <solid_base_t <vec4> ::type, float4>);
 template <>
 struct solid_base_t <mat4> {
 	using type = float4x4;
+};
+
+// Generating ABI compliant structures from uniform compatible types
+template <typename ... Args>
+struct solid_base_t <const_uniform_layout_t <Args...>> {
+	using type = aggregate <typename solid_base_t <Args> ::type...>;
+};
+
+template <uniform_compatible T>
+struct solid_base_t <T> {
+	using layout_t = decltype(T().layout());
+	using type = solid_base_t <layout_t> ::type;
 };
 
 // User-defined structs with a value_type

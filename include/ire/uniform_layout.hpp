@@ -23,6 +23,7 @@ struct layout_field {
 template <typename ... Args>
 requires (sizeof...(Args) > 0)
 struct uniform_layout_t {
+	std::string name;
 	std::vector <layout_field> fields;
 
 	// TODO: move down...
@@ -73,13 +74,14 @@ struct layout_const_field {
 template <typename ... Args>
 requires (sizeof...(Args) > 0)
 struct const_uniform_layout_t {
+	std::string name;
 	std::vector <layout_const_field> fields;
-	// TODO: name?
 
 	cache_index_t list() const;
 
 	auto remove_const() const {
 		uniform_layout_t <Args...> layout;
+		layout.name = name;
 		for (auto cf: fields) {
 			// TODO: might crash with pointer to layouts...
 			layout_field f;
