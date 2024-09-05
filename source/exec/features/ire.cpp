@@ -53,9 +53,6 @@ struct shuffle_pair {
 			field <"x"> (x),
 			field <"y"> (y)
 		);
-
-		// TODO: named uniform layouts...
-		// return uniform_layout(x, y);
 	}
 
 	using ire_value_type = struct {

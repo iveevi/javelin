@@ -115,11 +115,15 @@ struct __field {
 	const tagged *ref;
 };
 
+// Concept for fields
+template <typename T>
+struct __field_type_t : std::false_type {};
+
 template <string_literal name, typename T>
-inline auto field(const T &ref)
-{
-	return __field <name, T> (&static_cast <const tagged &> (ref));
-}
+struct __field_type_t <__field <name, T>> : std::true_type {};
+
+template <typename T>
+concept __field_type = __field_type_t <T> ::value;
 
 // Backend methods for creating uniform layouts
 template <synthesizable T, string_literal name, typename ... UArgs>
@@ -128,10 +132,7 @@ void __const_init(layout_const_field *fields, int index, const __field <name, T>
 	layout_const_field f;
 	f.name = name.value;
 	f.type = eField;
-	// f.ptr = &static_cast <const tagged &> (t.ref);
 	f.ptr = t.ref;
-
-	fmt::println("new field: {}", f.name);
 
 	fields[index] = f;
 	if constexpr (sizeof...(uargs) > 0)
@@ -147,8 +148,6 @@ void __const_init(layout_const_field *fields, int index, const __field <name, T>
 	f.name = name.value;
 	f.type = eNested;
 	f.ptr = new layout_t(t.layout());
-	
-	fmt::println("new field: {}", f.name);
 
 	fields[index] = f;
 	if constexpr (sizeof...(uargs) > 0)
