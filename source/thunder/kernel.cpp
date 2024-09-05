@@ -10,7 +10,7 @@ Linkage Kernel::linkage() const
 	Linkage linkage;
 
 	// TODO: preserve the cid if present
-	linkage.blocks[-1] = Linkage::block_t { {}, synthesized, {}, atoms };
+	linkage.blocks[-1] = Linkage::block_t { {}, {}, atoms };
 	linkage.sorted = { -1 };
 
 	// Generate struct information for linkage
@@ -47,9 +47,6 @@ Linkage Kernel::linkage() const
 
 	// Go through all USED instructions
 	for (int i = 0; i < atoms.size(); i++) {
-		if (!used.count(i))
-			continue;
-
 		auto op = atoms[i];
 		if (auto call = op.get <Call> ()) {
 			linkage.callables.insert(call->cid);
@@ -79,9 +76,6 @@ Linkage Kernel::linkage() const
 			linkage.blocks[-1].returns = returns->type;
 		}
 
-		if (!synthesized.count(i))
-			continue;
-
 		if (auto tf = op.get <TypeField> ())
 			linkage.blocks[-1].struct_map[i] = generate_type_declaration(i);
 	}
@@ -108,19 +102,8 @@ void Kernel::dump() const
 		fmt::println(".... callable");
 
 	fmt::println("------------------------------");
-	for (size_t i = 0; i < atoms.size(); i++) {
-		if (synthesized.contains(i))
-			fmt::print("S");
-		else
-			fmt::print(" ");
-
-		if (used.contains(i))
-			fmt::print("U");
-		else
-			fmt::print(" ");
-
-		fmt::println(" [{:4d}]: {}", i, atoms[i].to_string());
-	}
+	for (size_t i = 0; i < atoms.size(); i++)
+		fmt::println("  [{:4d}]: {}", i, atoms[i].to_string());
 }
 
 // Generating GLSL source code

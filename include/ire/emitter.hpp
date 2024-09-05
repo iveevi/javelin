@@ -15,11 +15,7 @@ namespace jvl::ire {
 // More advanced pool which manages control flow as well as scopes of pools
 struct Emitter : Scratch {
 	std::stack <thunder::index_t> control_flow_ends;
-	std::unordered_set <thunder::index_t> used;
-	std::unordered_set <thunder::index_t> synthesized;
-
 	std::stack <std::reference_wrapper <Scratch>> scopes;
-	std::vector <std::function <void ()>> scoping_callbacks;
 
 	Emitter();
 
@@ -37,6 +33,7 @@ struct Emitter : Scratch {
 	// Emitting instructions during function invocation
 	index_t emit(const thunder::Atom &);
 
+	// TODO: should not be a distinction between either
 	index_t emit_main(const thunder::Atom &);
 	index_t emit_main(const thunder::Branch &);
 	index_t emit_main(const thunder::While &);
@@ -91,15 +88,5 @@ thunder::Kernel kernel_from_args(const F &ftn, const Args &... args)
 	ftn(args...);
 	return Emitter::active.export_to_kernel();
 }
-
-namespace detail {
-
-// TODO: move to emitter.cpp...
-void mark_used(const std::vector <thunder::Atom> &,
-	       std::unordered_set <thunder::index_t> &,
-	       std::unordered_set <thunder::index_t> &,
-	       int, bool);
-
-} // namespace detail
 
 } // namespace jvl::ire

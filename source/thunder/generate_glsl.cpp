@@ -1,4 +1,3 @@
-#include <functional>
 #include <string>
 
 #include "ire/callable.hpp"
@@ -114,12 +113,16 @@ std::string Linkage::generate_glsl(const std::string &version)
 				parameters += ", ";
 		}
 
+		auto synthesized = detail::synthesize_list(b.unit);
+
 		source += fmt::format("{} {}({})\n", returns, name, parameters);
 		source += "{\n";
+
 		source += detail::generate_body_c_like(b.unit,
-				               local_struct_names,
-					       b.synthesized,
-					       b.unit.size());
+			local_struct_names,
+			synthesized,
+			b.unit.size());
+
 		source += "}\n\n";
 	}
 

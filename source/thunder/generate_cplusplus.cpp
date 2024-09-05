@@ -226,11 +226,13 @@ std::string Linkage::generate_cplusplus()
 		// Declare storage for each layout outputs (return value)
 		for (auto [binding, t] : louts)
 			source += fmt::format("    {} _lout{};\n", translate_type(t), binding);
+		
+		auto synthesized = detail::synthesize_list(b.unit);
 
 		source += detail::generate_body_c_like(b.unit,
-				               local_struct_names,
-					       b.synthesized,
-					       b.unit.size());
+			local_struct_names,
+			synthesized,
+			b.unit.size());
 
 		// Synthesizing the return statement
 		if (louts.size() == 1) {

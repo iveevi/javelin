@@ -33,7 +33,6 @@ add_library(imgui SHARED
 add_library(javelin-ire STATIC
 	source/ire/callable.cpp
 	source/ire/emitter.cpp
-	source/ire/marking.cpp
 	source/ire/scratch.cpp
 	source/thunder/atom.cpp
 	source/thunder/autodiff_forward.cpp
@@ -46,6 +45,7 @@ add_library(javelin-ire STATIC
 	source/thunder/kernel.cpp
 	source/thunder/linkage.cpp
 	source/thunder/optimization.cpp
+	source/thunder/synthesized.cpp
 	source/thunder/usage.cpp)
 
 add_executable(javelin

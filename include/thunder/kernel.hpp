@@ -19,8 +19,6 @@ public:
 
 	// At this point the IR atoms are unlikely to change
 	std::vector <Atom> atoms;
-	std::unordered_set <index_t> used;
-	std::unordered_set <index_t> synthesized;
 
 	// Possible kernel flags, which enable certain paths of synthesis
 	enum Kind {

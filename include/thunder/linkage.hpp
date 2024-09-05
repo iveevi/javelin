@@ -30,13 +30,11 @@ struct Linkage {
 
 	// Block information
 	using struct_map_t = wrapped::hash_table <index_t, index_t>;
-	using source_block_t = std::vector <Atom>;
 
 	struct block_t {
 		wrapped::hash_table <index_t, index_t> parameters;
-		std::unordered_set <index_t> synthesized;
 		struct_map_t struct_map;
-		source_block_t unit;
+		std::vector <Atom> unit;
 		index_t returns = -1;
 	};
 
@@ -75,6 +73,9 @@ struct Linkage {
 
 // Helper functions for code generation
 namespace detail {
+
+// Determine the set of instructions to concretely synthesized
+std::unordered_set <index_t> synthesize_list(const std::vector <Atom> &);
 
 // For C-like languages
 std::string generate_body_c_like(const std::vector <Atom> &,

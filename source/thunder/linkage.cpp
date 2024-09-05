@@ -62,7 +62,6 @@ Linkage &Linkage::resolve()
 				map[k] = insert(linkage.structs[v]);
 
 			index_t k = (j == -1) ? i : j;
-			blocks[k].synthesized = b.synthesized;
 			blocks[k].struct_map = map;
 			blocks[k].unit = b.unit;
 
@@ -137,7 +136,6 @@ void Linkage::dump() const
 			fmt::println("  Block ${}:", cbl->name);
 		}
 
-		fmt::println("    synthesized: {}", b.synthesized.size());
 		fmt::println("    instructions: {}", b.unit.size());
 		fmt::println("    returns: %{}", b.returns);
 
@@ -162,4 +160,4 @@ void Linkage::dump() const
 	fmt::print("\n");
 }
 
-} // namespace jvl::atom
+} // namespace jvl::thunder
