@@ -189,10 +189,11 @@ struct primitive_t : tagged {
 };
 
 // Bitwise operators
-template <primitive_type T>
-primitive_t <T> operator&(const primitive_t <T> &a, const primitive_t <T> &b)
+template <primitive_type T, typename U>
+requires std::is_convertible_v <U, primitive_t <T>>
+primitive_t <T> operator&(const primitive_t <T> &a, const U &b)
 {
-	return operation_from_args <primitive_t <T>> (thunder::bit_and, a, b);
+	return operation_from_args <primitive_t <T>> (thunder::bit_and, a, primitive_t <T> (b));
 }
 
 template <primitive_type T>

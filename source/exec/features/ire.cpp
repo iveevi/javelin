@@ -24,8 +24,8 @@ using namespace jvl::ire;
 
 // Sandbox application
 struct shuffle_pair {
-	f32 x;
-	f32 y;
+	i32 x;
+	i32 y;
 
 	auto layout() const {
 		return uniform_layout(
@@ -36,17 +36,26 @@ struct shuffle_pair {
 	}
 };
 
-f32 __ftn(shuffle_pair sp)
+i32 __ftn(shuffle_pair sp)
 {
-	return cos(sp.x + sp.y);
-
-	// sp.x = sp.x >> 5;
-	// sp.y = sp.y << 17;
-	// sp.x = (sp.x & 0xff) | (sp.y & 0b10101);
-	// return sp.x & sp.y;
+	sp.x = sp.x >> 2;
+	sp.y = sp.y << 2;
+	sp.x = (sp.x & 0xff) | (sp.y & 0b10101);
+	return sp.x & sp.y;
 }
 
-auto id = callable(__ftn).named("ftn");
+int32_t reference(solid_t <shuffle_pair> sp)
+{
+	int32_t x = sp.get <0> ();
+	int32_t y = sp.get <1> ();
+
+	x = x >> 2;
+	y = y << 2;
+	x = (x & 0xff) | (y & 0b10101);
+	return x & y;
+}
+
+auto ftn = callable(__ftn).named("ftn");
 
 int main()
 {
@@ -55,21 +64,22 @@ int main()
 	// std::string source = linkage.generate_cplusplus();
 	// fmt::println("{}", source);
 
-	thunder::opt_transform_compact(id);
+	thunder::opt_transform_compact(ftn);
 	// // TODO: recursive dead code elimination in one pass...
-	thunder::opt_transform_dead_code_elimination(id);
+	thunder::opt_transform_dead_code_elimination(ftn);
 	// thunder::opt_transform_dead_code_elimination(id);
 	// thunder::opt_transform_dead_code_elimination(id);
 	// thunder::opt_transform_dead_code_elimination(id);
 	// thunder::opt_transform_dead_code_elimination(id);
 	// thunder::opt_transform_dead_code_elimination(id);
-	id.dump();
+	ftn.dump();
 
-	auto compiled = jit(id);
+	auto compiled = jit(ftn);
 
 	auto parameter = solid_t <shuffle_pair> ();
-	parameter.get <0> () = 0x56;
-	parameter.get <1> () = 0xff;
+	parameter.get <0> () = 0b10101;
+	parameter.get <1> () = 0b11111;
 
-	fmt::println("compiled(parameter) = {}", compiled(parameter));
+	fmt::println("compiled  (parameter) = {}", compiled(parameter));
+	fmt::println("reference (parameter) = {}", reference(parameter));
 }

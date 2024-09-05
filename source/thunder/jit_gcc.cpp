@@ -1,3 +1,5 @@
+#include <queue>
+
 #include <libgccjit.h>
 
 #include "thunder/enumerations.hpp"
@@ -316,6 +318,116 @@ jit_instruction generate_instruction_intrinsic(jit_context &context,
 	abort();
 }
 
+jit_instruction generate_instruction_access_field(jit_context &context,
+						  index_t src,
+						  index_t idx)
+{
+	jit_instruction source_instruction = context.cached[src];
+	jit_struct *type_info = source_instruction.type_info;
+	gcc_jit_field *field = type_info->fields[idx];
+	gcc_jit_rvalue *source = (gcc_jit_rvalue *) source_instruction.value;
+	gcc_jit_rvalue *expr = gcc_jit_rvalue_access_field(source, nullptr, field);
+
+	jit_instruction ji;
+	ji.type_info = type_info->field_types[idx];
+	ji.value = (gcc_jit_object *) expr;
+	return ji;
+}
+
+[[gnu::always_inline]]
+inline jit_instruction generate_instruction_access_field(jit_context &context, const Load &load)
+{
+	return generate_instruction_access_field(context, load.src, load.idx);
+}
+
+[[gnu::always_inline]]
+inline jit_instruction generate_instruction_access_field(jit_context &context, const Swizzle &swizzle)
+{
+	// TODO: split up if necessary
+	return generate_instruction_access_field(context, swizzle.src, swizzle.code);
+}
+
+jit_instruction generate_instruction_store(jit_context &context, const Store &store)
+{
+	// Determine the access chain used to reach the lvalue
+	std::queue <index_t> access_chain_indices;
+	std::queue <gcc_jit_field *> access_chain_fields;
+
+	fmt::println("finding access chain for store");
+
+	index_t idx = store.dst;
+	index_t dst = -1;
+	while (dst == -1) {
+		auto &atom = context.pool[idx];
+
+		fmt::println("  {}", atom);
+
+		// Valid paths can only include loads and swizzles
+		if (auto load = atom.get <Load> ()) {
+			auto &source_type = context.cached[load->src].type_info;
+			auto &loaded_field = source_type->fields[load->idx];
+
+			fmt::println("  through load");
+			access_chain_indices.push(load->idx);
+			access_chain_fields.push(loaded_field);
+			idx = load->src;
+		} else if (auto swizzle = atom.get <Swizzle> ()) {
+			assert(false);
+		} else {
+			// Otherwise we have found the final location
+			fmt::println("final destination of access chain");
+			dst = idx;
+			break;
+		}
+	}
+
+	assert(dst != -1);
+
+	auto copy = access_chain_indices;
+	fmt::print("final access chain: ");
+	while (copy.size()) {
+		fmt::print(" {}", copy.front());
+		copy.pop();
+	}
+	fmt::print("\n");
+	fmt::println("with destination: {}", context.pool[dst]);
+
+	// Value side
+	gcc_jit_rvalue *rvalue = (gcc_jit_rvalue *) context.cached[store.src].value;
+
+	// TODO: handling for lvalues
+	gcc_jit_object *object = context.cached[dst].value;
+	gcc_jit_lvalue *lvalue = nullptr;
+
+	auto &destination = context.pool[dst];
+	switch (destination.index()) {
+	case Atom::type_index <Global> ():
+		lvalue = gcc_jit_param_as_lvalue((gcc_jit_param *) object);
+		break;
+	default:
+		break;
+	}
+
+	if (!lvalue) {
+		fmt::println("GCC JIT failed to extract l-value from instruction: {}", destination);
+		abort();
+	}
+
+	fmt::println("got l-value: {}", (void *) lvalue);
+	while (access_chain_fields.size()) {
+		gcc_jit_field *field = access_chain_fields.front();
+		access_chain_fields.pop();
+		lvalue = gcc_jit_lvalue_access_field(lvalue, nullptr, field);
+		fmt::println("  next l-value: {}", (void *) lvalue);
+	}
+
+	fmt::println("final l-value: {}", (void *) lvalue);
+	gcc_jit_block_add_assignment(context.block, nullptr, lvalue, rvalue);
+
+	// Stores should never be used directly
+	return { nullptr, nullptr };
+}
+
 jit_instruction generate_instruction(jit_context &context, index_t i)
 {
 	auto &atom = context.pool[i];
@@ -328,9 +440,7 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 	{
 		auto &global = atom.as <Global> ();
 		assert(global.qualifier == parameter);
-		jit_instruction ji = context.parameters[global.binding];
-		ji.value = (gcc_jit_object *) gcc_jit_param_as_rvalue((gcc_jit_param *) ji.value);
-		return ji;
+		return context.parameters[global.binding];
 	}
 
 	case Atom::type_index <TypeField> ():
@@ -369,45 +479,13 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 	}
 
 	case Atom::type_index <Load> ():
-	{
-		auto &load = atom.as <Load> ();
-
-		jit_instruction source = context.cached[load.src];
-		
-		jit_struct *type_info = source.type_info;
-
-		fmt::println("load instruction:");
-		fmt::println("type_info: {}", (void *) type_info);
-		fmt::println("# of fields: {}", type_info->fields.size());
-		gcc_jit_field *field = type_info->fields[load.idx];
-
-		jit_instruction ji;
-		ji.type_info = type_info->field_types[load.idx];
-		ji.value = (gcc_jit_object *) gcc_jit_rvalue_access_field((gcc_jit_rvalue *) source.value, nullptr, field);
-
-		return ji;
-	}
+		return generate_instruction_access_field(context, atom.as <Load> ());
 
 	case Atom::type_index <Swizzle> ():
-	{
-		auto &swz = atom.as <Swizzle> ();
+		return generate_instruction_access_field(context, atom.as <Swizzle> ());
 
-		// TODO: check that the field name is correct...
-
-		jit_instruction source = context.cached[swz.src];
-
-		// NOTE: assuming that the code -> field index is valid
-		jit_struct *type_info = source.type_info;
-		gcc_jit_field *field = type_info->fields[swz.code];
-
-		jit_instruction ji;
-		ji.type_info = type_info->field_types[swz.code];
-		ji.value = (gcc_jit_object *) gcc_jit_rvalue_access_field((gcc_jit_rvalue *) source.value, nullptr, field);
-
-		return ji;
-	}
-
-	// TODO: for store instructions, need to get a chain of lvalues...
+	case Atom::type_index <Store> ():
+		return generate_instruction_store(context, atom.as <Store> ());
 
 	case Atom::type_index <List> ():
 		// Skip lists, they are only for the Thunder IR
