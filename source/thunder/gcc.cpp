@@ -406,7 +406,13 @@ jit_instruction generate_instruction_store(jit_context &context, const Store &st
 			access_chain_fields.push(loaded_field);
 			idx = load->src;
 		} else if (auto swizzle = atom.get <Swizzle> ()) {
-			assert(false);
+			auto &source_type = context.cached[swizzle->src].type_info;
+			auto &loaded_field = source_type->fields[swizzle->code];
+
+			fmt::println("  through load");
+			access_chain_indices.push(swizzle->code);
+			access_chain_fields.push(loaded_field);
+			idx = swizzle->src;
 		} else {
 			// Otherwise we have found the final location
 			fmt::println("final destination of access chain");

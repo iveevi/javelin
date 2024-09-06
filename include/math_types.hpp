@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <cstdint>
 #include <unordered_map>
 
 namespace jvl {
@@ -95,6 +96,12 @@ struct vector : vector_base <T, N> {
 			vn[i] = -this->data[i];
 
 		return vn;
+	}
+
+	vector &operator^=(const vector &other) {
+		for (size_t i = 0; i < N; i++)
+			this->operator[](i) ^= other[i];
+		return *this;
 	}
 };
 
@@ -232,22 +239,22 @@ inline bool operator==(const matrix<T, N, M> &A, const matrix<T, N, M> &B)
 		return C;                                                      \
 	}
 
-#define TEMPLATE_MIXED_VECTOR_OPERATORS(op)                          \
-	template <typename T, size_t N>                              \
-	vector<T, N> operator op(const vector<T, N> &A, const T & k) \
-	{                                                            \
-		vector<T, N> C;                                      \
-		for (size_t i = 0; i < N; i++)                       \
-			C[i] = A[i] op k;                            \
-		return C;                                            \
-	}                                                            \
-	template <typename T, size_t N>                              \
-	vector<T, N> operator op(const T & k, const vector<T, N> &A) \
-	{                                                            \
-		vector<T, N> C;                                      \
-		for (size_t i = 0; i < N; i++)                       \
-			C[i] = A[i] op k;                            \
-		return C;                                            \
+#define TEMPLATE_MIXED_VECTOR_OPERATORS(op)				\
+	template <typename T, size_t N>					\
+	vector <T, N> operator op(const vector <T, N> &A, const T & k)	\
+	{								\
+		vector <T, N> C;					\
+		for (size_t i = 0; i < N; i++)				\
+			C[i] = A[i] op k;				\
+		return C;						\
+	}								\
+	template <typename T, size_t N>					\
+	vector <T, N> operator op(const T & k, const vector <T, N> &A)	\
+	{								\
+		vector <T, N> C;					\
+		for (size_t i = 0; i < N; i++)				\
+			C[i] = A[i] op k;				\
+		return C;						\
 	}
 
 TEMPLATE_VECTOR_OPERATORS(+)
@@ -260,6 +267,17 @@ TEMPLATE_MIXED_VECTOR_OPERATORS(-)
 TEMPLATE_MIXED_VECTOR_OPERATORS(*)
 TEMPLATE_MIXED_VECTOR_OPERATORS(/)
 
+// Bitwise operators
+template <typename T, size_t N>
+vector <T, N> operator>>(const vector <T, N> &A, size_t L)
+{
+	vector <T, N> C;
+	for (size_t i = 0; i < N; i++)
+		C[i] = A[i] >> L;
+	return C;
+}
+
+// Quaternion operations
 template <typename T>
 quat <T> operator*(const quat <T> &A, const quat <T> &B)
 {
@@ -532,6 +550,10 @@ using int2 = vector <int32_t, 2>;
 using int3 = vector <int32_t, 3>;
 using int4 = vector <int32_t, 4>;
 
+using uint2 = vector <uint32_t, 2>;
+using uint3 = vector <uint32_t, 3>;
+using uint4 = vector <uint32_t, 4>;
+
 using float3x3 = matrix <float, 3, 3>;
 using float4x4 = matrix <float, 4, 4>;
 
@@ -545,10 +567,9 @@ static_assert(sizeof(float3) == 3 * sizeof(float));
 
 // Hashing for types
 template <typename T, size_t N>
-struct std::hash<jvl::vector<T, N>> {
-	size_t operator()(const jvl::vector<T, N> &v) const
-	{
-		auto h = hash<float>();
+struct std::hash <jvl::vector <T, N>> {
+	size_t operator()(const jvl::vector <T, N> &v) const {
+		auto h = hash <float>();
 
 		size_t x = 0;
 		for (size_t i = 0; i < N; i++)

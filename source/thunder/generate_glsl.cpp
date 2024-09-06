@@ -14,7 +14,7 @@ std::string Linkage::generate_glsl(const std::string &version)
 
 	// Translating types
 	auto translate_type = [&](index_t i) -> std::string {
-		const auto &decl = structs[i];
+		const auto &decl = structs.at(i);
 		if (decl.size() == 1) {
 			auto &elem = decl[0];
 			return tbl_primitive_types[elem.item];
@@ -85,15 +85,11 @@ std::string Linkage::generate_glsl(const std::string &version)
 		for (auto &[i, t] : b.struct_map)
 			local_struct_names[i] = translate_type(t);
 
-		std::string name = "main";
-		if (i != -1) {
-			ire::Callable *cbl = ire::Callable::search_tracked(i);
-			name = cbl->name;
-		}
-
 		std::string returns = "void";
-		if (b.returns != -1)
-			returns = translate_type(b.returns);
+		if (b.returns != -1) {
+			index_t t = b.struct_map[b.returns];
+			returns = translate_type(t);
+		}
 
 		std::vector <std::string> args;
 		for (index_t i = 0; i < b.parameters.size(); i++) {
@@ -111,7 +107,7 @@ std::string Linkage::generate_glsl(const std::string &version)
 
 		auto synthesized = detail::synthesize_list(b.unit);
 
-		source += fmt::format("{} {}({})\n", returns, name, parameters);
+		source += fmt::format("{} {}({})\n", returns, b.name, parameters);
 		source += "{\n";
 
 		source += detail::generate_body_c_like(b.unit,

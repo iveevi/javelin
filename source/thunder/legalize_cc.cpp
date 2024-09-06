@@ -1,4 +1,5 @@
 #include "ire/emitter.hpp"
+#include "thunder/enumerations.hpp"
 #include "thunder/opt.hpp"
 #include "thunder/linkage.hpp"
 
@@ -38,16 +39,48 @@ void legalize_for_jit_operation_vector_overload(mapped_instruction_t &mapped,
 						PrimitiveType type_a,
 						PrimitiveType type_b)
 {
-	assert(vector_type(type_a) ^ vector_type(type_b));
-
 	auto &em = ire::Emitter::active;
 
 	// Reset and activate the scratch
 	mapped.transformed.clear();
 	em.push(mapped.transformed);
 
+	fmt::println("legalizing operation {} for overload ({}, {})",
+		tbl_operation_code[code],
+		tbl_primitive_types[type_a],
+		tbl_primitive_types[type_b]);
+
 	// Assuming this is a binary instruction
-	if (vector_type(type_a)) {
+	if (vector_type(type_a) && vector_type(type_b)) {
+		PrimitiveType ctype = swizzle_type_of(type_a, SwizzleCode::x);
+		size_t ccount = vector_component_count(type_a);
+
+		assert(ctype == swizzle_type_of(type_b, SwizzleCode::x));
+		assert(ccount == vector_component_count(type_b));
+
+		std::vector <index_t> components(ccount);
+		for (size_t i = 0; i < ccount; i++) {
+			index_t ca = em.emit(Load(a, i));
+			mapped.track(ca, 0b01);
+
+			index_t cb = em.emit(Load(b, i));
+			mapped.track(cb, 0b01);
+
+			index_t l = em.emit(List(cb, -1));
+			l = em.emit(List(ca, l));
+
+			index_t t = em.emit(TypeField(-1, -1, ctype));
+			components[i] = em.emit(Operation(l, t, code));
+		}
+
+		index_t l = em.emit_list_chain(components);
+		index_t t = em.emit(TypeField(-1, -1, type_a));
+		em.emit(Construct(t, l));
+
+		// fmt::println("legalized code:");
+		// mapped.transformed.dump();
+		// assert(false);
+	} else if (vector_type(type_a) && !vector_type(type_b)) {
 		assert(type_b == swizzle_type_of(type_a, SwizzleCode::x));
 
 		size_t ccount = vector_component_count(type_a);
@@ -117,19 +150,19 @@ void legalize_for_cc(ire::Scratch &scratch)
 		if (auto op = atom.get <Operation> ()) {
 			// The operands are guaranteed to be
 			// primitive types at this point
-			fmt::println("binary operation: {}", atom);
+			// fmt::println("binary operation: {}", atom);
 
 			auto args = list_args(op->args);
-			fmt::println("type for each args:");
+			// fmt::println("type for each args:");
 
 			std::vector <PrimitiveType> types;
 			for (auto i : args) {
 				auto ptype = primitive_type_of(pool, i);
-				fmt::println("  {} -> {}", i, tbl_primitive_types[ptype]);
+				// fmt::println("  {} -> {}", i, tbl_primitive_types[ptype]);
 				types.push_back(ptype);
 			}
 
-			if (types[0] != types[1]) {
+			if (vector_type(types[0]) || vector_type(types[1])) {
 				transformed = true;
 				legalize_for_jit_operation_vector_overload(mapped[i], op->code,
 					args[0], args[1], types[0], types[1]);

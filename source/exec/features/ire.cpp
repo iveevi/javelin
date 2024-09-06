@@ -53,36 +53,54 @@ struct Material {
 };
 
 // Random number generation
-// uvec3 __pcg3d(uvec3 v)
-// {
-// 	v = v * 1664525u + 1013904223u;
-// 	// v.x += v.y * v.z;
-// 	// // v.y += v.z * v.x;
-// 	// // v.z += v.x * v.y;
-// 	// // v ^= v >> 16u;
-// 	// // v.x += v.y * v.z;
-// 	// // v.y += v.z * v.x;
-// 	// // v.z += v.x * v.y;
-// 	return v;
-// }
-
-i32 __pcg3d(ivec2 v)
+uvec3 __pcg3d(uvec3 v)
 {
-	v = v * 6 + 5;
-	return v.x + v.y;
+	v = v * 1664525u + 1013904223u;
+	v.x += v.y * v.z;
+	v.y += v.z * v.x;
+	v.z += v.x * v.y;
+	v ^= v >> 16u;
+	v.x += v.y * v.z;
+	v.y += v.z * v.x;
+	v.z += v.x * v.y;
+	return v;
 }
 
 auto pcg3d = callable(__pcg3d).named("pcg3d");
+
+uint3 ref(uint3 v)
+{
+	v = v * 1664525u + 1013904223u;
+	v.x += v.y * v.z;
+	v.y += v.z * v.x;
+	v.z += v.x * v.y;
+	v ^= v >> 16u;
+	v.x += v.y * v.z;
+	v.y += v.z * v.x;
+	v.z += v.x * v.y;
+	return v;
+}
 
 int main()
 {
 	// thunder::opt_transform_compact(pcg3d);
 	// thunder::opt_transform_dead_code_elimination(pcg3d);
 	// thunder::opt_transform_dead_code_elimination(pcg3d);
-	pcg3d.dump();
+	// pcg3d.dump();
+
+	// fmt::println("{}", pcg3d.export_to_kernel().compile(profiles::glsl_450));
+	// fmt::println("{}", pcg3d.export_to_kernel().compile(profiles::cplusplus_11));
 
 	thunder::detail::legalize_for_cc(pcg3d);
+	thunder::opt_transform_compact(pcg3d);
+	thunder::opt_transform_dead_code_elimination(pcg3d);
+	thunder::opt_transform_dead_code_elimination(pcg3d);
+	thunder::opt_transform_dead_code_elimination(pcg3d);
+	thunder::opt_transform_dead_code_elimination(pcg3d);
 	pcg3d.dump();
 
-	jit(pcg3d);
+	auto ftn = jit(pcg3d);
+
+	fmt::println("jit(...) = {}", ftn(uint3(1, 2, 3)).x);
+	fmt::println("ref(...) = {}", ref(uint3(1, 2, 3)).x);
 }

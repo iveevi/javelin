@@ -13,7 +13,7 @@ std::string cpp_primitive_type_as_string()
 
 	if constexpr (std::is_same_v <T, int32_t>)
 		return "int32_t";
-	
+
 	if constexpr (std::is_same_v <T, uint32_t>)
 		return "uint32_t";
 
@@ -116,7 +116,7 @@ std::string Linkage::generate_cplusplus()
 
 	// Translating types
 	auto translate_type = [&](index_t i) -> std::string {
-		const auto &decl = structs[i];
+		const auto &decl = structs.at(i);
 		if (decl.size() == 1) {
 			auto &elem = decl[0];
 			return tbl_primitive_types[elem.item];
@@ -189,7 +189,8 @@ std::string Linkage::generate_cplusplus()
 		std::string returns;
 
 		if (b.returns != -1) {
-			returns = translate_type(b.returns);
+			index_t t = b.struct_map.at(b.returns);
+			returns = translate_type(t);
 		} else if (louts.size() == 0) {
 			returns = "void";
 		} else if (louts.size() == 1) {
@@ -235,7 +236,7 @@ std::string Linkage::generate_cplusplus()
 		// Declare storage for each layout outputs (return value)
 		for (auto [binding, t] : louts)
 			source += fmt::format("    {} _lout{};\n", translate_type(t), binding);
-		
+
 		auto synthesized = detail::synthesize_list(b.unit);
 
 		source += detail::generate_body_c_like(b.unit,
