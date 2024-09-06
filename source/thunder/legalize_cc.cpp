@@ -101,7 +101,29 @@ void legalize_for_jit_operation_vector_overload(mapped_instruction_t &mapped,
 		index_t l = em.emit_list_chain(components);
 		index_t t = em.emit(TypeField(-1, -1, type_a));
 		em.emit(Construct(t, l));
+	} else if (!vector_type(type_a) && vector_type(type_b)) {
+		assert(type_a == swizzle_type_of(type_b, SwizzleCode::x));
+
+		size_t ccount = vector_component_count(type_b);
+
+		std::vector <index_t> components(ccount);
+		for (size_t i = 0; i < ccount; i++) {
+			index_t c = em.emit(Load(b, i));
+			mapped.track(c, 0b01);
+
+			index_t l = em.emit(List(c, -1));
+			l = em.emit(List(a, l));
+			mapped.track(l, 0b01);
+
+			index_t t = em.emit(TypeField(-1, -1, type_a));
+			components[i] = em.emit(Operation(l, t, code));
+		}
+
+		index_t l = em.emit_list_chain(components);
+		index_t t = em.emit(TypeField(-1, -1, type_b));
+		em.emit(Construct(t, l));
 	} else {
+		// TODO: legalize by converting to higher type
 		assert(false);
 	}
 }

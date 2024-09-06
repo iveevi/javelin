@@ -208,6 +208,8 @@ std::vector <gcc_jit_rvalue *> load_rvalue_arguments(jit_context &context, index
 		assert(g.is <List> ());
 
 		auto &list = g.as <List> ();
+
+		// TODO: Some instructions will emit an l-value, so need to watch out
 		args.push_back((gcc_jit_rvalue *) context.cached[list.item].value);
 
 		next = list.next;
@@ -356,10 +358,31 @@ jit_instruction generate_instruction_intrinsic(jit_context &context,
 
 jit_instruction generate_instruction_access_field(jit_context &context, index_t src, index_t idx)
 {
+	auto &atom = context.pool[src];
+
 	jit_instruction source_instruction = context.cached[src];
 	jit_struct *type_info = source_instruction.type_info;
 	gcc_jit_field *field = type_info->fields[idx];
-	gcc_jit_rvalue *source = (gcc_jit_rvalue *) source_instruction.value;
+
+	// Handle special cases of loading
+	gcc_jit_rvalue *source = nullptr;
+
+	switch (atom.index()) {
+
+	// TODO: currently assuming its a parameter
+	// Convert the cached instruction value to an r-value
+	case Atom::type_index <Global> ():
+	{
+		fmt::println("loading from a global/parameter");
+		gcc_jit_param *parameter = (gcc_jit_param *) source_instruction.value;
+		source = gcc_jit_param_as_rvalue(parameter);
+	} break;
+
+	default:
+		source = (gcc_jit_rvalue *) source_instruction.value;
+		break;
+	}
+
 	gcc_jit_rvalue *expr = gcc_jit_rvalue_access_field(source, nullptr, field);
 
 	jit_instruction ji;
@@ -409,7 +432,7 @@ jit_instruction generate_instruction_store(jit_context &context, const Store &st
 			auto &source_type = context.cached[swizzle->src].type_info;
 			auto &loaded_field = source_type->fields[swizzle->code];
 
-			fmt::println("  through load");
+			fmt::println("  through swizzle");
 			access_chain_indices.push(swizzle->code);
 			access_chain_fields.push(loaded_field);
 			idx = swizzle->src;
@@ -600,6 +623,7 @@ void generate_block(gcc_jit_context *const gcc, const Linkage::block_t &block)
 	context.cached.resize(block.unit.size());
 
 	for (index_t i = 0; i < block.unit.size(); i++)
+		// TODO: only if synthesized
 		context.cached[i] = generate_instruction(context, i);
 }
 
@@ -613,10 +637,10 @@ Linkage::jit_result_t Linkage::generate_jit_gcc()
 	assert(context);
 
 	gcc_jit_context_set_int_option(context, GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 0);
-	gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
+	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
 	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_TREE, true);
 	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_SUMMARY, true);
-	gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
+	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
 
 	for (auto &[_, block] : blocks)
 		generate_block(context, block);

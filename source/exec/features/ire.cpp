@@ -20,6 +20,7 @@
 // TODO: passing layout inputs/outputs (should ignore them)
 // TODO: test nested structs again
 // TODO: parameter qualifiers (e.g. out/inout) as wrapped types
+// TODO: static callables from lambda assignment
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -101,6 +102,6 @@ int main()
 
 	auto ftn = jit(pcg3d);
 
-	fmt::println("jit(...) = {}", ftn(uint3(1, 2, 3)).x);
-	fmt::println("ref(...) = {}", ref(uint3(1, 2, 3)).x);
+	fmt::println("jit(...) = {}", ftn(uint3(10, 2, 3)).x);
+	fmt::println("ref(...) = {}", ref(uint3(10, 2, 3)).x);
 }
