@@ -15,7 +15,7 @@ usage_list usage(const std::vector <Atom> &pool, index_t index)
 	usage_list indices;
 	for (index_t i = index + 1; i < pool.size(); i++) {
 		if (uses(pool[i], index))
-			indices.push_back(i);
+			indices.insert(i);
 	}
 
 	return indices;
@@ -26,7 +26,7 @@ usage_list usage(const ire::Scratch &scratch, index_t index)
 	usage_list indices;
 	for (index_t i = index + 1; i < scratch.pointer; i++) {
 		if (uses(scratch.pool[i], index))
-			indices.push_back(i);
+			indices.insert(i);
 	}
 
 	return indices;

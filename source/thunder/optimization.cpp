@@ -1,3 +1,6 @@
+#include <queue>
+#include <unordered_set>
+
 #include "ire/scratch.hpp"
 #include "thunder/opt.hpp"
 
@@ -115,13 +118,58 @@ bool opt_transform_dead_code_elimination(ire::Scratch &result)
 {
 	usage_graph graph = usage(result);
 
+	// Reversed usage graph
+	usage_graph reversed(graph.size());
+	for (index_t i = 0; i < graph.size(); i++) {
+		for (index_t j : graph[i])
+			reversed[j].insert(i);
+	}
+
+	// Configure checking queue and inclusion mask
+	std::queue <index_t> check_list;
+	std::vector <bool> include;
+
+	for (index_t i = 0; i < result.pointer; i++) {
+		check_list.push(i);
+		include.push_back(true);
+	}
+
+	// Keep checking as long as something got erased
+	while (check_list.size()) {
+		std::unordered_set <index_t> erasure;
+
+		while (check_list.size()) {
+			index_t i = check_list.front();
+			check_list.pop();
+
+			auto &atom = result.pool[i];
+			bool exempt = opt_transform_dce_exempt(atom);
+			if (graph[i].empty() && !exempt) {
+				include[i] = false;
+				erasure.insert(i);
+			}
+		}
+
+		fmt::println("  DCE pass eliminated {} atoms", erasure.size());
+
+		std::unordered_set <index_t> reinsert;
+		for (auto i : erasure) {
+			for (auto j : reversed[i]) {
+				graph[j].erase(i);
+				reinsert.insert(j);
+			}
+		}
+
+		for (auto j : reinsert)
+			check_list.push(j);
+	}
+
+	// Reconstruct with the reduced set
 	index_t pointer = 0;
 
 	wrapped::reindex <index_t> relocation;
 	for (index_t i = 0; i < result.pointer; i++) {
-		auto &atom = result.pool[i];
-		bool exempt = opt_transform_dce_exempt(atom);
-		if (graph[i].size() || exempt)
+		if (include[i])
 			relocation[i] = pointer++;
 	}
 
@@ -135,6 +183,7 @@ bool opt_transform_dead_code_elimination(ire::Scratch &result)
 
 	std::swap(result, doubled);
 
+	// Change happened only if there is a difference in size
 	return (result.pointer != doubled.pointer);
 }
 
@@ -143,8 +192,12 @@ void opt_transform(ire::Scratch &result)
 	bool changed;
 	do {
 		fmt::println("optimization pass (current # of atoms: {})", result.pointer);
+		
+		// Relinking steps, will not elimination code
 		thunder::opt_transform_compact(result);
 		thunder::opt_transform_constructor_elision(result);
+
+		// Eliminate unused code
 		changed = thunder::opt_transform_dead_code_elimination(result);
 	} while (changed);
 }
