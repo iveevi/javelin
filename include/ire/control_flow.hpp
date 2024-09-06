@@ -10,7 +10,7 @@ inline void cond(const boolean &b)
 	auto &em = Emitter::active;
 	thunder::Branch branch;
 	branch.cond = b.synthesize().id;
-	em.emit_main(branch);
+	em.emit(branch);
 }
 
 inline void elif(const boolean &b)
@@ -18,7 +18,7 @@ inline void elif(const boolean &b)
 	auto &em = Emitter::active;
 	thunder::Branch branch;
 	branch.cond = b.synthesize().id;
-	em.emit_main(branch);
+	em.emit(branch);
 }
 
 inline void elif()
@@ -27,7 +27,7 @@ inline void elif()
 	auto &em = Emitter::active;
 	thunder::Branch branch;
 	branch.cond = -1;
-	em.emit_main(branch);
+	em.emit(branch);
 }
 
 inline void loop(const boolean &b)
@@ -35,7 +35,7 @@ inline void loop(const boolean &b)
 	auto &em = Emitter::active;
 	thunder::While branch;
 	branch.cond = b.synthesize().id;
-	em.emit_main(branch);
+	em.emit(branch);
 }
 
 template <typename ... Args>
@@ -52,13 +52,13 @@ inline void returns(const Args &... args)
 		ret.type = em.emit(tf);
 	}
 
-	em.emit_main(ret);
+	em.emit(ret);
 }
 
 inline void end()
 {
 	auto &em = Emitter::active;
-	em.emit_main(thunder::End());
+	em.emit(thunder::End());
 }
 
 } // namespace jvl::ire

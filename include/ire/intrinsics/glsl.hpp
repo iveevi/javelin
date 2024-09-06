@@ -29,7 +29,7 @@ struct __gl_Position_t {
 		store.dst = em.emit(global);
 		store.src = other.synthesize().id;
 
-		em.emit_main(store);
+		em.emit(store);
 
 		return *this;
 	}
@@ -42,7 +42,7 @@ struct __gl_Position_t {
 		global.qualifier = thunder::glsl_vertex_intrinsic_gl_Position;
 
 		cache_index_t cit;
-		return (cit = em.emit_main(global));
+		return (cit = em.emit(global));
 	}
 } static gl_Position;
 

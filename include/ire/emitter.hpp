@@ -32,12 +32,9 @@ struct Emitter : Scratch {
 
 	// Emitting instructions during function invocation
 	index_t emit(const thunder::Atom &);
-
-	// TODO: should not be a distinction between either
-	index_t emit_main(const thunder::Atom &);
-	index_t emit_main(const thunder::Branch &);
-	index_t emit_main(const thunder::While &);
-	index_t emit_main(const thunder::End &);
+	index_t emit(const thunder::Branch &);
+	index_t emit(const thunder::While &);
+	index_t emit(const thunder::End &);
 
 	// Easier ways to construct list chains
 	index_t emit_list_chain(const std::vector <index_t> &);

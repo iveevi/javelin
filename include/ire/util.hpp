@@ -85,7 +85,7 @@ R platform_intrinsic_from_args(thunder::IntrinsicOperation opn, const Args &... 
 	intr.type = type_field_from_args <R> ().id;
 
 	cache_index_t cit;
-	cit = em.emit_main(intr);
+	cit = em.emit(intr);
 
 	return cit;
 }
@@ -105,7 +105,7 @@ void void_platform_intrinsic_from_args(thunder::IntrinsicOperation opn, const Ar
 	if constexpr (sizeof...(Args))
 		intr.args = list_from_args(args...);
 
-	em.emit_main(intr);
+	em.emit(intr);
 }
 
 inline void platform_intrinsic_keyword(thunder::IntrinsicOperation opn)
@@ -115,7 +115,7 @@ inline void platform_intrinsic_keyword(thunder::IntrinsicOperation opn)
 	thunder::Intrinsic intr;
 	intr.opn = opn;
 
-	em.emit_main(intr);
+	em.emit(intr);
 }
 
 template <typename ... Args>

@@ -90,7 +90,7 @@ struct primitive_t : tagged {
 		thunder::Store store;
 		store.dst = ref.id;
 		store.src = translate_primitive(v);
-		em.emit_main(store);
+		em.emit(store);
 
 		return *this;
 	}
@@ -103,7 +103,7 @@ struct primitive_t : tagged {
 		thunder::Store store;
 		store.dst = ref.id;
 		store.src = v.synthesize().id;
-		em.emit_main(store);
+		em.emit(store);
 
 		return *this;
 	}
@@ -140,12 +140,12 @@ struct primitive_t : tagged {
 		*this = operation_from_args <primitive_t> (thunder::division, (*this), a);
 		return *this;
 	}
-	
+
 	// Bitwise operators
 	friend primitive_t operator>>(const primitive_t &a, const primitive_t &b) {
 		return operation_from_args <primitive_t> (thunder::bit_shift_right, a, b);
 	}
-	
+
 	friend primitive_t operator<<(const primitive_t &a, const primitive_t &b) {
 		return operation_from_args <primitive_t> (thunder::bit_shift_left, a, b);
 	}

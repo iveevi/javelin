@@ -49,7 +49,7 @@ public:
 		store.src = v.synthesize().id;
 		store.dst = synthesize().id;
 
-		em.emit_main(store);
+		em.emit(store);
 
 		return *this;
 	}
@@ -62,26 +62,26 @@ public:
 	base_type operator-() const {
 		return -base_type(synthesize());
 	}
-	
+
 	// In place arithmetic operators
 	swizzle_element &operator+=(const base_type &a) {
 		base_type tmp = *this;
 		tmp += a;
 		return *this;
 	}
-	
+
 	swizzle_element &operator-=(const base_type &a) {
 		base_type tmp = *this;
 		tmp -= a;
 		return *this;
 	}
-	
+
 	swizzle_element &operator*=(const base_type &a) {
 		base_type tmp = *this;
 		tmp *= a;
 		return *this;
 	}
-	
+
 	swizzle_element &operator/=(const base_type &a) {
 		base_type tmp = *this;
 		tmp /= a;
@@ -228,7 +228,7 @@ struct vec : swizzle_base <T, N> {
 		store.dst = this->synthesize().id;
 		store.src = other.synthesize().id;
 
-		em.emit_main(store);
+		em.emit(store);
 
 		return *this;
 	}

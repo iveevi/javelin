@@ -63,7 +63,7 @@ struct push_constant : push_constant_base <T> {
 		thunder::Load load;
 		load.src = em.emit(global);
 
-		return (this->ref = em.emit_main(load));
+		return (this->ref = em.emit(load));
 	}
 
 	operator upcast_t ()

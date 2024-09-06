@@ -47,29 +47,23 @@ Emitter::index_t Emitter::emit(const thunder::Atom &atom)
 	return Scratch::emit(atom);
 }
 
-Emitter::index_t Emitter::emit_main(const thunder::Atom &atom)
+Emitter::index_t Emitter::emit(const thunder::Branch &branch)
 {
-	int p = emit(atom);
-	return p;
-}
-
-Emitter::index_t Emitter::emit_main(const thunder::Branch &branch)
-{
-	int p = emit_main((thunder::Atom) branch);
+	int p = emit((thunder::Atom) branch);
 	control_flow_ends.push(p);
 	return p;
 }
 
-Emitter::index_t Emitter::emit_main(const thunder::While &loop)
+Emitter::index_t Emitter::emit(const thunder::While &loop)
 {
-	int p = emit_main((thunder::Atom) loop);
+	int p = emit((thunder::Atom) loop);
 	control_flow_ends.push(p);
 	return p;
 }
 
-Emitter::index_t Emitter::emit_main(const thunder::End &end)
+Emitter::index_t Emitter::emit(const thunder::End &end)
 {
-	int p = emit_main((thunder::Atom) end);
+	int p = emit((thunder::Atom) end);
 	assert(control_flow_ends.size());
 	auto ref = control_flow_ends.top();
 	control_flow_ends.pop();

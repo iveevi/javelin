@@ -71,7 +71,7 @@ struct layout_in : layout_in_base <T> {
 		thunder::Load load;
 		load.src = em.emit(global);
 
-		return (this->ref = em.emit_main(load));
+		return (this->ref = em.emit(load));
 	}
 
 	void refresh(const cache_index_t::value_type &) {
@@ -141,7 +141,7 @@ struct layout_out : layout_out_base <T> {
 		store.dst = em.emit(global);
 		store.src = translate_primitive(t);
 
-		em.emit_main(store);
+		em.emit(store);
 
 		return *this;
 	}
@@ -158,7 +158,7 @@ struct layout_out : layout_out_base <T> {
 		store.dst = em.emit(global);
 		store.src = t.synthesize().id;
 
-		em.emit_main(store);
+		em.emit(store);
 
 		return *this;
 	}
