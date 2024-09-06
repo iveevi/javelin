@@ -40,7 +40,7 @@ struct Emitter : Scratch {
 	index_t emit_main(const thunder::End &);
 
 	// Easier ways to construct list chains
-	index_t emit_list_chain(const std::initializer_list <index_t> &);
+	index_t emit_list_chain(const std::vector <index_t> &);
 
 	template <std::integral ... Args>
 	index_t emit_list_chain(const Args &... args) {

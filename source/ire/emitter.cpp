@@ -77,7 +77,7 @@ Emitter::index_t Emitter::emit_main(const thunder::End &end)
 	return p;
 }
 
-Emitter::index_t Emitter::emit_list_chain(const std::initializer_list <index_t> &atoms)
+Emitter::index_t Emitter::emit_list_chain(const std::vector <index_t> &atoms)
 {
 	thunder::List list;
 

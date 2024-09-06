@@ -35,11 +35,11 @@ concept atom_instruction = requires(T &t, const T &cta, const T &ctb) {
 	{
 		t.addresses()
 	} -> std::same_as <Addresses>;
-	
+
 	{
 		cta == ctb
 	} -> std::same_as <bool>;
-	
+
 	{
 		cta.to_string()
 	} -> std::same_as <std::string>;
@@ -72,7 +72,7 @@ struct TypeField {
 	index_t down = -1;
 	index_t next = -1;
 	PrimitiveType item = bad;
-	
+
 	bool operator==(const TypeField &) const;
 	Addresses addresses();
 	std::string to_string() const;
@@ -179,7 +179,7 @@ static_assert(atom_instruction <List>);
 struct Construct {
 	index_t type = -1;
 	index_t args = -1;
-	
+
 	bool operator==(const Construct &) const;
 	Addresses addresses();
 	std::string to_string() const;
@@ -196,7 +196,7 @@ struct Call {
 	index_t cid = -1;
 	index_t args = -1;
 	index_t type = -1;
-	
+
 	bool operator==(const Call &) const;
 	Addresses addresses();
 	std::string to_string() const;

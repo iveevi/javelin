@@ -41,12 +41,16 @@ struct jit_instruction {
 };
 
 struct jit_context {
+	const std::vector <Atom> &pool;
+
 	gcc_jit_context *const gcc;
 	gcc_jit_function *function;
 	gcc_jit_block *block;
+
 	std::vector <jit_instruction> parameters;
 	std::vector <jit_instruction> cached;
-	const std::vector <Atom> &pool;
+
+	wrapped::hash_table <PrimitiveType, jit_struct *> primitive_types;
 };
 
 jit_struct *generate_type_field_primitive_scalar(jit_context &context, PrimitiveType item)
@@ -78,6 +82,10 @@ jit_struct *generate_type_field_primitive_vector(jit_context &context,
 {
 	static constexpr const char *component_names[] = { "x", "y", "z", "w" };
 
+	// Skip generation if its already cached
+	if (auto sptr = context.primitive_types.get(item))
+		return sptr.value();
+
 	jit_struct *s = new jit_struct;
 
 	jit_struct *element = generate_type_field_primitive_scalar(context, item);
@@ -92,7 +100,11 @@ jit_struct *generate_type_field_primitive_vector(jit_context &context,
 	for (size_t i = 0; i < components; i++)
 		s->field_types[i] = element;
 
-	return &s->materialize(context.gcc, name);
+	fmt::println("creating a new struct from primitive {}", tbl_primitive_types[item]);
+	s->materialize(context.gcc, name);
+	fmt::println("struct type: {}", (void *) s->type);
+	context.primitive_types[item] = s;
+	return s;
 }
 
 jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType item)
@@ -104,7 +116,7 @@ jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType it
 	case u32:
 	case f32:
 		return generate_type_field_primitive_scalar(context, item);
-	
+
 	// Integer vector types
 	case ivec2:
 		return generate_type_field_primitive_vector(context, "ivec2", i32, 2);
@@ -120,7 +132,7 @@ jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType it
 		return generate_type_field_primitive_vector(context, "uvec3", u32, 3);
 	case uvec4:
 		return generate_type_field_primitive_vector(context, "uvec4", u32, 4);
-	
+
 	// Floating-point vector types
 	case vec2:
 		return generate_type_field_primitive_vector(context, "vec2", f32, 2);
@@ -181,7 +193,9 @@ jit_struct *generate_type_field(jit_context &context, index_t i)
 	}
 
 	fmt::println("creating a new struct with {} fields", s->fields.size());
-	return &s->materialize(context.gcc, fmt::format("s_"));
+	s->materialize(context.gcc, fmt::format("s_"));
+	fmt::println("struct type: {}", (void *) s->type);
+	return s;
 }
 
 std::vector <gcc_jit_rvalue *> load_rvalue_arguments(jit_context &context, index_t argsi)
@@ -214,7 +228,7 @@ jit_instruction generate_instruction_primitive(jit_context &context, const Primi
 				ji.type_info->type, primitive.idata);
 		return ji;
 	}
-	
+
 	case u32:
 	{
 		jit_instruction ji;
@@ -236,7 +250,7 @@ jit_instruction generate_instruction_primitive(jit_context &context, const Primi
 	default:
 		break;
 	}
-		
+
 	fmt::println("GCC JIT unexpected primitive: {}", primitive);
 	abort();
 }
@@ -281,7 +295,7 @@ jit_instruction generate_instruction_intrinsic(jit_context &context,
 					       const std::vector <gcc_jit_rvalue *> &args)
 {
 	assert(args.size() == 1);
-		
+
 	switch (opn) {
 
 	case sin:
@@ -325,7 +339,7 @@ jit_instruction generate_instruction_intrinsic(jit_context &context,
 		gcc_jit_rvalue *expr;
 		expr = gcc_jit_context_new_call(context.gcc, nullptr, intr_ftn, 1, &arg);
 		expr = gcc_jit_context_new_cast(context.gcc, nullptr, expr, float_type);
-		
+
 		jit_instruction ji;
 		ji.value = (gcc_jit_object *) expr;
 		ji.type_info = return_type;
@@ -335,7 +349,7 @@ jit_instruction generate_instruction_intrinsic(jit_context &context,
 	default:
 		break;
 	}
-		
+
 	fmt::println("GCC JIT unsupported intrinsic <{}>", tbl_intrinsic_operation[opn]);
 	abort();
 }
@@ -483,7 +497,7 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 		auto &constructor = atom.as <Construct> ();
 		auto args = load_rvalue_arguments(context, constructor.args);
 		jit_struct *struct_type = context.cached[constructor.type].type_info;
-		
+
 		jit_instruction ji;
 		ji.type_info = struct_type;
 		ji.value = (gcc_jit_object *) struct_type->construct(context.gcc, args);
@@ -516,7 +530,6 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 		auto &returns = atom.as <Returns> ();
 		auto args = load_rvalue_arguments(context, returns.args);
 		assert(args.size() == 1);
-
 		gcc_jit_block_end_with_return(context.block, nullptr, args[0]);
 	} return { nullptr, nullptr };
 
@@ -531,7 +544,7 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 	default:
 		break;
 	}
-		
+
 	fmt::println("GCC JIT unsupported instruction: {}", atom.to_string());
 	abort();
 }
@@ -541,8 +554,8 @@ void generate_block(gcc_jit_context *const gcc, const Linkage::block_t &block)
 	fmt::println("generating block");
 
 	jit_context context {
-		.gcc = gcc,
 		.pool = block.unit,
+		.gcc = gcc,
 	};
 
 	// JIT the parameters
@@ -570,6 +583,7 @@ void generate_block(gcc_jit_context *const gcc, const Linkage::block_t &block)
 	// TODO: embed the scope name in the block
 	fmt::println("block returns value: {} (ret: {})", block.unit[block.returns], block.returns);
 	gcc_jit_type *returns = generate_type_field(context, block.returns)->type;
+	fmt::println("return type: {}", (void *) returns);
 	context.function = gcc_jit_context_new_function(context.gcc, nullptr,
 		GCC_JIT_FUNCTION_EXPORTED, returns, "function",
 		context.parameters.size(), gcc_parameters.data(), 0);

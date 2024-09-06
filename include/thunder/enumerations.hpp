@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdlib>
 
 namespace jvl::thunder {
 
@@ -17,7 +18,7 @@ enum PrimitiveType : int8_t {
 	i32,
 	u32,
 	f32,
-	
+
 	// Vector types
 	vec2,
 	vec3,
@@ -42,12 +43,12 @@ enum PrimitiveType : int8_t {
 static const char *tbl_primitive_types[] = {
 	"<BAD>",
 	"void",
-	
+
 	"bool",
 	"int",
 	"uint",
 	"float",
-	
+
 	"vec2",
 	"vec3",
 	"vec4",
@@ -59,7 +60,7 @@ static const char *tbl_primitive_types[] = {
 	"uvec2",
 	"uvec3",
 	"uvec4",
-	
+
 	"mat2",
 	"mat3",
 	"mat4",
@@ -123,7 +124,7 @@ enum OperationCode : uint8_t {
 
 	bool_or,
 	bool_and,
-	
+
 	bit_or,
 	bit_and,
 	bit_xor,
@@ -139,7 +140,7 @@ enum OperationCode : uint8_t {
 
 	__oc_end,
 };
-	
+
 static constexpr const char *tbl_operation_code[] = {
 	"negation",
 
@@ -183,11 +184,11 @@ enum IntrinsicOperation : uint16_t {
 	asin,
 	acos,
 	atan,
-	
+
 	sqrt,
 	exp,
 	pow,
-	
+
 	clamp,
 	min,
 	max,
@@ -212,7 +213,7 @@ enum IntrinsicOperation : uint16_t {
 	glsl_intBitsToFloat,
 	glsl_uintBitsToFloat,
 
-	__io_end	
+	__io_end
 };
 
 static constexpr const char *tbl_intrinsic_operation[] = {
@@ -233,7 +234,7 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"clamp",
 	"min",
 	"max",
-	
+
 	"fract",
 	"floor",
 	"ceil",
@@ -243,7 +244,7 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"dot",
 	"cross",
 	"normalize",
-	
+
 	"dFdx",
 	"dFdy",
 	"dFdxFine",
@@ -258,5 +259,65 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 };
 
 static_assert(__io_end + 1 == sizeof(tbl_intrinsic_operation)/sizeof(const char *));
+
+// Enumeration properties
+constexpr bool vector_type(PrimitiveType primitive)
+{
+	switch (primitive) {
+	case ivec2:
+	case ivec3:
+	case ivec4:
+	case uvec2:
+	case uvec3:
+	case uvec4:
+	case vec2:
+	case vec3:
+	case vec4:
+		return true;
+	default:
+		return false;
+	}
+}
+
+constexpr size_t vector_component_count(PrimitiveType primitive)
+{
+	switch (primitive) {
+	case ivec2:
+	case uvec2:
+	case vec2:
+		return 2;
+	case ivec3:
+	case uvec3:
+	case vec3:
+		return 3;
+	case ivec4:
+	case uvec4:
+	case vec4:
+		return 4;
+	default:
+		return 0;
+	}
+}
+
+constexpr PrimitiveType swizzle_type_of(PrimitiveType primitive, SwizzleCode code)
+{
+	// TODO: might have to handle multiswizzle
+	switch (primitive) {
+	case ivec2:
+	case ivec3:
+	case ivec4:
+		return i32;
+	case uvec2:
+	case uvec3:
+	case uvec4:
+		return u32;
+	case vec2:
+	case vec3:
+	case vec4:
+		return f32;
+	default:
+		return bad;
+	}
+}
 
 } // namespace jvl::thunder

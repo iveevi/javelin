@@ -39,11 +39,13 @@ add_library(javelin-ire STATIC
 	source/thunder/comparison.cpp
 	source/thunder/generate_body_c_like.cpp
 	source/thunder/generate_cplusplus.cpp
+	source/thunder/gcc.cpp
 	source/thunder/generate_glsl.cpp
-	source/thunder/jit_gcc.cpp
 	source/thunder/kernel.cpp
+	source/thunder/legalize_cc.cpp
 	source/thunder/linkage.cpp
 	source/thunder/optimization.cpp
+	source/thunder/stitch.cpp
 	source/thunder/synthesized.cpp
 	source/thunder/usage.cpp)
 

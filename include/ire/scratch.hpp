@@ -9,6 +9,7 @@ struct Scratch {
 	using index_t = thunder::index_t;
 
 	std::vector <thunder::Atom> pool;
+	// TODO: mirror buffer with type references
 	size_t pointer;
 
 	// TODO: buffering with a static sized array
@@ -16,7 +17,7 @@ struct Scratch {
 	Scratch();
 
 	void reserve(size_t);
-	
+
 	index_t emit(const thunder::Atom &);
 
 	void clear();

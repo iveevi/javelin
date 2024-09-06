@@ -5,8 +5,28 @@
 
 namespace jvl::thunder {
 
+// Usage graph
 using usage_list = std::vector <index_t>;
 using usage_graph = std::vector <usage_list>;
+
+// Structure for recording instruction transformations
+struct ref_index_t {
+	index_t index;
+	int8_t mask = 0b11;
+};
+
+struct mapped_instruction_t {
+	ire::Scratch transformed;
+	std::vector <ref_index_t> refs;
+
+	Atom &operator[](size_t index) {
+		return transformed.pool[index];
+	}
+
+	void track(index_t index, int8_t mask = 0b11) {
+		refs.push_back(ref_index_t(index, mask));
+	}
+};
 
 // Atom usage dependency retrieval
 usage_list usage(const std::vector <Atom> &, index_t);
@@ -17,5 +37,8 @@ usage_graph usage(const ire::Scratch &);
 void opt_transform_compact(ire::Scratch &);
 void opt_transform_constructor_elision(ire::Scratch &);
 void opt_transform_dead_code_elimination(ire::Scratch &);
+
+// Stitching mapped instruction blocks
+void stitch_mapped_instructions(ire::Scratch &, std::vector <mapped_instruction_t> &);
 
 } // namespace jvl::thunder

@@ -53,43 +53,22 @@ int synthesize_differential_type(const std::vector <Atom> &pool, const TypeField
 //   - a list of references to indices pointing to original atoms
 // using ref_index_t = std::reference_wrapper <index_t>;
 
-struct ref_index_t {
-	index_t index;
-	int8_t mask = 0b11;
-};
-
-struct ad_fwd_mapped_t {
-	ire::Scratch transformed;
-	std::vector <ref_index_t> refs;
-
-	Atom &operator[](size_t index) {
-		return transformed.pool[index];
-	}
-
-	void track(index_t index, int8_t mask = 0b11) {
-		refs.push_back(ref_index_t(index, mask));
-	}
-};
-
 struct ad_fwd_iteration_context_t {
 	std::deque <index_t> queue;
 	std::unordered_set <index_t> diffed;
 	const std::vector <Atom> &pool;
 };
 
-index_t ad_fwd_binary_operation_dual_value
-(
-	ad_fwd_mapped_t &mapped,
-	const std::array <index_t, 2> &arg0,
-	const std::array <index_t, 2> &arg1,
-	OperationCode code,
-	index_t type
-)
+index_t ad_fwd_binary_operation_dual_value(mapped_instruction_t &mapped,
+					   const std::array <index_t, 2> &arg0,
+					   const std::array <index_t, 2> &arg1,
+					   OperationCode code,
+					   index_t type)
 {
 	auto &em = ire::Emitter::active;
 
 	switch (code) {
-	
+
 	case addition:
 	case subtraction:
 	{
@@ -120,7 +99,7 @@ index_t ad_fwd_binary_operation_dual_value
 						 Operation(f_dg, base_type, multiplication));
 		index_t sub_args = em.emit_list_chain(products[0], products[1]);
 		index_t numerator = em.emit(Operation(sub_args, base_type, subtraction));
-		
+
 		auto square_args = em.emit_list_chain(arg1[0], arg1[0]);
 		index_t demoninator = em.emit(Operation(square_args, base_type, multiplication));
 
@@ -140,13 +119,10 @@ index_t ad_fwd_binary_operation_dual_value
 	return -1;
 }
 
-index_t ad_fwd_intrinsic_dual_value
-(
-	ad_fwd_mapped_t &mapped,
-	const std::array <index_t, 2> &arg0,
-	IntrinsicOperation opn,
-	index_t type
-)
+index_t ad_fwd_intrinsic_dual_value(mapped_instruction_t &mapped,
+				    const std::array <index_t, 2> &arg0,
+				    IntrinsicOperation opn,
+				    index_t type)
 {
 	auto &em = ire::Emitter::active;
 
@@ -158,7 +134,7 @@ index_t ad_fwd_intrinsic_dual_value
 	};
 
 	switch (opn) {
-	
+
 	case sin:
 	{
 		index_t args;
@@ -170,7 +146,7 @@ index_t ad_fwd_intrinsic_dual_value
 
 		return chain_rule(result);
 	}
-	
+
 	case cos:
 	{
 		index_t args;
@@ -195,16 +171,13 @@ index_t ad_fwd_intrinsic_dual_value
 	}
 
 	}
-	
+
 	return -1;
 }
 
-void ad_fwd_transform_instruction
-(
-	ad_fwd_iteration_context_t &context,
-	ad_fwd_mapped_t &mapped,
-	index_t i
-)
+void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
+				  mapped_instruction_t &mapped,
+				  index_t i)
 {
 	auto &em = ire::Emitter::active;
 	auto &atom = context.pool[i];
@@ -316,7 +289,7 @@ void ad_fwd_transform_instruction
 
 			li = list.next;
 		}
-		
+
 		// Now fill in the actuall operation
 		auto arg0 = em.emit_sequence(Load(args[0], 0), Load(args[0], 1));
 		auto arg1 = em.emit_sequence(Load(args[1], 0), Load(args[1], 1));
@@ -346,10 +319,10 @@ void ad_fwd_transform_instruction
 		auto &intr = atom.as <Intrinsic> ();
 
 		diffed.insert(i);
-		
+
 		// Dependencies
 		queue.push_front(intr.args);
-		
+
 		// Get arguments (assuming binary)
 		std::vector <index_t> args;
 
@@ -367,12 +340,12 @@ void ad_fwd_transform_instruction
 			li = list.next;
 		}
 
-		// Assuming unary intrinsic operations	
+		// Assuming unary intrinsic operations
 		auto arg0 = em.emit_sequence(Load(args[0], 0), Load(args[0], 1));
 		index_t arg0_p = em.emit_list_chain(arg0[0]);
 		index_t primal = em.emit(Intrinsic(arg0_p, intr.type, intr.opn));
 		index_t dual = ad_fwd_intrinsic_dual_value(mapped, arg0, intr.opn, intr.type);
-		
+
 		// Dual type storage
 		auto tf = context.pool[intr.type].as <TypeField> ();
 
@@ -397,86 +370,8 @@ void ad_fwd_transform_instruction
 	} break;
 
 	}
-	
+
 	em.pop();
-}
-
-void ad_fwd_transform_stitch_mapped(ire::Scratch &result, std::vector <ad_fwd_mapped_t> &mapped)
-{
-	// Reindex locals by offset
-	std::vector <size_t> block_offsets;
-
-	size_t offset = 0;
-	for (index_t i = 0; i < mapped.size(); i++) {
-		auto &s = mapped[i].transformed;
-		auto &g = mapped[i].refs;
-
-		// Create a map which offsets
-		wrapped::reindex <index_t> reindex;
-		for (size_t i = 0; i < s.pointer; i++)
-			reindex[i] = i + offset;
-
-		// Preserve global refs
-		struct ref_state_t : ref_index_t {
-			index_t v0 = -1;
-			index_t v1 = -1;
-		};
-
-		auto ref_state_from = [&](const ref_index_t &ri) {
-			ref_state_t state(ri);
-			auto &&addrs = s.pool[ri.index].addresses();
-			state.v0 = addrs.a0;
-			state.v1 = addrs.a1;
-			return state;
-		};
-
-		auto ref_state_restore = [&](const ref_state_t &state) {
-			auto &&addrs = s.pool[state.index].addresses();
-			if (state.v0 != -1 && (state.mask & 0b01) == 0b01)
-				addrs.a0 = state.v0;
-			if (state.v1 != -1 && (state.mask & 0b10) == 0b10)
-				addrs.a1 = state.v1;
-		};
-
-		std::vector <ref_state_t> store;
-		for (auto &r : g)
-			store.emplace_back(ref_state_from(r));
-
-		// Reindex each atom
-		for (size_t i = 0; i < s.pointer; i++)
-			s.pool[i].reindex(reindex);
-
-		// Restore global refs
-		for (index_t i = 0; i < store.size(); i++)
-			ref_state_restore(store[i]);
-
-		offset += s.pointer;
-
-		block_offsets.push_back(offset - 1);
-	}
-
-	// Reindex the globals; doing it after because
-	// some instructions (e.g. branches/loops) have
-	// forward looking addresses
-	for (index_t i = 0; i < mapped.size(); i++) {
-		auto &s = mapped[i].transformed;
-		auto &g = mapped[i].refs;
-
-		for (auto &r : g) {
-			auto &&addrs = s.pool[r.index].addresses();
-			if (addrs.a0 != -1 && (r.mask & 0b01) == 0b01)
-				addrs.a0 = block_offsets[addrs.a0];
-			if (addrs.a1 != -1 && (r.mask & 0b10) == 0b10)
-				addrs.a1 = block_offsets[addrs.a1];
-		}
-	}
-
-	// Stitch the independent scratches
-	for (auto &m : mapped) {
-		auto &s = m.transformed;
-		for (size_t i = 0; i < s.pointer; i++)
-			result.emit(s.pool[i]);
-	}
 }
 
 void ad_fwd_transform(ire::Scratch &result, const ire::Scratch &source)
@@ -485,7 +380,7 @@ void ad_fwd_transform(ire::Scratch &result, const ire::Scratch &source)
 	auto &pool = source.pool;
 
 	// Map each atom to a potentially new list of atoms
-	std::vector <ad_fwd_mapped_t> mapped(source.pointer);
+	std::vector <mapped_instruction_t> mapped(source.pointer);
 
 	// Marking each differentiable parameter
 	ad_fwd_iteration_context_t context { .pool = pool };
@@ -530,7 +425,7 @@ void ad_fwd_transform(ire::Scratch &result, const ire::Scratch &source)
 	}
 
 	// Stitch the transformed blocks
-	ad_fwd_transform_stitch_mapped(result, mapped);
+	stitch_mapped_instructions(result, mapped);
 }
 
 } // namespace jvl::thunder
