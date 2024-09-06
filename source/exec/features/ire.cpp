@@ -1,6 +1,5 @@
 #include <fmt/format.h>
 
-#include "fmt/base.h"
 #include "ire/core.hpp"
 #include "ire/emitter.hpp"
 #include "ire/scratch.hpp"

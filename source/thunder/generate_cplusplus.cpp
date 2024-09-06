@@ -130,6 +130,7 @@ std::string Linkage::generate_cplusplus()
 
 	// All the includes
 	source += "#include <tuple>\n";
+	source += "#include <cstdint>\n";
 	source += "\n";
 
 	// Structure declarations, should already be in order

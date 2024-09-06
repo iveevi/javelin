@@ -15,9 +15,11 @@ jobs:
     steps:
       - name: dependencies
         run: |
-          sudo apt update
+          sudo apt update -y
           sudo apt install -y cmake libvulkan1 libglfw3-dev \
             glslang-tools glslang-dev libfmt-dev gcc-14 libgccjit-14-dev
+          sudo ln -s /usr/lib/gcc/x86_64-linux-gnu/14/include/libgccjit.h /usr/include/libgccjit.h
+          sudo ln -s /usr/lib/gcc/x86_64-linux-gnu/14/libgccjit.so /usr/lib/libgccjit.so
       - uses: actions/checkout@v3
         with:
           submodules: 'true'
