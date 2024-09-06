@@ -159,7 +159,7 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 
 	ref = [&](int index) -> std::string {
 		if (index == -1) {
-			fmt::println("invalid index passed to ref");
+			fmt::println("C-like: invalid index passed to ref");
 			abort();
 		}
 
@@ -175,7 +175,7 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 			std::string accessor = tbl_swizzle_code[swizzle->code];
 			return ref(swizzle->src) + "." + accessor;
 		} else if (!variables.count(index)) {
-			fmt::println("unexpected IR requested for ref(...): {} (@{})", g.to_string(), index);
+			fmt::println("C-like: unexpected IR requested for ref(...): {} (@{})", g.to_string(), index);
 			abort();
 		}
 
@@ -263,7 +263,7 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 			return inlined(load->src) + accessor;
 		} else if (auto swizzle = g.get <Swizzle> ()) {
 			std::string accessor = tbl_swizzle_code[swizzle->code];
-			return ref(swizzle->src) + "." + accessor;
+			return inlined(swizzle->src) + "." + accessor;
 		} else if (auto op = g.get <Operation> ()) {
 			return glsl_format_operation(op->code, arglist(op->args));
 		} else if (auto intr = g.get <Intrinsic> ()) {
@@ -375,8 +375,8 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 			// which do not need to be synthesized
 		} else {
 			// TODO: error reporting for jvl facilities
-			fmt::println("unexpected IR requested for synthesize(...): {}", g.to_string());
-			source += finish("<?>", false);
+			fmt::println("C-like: unexpected IR requested for synthesize(...): {}", g.to_string());
+			abort();
 		}
 	};
 

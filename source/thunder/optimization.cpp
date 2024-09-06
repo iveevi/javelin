@@ -42,12 +42,13 @@ bool opt_transform_compact(ire::Scratch &result)
 
 bool opt_transform_constructor_elision(ire::Scratch &result)
 {
-	bool shortened = false;
-
 	// Find places where load from a constructed struct's field
 	// can be skipped by simply forwarding the result it was
 	// constructed with; if the constructor is completely useless,
 	// then it will be removed during dead code elimination
+
+	auto graph = usage(result);
+	bool shortened = false;
 
 	auto constructor_elision = [&](const std::vector <index_t> &fields,
 				       index_t idx,
@@ -55,8 +56,7 @@ bool opt_transform_constructor_elision(ire::Scratch &result)
 		if (idx == -1)
 			return;
 
-		usage_list loaders = usage(result, user);
-
+		usage_set loaders = graph[user];
 		wrapped::reindex <index_t> relocation;
 		for (index_t i = 0; i < result.pointer; i++)
 			relocation[i] = i;
@@ -92,7 +92,7 @@ bool opt_transform_constructor_elision(ire::Scratch &result)
 			arg = list.next;
 		}
 
-		usage_list users = usage(result, i);
+		usage_set users = graph[i];
 
 		for (auto user : users) {
 			auto &atom = result.pool[user];

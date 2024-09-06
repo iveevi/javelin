@@ -83,8 +83,7 @@ uint3 ref(uint3 v)
 
 int main()
 {
-	// thunder::detail::legalize_for_cc(pcg3d);
-	pcg3d.dump();
+	thunder::detail::legalize_for_cc(pcg3d);
 	thunder::opt_transform(pcg3d);
 	pcg3d.dump();
 
