@@ -34,9 +34,13 @@ usage_list usage(const ire::Scratch &, index_t);
 usage_graph usage(const ire::Scratch &);
 
 // Optimization transformation passes
-void opt_transform_compact(ire::Scratch &);
-void opt_transform_constructor_elision(ire::Scratch &);
-void opt_transform_dead_code_elimination(ire::Scratch &);
+bool opt_transform_compact(ire::Scratch &);
+bool opt_transform_constructor_elision(ire::Scratch &);
+bool opt_transform_dead_code_elimination(ire::Scratch &);
+
+// Full optimization pass
+// TODO: options to control level of optimization
+void opt_transform(ire::Scratch &);
 
 // Stitching mapped instruction blocks
 void stitch_mapped_instructions(ire::Scratch &, std::vector <mapped_instruction_t> &);

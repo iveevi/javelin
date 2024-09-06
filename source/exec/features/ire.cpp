@@ -83,24 +83,15 @@ uint3 ref(uint3 v)
 
 int main()
 {
-	// thunder::opt_transform_compact(pcg3d);
-	// thunder::opt_transform_dead_code_elimination(pcg3d);
-	// thunder::opt_transform_dead_code_elimination(pcg3d);
-	// pcg3d.dump();
-
-	// fmt::println("{}", pcg3d.export_to_kernel().compile(profiles::glsl_450));
-	// fmt::println("{}", pcg3d.export_to_kernel().compile(profiles::cplusplus_11));
-
-	thunder::detail::legalize_for_cc(pcg3d);
-	thunder::opt_transform_compact(pcg3d);
-	thunder::opt_transform_dead_code_elimination(pcg3d);
-	thunder::opt_transform_dead_code_elimination(pcg3d);
-	thunder::opt_transform_dead_code_elimination(pcg3d);
-	thunder::opt_transform_dead_code_elimination(pcg3d);
+	// thunder::detail::legalize_for_cc(pcg3d);
+	pcg3d.dump();
+	thunder::opt_transform(pcg3d);
 	pcg3d.dump();
 
-	auto ftn = jit(pcg3d);
+	fmt::println("{}", pcg3d.export_to_kernel().compile(profiles::cplusplus_11));
 
-	fmt::println("jit(...) = {}", ftn(uint3(10, 2, 3)).x);
-	fmt::println("ref(...) = {}", ref(uint3(10, 2, 3)).x);
+	// auto ftn = jit(pcg3d);
+
+	// fmt::println("jit(...) = {}", ftn(uint3(10, 2, 3)).x);
+	// fmt::println("ref(...) = {}", ref(uint3(10, 2, 3)).x);
 }

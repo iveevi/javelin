@@ -60,10 +60,10 @@ void legalize_for_jit_operation_vector_overload(mapped_instruction_t &mapped,
 
 		std::vector <index_t> components(ccount);
 		for (size_t i = 0; i < ccount; i++) {
-			index_t ca = em.emit(Load(a, i));
+			index_t ca = em.emit(Swizzle(a, (SwizzleCode) i));
 			mapped.track(ca, 0b01);
 
-			index_t cb = em.emit(Load(b, i));
+			index_t cb = em.emit(Swizzle(b, (SwizzleCode) i));
 			mapped.track(cb, 0b01);
 
 			index_t l = em.emit(List(cb, -1));
@@ -87,7 +87,7 @@ void legalize_for_jit_operation_vector_overload(mapped_instruction_t &mapped,
 
 		std::vector <index_t> components(ccount);
 		for (size_t i = 0; i < ccount; i++) {
-			index_t c = em.emit(Load(a, i));
+			index_t c = em.emit(Swizzle(a, (SwizzleCode) i));
 			mapped.track(c, 0b01);
 
 			index_t l = em.emit(List(b, -1));
@@ -108,7 +108,7 @@ void legalize_for_jit_operation_vector_overload(mapped_instruction_t &mapped,
 
 		std::vector <index_t> components(ccount);
 		for (size_t i = 0; i < ccount; i++) {
-			index_t c = em.emit(Load(b, i));
+			index_t c = em.emit(Swizzle(b, (SwizzleCode) i));
 			mapped.track(c, 0b01);
 
 			index_t l = em.emit(List(c, -1));

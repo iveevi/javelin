@@ -1,9 +1,12 @@
+#include "ire/scratch.hpp"
 #include "thunder/opt.hpp"
 
 namespace jvl::thunder {
 
-void opt_transform_compact(ire::Scratch &result)
+bool opt_transform_compact(ire::Scratch &result)
 {
+	bool marked = false;
+
 	wrapped::reindex <index_t> relocation;
 	for (index_t i = 0; i < result.pointer; i++) {
 		if (relocation.contains(i))
@@ -17,8 +20,10 @@ void opt_transform_compact(ire::Scratch &result)
 				continue;
 
 			Atom other = result.pool[j];
-			if (atom == other)
+			if (atom == other) {
 				relocation[j] = i;
+				marked = true;
+			}
 		}
 
 		// Fallback to itself
@@ -28,19 +33,23 @@ void opt_transform_compact(ire::Scratch &result)
 	// Reindex the relevant parts
 	for (index_t i = 0; i < result.pointer; i++)
 		result.pool[i].reindex(relocation);
+
+	return marked;
 }
 
-void opt_transform_constructor_elision(ire::Scratch &result)
+bool opt_transform_constructor_elision(ire::Scratch &result)
 {
+	bool shortened = false;
+
 	// Find places where load from a constructed struct's field
 	// can be skipped by simply forwarding the result it was
 	// constructed with; if the constructor is completely useless,
 	// then it will be removed during dead code elimination
 
 	auto constructor_elision = [&](const std::vector <index_t> &fields,
-				       const Load &ld,
+				       index_t idx,
 				       index_t user) {
-		if (ld.idx == -1)
+		if (idx == -1)
 			return;
 
 		usage_list loaders = usage(result, user);
@@ -49,10 +58,12 @@ void opt_transform_constructor_elision(ire::Scratch &result)
 		for (index_t i = 0; i < result.pointer; i++)
 			relocation[i] = i;
 
-		relocation[user] = fields[ld.idx];
+		relocation[user] = fields[idx];
 
 		for (auto i : loaders)
 			result.pool[i].reindex(relocation);
+
+		shortened = true;
 	};
 
 	for (index_t i = 0; i < result.pointer; i++) {
@@ -83,12 +94,16 @@ void opt_transform_constructor_elision(ire::Scratch &result)
 		for (auto user : users) {
 			auto &atom = result.pool[user];
 			if (atom.is <Load> ())
-				constructor_elision(fields, atom.as <Load> (), user);
+				constructor_elision(fields, atom.as <Load> ().idx, user);
+			if (atom.is <Swizzle> ())
+				constructor_elision(fields, atom.as <Swizzle> ().code, user);
 
 			// TODO: if we get a store instruction,
 			// we should stop...
 		}
 	}
+
+	return shortened;
 }
 
 bool opt_transform_dce_exempt(const Atom &atom)
@@ -96,7 +111,7 @@ bool opt_transform_dce_exempt(const Atom &atom)
 	return atom.is <Returns> () || atom.is <Store> ();
 }
 
-void opt_transform_dead_code_elimination(ire::Scratch &result)
+bool opt_transform_dead_code_elimination(ire::Scratch &result)
 {
 	usage_graph graph = usage(result);
 
@@ -119,6 +134,19 @@ void opt_transform_dead_code_elimination(ire::Scratch &result)
 	}
 
 	std::swap(result, doubled);
+
+	return (result.pointer != doubled.pointer);
+}
+
+void opt_transform(ire::Scratch &result)
+{
+	bool changed;
+	do {
+		fmt::println("optimization pass (current # of atoms: {})", result.pointer);
+		thunder::opt_transform_compact(result);
+		thunder::opt_transform_constructor_elision(result);
+		changed = thunder::opt_transform_dead_code_elimination(result);
+	} while (changed);
 }
 
 } // namespace jvl::thunder

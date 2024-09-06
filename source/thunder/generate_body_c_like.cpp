@@ -79,9 +79,9 @@ std::string glsl_primitive(const Primitive &p)
 	return "<prim:?>";
 }
 
-std::string glsl_format_operation(int type, const std::vector <std::string> &args)
+std::string glsl_format_operation(OperationCode code, const std::vector <std::string> &args)
 {
-	switch (type) {
+	switch (code) {
 	case OperationCode::unary_negation:
 		assert(args.size() == 1);
 		return fmt::format("-{}", args[0]);
@@ -97,6 +97,15 @@ std::string glsl_format_operation(int type, const std::vector <std::string> &arg
 	case OperationCode::division:
 		assert(args.size() == 2);
 		return fmt::format("({} / {})", args[0], args[1]);
+	case OperationCode::bit_shift_left:
+		assert(args.size() == 2);
+		return fmt::format("({} << {})", args[0], args[1]);
+	case OperationCode::bit_shift_right:
+		assert(args.size() == 2);
+		return fmt::format("({} >> {})", args[0], args[1]);
+	case OperationCode::bit_xor:
+		assert(args.size() == 2);
+		return fmt::format("({} ^ {})", args[0], args[1]);
 	case OperationCode::cmp_ge:
 		assert(args.size() == 2);
 		return fmt::format("({} > {})", args[0], args[1]);
@@ -113,7 +122,8 @@ std::string glsl_format_operation(int type, const std::vector <std::string> &arg
 		break;
 	}
 
-	return "<op:?>";
+	fmt::println("C-like unhandled operation $({})", tbl_operation_code[code]);
+	abort();
 }
 
 std::string generate_body_c_like(const std::vector <Atom> &pool,
