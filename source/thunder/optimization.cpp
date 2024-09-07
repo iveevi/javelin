@@ -110,7 +110,9 @@ bool opt_transform_constructor_elision(Scratch &result)
 
 bool opt_transform_dce_exempt(const Atom &atom)
 {
-	return atom.is <Returns> () || atom.is <Store> ();
+	return atom.is <Returns> ()
+		|| atom.is <Store> ()
+		|| atom.is <Global> ();
 }
 
 bool opt_transform_dead_code_elimination(Scratch &result)
@@ -149,7 +151,7 @@ bool opt_transform_dead_code_elimination(Scratch &result)
 			}
 		}
 
-		fmt::println("  DCE pass eliminated {} atoms", erasure.size());
+		// fmt::println("  DCE pass eliminated {} atoms", erasure.size());
 
 		std::unordered_set <index_t> reinsert;
 		for (auto i : erasure) {
@@ -190,7 +192,7 @@ void opt_transform(Scratch &result)
 {
 	bool changed;
 	do {
-		fmt::println("optimization pass (current # of atoms: {})", result.pointer);
+		// fmt::println("optimization pass (current # of atoms: {})", result.pointer);
 
 		// Relinking steps, will not elimination code
 		thunder::opt_transform_compact(result);

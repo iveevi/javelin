@@ -7,7 +7,7 @@
 
 namespace jvl::thunder::detail {
 
-constexpr const char __module__[] = "legalize for cc";
+MODULE(legalize-cc);
 
 index_t instruction_type(const std::vector <Atom> &pool, index_t i)
 {
@@ -62,19 +62,16 @@ PrimitiveType primitive_type_of(const std::vector <Atom> &pool, index_t i)
 			"is not a typefield: {}", atom));
 
 	TypeField tf = atom.as <TypeField> ();
-	log::assertion(tf.item != bad, __module__,
-		fmt::format("type field obtained from instruction_type(...) "
-			"is not a primitive: {}", atom));
 
-	return tf.item;
+	return (tf.down == -1 && tf.next == -1) ? tf.item : bad;
 }
 
-void legalize_for_jit_operation_vector_overload(mapped_instruction_t &mapped,
-						OperationCode code,
-						index_t a,
-						index_t b,
-						PrimitiveType type_a,
-						PrimitiveType type_b)
+void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
+					       OperationCode code,
+					       index_t a,
+					       index_t b,
+					       PrimitiveType type_a,
+					       PrimitiveType type_b)
 {
 	auto &em = ire::Emitter::active;
 
@@ -165,6 +162,48 @@ void legalize_for_jit_operation_vector_overload(mapped_instruction_t &mapped,
 	}
 }
 
+void legalize_for_cc_vector_constructor(mapped_instruction_t &mapped,
+					PrimitiveType type_to_construct,
+					const std::vector <index_t> &args,
+					const std::vector <PrimitiveType> &types)
+{
+	fmt::println("legalizing constructor for {}", tbl_primitive_types[type_to_construct]);
+	for (auto type : types)
+		fmt::println("  arg: {}", tbl_primitive_types[type]);
+
+	// For now assume only one argument when constructing heterogenously
+	JVL_ASSERT(args.size() == 1, "vector constructor legalization currently requires exactly one argument");
+	
+	auto &em = ire::Emitter::active;
+	
+	// Reset and activate the scratch
+	mapped.transformed.clear();
+	em.push(mapped.transformed);
+
+	PrimitiveType type_a = types[0];
+	if (type_a == type_to_construct) {
+		fmt::println("identical constructor");
+		size_t ccount = vector_component_count(type_to_construct);
+
+		std::vector <index_t> components;
+		for (size_t i = 0; i < ccount; i++) {
+			index_t c = em.emit(Swizzle(args[0], (SwizzleCode) i));
+			mapped.track(c, 0b01);
+			components.push_back(c);
+		}
+
+		index_t l = em.emit_list_chain(components);
+		index_t t = em.emit(TypeField(-1, -1, type_to_construct));
+		em.emit(Construct(t, l));
+	} else {
+		JVL_ABORT("unsupported argument {} when legalizing constructor for {}",
+			tbl_primitive_types[type_a],
+			tbl_primitive_types[type_to_construct]);
+	}
+
+	mapped.transformed.dump();
+}
+
 void legalize_for_cc(Scratch &scratch)
 {
 	auto &em = ire::Emitter::active;
@@ -206,12 +245,12 @@ void legalize_for_cc(Scratch &scratch)
 		// that the overload is legalized, at this stage
 		// all the operations must have been validated
 		// according to the GLSL specification
-		if (auto op = atom.get <Operation> ()) {
+		if (auto operation = atom.get <Operation> ()) {
 			// The operands are guaranteed to be
 			// primitive types at this point
 			// fmt::println("binary operation: {}", atom);
 
-			auto args = list_args(op->args);
+			auto args = list_args(operation->args);
 			// fmt::println("type for each args:");
 
 			std::vector <PrimitiveType> types;
@@ -223,8 +262,31 @@ void legalize_for_cc(Scratch &scratch)
 
 			if (vector_type(types[0]) || vector_type(types[1])) {
 				transformed = true;
-				legalize_for_jit_operation_vector_overload(mapped[i], op->code,
-					args[0], args[1], types[0], types[1]);
+				legalize_for_cc_operation_vector_overload(mapped[i],
+					operation->code,
+					args[0], args[1],
+					types[0], types[1]);
+			}
+		}
+
+		// Constructors for vectors may be using
+		// a vector to vector constructor where
+		// the fields are not mapped one-to-one
+		// with the arguments provided
+		if (auto constructor = atom.get <Construct> ()) {
+			auto ptype = primitive_type_of(pool, constructor->type);
+			if (vector_type(ptype)) {
+				fmt::println("legalizing constructor: {}", atom);
+				fmt::println("constructor for vector type: {}", tbl_primitive_types[ptype]);
+				size_t components = vector_component_count(ptype);
+				auto args = list_args(constructor->args);
+				std::vector <PrimitiveType> types;
+				for (auto i : args) {
+					auto ptype = primitive_type_of(pool, i);
+					types.push_back(ptype);
+				}
+
+				legalize_for_cc_vector_constructor(mapped[i], ptype, args, types);
 			}
 		}
 

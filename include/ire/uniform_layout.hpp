@@ -28,36 +28,51 @@ struct uniform_layout_t {
 
 	// TODO: move down...
 	void __ref_with(cache_index_t up) {
-		std::unordered_set <void *> listed;
-
-		auto &em = Emitter::active;
-
-		// TODO: name hint at the first type field...
-		for (size_t i = 0; i < fields.size(); i++) {
-			layout_field f = fields[i];
-
-			if (listed.contains(f.ptr))
-				fmt::println("Duplicate member in uniform layout (element #{})", i + 1);
-
-			thunder::Load load;
-			load.src = up.id;
-			load.idx = i;
+		// If there is only one element then transfer it only
+		// TODO: method here
+		if constexpr (sizeof...(Args) == 1) {
+			layout_field f = fields[0];
 
 			if (f.type == eNested) {
 				using tmp_layout = uniform_layout_t <void>;
-
-				cache_index_t cit;
-				cit = em.emit(load);
-
 				auto ul = reinterpret_cast <tmp_layout *> (f.ptr);
-				ul->__ref_with(cit);
+				ul->__ref_with(up);
 			} else {
-
 				auto t = reinterpret_cast <tagged *> (f.ptr);
-				t->ref = em.emit(load);
+				t->ref = up;
 			}
+		} else {
+			std::unordered_set <void *> listed;
 
-			listed.insert(f.ptr);
+			auto &em = Emitter::active;
+
+			// TODO: name hint at the first type field...
+			for (size_t i = 0; i < fields.size(); i++) {
+				layout_field f = fields[i];
+
+				if (listed.contains(f.ptr))
+					fmt::println("Duplicate member in uniform layout (element #{})", i + 1);
+
+				thunder::Load load;
+				load.src = up.id;
+				load.idx = i;
+
+				if (f.type == eNested) {
+					using tmp_layout = uniform_layout_t <void>;
+
+					cache_index_t cit;
+					cit = em.emit(load);
+
+					auto ul = reinterpret_cast <tmp_layout *> (f.ptr);
+					ul->__ref_with(cit);
+				} else {
+
+					auto t = reinterpret_cast <tagged *> (f.ptr);
+					t->ref = em.emit(load);
+				}
+
+				listed.insert(f.ptr);
+			}
 		}
 	}
 

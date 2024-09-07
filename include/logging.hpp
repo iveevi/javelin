@@ -63,8 +63,8 @@ inline void warning(const std::string &msg)
 inline void warning(const std::string &module, const std::string &msg)
 {
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin ");
-	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gold), "({}): ", module);
-	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::orange_red), "warning: ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "({}): ", module);
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gold), "warning: ");
 	fmt::println("{}", msg);
 }
 
@@ -78,7 +78,7 @@ inline void info(const std::string &msg)
 inline void info(const std::string &module, const std::string &msg)
 {
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin ");
-	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gold), "({}): ", module);
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "({}): ", module);
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::cyan), "info: ");
 	fmt::println("{}", msg);
 }

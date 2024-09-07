@@ -10,15 +10,20 @@ namespace jvl::thunder {
 
 MODULE(gcc-jit);
 
+#define LOCATION(context) gcc_jit_context_new_location(context, __FILE__, __LINE__, 0)
+
 struct jit_struct {
 	// TODO: header with eightcc and hash for cleanup
 	gcc_jit_type *type;
+	std::optional <size_t> alignment;
+	// TODO: not needed
 	std::vector <gcc_jit_field *> fields;
 	std::vector <jit_struct *> field_types;
 
-	jit_struct &materialize(gcc_jit_context *context, const std::string &name) {
+	jit_struct &materialize(gcc_jit_context *context,
+				const std::string &name) {
 		gcc_jit_struct *struct_type = gcc_jit_context_new_struct_type(context,
-			nullptr,
+			LOCATION(context),
 			name.c_str(),
 			fields.size(),
 			fields.data());
@@ -29,12 +34,24 @@ struct jit_struct {
 	}
 
 	gcc_jit_rvalue *construct(gcc_jit_context *context, std::vector <gcc_jit_rvalue *> &args) {
-		return gcc_jit_context_new_struct_constructor(context,
-			nullptr,
-			type,
+		JVL_ASSERT(fields.size(), "attempting to construct jit_struct with no fields");
+		JVL_ASSERT(fields.size() >= args.size(), "too many arguments in jit_struct "
+			"constructor (got {}, expected at most {})", args.size(), fields.size());
+
+		fmt::println("constructing @{} (type = @{}) with {} arguments:",
+			(void *) this, (void *) type, args.size());
+
+		for (auto arg : args)
+			fmt::println("  > @{}", (void *) arg);
+
+		gcc_jit_rvalue *value = gcc_jit_context_new_struct_constructor(context,
+			LOCATION(context),
+			gcc_jit_type_unqualified(type),
 			args.size(),
 			fields.data(),
 			args.data());
+
+		return value;
 	}
 };
 
@@ -90,6 +107,11 @@ jit_struct *generate_type_field_primitive_vector(jit_context &context,
 {
 	static constexpr const char *component_names[] = { "x", "y", "z", "w" };
 
+	JVL_ASSERT(vector_component_count(item) == 0,
+		"expected a primitive type for vector "
+		"construction, got {} instead",
+		tbl_primitive_types[item]);
+
 	// Skip generation if its already cached
 	if (auto sptr = context.primitive_types.get(item))
 		return sptr.value();
@@ -107,15 +129,24 @@ jit_struct *generate_type_field_primitive_vector(jit_context &context,
 	s->field_types.resize(components);
 	for (size_t i = 0; i < components; i++)
 		s->field_types[i] = element;
+		
+	if (alignment) {
+		fmt::println("requires alignment, padding with an extra element");
+		s->fields.push_back(gcc_jit_context_new_field(context.gcc,
+			LOCATION(context.gcc),
+			element->type, "_align"));
 
-	fmt::println("creating a new struct from primitive {}", tbl_primitive_types[item]);
+		s->field_types.push_back(element);
+	}
+
 	s->materialize(context.gcc, name);
-	fmt::println("struct type: {}", (void *) s->type);
-	context.primitive_types[item] = s;
 
-	// Align the struct if necessary
-	if (alignment)
-		s->type = gcc_jit_type_get_aligned(s->type, alignment.value());
+	JVL_INFO("created struct for vector "
+		"primitive type {}x{} (alignment={})",
+		tbl_primitive_types[item], components,
+		alignment.value_or(0));
+
+	context.primitive_types[item] = s;
 
 	return s;
 }
@@ -155,21 +186,25 @@ jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType it
 		return generate_type_field_primitive_vector(context, "vec4", f32, 4);
 
 	default:
-		JVL_ABORT("unsupported primitive type {} encountered in {}",
-			tbl_primitive_types[item], __FUNCTION__);
+		JVL_ABORT("unsupported primitive type {} "
+			"encountered in {}",
+			tbl_primitive_types[item],
+			__FUNCTION__);
 	}
 
 	return nullptr;
 }
 
-jit_struct *generate_type_field(jit_context &context, index_t i)
+jit_struct *generate_type_field(jit_context &context, index_t index)
 {
-	auto &atom = context.pool[i];
+	auto &atom = context.pool[index];
 	assert(atom.is <TypeField> ());
 
 	TypeField tf = atom.as <TypeField> ();
-	if (tf.next == -1 && tf.down == -1)
+	if (tf.next == -1 && tf.down == -1) {
+		fmt::println("got primitive type {}", tbl_primitive_types[tf.item]);
 		return generate_type_field_primitive(context, tf.item);
+	}
 
 	// Assume to be a struct aggregrate type
 	jit_struct *s = new jit_struct;
@@ -177,6 +212,7 @@ jit_struct *generate_type_field(jit_context &context, index_t i)
 	fmt::println("new struct type: {}", (void *) s);
 	fmt::println("  for type field: {}", atom);
 
+	index_t i = index;
 	while (i != -1) {
 		auto &atom = context.pool[i];
 		assert(atom.is <TypeField> ());
@@ -191,7 +227,7 @@ jit_struct *generate_type_field(jit_context &context, index_t i)
 			s->field_types.push_back(sf);
 			field_type = sf->type;
 		} else {
-			log::abort(__module__, "nested aggregates are currently unsupported");
+			JVL_ABORT("nested aggregates are currently unsupported");
 		}
 
 		size_t fn = s->fields.size();
@@ -204,9 +240,10 @@ jit_struct *generate_type_field(jit_context &context, index_t i)
 		i = tf.next;
 	}
 
-	fmt::println("creating a new struct with {} fields", s->fields.size());
 	s->materialize(context.gcc, fmt::format("s_"));
-	fmt::println("struct type: {}", (void *) s->type);
+	JVL_INFO("created struct for type field @{} "
+		"with {} fields", i, s->fields.size());
+
 	return s;
 }
 
@@ -403,7 +440,10 @@ jit_instruction generate_instruction_access_field(jit_context &context, index_t 
 		break;
 	}
 
-	gcc_jit_rvalue *expr = gcc_jit_rvalue_access_field(source, nullptr, field);
+	gcc_jit_rvalue *expr = gcc_jit_rvalue_access_field(source, LOCATION(context.gcc), field);
+
+	// TOOD: verbose logging option
+	JVL_INFO("loading field #{} from source @{}", idx, (void *) source);
 
 	jit_instruction ji;
 	ji.type_info = type_info->field_types[idx];
@@ -500,12 +540,12 @@ jit_instruction generate_instruction_store(jit_context &context, const Store &st
 	while (access_chain_fields.size()) {
 		gcc_jit_field *field = access_chain_fields.front();
 		access_chain_fields.pop();
-		lvalue = gcc_jit_lvalue_access_field(lvalue, nullptr, field);
+		lvalue = gcc_jit_lvalue_access_field(lvalue, LOCATION(context.gcc), field);
 		fmt::println("  next l-value: {}", (void *) lvalue);
 	}
 
 	fmt::println("final l-value: {}", (void *) lvalue);
-	gcc_jit_block_add_assignment(context.block, nullptr, lvalue, rvalue);
+	gcc_jit_block_add_assignment(context.block, LOCATION(context.gcc), lvalue, rvalue);
 
 	// Stores should never be used directly
 	return { nullptr, nullptr };
@@ -514,10 +554,6 @@ jit_instruction generate_instruction_store(jit_context &context, const Store &st
 jit_instruction generate_instruction(jit_context &context, index_t i)
 {
 	auto &atom = context.pool[i];
-
-	fmt::println("> processing atom: {}", atom);
-
-	// TODO: skip if not marked for synthesis
 
 	switch (atom.index()) {
 
@@ -584,7 +620,7 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 		auto &returns = atom.as <Returns> ();
 		auto args = load_rvalue_arguments(context, returns.args);
 		assert(args.size() == 1);
-		gcc_jit_block_end_with_return(context.block, nullptr, args[0]);
+		gcc_jit_block_end_with_return(context.block, LOCATION(context.gcc), args[0]);
 	} return jit_instruction::null();
 
 	case Atom::type_index <Intrinsic> ():
@@ -653,13 +689,14 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 	// Begin the function context
 	// TODO: embed the scope name in the block
 
-	context.function = gcc_jit_context_new_function(context.gcc, nullptr,
+	context.function = gcc_jit_context_new_function(context.gcc,
+		LOCATION(context.gcc),
 		GCC_JIT_FUNCTION_EXPORTED, return_type, "function",
 		context.parameters.size(), gcc_parameters.data(), 0);
 
 	// TODO: distinguish between function_t and block_t
 
-	context.block = gcc_jit_function_new_block(context.function, nullptr);
+	context.block = gcc_jit_function_new_block(context.function, "primary");
 
 	// TODO: cache block synthesized status
 	auto synthesized = detail::synthesize_list(block.unit);
@@ -698,30 +735,31 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 		if (used.contains(i))
 			context.cached[i] = generate_instruction(context, i);
 
-		fmt::println("$ cached @{} -> {}, {}", i,
-			(void *) context.cached[i].value,
-			(void *) context.cached[i].type_info);
+		// fmt::println("   $ cached @{} -> {}, {}\n", i,
+		// 	(void *) context.cached[i].value,
+		// 	(void *) context.cached[i].type_info);
 	}
 }
 
 Linkage::jit_result_t Linkage::generate_jit_gcc()
 {
-	dump();
-
 	fmt::println("compiling linkage unit with gcc jit");
 
 	gcc_jit_context *context = gcc_jit_context_acquire();
 	JVL_ASSERT(context, "failed to acquire context");
 
 	// TODO: pass options
-	gcc_jit_context_set_int_option(context, GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 0);
-	gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
+	gcc_jit_context_set_int_option(context, GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 3);
+	gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DEBUGINFO, true);
+	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
 	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_TREE, true);
 	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_SUMMARY, true);
 	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
 
 	for (auto &[_, block] : blocks)
 		generate_block(context, block);
+
+	gcc_jit_context_dump_to_file(context, "gcc_jit_result.c", true);
 
 	gcc_jit_result *result = gcc_jit_context_compile(context);
 	JVL_ASSERT(result, "failed to compile function");

@@ -10,10 +10,8 @@ index_t generate_type_declaration(Linkage &linkage, const std::vector <Atom> &at
 	Linkage::struct_declaration decl;
 
 	index_t i = index;
-	fmt::println("generating type declaration");
 	while (i != -1) {
 		Atom g = atoms[i];
-		fmt::println("  > typefield: {}", g);
 		if (!g.is <TypeField> ())
 			abort();
 
