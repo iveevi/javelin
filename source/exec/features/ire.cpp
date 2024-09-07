@@ -8,6 +8,7 @@
 #include "thunder/enumerations.hpp"
 #include "thunder/opt.hpp"
 #include "math_types.hpp"
+#include "logging.hpp"
 
 // TODO: immutability for shader inputs types
 // TODO: demote variables to inline if they are not modified later
@@ -88,6 +89,11 @@ int main()
 	pcg3d.dump();
 
 	fmt::println("{}", pcg3d.export_to_kernel().compile(profiles::cplusplus_11));
+
+	log::error("testing errors");
+	log::warning("testing warnings");
+	log::info("testing info");
+	log::abort("unknown", "testing fatal errors");
 
 	// auto ftn = jit(pcg3d);
 
