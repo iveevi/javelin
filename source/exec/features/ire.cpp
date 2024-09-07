@@ -70,6 +70,7 @@ int main()
 	ftn.dump();
 
 	fmt::println("{}", ftn.export_to_kernel().compile(profiles::cplusplus_11));
+	fmt::println("{}", ftn.export_to_kernel().compile(profiles::glsl_450));
 
-	// jit(ftn);
+	jit(ftn);
 }

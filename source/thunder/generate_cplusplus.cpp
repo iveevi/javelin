@@ -236,6 +236,7 @@ std::string Linkage::generate_cplusplus()
 
 		for (index_t i = 0; i < b.parameters.size(); i++) {
 			index_t t = b.parameters.at(i);
+			t = b.struct_map.at(t);
 			std::string arg = fmt::format("{} _arg{}", translate_type(t), i);
 			args.push_back(arg);
 		}

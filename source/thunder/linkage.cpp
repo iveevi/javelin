@@ -71,7 +71,7 @@ Linkage &Linkage::resolve()
 				blocks[k].returns = insert(linkage.structs[b.returns]);
 
 			for (auto &[binding, t] : b.parameters)
-				blocks[k].parameters[binding] = insert(linkage.structs[t]);
+				blocks[k].parameters[binding] = t;
 		}
 
 		// Add dependencies in order
