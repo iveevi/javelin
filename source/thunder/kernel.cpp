@@ -7,6 +7,11 @@ namespace jvl::thunder {
 
 index_t generate_type_declaration(Linkage &linkage, const std::vector <Atom> &atoms, index_t index)
 {
+	auto &block = linkage.blocks[-1];
+
+	if (block.struct_map.contains(index))
+		return block.struct_map[index];
+
 	Linkage::struct_declaration decl;
 
 	index_t i = index;
@@ -28,9 +33,7 @@ index_t generate_type_declaration(Linkage &linkage, const std::vector <Atom> &at
 		i = tf.next;
 	}
 
-	index_t s = linkage.insert(decl);
-	linkage.blocks[-1].struct_map[index] = s;
-	return s;
+	return (block.struct_map[index] = linkage.insert(decl));
 }
 
 // Linkage model from the kernel
@@ -59,21 +62,25 @@ Linkage Kernel::linkage() const
 
 		if (auto global = atom.get <Global> ()) {
 			index_t type = global->type;
+			index_t generated_type = generate_type_declaration(linkage, atoms, type);
 			index_t binding = global->binding;
 
 			// TODO: the kernel must undergo validation
 			switch (global->qualifier) {
 			case GlobalQualifier::layout_in:
-				linkage.lins[binding] = type;
+				linkage.lins[binding] = generated_type;
 				break;
 			case GlobalQualifier::layout_out:
-				linkage.louts[binding] = type;
+				linkage.louts[binding] = generated_type;
 				break;
 			case GlobalQualifier::parameter:
+				// Need the concrete type for parameters,
+				// so that the type fields can be accessed from JIT
+				// TODO: find some way to fix this
 				block.parameters[binding] = type;
 				break;
 			case GlobalQualifier::push_constant:
-				linkage.push_constant = type;
+				linkage.push_constant = generated_type;
 				break;
 			default:
 				break;

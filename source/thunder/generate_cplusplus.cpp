@@ -5,7 +5,7 @@
 
 namespace jvl::thunder {
 
-MODULE(generate_cplusplus);
+MODULE(generate-cplusplus);
 
 // Generating C++ source code
 template <typename T>
@@ -120,7 +120,11 @@ std::string Linkage::generate_cplusplus()
 
 	// Translating types
 	auto translate_type = [&](index_t i) -> std::string {
-		const auto &decl = structs.at(i);
+		JVL_ASSERT(i < structs.size(),
+			"index {} is out of range of recorded "
+			"structs (with {} elements)", i, structs.size());
+
+		const auto &decl = structs[i];
 		if (decl.size() == 1 && decl[0].item != bad) {
 			auto &elem = decl[0];
 			return tbl_primitive_types[elem.item];

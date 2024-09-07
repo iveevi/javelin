@@ -8,13 +8,21 @@
 
 namespace jvl::thunder {
 
+MODULE(generate-glsl);
+
 std::string Linkage::generate_glsl(const std::string &version)
 {
+	dump();
+
 	wrapped::hash_table <int, std::string> struct_names;
 
 	// Translating types
 	auto translate_type = [&](index_t i) -> std::string {
-		const auto &decl = structs.at(i);
+		JVL_ASSERT(i < structs.size(),
+			"index {} is out of range of recorded "
+			"structs (with {} elements)", i, structs.size());
+
+		const auto &decl = structs[i];
 		if (decl.size() == 1) {
 			auto &elem = decl[0];
 			return tbl_primitive_types[elem.item];
@@ -108,7 +116,8 @@ std::string Linkage::generate_glsl(const std::string &version)
 
 		auto synthesized = detail::synthesize_list(b.unit);
 
-		source += fmt::format("{} {}({})\n", returns, b.name, parameters);
+		// TODO: toggle naming specs depending on kernel flags
+		source += fmt::format("{} {}({})\n", returns, "main", parameters);
 		source += "{\n";
 
 		source += detail::generate_body_c_like(b.unit,

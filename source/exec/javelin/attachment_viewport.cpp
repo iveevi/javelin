@@ -1,5 +1,6 @@
 #include "attachment_viewport.hpp"
 #include "ire/emitter.hpp"
+#include "ire/uniform_layout.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -7,7 +8,7 @@ using namespace jvl::core;
 using namespace jvl::gfx;
 
 // Shader sources
-struct mvp {
+struct MVP {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
@@ -18,10 +19,10 @@ struct mvp {
 
 	auto layout() const {
 		return uniform_layout(
-			"mvp",
-			field <"model"> (model),
-			field <"view"> (view),
-			field <"proj"> (proj)
+			"MVP",
+			named_field(model),
+			named_field(view),
+			named_field(proj)
 		);
 	}
 };
@@ -32,7 +33,7 @@ void vertex()
 	layout_in <vec3> position(0);
 	layout_out <vec3> color(0);
 
-	push_constant <mvp> mvp;
+	push_constant <MVP> mvp;
 
 	gl_Position = mvp.project(position);
 	gl_Position.y = -gl_Position.y;
@@ -51,13 +52,6 @@ void fragment()
 }
 
 // TODO: linking two kernels together from complementary stages...
-
-// Concrete push constants aggregate
-struct MVP {
-	float4x4 model;
-	float4x4 view;
-	float4x4 proj;
-};
 
 // Construction
 AttachmentViewport::AttachmentViewport(const std::unique_ptr <GlobalContext> &global_context)
@@ -116,6 +110,8 @@ void AttachmentViewport::configre_normal_pipeline()
 	auto &drc = gctx.drc;
 
 	std::string vertex_shader = kernel_from_args(vertex).compile(profiles::glsl_450);
+	fmt::println("{}", vertex_shader);
+
 	std::string fragment_shader = kernel_from_args(fragment).compile(profiles::glsl_450);
 
 	auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
@@ -126,7 +122,7 @@ void AttachmentViewport::configre_normal_pipeline()
 		.with_render_pass(render_pass, 0)
 		.with_vertex_layout(vertex_layout)
 		.with_shader_bundle(bundle)
-		.with_push_constant <MVP> (vk::ShaderStageFlagBits::eVertex, 0)
+		.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
 		.cull_mode(vk::CullModeFlagBits::eNone);
 }
 
@@ -200,12 +196,17 @@ void AttachmentViewport::render(const RenderState &rs)
 
 	rs.cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
 
-	MVP mvp;
-	mvp.model = jvl::float4x4::identity();
-	mvp.proj = jvl::core::perspective(aperature);
-	mvp.view = transform.to_view_matrix();
+	solid_t <MVP> mvp;
 
-	rs.cmd.pushConstants <MVP> (ppl.layout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
+	auto m_model = uniform_field(MVP, model);
+	auto m_view = uniform_field(MVP, view);
+	auto m_proj = uniform_field(MVP, proj);
+
+	mvp[m_model] = jvl::float4x4::identity();
+	mvp[m_proj] = jvl::core::perspective(aperature);
+	mvp[m_view] = transform.to_view_matrix();
+
+	rs.cmd.pushConstants <solid_t <MVP>> (ppl.layout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
 
 	for (const auto &vmesh : meshes) {
 		rs.cmd.bindVertexBuffers(0, vmesh.vertices.buffer, { 0 });
