@@ -231,4 +231,40 @@ auto callable(F ftn)
 	return cbl;
 }
 
+// Conversion tricks inline
+class callable_info {
+	std::string name_;
+public:
+	callable_info() = default;
+	callable_info(const std::string &name) : name_(name) {}
+
+	auto &name(const std::string &name) {
+		name_ = name;
+		return *this;
+	}
+
+	friend auto operator>>(callable_info ci, auto ftn) {
+		return callable(ftn)
+			.named(ci.name_);
+	}
+};
+
+template <non_trivial_generic R>
+class callable_info_r {
+	std::string name_;
+public:
+	callable_info_r() = default;
+	callable_info_r(const std::string &name) : name_(name) {}
+
+	auto &name(const std::string &name) {
+		name_ = name;
+		return *this;
+	}
+
+	friend auto operator>>(callable_info_r ci, auto ftn) {
+		return callable <R> (ftn)
+			.named(ci.name_);
+	}
+};
+
 } // namespace jvl::ire

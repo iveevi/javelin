@@ -21,7 +21,6 @@
 // TODO: passing layout inputs/outputs (should ignore them)
 // TODO: test nested structs again
 // TODO: parameter qualifiers (e.g. out/inout) as wrapped types
-// TODO: static callables from lambda assignment
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -55,7 +54,7 @@ struct Material {
 };
 
 // GGX microfacet distribution function
-f32 __ggx_ndf(Material mat, vec3 n, vec3 h)
+auto ggx_ndf = callable_info("ggx_ndf") >> [](Material mat, vec3 n, vec3 h)
 {
 	f32 alpha = mat.roughness;
 	f32 theta = acos(clamp(dot(n, h), 0.0f, 0.999f));
@@ -63,9 +62,7 @@ f32 __ggx_ndf(Material mat, vec3 n, vec3 h)
 		/ (pi <float> * pow(cos(theta), 4)
 		* pow(alpha * alpha + tan(theta) * tan(theta), 2.0f));
 	return ret;
-}
-
-auto ggx_ndf = callable(__ggx_ndf).named("ggx_ndf");
+};
 
 int main()
 {
