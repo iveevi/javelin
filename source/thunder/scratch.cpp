@@ -1,6 +1,6 @@
-#include "ire/scratch.hpp"
+#include "thunder/scratch.hpp"
 
-namespace jvl::ire {
+namespace jvl::thunder {
 
 Scratch::Scratch() : pointer(0), pool(4) {}
 
@@ -9,7 +9,7 @@ void Scratch::reserve(size_t size)
 	pool.resize(std::max(pool.size(), pointer + size));
 }
 
-Scratch::index_t Scratch::emit(const thunder::Atom &atom)
+index_t Scratch::emit(const Atom &atom)
 {
 	if (pointer >= pool.size())
 		pool.resize((pool.size() << 1));
@@ -22,7 +22,7 @@ void Scratch::clear()
 {
 	// Preserves the pool memory
 	pointer = 0;
-	std::memset(pool.data(), 0, pool.size() * sizeof(thunder::Atom));
+	std::memset(pool.data(), 0, pool.size() * sizeof(Atom));
 }
 
 void Scratch::dump()
@@ -34,4 +34,4 @@ void Scratch::dump()
 		fmt::println("   [{:4d}]: {}", i, pool[i].to_string());
 }
 
-} // namespace jvl::ire
+} // namespace jvl::thunder

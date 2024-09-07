@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "atom.hpp"
-#include "../ire/scratch.hpp"
+#include "scratch.hpp"
 
 namespace jvl::thunder {
 
@@ -86,7 +86,7 @@ std::string generate_body_c_like(const std::vector <Atom> &,
 				 size_t);
 
 // Legalization methods
-void legalize_for_cc(ire::Scratch &);
+void legalize_for_cc(Scratch &);
 
 }
 

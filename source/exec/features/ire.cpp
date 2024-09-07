@@ -1,11 +1,7 @@
 #include <fmt/format.h>
 
 #include "ire/core.hpp"
-#include "ire/emitter.hpp"
-#include "ire/scratch.hpp"
 #include "profiles/targets.hpp"
-#include "thunder/atom.hpp"
-#include "thunder/enumerations.hpp"
 #include "thunder/opt.hpp"
 #include "math_types.hpp"
 #include "logging.hpp"

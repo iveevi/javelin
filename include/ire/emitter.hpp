@@ -5,7 +5,7 @@
 #include <stack>
 #include <unordered_set>
 
-#include "scratch.hpp"
+#include "../thunder/scratch.hpp"
 #include "../thunder/atom.hpp"
 #include "../thunder/kernel.hpp"
 #include "../wrapped_types.hpp"
@@ -13,7 +13,9 @@
 namespace jvl::ire {
 
 // More advanced pool which manages control flow as well as scopes of pools
-struct Emitter : Scratch {
+struct Emitter : thunder::Scratch {
+	using index_t = thunder::index_t;
+
 	std::stack <thunder::index_t> control_flow_ends;
 	std::stack <std::reference_wrapper <Scratch>> scopes;
 

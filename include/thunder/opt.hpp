@@ -1,7 +1,7 @@
 #pragma once
 
 #include "atom.hpp"
-#include "../ire/scratch.hpp"
+#include "thunder/scratch.hpp"
 
 namespace jvl::thunder {
 
@@ -16,7 +16,7 @@ struct ref_index_t {
 };
 
 struct mapped_instruction_t {
-	ire::Scratch transformed;
+	Scratch transformed;
 	std::vector <ref_index_t> refs;
 
 	Atom &operator[](size_t index) {
@@ -30,19 +30,19 @@ struct mapped_instruction_t {
 
 // Atom usage dependency retrieval
 usage_set usage(const std::vector <Atom> &, index_t);
-usage_set usage(const ire::Scratch &, index_t);
-usage_graph usage(const ire::Scratch &);
+usage_set usage(const Scratch &, index_t);
+usage_graph usage(const Scratch &);
 
 // Optimization transformation passes
-bool opt_transform_compact(ire::Scratch &);
-bool opt_transform_constructor_elision(ire::Scratch &);
-bool opt_transform_dead_code_elimination(ire::Scratch &);
+bool opt_transform_compact(Scratch &);
+bool opt_transform_constructor_elision(Scratch &);
+bool opt_transform_dead_code_elimination(Scratch &);
 
 // Full optimization pass
 // TODO: options to control level of optimization
-void opt_transform(ire::Scratch &);
+void opt_transform(Scratch &);
 
 // Stitching mapped instruction blocks
-void stitch_mapped_instructions(ire::Scratch &, std::vector <mapped_instruction_t> &);
+void stitch_mapped_instructions(Scratch &, std::vector <mapped_instruction_t> &);
 
 } // namespace jvl::thunder

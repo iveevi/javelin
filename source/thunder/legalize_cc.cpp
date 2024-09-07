@@ -128,7 +128,7 @@ void legalize_for_jit_operation_vector_overload(mapped_instruction_t &mapped,
 	}
 }
 
-void legalize_for_cc(ire::Scratch &scratch)
+void legalize_for_cc(Scratch &scratch)
 {
 	auto &em = ire::Emitter::active;
 	auto &pool = scratch.pool;
@@ -195,7 +195,7 @@ void legalize_for_cc(ire::Scratch &scratch)
 			mapped[i].track(0);
 	}
 
-	scratch = ire::Scratch();
+	scratch = Scratch();
 	stitch_mapped_instructions(scratch, mapped);
 }
 

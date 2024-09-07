@@ -2,7 +2,7 @@
 
 namespace jvl::thunder {
 
-void stitch_mapped_instructions(ire::Scratch &result, std::vector <mapped_instruction_t> &mapped)
+void stitch_mapped_instructions(Scratch &result, std::vector <mapped_instruction_t> &mapped)
 {
 	// Reindex locals by offset
 	std::vector <size_t> block_offsets;

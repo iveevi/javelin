@@ -1,14 +1,10 @@
 #pragma once
 
-namespace jvl::ire {
-
-struct Scratch;
-
-} // namespace jvl::ire
+#include "scratch.hpp"
 
 namespace jvl::thunder {
 
-void ad_fwd_transform(ire::Scratch &, const ire::Scratch &);
-void ad_bwd_transform(ire::Scratch &, const ire::Scratch &);
+void ad_fwd_transform(Scratch &, const Scratch &);
+void ad_bwd_transform(Scratch &, const Scratch &);
 
 } // namespace jvl::thunder

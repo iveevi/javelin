@@ -1,12 +1,11 @@
 #include <queue>
 #include <unordered_set>
 
-#include "ire/scratch.hpp"
 #include "thunder/opt.hpp"
 
 namespace jvl::thunder {
 
-bool opt_transform_compact(ire::Scratch &result)
+bool opt_transform_compact(Scratch &result)
 {
 	bool marked = false;
 
@@ -40,7 +39,7 @@ bool opt_transform_compact(ire::Scratch &result)
 	return marked;
 }
 
-bool opt_transform_constructor_elision(ire::Scratch &result)
+bool opt_transform_constructor_elision(Scratch &result)
 {
 	// Find places where load from a constructed struct's field
 	// can be skipped by simply forwarding the result it was
@@ -114,7 +113,7 @@ bool opt_transform_dce_exempt(const Atom &atom)
 	return atom.is <Returns> () || atom.is <Store> ();
 }
 
-bool opt_transform_dead_code_elimination(ire::Scratch &result)
+bool opt_transform_dead_code_elimination(Scratch &result)
 {
 	usage_graph graph = usage(result);
 
@@ -173,7 +172,7 @@ bool opt_transform_dead_code_elimination(ire::Scratch &result)
 			relocation[i] = pointer++;
 	}
 
-	ire::Scratch doubled;
+	Scratch doubled;
 	for (index_t i = 0; i < result.pointer; i++) {
 		if (relocation.contains(i)) {
 			result.pool[i].reindex(relocation);
@@ -187,12 +186,12 @@ bool opt_transform_dead_code_elimination(ire::Scratch &result)
 	return (result.pointer != doubled.pointer);
 }
 
-void opt_transform(ire::Scratch &result)
+void opt_transform(Scratch &result)
 {
 	bool changed;
 	do {
 		fmt::println("optimization pass (current # of atoms: {})", result.pointer);
-		
+
 		// Relinking steps, will not elimination code
 		thunder::opt_transform_compact(result);
 		thunder::opt_transform_constructor_elision(result);

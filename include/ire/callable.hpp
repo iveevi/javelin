@@ -4,13 +4,13 @@
 
 #include "../thunder/atom.hpp"
 #include "../thunder/kernel.hpp"
+#include "../thunder/scratch.hpp"
 #include "uniform_layout.hpp"
 #include "type_synthesis.hpp"
-#include "scratch.hpp"
 
 namespace jvl::ire {
 
-struct Callable : Scratch {
+struct Callable : thunder::Scratch {
 	// Global list of callables
 	static auto &tracked() {
 		static std::unordered_map <size_t, Callable *> map;
