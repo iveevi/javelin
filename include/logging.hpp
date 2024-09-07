@@ -1,3 +1,5 @@
+#pragma once
+
 #include <fmt/color.h>
 
 namespace jvl::log {

@@ -4,6 +4,10 @@
 
 namespace jvl::ire {
 
+// Indexing type
+template <size_t>
+struct aggregate_index {};
+
 // Storage type for aggregates
 template <size_t N, typename T, typename ... Args>
 struct aggregate_base : aggregate_base <N + 1, Args...> {
@@ -67,6 +71,16 @@ struct aggregate : corrected_aggregate <Args...> {
 	auto &get() {
 		constexpr size_t N = sizeof...(Args);
 		return corrected_aggregate <Args...> ::template get <N - I - 1> ();
+	}
+	
+	template <size_t I>
+	auto &get(aggregate_index <I>) {
+		return get <I> ();
+	}
+	
+	template <size_t I>
+	auto &operator[](aggregate_index <I>) {
+		return get <I> ();
 	}
 };
 

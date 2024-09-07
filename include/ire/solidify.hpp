@@ -3,6 +3,7 @@
 #include "aliases.hpp"
 #include "aggregate.hpp"
 #include "../math_types.hpp"
+#include "ire/string_literal.hpp"
 
 namespace jvl::ire {
 
@@ -78,6 +79,11 @@ struct solid_base_t <mat4> {
 // Generating ABI compliant structures from uniform compatible types
 template <typename ... Args>
 struct solid_base_t <const_uniform_layout_t <Args...>> {
+	using type = aggregate <typename solid_base_t <Args> ::type...>;
+};
+
+template <string_literal_group group, typename ... Args>
+struct solid_base_t <higher_const_uniform_layout_t <group, Args...>> {
 	using type = aggregate <typename solid_base_t <Args> ::type...>;
 };
 

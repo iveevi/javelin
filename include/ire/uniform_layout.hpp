@@ -2,11 +2,16 @@
 
 #include <array>
 
+#include "../logging.hpp"
 #include "../thunder/atom.hpp"
+#include "ire/aggregate.hpp"
 #include "tagged.hpp"
 #include "emitter.hpp"
+#include "string_literal.hpp"
 
 namespace jvl::ire {
+
+MODULE(uniform-layout);
 
 enum {
 	eField,
@@ -42,16 +47,18 @@ struct uniform_layout_t {
 				t->ref = up;
 			}
 		} else {
-			std::unordered_set <void *> listed;
+			wrapped::hash_table <void *, int> listed;
 
 			auto &em = Emitter::active;
 
 			// TODO: name hint at the first type field...
-			for (size_t i = 0; i < fields.size(); i++) {
+			for (int i = 0; i < fields.size(); i++) {
 				layout_field f = fields[i];
 
-				if (listed.contains(f.ptr))
-					fmt::println("Duplicate member in uniform layout (element #{})", i + 1);
+				JVL_ASSERT(!listed.contains(f.ptr),
+					"duplicate member in uniform layout "
+					"(field #{} conflicts with field #{})",
+					i + 1, listed[f.ptr] + 1);
 
 				thunder::Load load;
 				load.src = up.id;
@@ -71,7 +78,7 @@ struct uniform_layout_t {
 					t->ref = em.emit(load);
 				}
 
-				listed.insert(f.ptr);
+				listed[f.ptr] = i;
 			}
 		}
 	}
@@ -118,17 +125,9 @@ concept uniform_compatible = requires(T &ref, const T &cref) {
 };
 
 // Named fields
-template <size_t N>
-struct string_literal {
-	constexpr string_literal(const char (&str)[N]) {
-		std::copy_n(str, N, value);
-	}
-
-	char value[N];
-};
-
 template <string_literal name, typename T>
 struct __field {
+	static constexpr string_literal literal = name;
 	const tagged *ref;
 };
 
@@ -170,5 +169,25 @@ void __const_init(layout_const_field *fields, int index, const __field <name, T>
 	if constexpr (sizeof...(uargs) > 0)
 		__const_init(fields, index + 1, uargs...);
 }
+
+template <string_literal_group field_group, typename ... Args>
+struct higher_const_uniform_layout_t : const_uniform_layout_t <Args...> {
+	static constexpr auto group = field_group;
+};
+
+template <uniform_compatible T, string_literal field>
+constexpr auto uniform_field_index()
+{
+	using layout_t = decltype(T().layout());
+	using group_t = decltype(layout_t::group);
+	constexpr int32_t i = group_t::find(field);
+	static_assert(i != -1, "could not find field");
+	if constexpr (i == -1)
+		return aggregate_index <0> ();
+	else
+		return aggregate_index <i> ();
+}
+
+#define uniform_field(T, name) uniform_field_index <T, #name> ()
 
 } // namespace jvl::ire
