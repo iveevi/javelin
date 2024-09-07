@@ -118,8 +118,10 @@ void Linkage::dump() const
 		fmt::println("(nil)");
 
 	fmt::println("Structure declarations: {}", structs.size());
-	for (auto &decl : structs) {
-		fmt::println("  struct with {} elements", decl.size());
+	for (size_t i = 0; i < structs.size(); i++) {
+		auto &decl = structs[i];
+
+		fmt::println("  ({:2d}) struct with {} elements", i, decl.size());
 		for (auto &element : decl) {
 			if (element.nested >= 0)
 				fmt::println("    -> %{}", element.nested);
@@ -152,7 +154,7 @@ void Linkage::dump() const
 	fmt::println("Dependency order:");
 	for (auto &i : sorted) {
 		if (i == -1) {
-			fmt::print("$main ");
+			fmt::print("$origin ");
 		} else {
 			ire::Callable *cbl = ire::Callable::search_tracked(i);
 			fmt::print("${} ", cbl->name);

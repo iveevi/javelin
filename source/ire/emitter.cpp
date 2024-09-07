@@ -169,8 +169,15 @@ void Emitter::dump()
 	fmt::println("------------------------------");
 	fmt::println("GLOBALS ({}/{})", pointer, pool.size());
 	fmt::println("------------------------------");
-	for (size_t i = 0; i < pointer; i++)
-		fmt::println("  [{:4d}]: {}", i, pool[i].to_string());
+
+	if (scopes.empty()) {
+		for (size_t i = 0; i < pointer; i++)
+			fmt::println("  [{:4d}]: {}", i, pool[i].to_string());
+	} else {
+		auto &scratch = scopes.top().get();
+		for (size_t i = 0; i < scratch.pointer; i++)
+			fmt::println("  [{:4d}]: {}", i, scratch.pool[i].to_string());
+	}
 }
 
 thread_local Emitter Emitter::active;

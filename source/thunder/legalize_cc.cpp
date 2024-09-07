@@ -1,35 +1,72 @@
 #include "ire/emitter.hpp"
+#include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
 #include "thunder/opt.hpp"
 #include "thunder/linkage.hpp"
+#include "logging.hpp"
 
 namespace jvl::thunder::detail {
 
-// TODO: cache this while emitting
-PrimitiveType primitive_type_of(const std::vector <Atom> &pool, index_t i)
+constexpr const char __module__[] = "legalize for cc";
+
+index_t instruction_type(const std::vector <Atom> &pool, index_t i)
 {
 	auto &atom = pool[i];
 
 	switch (atom.index()) {
-	case Atom::type_index <Global> ():
-		return primitive_type_of(pool, atom.as <Global> ().type);
 	case Atom::type_index <TypeField> ():
-		return atom.as <TypeField> ().item;
+	case Atom::type_index <Swizzle> ():
+		// For now we let swizzle be a special case
+		return i;
+	case Atom::type_index <Global> ():
+		return atom.as <Global> ().type;
 	case Atom::type_index <Primitive> ():
 		return atom.as <Primitive> ().type;
 	case Atom::type_index <Operation> ():
-		return primitive_type_of(pool, atom.as <Operation> ().type);
-	case Atom::type_index <Swizzle> ():
+		return atom.as <Operation> ().type;
+	case Atom::type_index <Intrinsic> ():
+		return atom.as <Intrinsic> ().type;
+	case Atom::type_index <Load> ():
 	{
-		auto &swz = atom.as <Swizzle> ();
-		return swizzle_type_of(primitive_type_of(pool, swz.src), swz.code);
+		auto &load = atom.as <Load> ();
+		index_t t = instruction_type(pool, load.src);
+
+		index_t idx = load.idx;
+		while (idx > 0) {
+			auto &atom = pool[t];
+			log::assertion(atom.is <TypeField> (), __module__);
+
+			TypeField type_field = atom.as <TypeField> ();
+			t = type_field.next;
+			idx--;
+		}
+
+		return t;
 	}
 	default:
 		break;
 	}
 
-	fmt::println("unhandled case for primitive_type_of: {}", atom);
-	abort();
+	log::abort(__module__, fmt::format("unhandle case in instruction_type: {}", atom));
+	return bad;
+}
+
+// TODO: cache this while emitting
+PrimitiveType primitive_type_of(const std::vector <Atom> &pool, index_t i)
+{
+	index_t t = instruction_type(pool, i);
+
+	auto &atom = pool[t];
+	log::assertion(atom.is <TypeField> (), __module__,
+		fmt::format("result of instruction_type(...) "
+			"is not a typefield: {}", atom));
+
+	TypeField tf = atom.as <TypeField> ();
+	log::assertion(tf.item != bad, __module__,
+		fmt::format("type field obtained from instruction_type(...) "
+			"is not a primitive: {}", atom));
+
+	return tf.item;
 }
 
 void legalize_for_jit_operation_vector_overload(mapped_instruction_t &mapped,

@@ -1,8 +1,11 @@
 #include "thunder/enumerations.hpp"
 #include "thunder/linkage.hpp"
 #include "ire/callable.hpp"
+#include "logging.hpp"
 
 namespace jvl::thunder {
+
+MODULE(generate_cplusplus);
 
 // Generating C++ source code
 template <typename T>
@@ -106,8 +109,9 @@ std::string jvl_primitive_type_as_string(PrimitiveType type)
 		break;
 	}
 
-	fmt::println("failed to generate type as string for {}", tbl_primitive_types[type]);
-	abort();
+	JVL_ABORT("failed to generate type string for primitive {}", tbl_primitive_types[type]);
+
+	return "?";
 }
 
 std::string Linkage::generate_cplusplus()
@@ -119,7 +123,7 @@ std::string Linkage::generate_cplusplus()
 	// Translating types
 	auto translate_type = [&](index_t i) -> std::string {
 		const auto &decl = structs.at(i);
-		if (decl.size() == 1) {
+		if (decl.size() == 1 && decl[0].item != bad) {
 			auto &elem = decl[0];
 			return tbl_primitive_types[elem.item];
 		}
@@ -142,7 +146,7 @@ std::string Linkage::generate_cplusplus()
 		const auto &decl = structs[i];
 
 		assert(decl.size() >= 1);
-		if (decl.size() == 1) {
+		if (decl.size() == 1 && decl[0].item != bad) {
 			auto item = decl[0].item;
 
 			// Already synthesized, no need to do it again
@@ -163,10 +167,16 @@ std::string Linkage::generate_cplusplus()
 		size_t field = 0;
 		for (auto &elem : decl) {
 			std::string ft_name;
-			if (elem.nested == -1)
+			if (elem.nested == -1) {
+				if (!synthesized_primitives.count(elem.item)) {
+					source += jvl_primitive_type_as_string(elem.item);
+					synthesized_primitives.insert(elem.item);
+				}
+
 				ft_name = tbl_primitive_types[elem.item];
-			else
+			} else {
 				ft_name = struct_names[elem.nested];
+			}
 
 			struct_source += fmt::format("    {} f{};\n", ft_name, field++);
 		}
@@ -192,6 +202,10 @@ std::string Linkage::generate_cplusplus()
 		std::string returns;
 
 		if (b.returns != -1) {
+			JVL_ASSERT(b.struct_map.contains(b.returns),
+				"block struct_map does not contain referenced type @{}",
+				b.returns);
+
 			index_t t = b.struct_map.at(b.returns);
 			returns = translate_type(t);
 		} else if (louts.size() == 0) {

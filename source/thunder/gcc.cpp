@@ -4,8 +4,11 @@
 
 #include "thunder/enumerations.hpp"
 #include "thunder/linkage.hpp"
+#include "logging.hpp"
 
 namespace jvl::thunder {
+
+MODULE(gcc-jit);
 
 struct jit_struct {
 	// TODO: header with eightcc and hash for cleanup
@@ -68,8 +71,8 @@ jit_struct *generate_type_field_primitive_scalar(jit_context &context, Primitive
 		s->type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
 		break;
 	default:
-		fmt::println("GCC JIT unsupported primitive type {}", tbl_primitive_types[item]);
-		abort();
+		JVL_ABORT("unsupported primitive type {} encountered in {}",
+			tbl_primitive_types[item], __FUNCTION__);
 	}
 
 	return s;
@@ -142,8 +145,8 @@ jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType it
 		return generate_type_field_primitive_vector(context, "vec4", f32, 4);
 
 	default:
-		fmt::println("GCC JIT unsupported type {}", tbl_primitive_types[item]);
-		abort();
+		JVL_ABORT("unsupported primitive type {} encountered in {}",
+			tbl_primitive_types[item], __FUNCTION__);
 	}
 
 	return nullptr;
@@ -178,8 +181,7 @@ jit_struct *generate_type_field(jit_context &context, index_t i)
 			s->field_types.push_back(sf);
 			field_type = sf->type;
 		} else {
-			fmt::println("GCC JIT does not supported nested aggregates");
-			abort();
+			log::abort(__module__, "nested aggregates are currently unsupported");
 		}
 
 		size_t fn = s->fields.size();
@@ -296,8 +298,6 @@ jit_instruction generate_instruction_intrinsic(jit_context &context,
 					       jit_struct *return_type,
 					       const std::vector <gcc_jit_rvalue *> &args)
 {
-	assert(args.size() == 1);
-
 	switch (opn) {
 
 	case sin:
@@ -348,12 +348,23 @@ jit_instruction generate_instruction_intrinsic(jit_context &context,
 		return ji;
 	}
 
+	// Intrinsics which could be supported if they had been lowered properly
+	case dot:
+		log::abort(__module__,
+			fmt::format("intrinsic instruction ${} must be lowered",
+				tbl_intrinsic_operation[opn]));
+
+		return jit_instruction();
+
 	default:
 		break;
 	}
 
-	fmt::println("GCC JIT unsupported intrinsic <{}>", tbl_intrinsic_operation[opn]);
-	abort();
+	log::abort(__module__,
+		fmt::format("unsupported intrinsic instruction ${}",
+			tbl_intrinsic_operation[opn]));
+
+	return jit_instruction();
 }
 
 jit_instruction generate_instruction_access_field(jit_context &context, index_t src, index_t idx)

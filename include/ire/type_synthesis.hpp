@@ -76,8 +76,8 @@ static inline bool valid(const thunder::TypeField &tf)
 	return (tf.down != -1) || (tf.item != thunder::bad);
 }
 
-template <typename T, typename ... Args>
-cache_index_t type_field_from_args()
+template <size_t I, typename T, typename ... Args>
+cache_index_t type_field_from_args_impl()
 {
 	auto &em = Emitter::active;
 
@@ -85,7 +85,12 @@ cache_index_t type_field_from_args()
 
 	if constexpr (uniform_compatible <T>) {
 		using layout_t = decltype(T().layout());
-		tf.down = type_field_from_args(layout_t()).id;
+
+		// If its a single struct, then we should not nest
+		if constexpr (I == 0)
+			return type_field_from_args(layout_t());
+		else
+			tf.down = type_field_from_args(layout_t()).id;
 	} else {
 		tf.item = synthesize_primitive_type <T> ();
 	}
@@ -93,13 +98,40 @@ cache_index_t type_field_from_args()
 	assert(valid(tf));
 
 	if constexpr (sizeof...(Args))
-		tf.next = type_field_from_args <Args...> ().id;
+		tf.next = type_field_from_args_impl <I + 1, Args...> ().id;
 	else
 		tf.next = -1;
 
 	cache_index_t cached;
 	cached = em.emit(tf);
 	return cached;
+}
+
+template <typename T, typename ... Args>
+cache_index_t type_field_from_args()
+{
+	return type_field_from_args_impl <0, T, Args...> ();
+	// auto &em = Emitter::active;
+	//
+	// thunder::TypeField tf;
+	//
+	// if constexpr (uniform_compatible <T>) {
+	// 	using layout_t = decltype(T().layout());
+	// 	tf.down = type_field_from_args(layout_t()).id;
+	// } else {
+	// 	tf.item = synthesize_primitive_type <T> ();
+	// }
+	//
+	// assert(valid(tf));
+	//
+	// if constexpr (sizeof...(Args))
+	// 	tf.next = type_field_from_args <Args...> ().id;
+	// else
+	// 	tf.next = -1;
+	//
+	// cache_index_t cached;
+	// cached = em.emit(tf);
+	// return cached;
 }
 
 template <typename ... Args>

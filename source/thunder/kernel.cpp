@@ -58,9 +58,13 @@ Linkage Kernel::linkage() const
 
 		if (auto call = atom.get <Call> ())
 			linkage.callables.insert(call->cid);
-		
+
 		if (auto global = atom.get <Global> ()) {
-			index_t type = block.struct_map.at(global->type);
+			log::assertion(block.struct_map.contains(global->type), "kernel",
+				fmt::format("block struct_map does not contain referenced type @{}",
+					global->type));
+
+			index_t type = block.struct_map[global->type];
 			index_t binding = global->binding;
 
 			// TODO: the kernel must undergo validation
@@ -81,7 +85,7 @@ Linkage Kernel::linkage() const
 				break;
 			}
 		}
-		
+
 		if (auto returns = atom.get <Returns> ())
 			block.returns = returns->type;
 

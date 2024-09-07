@@ -2,6 +2,7 @@
 
 #include "ire/core.hpp"
 #include "profiles/targets.hpp"
+#include "thunder/linkage.hpp"
 #include "thunder/opt.hpp"
 #include "math_types.hpp"
 #include "logging.hpp"
@@ -52,20 +53,23 @@ struct Material {
 // GGX microfacet distribution function
 auto ftn = callable_info() >> [](Material mat, vec3 n, vec3 h)
 {
-	f32 alpha = mat.roughness;
-	f32 theta = acos(clamp(dot(n, h), 0.0f, 0.999f));
-	f32 ret = (alpha * alpha)
-		/ (pi <float> * pow(cos(theta), 4)
-		* pow(alpha * alpha + tan(theta) * tan(theta), 2.0f));
-	return ret;
+	return mat;
+	// f32 alpha = mat.roughness;
+	// f32 theta = acos(clamp(dot(n, h), 0.0f, 0.999f));
+	// f32 ret = (alpha * alpha)
+	// 	/ (pi <float> * pow(cos(theta), 4)
+	// 	* pow(alpha * alpha + tan(theta) * tan(theta), 2.0f));
+	// return ret;
 };
 
 int main()
 {
+	ftn.dump();
+	thunder::detail::legalize_for_cc(ftn);
 	thunder::opt_transform(ftn);
 	ftn.dump();
 
-	// fmt::println("{}", ftn.export_to_kernel().compile(profiles::cplusplus_11));
+	fmt::println("{}", ftn.export_to_kernel().compile(profiles::cplusplus_11));
 
-	jit(ftn);
+	// jit(ftn);
 }

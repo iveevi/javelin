@@ -83,4 +83,10 @@ inline void info(const std::string &module, const std::string &msg)
 	fmt::println("{}", msg);
 }
 
+// Helper macros for easier logging
+#define MODULE(name) static constexpr const char __module__[] = #name
+
+#define JVL_ASSERT(cond, ...)	log::assertion(cond, __module__, fmt::format(__VA_ARGS__))
+#define JVL_ABORT(...)		log::abort(__module__, fmt::format(__VA_ARGS__))
+
 } // namespace log
