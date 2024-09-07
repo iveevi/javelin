@@ -72,5 +72,13 @@ int main()
 	fmt::println("{}", ftn.export_to_kernel().compile(profiles::cplusplus_11));
 	fmt::println("{}", ftn.export_to_kernel().compile(profiles::glsl_450));
 
-	jit(ftn);
+	auto compiled = jit(ftn);
+
+	auto m = solid_t <Material> ();
+	m.get <4> () = 0.5f;
+	fmt::println("input float: {}", m.get <4> ());
+
+	auto mr = compiled(m, float3(1), float3(2));
+
+	fmt::println("output float: {}", mr.get <4> ());
 }

@@ -38,8 +38,18 @@ struct solid_base_t <vec <T, N>> {
 	using type = vector <T, N>;
 };
 
-struct alignas(16) aligned_float3 : float3 {};
-struct alignas(16) aligned_int3   : int3 {};
+// Aligning 32-bit 3-vector types according to the GLSL specification
+struct alignas(16) aligned_float3 : float3 {
+	using float3::float3;
+
+	aligned_float3(const float3 &v) : float3(v) {}
+};
+
+struct alignas(16) aligned_int3 : int3 {
+	using int3::int3;
+
+	aligned_int3(const int3 &v) : int3(v) {}
+};
 
 template <>
 struct solid_base_t <vec <float, 3>> {

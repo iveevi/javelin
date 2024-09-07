@@ -85,7 +85,8 @@ jit_struct *generate_type_field_primitive_scalar(jit_context &context, Primitive
 jit_struct *generate_type_field_primitive_vector(jit_context &context,
 						 const char *name,
 						 PrimitiveType item,
-						 size_t components)
+						 size_t components,
+						 const std::optional <size_t> &alignment = std::nullopt)
 {
 	static constexpr const char *component_names[] = { "x", "y", "z", "w" };
 
@@ -111,6 +112,11 @@ jit_struct *generate_type_field_primitive_vector(jit_context &context,
 	s->materialize(context.gcc, name);
 	fmt::println("struct type: {}", (void *) s->type);
 	context.primitive_types[item] = s;
+
+	// Align the struct if necessary
+	if (alignment)
+		s->type = gcc_jit_type_get_aligned(s->type, alignment.value());
+
 	return s;
 }
 
@@ -128,7 +134,7 @@ jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType it
 	case ivec2:
 		return generate_type_field_primitive_vector(context, "ivec2", i32, 2);
 	case ivec3:
-		return generate_type_field_primitive_vector(context, "ivec3", i32, 3);
+		return generate_type_field_primitive_vector(context, "ivec3", i32, 3, 16);
 	case ivec4:
 		return generate_type_field_primitive_vector(context, "ivec4", i32, 4);
 
@@ -136,7 +142,7 @@ jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType it
 	case uvec2:
 		return generate_type_field_primitive_vector(context, "uvec2", u32, 2);
 	case uvec3:
-		return generate_type_field_primitive_vector(context, "uvec3", u32, 3);
+		return generate_type_field_primitive_vector(context, "uvec3", u32, 3, 16);
 	case uvec4:
 		return generate_type_field_primitive_vector(context, "uvec4", u32, 4);
 
@@ -144,7 +150,7 @@ jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType it
 	case vec2:
 		return generate_type_field_primitive_vector(context, "vec2", f32, 2);
 	case vec3:
-		return generate_type_field_primitive_vector(context, "vec3", f32, 3);
+		return generate_type_field_primitive_vector(context, "vec3", f32, 3, 16);
 	case vec4:
 		return generate_type_field_primitive_vector(context, "vec4", f32, 4);
 
@@ -709,7 +715,7 @@ Linkage::jit_result_t Linkage::generate_jit_gcc()
 
 	// TODO: pass options
 	gcc_jit_context_set_int_option(context, GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 0);
-	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
+	gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
 	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_TREE, true);
 	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_SUMMARY, true);
 	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
