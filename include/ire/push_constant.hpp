@@ -45,7 +45,7 @@ struct push_constant : push_constant_base <T> {
 
 		cache_index_t ref;
 		ref = em.emit(global);
-		layout.__ref_with(ref);
+		layout.ref_with(ref);
 	}
 
 	cache_index_t synthesize() const

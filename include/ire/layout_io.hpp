@@ -53,7 +53,7 @@ struct layout_in : layout_in_base <T> {
 
 		cache_index_t ref;
 		ref = em.emit(global);
-		layout.__ref_with(ref);
+		layout.ref_with(ref);
 	}
 
 	cache_index_t synthesize() const
@@ -125,7 +125,7 @@ struct layout_out : layout_out_base <T> {
 
 		cache_index_t ref;
 		ref = em.emit(global);
-		layout.__ref_with(ref);
+		layout.ref_with(ref);
 	}
 
 	layout_out &operator=(const T &t)

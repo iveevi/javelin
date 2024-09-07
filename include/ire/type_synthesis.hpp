@@ -54,7 +54,7 @@ struct layout_generator <__field <name, T>, Args...> {
 
 template <__field_type ... Args>
 struct group_generator {
-	static constexpr string_literal_group <Args::literal...> group;
+	static constexpr string_literal_group <Args::literal...> group = {};
 };
 
 template <string_literal_group group, typename ... Args>
@@ -133,27 +133,6 @@ template <typename T, typename ... Args>
 cache_index_t type_field_from_args()
 {
 	return type_field_from_args_impl <0, T, Args...> ();
-	// auto &em = Emitter::active;
-	//
-	// thunder::TypeField tf;
-	//
-	// if constexpr (uniform_compatible <T>) {
-	// 	using layout_t = decltype(T().layout());
-	// 	tf.down = type_field_from_args(layout_t()).id;
-	// } else {
-	// 	tf.item = synthesize_primitive_type <T> ();
-	// }
-	//
-	// assert(valid(tf));
-	//
-	// if constexpr (sizeof...(Args))
-	// 	tf.next = type_field_from_args <Args...> ().id;
-	// else
-	// 	tf.next = -1;
-	//
-	// cache_index_t cached;
-	// cached = em.emit(tf);
-	// return cached;
 }
 
 template <typename ... Args>

@@ -13,6 +13,7 @@ namespace jvl::ire {
 
 MODULE(uniform-layout);
 
+// Field classifications
 enum {
 	eField,
 	eNested
@@ -23,6 +24,8 @@ struct layout_field {
 	const char *name;
 	int type;
 	void *ptr;
+
+	void ref_with(cache_index_t);
 };
 
 template <typename ... Args>
@@ -32,20 +35,11 @@ struct uniform_layout_t {
 	std::vector <layout_field> fields;
 
 	// TODO: move down...
-	void __ref_with(cache_index_t up) {
+	void ref_with(cache_index_t up) {
 		// If there is only one element then transfer it only
-		// TODO: method here
 		if constexpr (sizeof...(Args) == 1) {
 			layout_field f = fields[0];
-
-			if (f.type == eNested) {
-				using tmp_layout = uniform_layout_t <void>;
-				auto ul = reinterpret_cast <tmp_layout *> (f.ptr);
-				ul->__ref_with(up);
-			} else {
-				auto t = reinterpret_cast <tagged *> (f.ptr);
-				t->ref = up;
-			}
+			f.ref_with(up);
 		} else {
 			wrapped::hash_table <void *, int> listed;
 
@@ -64,27 +58,28 @@ struct uniform_layout_t {
 				load.src = up.id;
 				load.idx = i;
 
-				if (f.type == eNested) {
-					using tmp_layout = uniform_layout_t <void>;
+				cache_index_t cit;
+				cit = em.emit(load);
 
-					cache_index_t cit;
-					cit = em.emit(load);
-
-					auto ul = reinterpret_cast <tmp_layout *> (f.ptr);
-					ul->__ref_with(cit);
-				} else {
-
-					auto t = reinterpret_cast <tagged *> (f.ptr);
-					t->ref = em.emit(load);
-				}
+				f.ref_with(cit);
 
 				listed[f.ptr] = i;
 			}
 		}
 	}
-
-	// TODO: name?
 };
+
+inline void layout_field::ref_with(cache_index_t up)
+{
+	if (type == eNested) {
+		using tmp_layout = uniform_layout_t <void>;
+		auto ul = reinterpret_cast <tmp_layout *> (ptr);
+		ul->ref_with(up);
+	} else {
+		auto t = reinterpret_cast <tagged *> (ptr);
+		t->ref = up;
+	}
+}
 
 // Const-qualified layouts
 struct layout_const_field {

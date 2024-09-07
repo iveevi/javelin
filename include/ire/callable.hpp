@@ -67,7 +67,7 @@ struct callable_t : Callable {
 
 			cache_index_t ref;
 			ref = em.emit(global);
-			layout.__ref_with(ref);
+			layout.ref_with(ref);
 		} else {
 			auto &x = std::get <index> (tpl);
 
