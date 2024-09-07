@@ -495,6 +495,8 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 {
 	auto &atom = context.pool[i];
 
+	fmt::println("> processing atom: {}", atom);
+
 	// TODO: skip if not marked for synthesis
 
 	switch (atom.index()) {
@@ -578,7 +580,7 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 	abort();
 }
 
-void generate_block(gcc_jit_context *const gcc, const Linkage::block_t &block)
+void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 {
 	fmt::println("generating block");
 
@@ -622,9 +624,43 @@ void generate_block(gcc_jit_context *const gcc, const Linkage::block_t &block)
 	context.block = gcc_jit_function_new_block(context.function, nullptr);
 	context.cached.resize(block.unit.size());
 
-	for (index_t i = 0; i < block.unit.size(); i++)
-		// TODO: only if synthesized
-		context.cached[i] = generate_instruction(context, i);
+	// TODO: cache block synthesized status
+	auto synthesized = detail::synthesize_list(block.unit);
+
+	// Do some extra processing to get the list of required instructions
+	auto used = decltype(synthesized)();
+
+	std::queue <index_t> work;
+	for (auto i : synthesized)
+		work.push(i);
+
+	while (work.size()) {
+		index_t next = work.front();
+		work.pop();
+
+		if (next == -1)
+			continue;
+
+		auto &atom = block.unit[next];	
+		if (atom.is <TypeField> () && !synthesized.contains(next)) {
+			// Unless explicitly requires from the
+			// synthesized list of atoms, we
+			// should not be generating more types
+			continue;
+		}
+
+		used.insert(next);
+
+		auto &&addrs = atom.addresses();
+		work.push(addrs.a0);
+		work.push(addrs.a1);
+	}
+
+	// Finally, generate the instructions in JIT
+	for (index_t i = 0; i < block.unit.size(); i++) {
+		if (used.contains(i))
+			context.cached[i] = generate_instruction(context, i);
+	}
 }
 
 Linkage::jit_result_t Linkage::generate_jit_gcc()

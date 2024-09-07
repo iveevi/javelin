@@ -5,27 +5,6 @@
 
 namespace jvl::thunder {
 
-std::unordered_set <index_t> referenced_type_fields(const std::vector <Atom> &atoms)
-{
-	std::unordered_set <index_t> set;
-
-	for (index_t i = 0; i < atoms.size(); i++) {
-		auto &atom = atoms[i];
-
-		if (auto global = atom.get <Global> ())
-			set.insert(global->type);
-		if (auto type_field = atom.get <TypeField> ())
-			set.insert(type_field->down);
-		if (auto operation = atom.get <Operation> ())
-			set.insert(operation->type);
-	}
-
-	if (set.contains(-1))
-		set.erase(-1);
-
-	return set;
-}
-
 index_t generate_type_declaration(Linkage &linkage, const std::vector <Atom> &atoms, index_t index)
 {
 	Linkage::struct_declaration decl;
@@ -66,17 +45,21 @@ Linkage Kernel::linkage() const
 	linkage.sorted = { -1 };
 
 	// Generate struct information for linkage
-	for (auto i : referenced_type_fields(atoms))
-		generate_type_declaration(linkage, atoms, i);
+	auto synthesized = detail::synthesize_list(atoms);
 
 	// Generate block information
 	auto &block = linkage.blocks[-1];
 
 	for (int i = 0; i < atoms.size(); i++) {
-		auto op = atoms[i];
-		if (auto call = op.get <Call> ()) {
+		if (!synthesized.contains(i))
+			continue;
+
+		auto atom = atoms[i];
+
+		if (auto call = atom.get <Call> ())
 			linkage.callables.insert(call->cid);
-		} else if (auto global = op.get <Global> ()) {
+		
+		if (auto global = atom.get <Global> ()) {
 			index_t type = block.struct_map.at(global->type);
 			index_t binding = global->binding;
 
@@ -97,9 +80,13 @@ Linkage Kernel::linkage() const
 			default:
 				break;
 			}
-		} else if (auto returns = op.get <Returns> ()) {
-			block.returns = returns->type;
 		}
+		
+		if (auto returns = atom.get <Returns> ())
+			block.returns = returns->type;
+
+		if (auto type_field = atom.get <TypeField> ())
+			generate_type_declaration(linkage, atoms, i);
 	}
 
 	return linkage;

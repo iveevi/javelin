@@ -54,7 +54,7 @@ struct Material {
 };
 
 // GGX microfacet distribution function
-auto ggx_ndf = callable_info("ggx_ndf") >> [](Material mat, vec3 n, vec3 h)
+auto ftn = callable_info() >> [](Material mat, vec3 n, vec3 h)
 {
 	f32 alpha = mat.roughness;
 	f32 theta = acos(clamp(dot(n, h), 0.0f, 0.999f));
@@ -66,8 +66,10 @@ auto ggx_ndf = callable_info("ggx_ndf") >> [](Material mat, vec3 n, vec3 h)
 
 int main()
 {
-	thunder::opt_transform(ggx_ndf);
-	ggx_ndf.dump();
+	thunder::opt_transform(ftn);
+	ftn.dump();
 
-	fmt::println("{}", ggx_ndf.export_to_kernel().compile(profiles::cplusplus_11));
+	// fmt::println("{}", ftn.export_to_kernel().compile(profiles::cplusplus_11));
+
+	jit(ftn);
 }

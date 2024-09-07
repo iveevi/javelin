@@ -233,7 +233,7 @@ auto callable(F ftn)
 
 // Conversion tricks inline
 class callable_info {
-	std::string name_;
+	std::optional <std::string> name_;
 public:
 	callable_info() = default;
 	callable_info(const std::string &name) : name_(name) {}
@@ -244,14 +244,16 @@ public:
 	}
 
 	friend auto operator>>(callable_info ci, auto ftn) {
-		return callable(ftn)
-			.named(ci.name_);
+		auto cbl = callable(ftn);
+		if (ci.name_)
+			cbl = cbl.named(*ci.name_);
+		return cbl;
 	}
 };
 
 template <non_trivial_generic R>
 class callable_info_r {
-	std::string name_;
+	std::optional <std::string> name_;
 public:
 	callable_info_r() = default;
 	callable_info_r(const std::string &name) : name_(name) {}
@@ -262,8 +264,10 @@ public:
 	}
 
 	friend auto operator>>(callable_info_r ci, auto ftn) {
-		return callable <R> (ftn)
-			.named(ci.name_);
+		auto cbl = callable <R> (ftn);
+		if (ci.name_)
+			cbl = cbl.named(*ci.name_);
+		return cbl;
 	}
 };
 
