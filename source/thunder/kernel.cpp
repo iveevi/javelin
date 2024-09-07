@@ -1,8 +1,60 @@
 #include "thunder/atom.hpp"
 #include "thunder/kernel.hpp"
 #include "thunder/linkage.hpp"
+#include "logging.hpp"
 
 namespace jvl::thunder {
+
+std::unordered_set <index_t> referenced_type_fields(const std::vector <Atom> &atoms)
+{
+	std::unordered_set <index_t> set;
+
+	for (index_t i = 0; i < atoms.size(); i++) {
+		auto &atom = atoms[i];
+
+		if (auto global = atom.get <Global> ())
+			set.insert(global->type);
+		if (auto type_field = atom.get <TypeField> ())
+			set.insert(type_field->down);
+		if (auto operation = atom.get <Operation> ())
+			set.insert(operation->type);
+	}
+
+	if (set.contains(-1))
+		set.erase(-1);
+
+	return set;
+}
+
+index_t generate_type_declaration(Linkage &linkage, const std::vector <Atom> &atoms, index_t index)
+{
+	Linkage::struct_declaration decl;
+
+	index_t i = index;
+	fmt::println("generating type declaration");
+	while (i != -1) {
+		Atom g = atoms[i];
+		fmt::println("  > typefield: {}", g);
+		if (!g.is <TypeField> ())
+			abort();
+
+		TypeField tf = g.as <TypeField> ();
+
+		Linkage::struct_element element;
+		if (tf.down != -1)
+			element.nested = generate_type_declaration(linkage, atoms, tf.down);
+		else
+			element.item = tf.item;
+
+		decl.push_back(element);
+
+		i = tf.next;
+	}
+
+	index_t s = linkage.insert(decl);
+	linkage.blocks[-1].struct_map[index] = s;
+	return s;
+}
 
 // Linkage model from the kernel
 Linkage Kernel::linkage() const
@@ -14,44 +66,18 @@ Linkage Kernel::linkage() const
 	linkage.sorted = { -1 };
 
 	// Generate struct information for linkage
-	// TODO: use a one to one mapping without reductions, optimization will take
-	// care of the rest...
-	// TODO: use name mangling to redeclare structs deterministically
-	std::function <index_t (index_t)> generate_type_declaration;
-	generate_type_declaration = [&](index_t index) -> index_t {
-		Linkage::struct_declaration decl;
+	for (auto i : referenced_type_fields(atoms))
+		generate_type_declaration(linkage, atoms, i);
 
-		index_t i = index;
-		while (i != -1) {
-			Atom g = atoms[i];
-			if (!g.is <TypeField> ())
-				abort();
+	// Generate block information
+	auto &block = linkage.blocks[-1];
 
-			TypeField tf = g.as <TypeField> ();
-
-			Linkage::struct_element element;
-			if (tf.down != -1)
-				element.nested = generate_type_declaration(tf.down);
-			else
-				element.item = tf.item;
-
-			decl.push_back(element);
-
-			i = tf.next;
-		}
-
-		index_t s = linkage.insert(decl);
-		linkage.blocks[-1].struct_map[index] = s;
-		return s;
-	};
-
-	// Go through all USED instructions
 	for (int i = 0; i < atoms.size(); i++) {
 		auto op = atoms[i];
 		if (auto call = op.get <Call> ()) {
 			linkage.callables.insert(call->cid);
 		} else if (auto global = op.get <Global> ()) {
-			index_t type = generate_type_declaration(global->type);
+			index_t type = block.struct_map.at(global->type);
 			index_t binding = global->binding;
 
 			// TODO: the kernel must undergo validation
@@ -63,7 +89,7 @@ Linkage Kernel::linkage() const
 				linkage.louts[binding] = type;
 				break;
 			case GlobalQualifier::parameter:
-				linkage.blocks[-1].parameters[binding] = type;
+				block.parameters[binding] = type;
 				break;
 			case GlobalQualifier::push_constant:
 				linkage.push_constant = type;
@@ -72,11 +98,8 @@ Linkage Kernel::linkage() const
 				break;
 			}
 		} else if (auto returns = op.get <Returns> ()) {
-			linkage.blocks[-1].returns = returns->type;
+			block.returns = returns->type;
 		}
-
-		if (auto tf = op.get <TypeField> ())
-			linkage.blocks[-1].struct_map[i] = generate_type_declaration(i);
 	}
 
 	return linkage;

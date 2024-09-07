@@ -112,6 +112,8 @@ std::string jvl_primitive_type_as_string(PrimitiveType type)
 
 std::string Linkage::generate_cplusplus()
 {
+	dump();
+
 	wrapped::hash_table <int, std::string> struct_names;
 
 	// Translating types

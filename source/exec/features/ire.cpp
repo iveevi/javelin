@@ -9,6 +9,7 @@
 #include "thunder/opt.hpp"
 #include "math_types.hpp"
 #include "logging.hpp"
+#include "constants.hpp"
 
 // TODO: immutability for shader inputs types
 // TODO: demote variables to inline if they are not modified later
@@ -53,50 +54,23 @@ struct Material {
 	}
 };
 
-// Random number generation
-uvec3 __pcg3d(uvec3 v)
+// GGX microfacet distribution function
+f32 __ggx_ndf(Material mat, vec3 n, vec3 h)
 {
-	v = v * 1664525u + 1013904223u;
-	v.x += v.y * v.z;
-	v.y += v.z * v.x;
-	v.z += v.x * v.y;
-	v ^= v >> 16u;
-	v.x += v.y * v.z;
-	v.y += v.z * v.x;
-	v.z += v.x * v.y;
-	return v;
+	f32 alpha = mat.roughness;
+	f32 theta = acos(clamp(dot(n, h), 0.0f, 0.999f));
+	f32 ret = (alpha * alpha)
+		/ (pi <float> * pow(cos(theta), 4)
+		* pow(alpha * alpha + tan(theta) * tan(theta), 2.0f));
+	return ret;
 }
 
-auto pcg3d = callable(__pcg3d).named("pcg3d");
-
-uint3 ref(uint3 v)
-{
-	v = v * 1664525u + 1013904223u;
-	v.x += v.y * v.z;
-	v.y += v.z * v.x;
-	v.z += v.x * v.y;
-	v ^= v >> 16u;
-	v.x += v.y * v.z;
-	v.y += v.z * v.x;
-	v.z += v.x * v.y;
-	return v;
-}
+auto ggx_ndf = callable(__ggx_ndf).named("ggx_ndf");
 
 int main()
 {
-	thunder::detail::legalize_for_cc(pcg3d);
-	thunder::opt_transform(pcg3d);
-	pcg3d.dump();
+	thunder::opt_transform(ggx_ndf);
+	ggx_ndf.dump();
 
-	fmt::println("{}", pcg3d.export_to_kernel().compile(profiles::cplusplus_11));
-
-	log::error("testing errors");
-	log::warning("testing warnings");
-	log::info("testing info");
-	log::abort("unknown", "testing fatal errors");
-
-	// auto ftn = jit(pcg3d);
-
-	// fmt::println("jit(...) = {}", ftn(uint3(10, 2, 3)).x);
-	// fmt::println("ref(...) = {}", ref(uint3(10, 2, 3)).x);
+	fmt::println("{}", ggx_ndf.export_to_kernel().compile(profiles::cplusplus_11));
 }
