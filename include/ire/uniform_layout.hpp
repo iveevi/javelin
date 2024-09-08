@@ -49,9 +49,10 @@ struct uniform_layout_t {
 			for (int i = 0; i < fields.size(); i++) {
 				layout_field f = fields[i];
 
-				JVL_ASSERT(!listed.contains(f.ptr),
-					"duplicate member in uniform layout "
-					"(field #{} conflicts with field #{})",
+				bool unique = !listed.contains(f.ptr);
+				JVL_ASSERT(unique,
+					"duplicate member in uniform layout, "
+					"field #{} conflicts with field #{}",
 					i + 1, listed[f.ptr] + 1);
 
 				thunder::Load load;

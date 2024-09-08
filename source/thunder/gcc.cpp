@@ -254,7 +254,7 @@ jit_struct *generate_type_field(jit_context &context, index_t index)
 
 	s->materialize(context.gcc, fmt::format("s_"));
 	JVL_INFO("created struct for type field @{} "
-		"with {} fields", i, s->fields.size());
+		"with {} fields", index, s->fields.size());
 
 	return s;
 }
@@ -816,7 +816,7 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 
 Linkage::jit_result_t Linkage::generate_jit_gcc()
 {
-	fmt::println("compiling linkage unit with gcc jit");
+	JVL_INFO("compiling linkage unit with gcc jit");
 
 	gcc_jit_context *context = gcc_jit_context_acquire();
 	JVL_ASSERT(context, "failed to acquire context");

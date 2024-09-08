@@ -2,8 +2,11 @@
 #include <unordered_set>
 
 #include "thunder/opt.hpp"
+#include "logging.hpp"
 
 namespace jvl::thunder {
+
+MODULE(optimization);
 
 bool opt_transform_compact(Scratch &result)
 {
@@ -192,7 +195,7 @@ void opt_transform(Scratch &result)
 {
 	bool changed;
 	do {
-		// fmt::println("optimization pass (current # of atoms: {})", result.pointer);
+		JVL_INFO("looped optimization pass (current # of atoms: {})", result.pointer);
 
 		// Relinking steps, will not elimination code
 		thunder::opt_transform_compact(result);

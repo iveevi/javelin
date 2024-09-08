@@ -28,10 +28,6 @@ struct Emitter : thunder::Scratch {
 	void push(Scratch &);
 	void pop();
 
-	// Dead code elimination, always conservative
-	// TODO: move out of here...
-	void mark_used(int, bool);
-
 	// Emitting instructions during function invocation
 	index_t emit(const thunder::Atom &);
 	index_t emit(const thunder::Branch &);

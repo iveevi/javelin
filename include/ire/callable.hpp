@@ -86,7 +86,7 @@ struct callable_t : Callable {
 	}
 
 	void begin() {
-		Emitter::active.scopes.push(*this);
+		Emitter::active.push(*this);
 	}
 
 	void call(std::tuple <Args...> &args) {
@@ -94,7 +94,7 @@ struct callable_t : Callable {
 	}
 
 	void end() {
-		Emitter::active.scopes.pop();
+		Emitter::active.pop();
 	}
 
 	auto &named(const std::string &name_) {

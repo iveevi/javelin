@@ -104,4 +104,8 @@ inline void info(const std::string &module, const std::string &msg)
 #define JVL_WARNING(...)	log::warning(__module__, fmt::format(__VA_ARGS__))
 #define JVL_INFO(...)		log::info(__module__, fmt::format(__VA_ARGS__))
 
+// TODO: info_verbose (logging in cmd line)
+// TODO: info_begin_pass
+// TODO: info_confirm (green)
+
 } // namespace log

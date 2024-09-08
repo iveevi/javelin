@@ -4,6 +4,8 @@
 
 namespace jvl::thunder {
 
+MODULE(linkage);
+
 bool compare_declaration(const Linkage::struct_declaration &A,
 			 const Linkage::struct_declaration &B)
 {
@@ -40,6 +42,8 @@ index_t Linkage::insert(const struct_declaration &A)
 // Fully resolve the linkage
 Linkage &Linkage::resolve()
 {
+	JVL_INFO("resolving linkage");
+
 	// If there are no callables used, there is nothing to resolve
 	if (callables.empty())
 		return *this;

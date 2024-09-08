@@ -8,8 +8,11 @@
 #include "ire/emitter.hpp"
 #include "thunder/opt.hpp"
 #include "wrapped_types.hpp"
+#include "logging.hpp"
 
 namespace jvl::ire {
+
+MODULE(emitter);
 
 Emitter::Emitter() : Scratch() {}
 
@@ -23,19 +26,13 @@ void Emitter::clear()
 void Emitter::push(Scratch &scratch)
 {
 	scopes.push(std::ref(scratch));
+	JVL_INFO("pushed new scratch buffer to global emitter ({} scopes)", scopes.size());
 }
 
 void Emitter::pop()
 {
 	scopes.pop();
-}
-
-// Dead code elimination
-void Emitter::mark_used(int index, bool syn)
-{
-	// If we are in a scope, this is all determined later...
-	if (scopes.size())
-		return;
+	JVL_INFO("popped scratch buffer from global emitter ({} scopes)", scopes.size());
 }
 
 // Emitting instructions during function invocation
@@ -166,15 +163,17 @@ thunder::Kernel Emitter::export_to_kernel()
 // Printing the IR state
 void Emitter::dump()
 {
-	fmt::println("------------------------------");
-	fmt::println("GLOBALS ({}/{})", pointer, pool.size());
-	fmt::println("------------------------------");
-
 	if (scopes.empty()) {
+		fmt::println("------------------------------");
+		fmt::println("GLOBALS ({}/{})", pointer, pool.size());
+		fmt::println("------------------------------");
 		for (size_t i = 0; i < pointer; i++)
 			fmt::println("  [{:4d}]: {}", i, pool[i].to_string());
 	} else {
 		auto &scratch = scopes.top().get();
+		fmt::println("------------------------------");
+		fmt::println("GLOBALS-SCRATCH ({}/{})", scratch.pointer, scratch.pool.size());
+		fmt::println("------------------------------");
 		for (size_t i = 0; i < scratch.pointer; i++)
 			fmt::println("  [{:4d}]: {}", i, scratch.pool[i].to_string());
 	}

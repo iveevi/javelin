@@ -35,8 +35,6 @@ public:
 		swizzle.src = upper->synthesize().id;
 		swizzle.code = swz;
 
-		em.mark_used(swizzle.src, true);
-
 		cache_index_t ci;
 		ci = em.emit(swizzle);
 		return ci;

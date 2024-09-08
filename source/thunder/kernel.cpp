@@ -5,6 +5,8 @@
 
 namespace jvl::thunder {
 
+MODULE(kernel);
+
 index_t generate_type_declaration(Linkage &linkage, const std::vector <Atom> &atoms, index_t index)
 {
 	auto &block = linkage.blocks[-1];
@@ -39,6 +41,8 @@ index_t generate_type_declaration(Linkage &linkage, const std::vector <Atom> &at
 // Linkage model from the kernel
 Linkage Kernel::linkage() const
 {
+	JVL_INFO("generating linkage information");
+
 	Linkage linkage;
 
 	// TODO: preserve the cid if present

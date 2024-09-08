@@ -1,6 +1,9 @@
 #include "thunder/scratch.hpp"
+#include "logging.hpp"
 
 namespace jvl::thunder {
+
+MODULE(scratch);
 
 Scratch::Scratch() : pointer(0), pool(4) {}
 
@@ -13,6 +16,10 @@ index_t Scratch::emit(const Atom &atom)
 {
 	if (pointer >= pool.size())
 		pool.resize((pool.size() << 1));
+
+	JVL_ASSERT(pointer < pool.size(),
+		"scratch buffer pointer is out of bounds ({} >= {})",
+		pointer, pool.size());
 
 	pool[pointer] = atom;
 	return pointer++;

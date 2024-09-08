@@ -160,6 +160,8 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 		// TODO: legalize by converting to higher type
 		assert(false);
 	}
+
+	em.pop();
 }
 
 void legalize_for_cc_vector_constructor(mapped_instruction_t &mapped,
@@ -201,7 +203,7 @@ void legalize_for_cc_vector_constructor(mapped_instruction_t &mapped,
 			tbl_primitive_types[type_to_construct]);
 	}
 
-	mapped.transformed.dump();
+	em.pop();
 }
 
 void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
@@ -228,6 +230,8 @@ void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 
 	// Special cases are handled explicitly
 	if (opn == dot) {
+		JVL_INFO("legalizing dot product");
+
 		PrimitiveType type_a = types[0];
 		PrimitiveType type_b = types[1];
 
@@ -267,13 +271,14 @@ void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 			top = em.emit(Operation(l, t, addition));
 		}
 
-		// TODO: inherit from scratch
-		mapped.transformed.dump();
+		em.pop();
 	}
 }
 
 void legalize_for_cc(Scratch &scratch)
 {
+	JVL_INFO("legalizing intermediate representation for CC targets");
+
 	auto &em = ire::Emitter::active;
 	auto &pool = scratch.pool;
 
@@ -377,6 +382,8 @@ void legalize_for_cc(Scratch &scratch)
 
 	scratch = Scratch();
 	stitch_mapped_instructions(scratch, mapped);
+	
+	JVL_INFO("completed legalization pass");
 }
 
 } // namespace jvl::thunder::detail

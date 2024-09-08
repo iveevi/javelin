@@ -85,7 +85,6 @@ struct primitive_t : tagged {
 	primitive_t &operator=(const T &v) {
 		// At this point we are required to have storage for this
 		auto &em = Emitter::active;
-		em.mark_used(ref.id, true);
 
 		thunder::Store store;
 		store.dst = ref.id;
@@ -98,7 +97,6 @@ struct primitive_t : tagged {
 	primitive_t &operator=(const primitive_t &v) {
 		// At this point we are required to have storage for this
 		auto &em = Emitter::active;
-		em.mark_used(ref.id, true);
 
 		thunder::Store store;
 		store.dst = ref.id;
