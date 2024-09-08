@@ -74,6 +74,7 @@ add_executable(lang-features
 
 add_executable(test
 	source/test/ire_emitter.cpp
+	source/test/ire_jit_gcc.cpp
 	source/test/ire_synthesize_cpp.cpp
 	source/test/ire_synthesize_glsl.cpp
 	source/test/ire_ggx_brdf.cpp
@@ -99,8 +100,11 @@ set(VULKAN_LIBRARY_SET
 	glslang
 	glslang-default-resource-limits)
 
+set_property(TARGET ire-features PROPERTY ENABLE_EXPORTS ON)
+set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)
+
 target_link_libraries(javelin-ire fmt::fmt)
 target_link_libraries(javelin fmt::fmt ${VULKAN_LIBRARY_SET} imgui javelin-ire)
 target_link_libraries(ire-features glfw fmt::fmt javelin-ire gccjit)
 target_link_libraries(lang-features fmt::fmt -fsanitize=address)
-target_link_libraries(test GTest::gtest_main javelin-ire glfw)
+target_link_libraries(test GTest::gtest_main javelin-ire glfw gccjit)

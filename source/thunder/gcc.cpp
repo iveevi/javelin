@@ -1,10 +1,18 @@
 #include <queue>
 
+#include <dlfcn.h>
+
 #include <libgccjit.h>
 
 #include "thunder/enumerations.hpp"
 #include "thunder/linkage.hpp"
 #include "logging.hpp"
+#include "wrapped_types.hpp"
+
+extern "C" float clamp(float x, float low, float high)
+{
+	return std::min(high, std::max(low, x));
+}
 
 namespace jvl::thunder {
 
@@ -82,6 +90,9 @@ jit_struct *generate_type_field_primitive_scalar(jit_context &context, Primitive
 	jit_struct *s = new jit_struct;
 
 	switch (item) {
+	case boolean:
+		s->type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_BOOL);
+		break;
 	case i32:
 		s->type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_INT32_T);
 		break;
@@ -156,6 +167,7 @@ jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType it
 	switch (item) {
 
 	// Scalar types
+	case boolean:
 	case i32:
 	case u32:
 	case f32:
@@ -343,13 +355,36 @@ jit_instruction generate_instruction_binary_operation(jit_context &context,
 jit_instruction generate_instruction_intrinsic(jit_context &context,
 					       IntrinsicOperation opn,
 					       jit_struct *return_type,
-					       const std::vector <gcc_jit_rvalue *> &args)
+					       std::vector <gcc_jit_rvalue *> &args)
 {
+	// TODO: map to one-time constructors...
 	switch (opn) {
 
+	// TODO: type cast operation, then legalize these kinds of intrinsics
+	// Unary builtin intrinsics
 	case sin:
+	case cos:
+	case tan:
+	case asin:
+	case acos:
+	case atan:
 	{
-		gcc_jit_function *intr_ftn = gcc_jit_context_get_builtin_function(context.gcc, "sin");
+		assert(args.size() == 1);
+
+		static const wrapped::hash_table <IntrinsicOperation, const char *> builtin {
+			{ sin, "sin" },
+			{ cos, "cos" },
+			{ tan, "tan" },
+			{ asin, "asin" },
+			{ acos, "acos" },
+			{ atan, "atan" },
+		};
+
+		JVL_ASSERT(builtin.contains(opn),
+			"intrinsic operation ${} not recorded amonst builtins",
+			tbl_intrinsic_operation[opn]);
+
+		gcc_jit_function *intr_ftn = gcc_jit_context_get_builtin_function(context.gcc, builtin.at(opn));
 		assert(intr_ftn);
 
 		// Casting the arguments
@@ -358,12 +393,12 @@ jit_instruction generate_instruction_intrinsic(jit_context &context,
 		assert(double_type);
 		assert(float_type);
 
-		gcc_jit_rvalue *arg = gcc_jit_context_new_cast(context.gcc, nullptr, args[0], double_type);
+		gcc_jit_rvalue *arg = gcc_jit_context_new_cast(context.gcc, LOCATION(context.gcc), args[0], double_type);
 		assert(arg);
 
 		gcc_jit_rvalue *expr;
-		expr = gcc_jit_context_new_call(context.gcc, nullptr, intr_ftn, 1, &arg);
-		expr = gcc_jit_context_new_cast(context.gcc, nullptr, expr, float_type);
+		expr = gcc_jit_context_new_call(context.gcc, LOCATION(context.gcc), intr_ftn, 1, &arg);
+		expr = gcc_jit_context_new_cast(context.gcc, LOCATION(context.gcc), expr, float_type);
 
 		jit_instruction ji;
 		ji.value = (gcc_jit_object *) expr;
@@ -371,27 +406,65 @@ jit_instruction generate_instruction_intrinsic(jit_context &context,
 		return ji;
 	}
 
-	case cos:
+	case clamp:
 	{
-		gcc_jit_function *intr_ftn = gcc_jit_context_get_builtin_function(context.gcc, "cos");
-		assert(intr_ftn);
-
-		// Casting the arguments
-		gcc_jit_type *double_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_DOUBLE);
+		assert(args.size() == 3);
+		
 		gcc_jit_type *float_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
-		assert(double_type);
-		assert(float_type);
+		
+		gcc_jit_param *parameters[3];
+		parameters[0] = gcc_jit_context_new_param(context.gcc, LOCATION(context.gcc), float_type, "x");
+		parameters[1] = gcc_jit_context_new_param(context.gcc, LOCATION(context.gcc), float_type, "low");
+		parameters[2] = gcc_jit_context_new_param(context.gcc, LOCATION(context.gcc), float_type, "high");
 
-		gcc_jit_rvalue *arg = gcc_jit_context_new_cast(context.gcc, nullptr, args[0], double_type);
-		assert(arg);
+		gcc_jit_function *intr_ftn = gcc_jit_context_new_function(context.gcc,
+			LOCATION(context.gcc),
+			GCC_JIT_FUNCTION_IMPORTED,
+			float_type, "clamp",
+			3, parameters, 0);
 
+		void *handle = dlopen(nullptr, RTLD_LAZY);
+		JVL_ASSERT(handle, "could not load current binary as a shared library");
+		fmt::println("current handle: {}", handle);
+		void *clamp_ftn = dlsym(handle, "clamp");
+		JVL_ASSERT(clamp_ftn, "could not load clamp");
+		fmt::println("clamp handle: {}", clamp_ftn);
+
+		fmt::println("intrinsic function: {}", (void *) intr_ftn);
+		
 		gcc_jit_rvalue *expr;
-		expr = gcc_jit_context_new_call(context.gcc, nullptr, intr_ftn, 1, &arg);
-		expr = gcc_jit_context_new_cast(context.gcc, nullptr, expr, float_type);
+		expr = gcc_jit_context_new_call(context.gcc, LOCATION(context.gcc), intr_ftn, args.size(), args.data());
 
+		fmt::println("  > expression: {}", (void *) expr);
+		
 		jit_instruction ji;
 		ji.value = (gcc_jit_object *) expr;
-		ji.type_info = return_type;
+		ji.type_info = generate_type_field_primitive(context, f32);
+		return ji;
+	}
+
+	case pow:
+	{
+		assert(args.size() == 2);
+		
+		gcc_jit_type *float_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
+		
+		gcc_jit_param *parameters[2];
+		parameters[0] = gcc_jit_context_new_param(context.gcc, LOCATION(context.gcc), float_type, "x");
+		parameters[1] = gcc_jit_context_new_param(context.gcc, LOCATION(context.gcc), float_type, "y");
+
+		gcc_jit_function *intr_ftn = gcc_jit_context_get_builtin_function(context.gcc, "powf");
+
+		fmt::println("intrinsic function: {}", (void *) intr_ftn);
+		
+		gcc_jit_rvalue *expr;
+		expr = gcc_jit_context_new_call(context.gcc, LOCATION(context.gcc), intr_ftn, args.size(), args.data());
+
+		fmt::println("  > expression: {}", (void *) expr);
+		
+		jit_instruction ji;
+		ji.value = (gcc_jit_object *) expr;
+		ji.type_info = generate_type_field_primitive(context, f32);
 		return ji;
 	}
 
@@ -749,7 +822,7 @@ Linkage::jit_result_t Linkage::generate_jit_gcc()
 	JVL_ASSERT(context, "failed to acquire context");
 
 	// TODO: pass options
-	gcc_jit_context_set_int_option(context, GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 3);
+	gcc_jit_context_set_int_option(context, GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 0);
 	gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DEBUGINFO, true);
 	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
 	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_TREE, true);

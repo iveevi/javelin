@@ -1,27 +1,8 @@
-#include <fmt/format.h>
+#include <gtest/gtest.h>
 
-#include "ire/aggregate.hpp"
 #include "ire/core.hpp"
-#include "ire/solidify.hpp"
-#include "ire/uniform_layout.hpp"
-#include "profiles/targets.hpp"
-#include "thunder/linkage.hpp"
 #include "thunder/opt.hpp"
-#include "math_types.hpp"
-#include "logging.hpp"
 #include "constants.hpp"
-
-// TODO: immutability for shader inputs types
-// TODO: demote variables to inline if they are not modified later
-// TODO: warnings for the unused sections
-// TODO: autodiff on inputs, for callables and shaders
-// TODO: synthesizable with name hints
-// TODO: test on shader toy shaders, use this as a gfx test
-// TODO: std.hpp for additional features
-// TODO: passing layout inputs/outputs (should ignore them)
-// TODO: test nested structs again
-// TODO: partial evaluation of callables
-// TODO: parameter qualifiers (e.g. out/inout) as wrapped types
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -88,34 +69,10 @@ auto ref = [](ReferenceMaterial mat, aligned_float3 n, aligned_float3 h)
 	return ret;
 };
 
-namespace jvl {
-
-auto format_as(const float3 &v)
+TEST(ire_jit, material)
 {
-	return fmt::format("({}, {}, {})", v.x, v.y, v.z);
-}
-
-}
-
-namespace jvl::ire {
-
-auto format_as(const aligned_float3 &v)
-{
-	return fmt::format("({}, {}, {})", v.x, v.y, v.z);
-}
-
-}
-
-int main()
-{
-	// ftn.dump();
 	thunder::detail::legalize_for_cc(ftn);
 	thunder::opt_transform(ftn);
-	ftn.dump();
-
-	// fmt::println("{}", ftn.export_to_kernel().compile(profiles::cplusplus_11));
-	// fmt::println("{}", ftn.export_to_kernel().compile(profiles::glsl_450));
-
 	auto compiled = jit(ftn);
 
 	auto m_diffuse = uniform_field(Material, diffuse);
@@ -138,16 +95,6 @@ int main()
 	input[m_has_albedo] = true;
 	input[m_has_normal] = true;
 
-	fmt::println("Inputs:");
-	fmt::println("  > diffuse: {}", input[m_diffuse]);
-	fmt::println("  > specular: {}", input[m_specular]);
-	fmt::println("  > emission: {}", input[m_emission]);
-	fmt::println("  > ambient: {}", input[m_ambient]);
-	fmt::println("  > shininess: {}", input[m_specular]);
-	fmt::println("  > roughness: {}", input[m_roughness]);
-	fmt::println("  > has_albedo: {}", input[m_has_albedo]);
-	fmt::println("  > has_normal: {}", input[m_has_normal]);
-
 	auto output = compiled(input, float3(0, 1, 0), float3(0, 1, 0));
 	
 	fmt::println("Output: {}", output);
@@ -166,4 +113,6 @@ int main()
 	auto reference_output = ref(reference_input, float3(0, 1, 0), float3(0, 1, 0));
 
 	fmt::println("Reference: {}", reference_output);
+
+	ASSERT_EQ(output, reference_output);
 }

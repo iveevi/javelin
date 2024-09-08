@@ -18,14 +18,17 @@ struct s_
   struct vec3 f3;
   float f4;
   float f5;
-  float f6;
-  float f7;
+  bool f6;
+  bool f7;
 };
 
-extern struct s_
-function (struct s_ _arg0)
+extern float
+function (struct s_ _arg0, struct vec3 _arg1, struct vec3 _arg2)
 {
 primary:
-  return (struct s_) {.f0=_arg0.f0, .f1=_arg0.f1, .f2=_arg0.f2, .f3=_arg0.f3, .f4=_arg0.f4, .f5=_arg0.f5, .f6=_arg0.f6, .f7=_arg0.f7};
+  return _arg0.f5 * _arg0.f5 / (float)3.141593 * powf (((float)cos (((double)(float)acos (((double)clamp ((_arg1.x * _arg2.x + _arg1.y * _arg2.y + _arg1.z * _arg2.z), (float)0.000000, (float)0.999000)))))), (float)4.000000) * powf ((_arg0.f5 * _arg0.f5 + (float)tan (((double)(float)acos (((double)clamp ((_arg1.x * _arg2.x + _arg1.y * _arg2.y + _arg1.z * _arg2.z), (float)0.000000, (float)0.999000))))) * (float)tan (((double)(float)acos (((double)clamp ((_arg1.x * _arg2.x + _arg1.y * _arg2.y + _arg1.z * _arg2.z), (float)0.000000, (float)0.999000)))))), (float)2.000000);
 }
+
+extern float
+clamp (float x, float low, float high); /* (imported) */
 

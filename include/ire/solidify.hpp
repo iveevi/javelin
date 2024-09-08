@@ -30,7 +30,17 @@ struct solid_base_t <f32> {
 
 template <>
 struct solid_base_t <i32> {
-	using type = int;
+	using type = int32_t;
+};
+
+template <>
+struct solid_base_t <u32> {
+	using type = int32_t;
+};
+
+template <>
+struct solid_base_t <boolean> {
+	using type = bool;
 };
 
 // Vector types

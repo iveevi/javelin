@@ -12,8 +12,6 @@ MODULE(generate-glsl);
 
 std::string Linkage::generate_glsl(const std::string &version)
 {
-	dump();
-
 	wrapped::hash_table <int, std::string> struct_names;
 
 	// Translating types

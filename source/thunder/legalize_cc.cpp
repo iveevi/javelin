@@ -204,6 +204,74 @@ void legalize_for_cc_vector_constructor(mapped_instruction_t &mapped,
 	mapped.transformed.dump();
 }
 
+void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
+			       IntrinsicOperation opn,
+			       const std::vector <index_t> &args,
+			       const std::vector <PrimitiveType> &types)
+{
+	// Intrinsics which can be successfully legalized
+	static const std::unordered_set <IntrinsicOperation> legalizable {
+		clamp,
+		min, max,
+		dot,
+		sin, cos, tan,
+		asin, acos, atan,
+		pow
+	};
+
+	JVL_ASSERT(legalizable.contains(opn),
+		"intrinsic operation ${} cannot be "
+		"legalized for CC targets",
+		tbl_intrinsic_operation[opn]);
+	
+	auto &em = ire::Emitter::active;
+
+	// Special cases are handled explicitly
+	if (opn == dot) {
+		PrimitiveType type_a = types[0];
+		PrimitiveType type_b = types[1];
+
+		assert(vector_type(type_a) && vector_type(type_b));
+		assert(swizzle_type_of(type_a, SwizzleCode::x) == swizzle_type_of(type_b, SwizzleCode::x));
+		assert(vector_component_count(type_a) == vector_component_count(type_b));
+
+		// Reset and activate the scratch
+		mapped.transformed.clear();
+		em.push(mapped.transformed);
+
+		size_t ccount = vector_component_count(type_a);
+		PrimitiveType ctype = swizzle_type_of(type_a, SwizzleCode::x);
+
+		index_t a = args[0];
+		index_t b = args[1];
+		
+		std::vector <index_t> products(ccount);
+		for (size_t i = 0; i < ccount; i++) {
+			index_t ca = em.emit(Swizzle(a, (SwizzleCode) i));
+			mapped.track(ca, 0b01);
+
+			index_t cb = em.emit(Swizzle(b, (SwizzleCode) i));
+			mapped.track(cb, 0b01);
+
+			index_t l = em.emit(List(cb, -1));
+			l = em.emit(List(ca, l));
+
+			index_t t = em.emit(TypeField(-1, -1, ctype));
+			products[i] = em.emit(Operation(l, t, multiplication));
+		}
+
+		index_t top = products[0];
+		for (size_t i = 0; i < ccount - 1; i++) {
+			index_t l = em.emit_list_chain(top, products[i + 1]);
+			index_t t = em.emit(TypeField(-1, -1, ctype));
+			top = em.emit(Operation(l, t, addition));
+		}
+
+		// TODO: inherit from scratch
+		mapped.transformed.dump();
+	}
+}
+
 void legalize_for_cc(Scratch &scratch)
 {
 	auto &em = ire::Emitter::active;
@@ -288,6 +356,19 @@ void legalize_for_cc(Scratch &scratch)
 
 				legalize_for_cc_vector_constructor(mapped[i], ptype, args, types);
 			}
+		}
+
+		// Some intrinsics need to be legalized, and
+		// others are not supported for CC targets
+		if (auto intrinsic = atom.get <Intrinsic> ()) {
+			auto args = list_args(intrinsic->args);
+			std::vector <PrimitiveType> types;
+			for (auto i : args) {
+				auto ptype = primitive_type_of(pool, i);
+				types.push_back(ptype);
+			}
+
+			legalize_for_cc_intrinsic(mapped[i], intrinsic->opn, args, types);
 		}
 
 		if (!transformed)

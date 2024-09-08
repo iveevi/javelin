@@ -20,9 +20,9 @@ index_t Scratch::emit(const Atom &atom)
 
 void Scratch::clear()
 {
-	// Preserves the pool memory
 	pointer = 0;
-	std::memset(pool.data(), 0, pool.size() * sizeof(Atom));
+	pool.clear();
+	pool.resize(4);
 }
 
 void Scratch::dump()
