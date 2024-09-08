@@ -10,6 +10,7 @@ inline void assertion(bool cond, const std::string &msg)
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::purple), "assertion failed: ");
 	fmt::println("{}", msg);
+	std::fflush(stdout);
 	__builtin_trap();
 }
 
@@ -20,6 +21,7 @@ inline void assertion(bool cond, const std::string &module, const std::string &m
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "({}): ", module);
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::purple), "assertion failed: ");
 	fmt::println("{}", msg);
+	std::fflush(stdout);
 	__builtin_trap();
 }
 
@@ -28,6 +30,7 @@ inline void abort(const std::string &msg)
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::orange_red), "fatal error: ");
 	fmt::println("{}", msg);
+	std::fflush(stdout);
 	exit(-1);
 }
 
@@ -37,6 +40,7 @@ inline void abort(const std::string &module, const std::string &msg)
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "({}): ", module);
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::orange_red), "fatal error: ");
 	fmt::println("{}", msg);
+	std::fflush(stdout);
 	exit(-1);
 }
 
@@ -45,6 +49,7 @@ inline void error(const std::string &msg)
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::orange_red), "error: ");
 	fmt::println("{}", msg);
+	std::fflush(stdout);
 }
 
 inline void error(const std::string &module, const std::string &msg)
@@ -53,6 +58,7 @@ inline void error(const std::string &module, const std::string &msg)
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "({}): ", module);
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::orange_red), "error: ");
 	fmt::println("{}", msg);
+	std::fflush(stdout);
 }
 
 inline void warning(const std::string &msg)
@@ -60,6 +66,7 @@ inline void warning(const std::string &msg)
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gold), "warning: ");
 	fmt::println("{}", msg);
+	std::fflush(stdout);
 }
 
 inline void warning(const std::string &module, const std::string &msg)
@@ -68,6 +75,7 @@ inline void warning(const std::string &module, const std::string &msg)
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "({}): ", module);
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gold), "warning: ");
 	fmt::println("{}", msg);
+	std::fflush(stdout);
 }
 
 inline void info(const std::string &msg)
@@ -75,6 +83,7 @@ inline void info(const std::string &msg)
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::cyan), "info: ");
 	fmt::println("{}", msg);
+	std::fflush(stdout);
 }
 
 inline void info(const std::string &module, const std::string &msg)
@@ -83,6 +92,7 @@ inline void info(const std::string &module, const std::string &msg)
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "({}): ", module);
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::cyan), "info: ");
 	fmt::println("{}", msg);
+	std::fflush(stdout);
 }
 
 // Helper macros for easier logging
