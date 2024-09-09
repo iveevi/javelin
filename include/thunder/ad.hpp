@@ -1,10 +1,10 @@
 #pragma once
 
-#include "scratch.hpp"
+#include "buffer.hpp"
 
 namespace jvl::thunder {
 
-void ad_fwd_transform(Scratch &, const Scratch &);
-void ad_bwd_transform(Scratch &, const Scratch &);
+void ad_fwd_transform(Buffer &, const Buffer &);
+void ad_bwd_transform(Buffer &, const Buffer &);
 
 } // namespace jvl::thunder

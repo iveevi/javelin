@@ -374,7 +374,7 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 	em.pop();
 }
 
-void ad_fwd_transform(Scratch &result, const Scratch &source)
+void ad_fwd_transform(Buffer &result, const Buffer &source)
 {
 	auto &em = ire::Emitter::active;
 	auto &pool = source.pool;

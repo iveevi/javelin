@@ -1,14 +1,14 @@
 #include "thunder/kernel.hpp"
-#include "thunder/scratch.hpp"
+#include "thunder/buffer.hpp"
 #include "logging.hpp"
 
 namespace jvl::thunder {
 
-MODULE(scratch);
+MODULE(buffer);
 
-Scratch::Scratch() : pointer(0), pool(4) {}
+Buffer::Buffer() : pointer(0), pool(4) {}
 
-index_t Scratch::emit(const Atom &atom)
+index_t Buffer::emit(const Atom &atom)
 {
 	if (pointer >= pool.size())
 		pool.resize((pool.size() << 1));
@@ -22,7 +22,7 @@ index_t Scratch::emit(const Atom &atom)
 }
 
 // Kernel transfer
-Kernel Scratch::export_to_kernel() const
+Kernel Buffer::export_to_kernel() const
 {
 	// TODO: export the kernel, then optimize and dce, and then validate...
 	// validate();
@@ -37,7 +37,7 @@ Kernel Scratch::export_to_kernel() const
 }
 
 // Validation for kernels
-void Scratch::validate() const
+void Buffer::validate() const
 {
 	// Phase 1: Verify that layout IOs are consistent
 	// TODO: recursive IR cmp
@@ -70,14 +70,14 @@ void Scratch::validate() const
 	}
 }
 
-void Scratch::clear()
+void Buffer::clear()
 {
 	pointer = 0;
 	pool.clear();
 	pool.resize(4);
 }
 
-void Scratch::dump()
+void Buffer::dump()
 {
 	fmt::println("------------------------------");
 	fmt::println("SCRATCH ({}/{})", pointer, pool.size());

@@ -8,7 +8,7 @@ namespace jvl::thunder {
 
 MODULE(optimization);
 
-bool opt_transform_compact(Scratch &result)
+bool opt_transform_compact(Buffer &result)
 {
 	bool marked = false;
 
@@ -42,7 +42,7 @@ bool opt_transform_compact(Scratch &result)
 	return marked;
 }
 
-bool opt_transform_constructor_elision(Scratch &result)
+bool opt_transform_constructor_elision(Buffer &result)
 {
 	// Find places where load from a constructed struct's field
 	// can be skipped by simply forwarding the result it was
@@ -120,7 +120,7 @@ bool opt_transform_dce_exempt(const Atom &atom)
 		|| atom.is <End> (); // TODO: we should be able to optimize this out...
 }
 
-bool opt_transform_dead_code_elimination(Scratch &result)
+bool opt_transform_dead_code_elimination(Buffer &result)
 {
 	usage_graph graph = usage(result);
 
@@ -179,7 +179,7 @@ bool opt_transform_dead_code_elimination(Scratch &result)
 			relocation[i] = pointer++;
 	}
 
-	Scratch doubled;
+	Buffer doubled;
 	for (index_t i = 0; i < result.pointer; i++) {
 		if (relocation.contains(i)) {
 			result.pool[i].reindex(relocation);
@@ -193,7 +193,7 @@ bool opt_transform_dead_code_elimination(Scratch &result)
 	return (result.pointer != doubled.pointer);
 }
 
-void opt_transform(Scratch &result)
+void opt_transform(Buffer &result)
 {
 	JVL_STAGE();
 

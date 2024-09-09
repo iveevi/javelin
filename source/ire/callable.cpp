@@ -3,7 +3,7 @@
 
 namespace jvl::ire {
 
-Callable::Callable() : Scratch()
+Callable::Callable() : Buffer()
 {
 	static size_t id = 0;
 	cid = id++;

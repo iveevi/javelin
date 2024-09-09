@@ -20,7 +20,7 @@ usage_set usage(const std::vector <Atom> &pool, index_t index)
 	return indices;
 }
 
-usage_set usage(const Scratch &scratch, index_t index)
+usage_set usage(const Buffer &scratch, index_t index)
 {
 	usage_set indices;
 	for (index_t i = index + 1; i < scratch.pointer; i++) {
@@ -31,7 +31,7 @@ usage_set usage(const Scratch &scratch, index_t index)
 	return indices;
 }
 
-usage_graph usage(const Scratch &scratch)
+usage_graph usage(const Buffer &scratch)
 {
 	usage_graph graph(scratch.pointer);
 	for (index_t i = 0; i < graph.size(); i++)

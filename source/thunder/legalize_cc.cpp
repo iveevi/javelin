@@ -275,14 +275,14 @@ void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 	}
 }
 
-void legalize_for_cc(Scratch &scratch)
+void legalize_for_cc(Buffer &buffer)
 {
 	JVL_INFO("legalizing intermediate representation for CC targets");
 
 	auto &em = ire::Emitter::active;
-	auto &pool = scratch.pool;
+	auto &pool = buffer.pool;
 
-	std::vector <mapped_instruction_t> mapped(scratch.pointer);
+	std::vector <mapped_instruction_t> mapped(buffer.pointer);
 
 	for (index_t i = 0; i < mapped.size(); i++) {
 		auto &atom = pool[i];
@@ -380,8 +380,8 @@ void legalize_for_cc(Scratch &scratch)
 			mapped[i].track(0);
 	}
 
-	scratch = Scratch();
-	stitch_mapped_instructions(scratch, mapped);
+	buffer = Buffer();
+	stitch_mapped_instructions(buffer, mapped);
 	
 	JVL_INFO("completed legalization pass");
 }

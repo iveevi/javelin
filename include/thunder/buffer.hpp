@@ -8,13 +8,13 @@ namespace jvl::thunder {
 struct Kernel;
 
 // Arbitrary pools of atoms
-struct Scratch {
+struct Buffer {
 	std::vector <Atom> pool;
 	// TODO: mirror map with type references
 	// TODO: mirror map with next references
 	size_t pointer;
 
-	Scratch();
+	Buffer();
 
 	index_t emit(const Atom &);
 	Kernel export_to_kernel() const;

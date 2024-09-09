@@ -35,6 +35,7 @@ add_library(javelin-ire STATIC
 	source/ire/emitter.cpp
 	source/thunder/atom.cpp
 	source/thunder/autodiff_forward.cpp
+	source/thunder/buffer.cpp
 	source/thunder/comparison.cpp
 	source/thunder/generate_body_c_like.cpp
 	source/thunder/generate_cplusplus.cpp
@@ -44,7 +45,6 @@ add_library(javelin-ire STATIC
 	source/thunder/legalize_cc.cpp
 	source/thunder/linkage.cpp
 	source/thunder/optimization.cpp
-	source/thunder/scratch.cpp
 	source/thunder/stitch.cpp
 	source/thunder/synthesized.cpp
 	source/thunder/usage.cpp)

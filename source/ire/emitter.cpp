@@ -16,7 +16,7 @@ namespace jvl::ire {
 MODULE(emitter);
 
 // Scope management
-void Emitter::push(thunder::Scratch &scratch)
+void Emitter::push(thunder::Buffer &scratch)
 {
 	scopes.push(std::ref(scratch));
 	// JVL_INFO("pushed new scratch buffer to global emitter ({} scopes)", scopes.size());

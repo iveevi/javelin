@@ -3,12 +3,10 @@
 #include <functional>
 #include <initializer_list>
 #include <stack>
-#include <unordered_set>
 
-#include "../thunder/scratch.hpp"
+#include "../thunder/buffer.hpp"
 #include "../thunder/atom.hpp"
 #include "../thunder/kernel.hpp"
-#include "../wrapped_types.hpp"
 
 namespace jvl::ire {
 
@@ -17,12 +15,12 @@ struct Emitter {
 	using index_t = thunder::index_t;
 
 	std::stack <index_t> control_flow_ends;
-	std::stack <std::reference_wrapper <thunder::Scratch>> scopes;
+	std::stack <std::reference_wrapper <thunder::Buffer>> scopes;
 
 	Emitter() = default;
 
 	// Managing the scope
-	void push(thunder::Scratch &);
+	void push(thunder::Buffer &);
 	void pop();
 
 	// Emitting instructions during function invocation
@@ -70,16 +68,11 @@ template <typename F, typename ... Args>
 thunder::Kernel kernel_from_args(const F &ftn, const Args &... args)
 {
 	auto &em = Emitter::active;
-	thunder::Scratch scratch;
+	thunder::Buffer scratch;
 	em.push(scratch);
-	ftn(args...);
-	// TODO: export to kernel for scratches in general
-
-	auto kernel = scratch.export_to_kernel();
-	
+		ftn(args...);
 	em.pop();
-
-	return kernel;
+	return scratch.export_to_kernel();
 }
 
 } // namespace jvl::ire

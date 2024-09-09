@@ -1,8 +1,6 @@
 #include <gtest/gtest.h>
 
 #include "ire/core.hpp"
-#include "thunder/scratch.hpp"
-#include "thunder/scratch.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -28,7 +26,7 @@ bool ir_cmp_op(const thunder::Atom &ref, const thunder::Atom &g)
 	return false;
 }
 
-int ir_op_occurence(const thunder::Scratch &scratch, const thunder::Atom &g)
+int ir_op_occurence(const thunder::Buffer &scratch, const thunder::Atom &g)
 {
 	int count = 0;
 	for (size_t i = 0; i < scratch.pointer; i++) {
@@ -43,7 +41,7 @@ int ir_op_occurence(const thunder::Scratch &scratch, const thunder::Atom &g)
 template <primitive_type T>
 void synthesize_layout_io_inner()
 {
-	thunder::Scratch scratch;
+	thunder::Buffer scratch;
 
 	Emitter::active.push(scratch);
 	{
