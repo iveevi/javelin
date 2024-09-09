@@ -115,7 +115,9 @@ bool opt_transform_dce_exempt(const Atom &atom)
 {
 	return atom.is <Returns> ()
 		|| atom.is <Store> ()
-		|| atom.is <Global> ();
+		|| atom.is <Global> ()
+		|| atom.is <Branch> ()
+		|| atom.is <End> (); // TODO: we should be able to optimize this out...
 }
 
 bool opt_transform_dead_code_elimination(Scratch &result)
@@ -193,6 +195,8 @@ bool opt_transform_dead_code_elimination(Scratch &result)
 
 void opt_transform(Scratch &result)
 {
+	JVL_STAGE();
+
 	bool changed;
 	do {
 		JVL_INFO("looped optimization pass (current # of atoms: {})", result.pointer);

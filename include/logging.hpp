@@ -95,6 +95,24 @@ inline void info(const std::string &module, const std::string &msg)
 	std::fflush(stdout);
 }
 
+struct stage_bracket {
+	std::string module;
+
+	stage_bracket(const std::string &module_) : module(module_) {
+		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin ");
+		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "({}): ", module);
+		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::white_smoke), "stage enter\n");
+		std::fflush(stdout);
+	}
+
+	~stage_bracket() {
+		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin ");
+		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "({}): ", module);
+		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::white_smoke), "stage exit\n");
+		std::fflush(stdout);
+	}
+};
+
 // Helper macros for easier logging
 #define MODULE(name) static constexpr const char __module__[] = #name
 
@@ -103,9 +121,8 @@ inline void info(const std::string &module, const std::string &msg)
 #define JVL_ERROR(...)		log::error(__module__, fmt::format(__VA_ARGS__))
 #define JVL_WARNING(...)	log::warning(__module__, fmt::format(__VA_ARGS__))
 #define JVL_INFO(...)		log::info(__module__, fmt::format(__VA_ARGS__))
+#define JVL_STAGE()		log::stage_bracket __stage(__module__)
 
 // TODO: info_verbose (logging in cmd line)
-// TODO: info_begin_pass
-// TODO: info_confirm (green)
 
 } // namespace log

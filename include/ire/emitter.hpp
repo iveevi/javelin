@@ -16,7 +16,7 @@ namespace jvl::ire {
 struct Emitter : thunder::Scratch {
 	using index_t = thunder::index_t;
 
-	std::stack <thunder::index_t> control_flow_ends;
+	std::stack <index_t> control_flow_ends;
 	std::stack <std::reference_wrapper <Scratch>> scopes;
 
 	Emitter();

@@ -38,6 +38,12 @@ inline void loop(const boolean &b)
 	em.emit(branch);
 }
 
+inline void end()
+{
+	auto &em = Emitter::active;
+	em.emit(thunder::End());
+}
+
 template <typename ... Args>
 inline void returns(const Args &... args)
 {
@@ -53,12 +59,6 @@ inline void returns(const Args &... args)
 	}
 
 	em.emit(ret);
-}
-
-inline void end()
-{
-	auto &em = Emitter::active;
-	em.emit(thunder::End());
 }
 
 } // namespace jvl::ire

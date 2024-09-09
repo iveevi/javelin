@@ -6,6 +6,7 @@
 #include <fmt/core.h>
 
 #include "ire/emitter.hpp"
+#include "thunder/atom.hpp"
 #include "thunder/opt.hpp"
 #include "wrapped_types.hpp"
 #include "logging.hpp"
@@ -46,26 +47,31 @@ Emitter::index_t Emitter::emit(const thunder::Atom &atom)
 
 Emitter::index_t Emitter::emit(const thunder::Branch &branch)
 {
-	int p = emit((thunder::Atom) branch);
-	control_flow_ends.push(p);
-	return p;
+	JVL_INFO("emitting branch instruction");
+
+	// TODO: check else if and loops
+	index_t i = emit((thunder::Atom) branch);
+	control_flow_ends.push(i);
+	return i;
 }
 
 Emitter::index_t Emitter::emit(const thunder::While &loop)
 {
-	int p = emit((thunder::Atom) loop);
-	control_flow_ends.push(p);
-	return p;
+	JVL_ABORT("emitting for loops not implemented");
+	return -1;
 }
 
 Emitter::index_t Emitter::emit(const thunder::End &end)
 {
-	int p = emit((thunder::Atom) end);
-	assert(control_flow_ends.size());
-	auto ref = control_flow_ends.top();
+	JVL_ASSERT(control_flow_ends.size(), "end instruction called without an existing control flow");
+
+	index_t i = emit((thunder::Atom) end);
+	index_t ref = control_flow_ends.top();
+	JVL_INFO("emitting end instruction @{} to close ref @{}", i, ref);
+
+	control_flow_callback(ref, i);
 	control_flow_ends.pop();
-	control_flow_callback(ref, p);
-	return p;
+	return i;
 }
 
 Emitter::index_t Emitter::emit_list_chain(const std::vector <index_t> &atoms)
@@ -93,19 +99,19 @@ std::vector <Emitter::index_t> Emitter::emit_sequence(const std::initializer_lis
 
 void Emitter::control_flow_callback(int ref, int p)
 {
-	thunder::Atom op;
-	if (scopes.size())
-		op = scopes.top().get().pool[ref];
-	else
-		op = pool[ref];
-
-	if (op.is <thunder::Branch> ()) {
-		op.as <thunder::Branch> ().failto = p;
-	} else if (op.is <thunder::While> ()) {
-		op.as <thunder::While> ().failto = p;
+	if (scopes.size()) {
+		auto &atom = scopes.top().get().pool[ref];
+		// TODO: branch classification
+		JVL_ASSERT(atom.is <thunder::Branch> (),
+			"callback location (scoped) is not a branch: {} (@{})",
+			atom, ref);
+		atom.as <thunder::Branch> ().failto = p;
 	} else {
-		fmt::print("op not conditional, is actually: {}", op.to_string());
-		abort();
+		auto &atom = pool[ref];
+		JVL_ASSERT(atom.is <thunder::Branch> (),
+			"callback location (scoped) is not a branch: {} (@{})",
+			atom, ref);
+		atom.as <thunder::Branch> ().failto = p;
 	}
 }
 

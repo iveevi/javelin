@@ -26,144 +26,22 @@
 using namespace jvl;
 using namespace jvl::ire;
 
-// Material properties
-struct Material {
-	vec3 diffuse;
-	vec3 specular;
-	vec3 emission;
-	vec3 ambient;
-
-	f32 shininess;
-	f32 roughness;
-
-	boolean has_albedo;
-	boolean has_normal;
-
-	auto layout() const {
-		return uniform_layout(
-			"Material",
-			named_field(diffuse),
-			named_field(specular),
-			named_field(emission),
-			named_field(ambient),
-			named_field(shininess),
-			named_field(roughness),
-			named_field(has_albedo),
-			named_field(has_normal)
-		);
-	}
-};
-
-struct ReferenceMaterial {
-	aligned_float3 diffuse;
-	aligned_float3 specular;
-	aligned_float3 emission;
-	aligned_float3 ambient;
-
-	float shininess;
-	float roughness;
-
-	bool has_albedo;
-	bool has_normal;
-};
-
-// GGX microfacet distribution function
-auto ftn = callable_info() >> [](Material mat, vec3 n, vec3 h)
+auto ftn = callable_info_r <f32> () >> [](vec3 n, vec3 h)
 {
-	f32 alpha = mat.roughness;
-	f32 theta = acos(clamp(dot(n, h), 0.0f, 0.999f));
-	f32 ret = (alpha * alpha)
-		/ (pi <float> * pow(cos(theta), 4)
-		* pow(alpha * alpha + tan(theta) * tan(theta), 2.0f));
-	return ret;
+	f32 theta = dot(n, h);
+	cond(theta > 1);
+		returns(-1);
+	end();
+
+	returns(acos(theta));
 };
-
-auto ref = [](ReferenceMaterial mat, aligned_float3 n, aligned_float3 h)
-{
-	float alpha = mat.roughness;
-	float theta = acos(std::clamp(dot(n, h), 0.0f, 0.999f));
-	float ret = (alpha * alpha)
-		/ (pi <float> * pow(cos(theta), 4)
-		* pow(alpha * alpha + tan(theta) * tan(theta), 2.0f));
-	return ret;
-};
-
-namespace jvl {
-
-auto format_as(const float3 &v)
-{
-	return fmt::format("({}, {}, {})", v.x, v.y, v.z);
-}
-
-}
-
-namespace jvl::ire {
-
-auto format_as(const aligned_float3 &v)
-{
-	return fmt::format("({}, {}, {})", v.x, v.y, v.z);
-}
-
-}
 
 int main()
 {
-	// ftn.dump();
-	thunder::detail::legalize_for_cc(ftn);
+	ftn.dump();
 	thunder::opt_transform(ftn);
 	ftn.dump();
 
-	// fmt::println("{}", ftn.export_to_kernel().compile(profiles::cplusplus_11));
-	// fmt::println("{}", ftn.export_to_kernel().compile(profiles::glsl_450));
-
-	auto compiled = jit(ftn);
-
-	auto m_diffuse = uniform_field(Material, diffuse);
-	auto m_specular = uniform_field(Material, specular);
-	auto m_emission = uniform_field(Material, emission);
-	auto m_ambient = uniform_field(Material, ambient);
-	auto m_shininess = uniform_field(Material, shininess);
-	auto m_roughness = uniform_field(Material, roughness);
-	auto m_has_albedo = uniform_field(Material, has_albedo);
-	auto m_has_normal = uniform_field(Material, has_normal);
-
-	auto input = solid_t <Material> ();
-
-	input[m_diffuse] = float3(1, 2, 3);
-	input[m_specular] = float3(4, 5, 6);
-	input[m_emission] = float3(7, 8, 9);
-	input[m_ambient] = float3(10, 11, 12);
-	input[m_shininess] = 13;
-	input[m_roughness] = 14;
-	input[m_has_albedo] = true;
-	input[m_has_normal] = true;
-
-	fmt::println("Inputs:");
-	fmt::println("  > diffuse: {}", input[m_diffuse]);
-	fmt::println("  > specular: {}", input[m_specular]);
-	fmt::println("  > emission: {}", input[m_emission]);
-	fmt::println("  > ambient: {}", input[m_ambient]);
-	fmt::println("  > shininess: {}", input[m_specular]);
-	fmt::println("  > roughness: {}", input[m_roughness]);
-	fmt::println("  > has_albedo: {}", input[m_has_albedo]);
-	fmt::println("  > has_normal: {}", input[m_has_normal]);
-
-	auto output = compiled(input, float3(0, 1, 0), float3(0, 1, 0));
-	
-	fmt::println("Output: {}", output);
-	
-	auto reference_input = ReferenceMaterial();
-
-	reference_input.diffuse = float3(1, 2, 3);
-	reference_input.specular = float3(4, 5, 6);
-	reference_input.emission = float3(7, 8, 9);
-	reference_input.ambient = float3(10, 11, 12);
-	reference_input.shininess = 13;
-	reference_input.roughness = 14;
-	reference_input.has_albedo = true;
-	reference_input.has_normal = true;
-
-	auto reference_output = ref(reference_input, float3(0, 1, 0), float3(0, 1, 0));
-
-	fmt::println("Reference: {}", reference_output);
+	fmt::println("{}", ftn.export_to_kernel().compile(profiles::cplusplus_11));
+	fmt::println("{}", ftn.export_to_kernel().compile(profiles::glsl_450));
 }
