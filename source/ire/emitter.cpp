@@ -15,34 +15,24 @@ namespace jvl::ire {
 
 MODULE(emitter);
 
-Emitter::Emitter() : Scratch() {}
-
-// TODO: every level should have be a scratch
-void Emitter::clear()
-{
-	Scratch::clear();
-}
-
 // Scope management
-void Emitter::push(Scratch &scratch)
+void Emitter::push(thunder::Scratch &scratch)
 {
 	scopes.push(std::ref(scratch));
-	JVL_INFO("pushed new scratch buffer to global emitter ({} scopes)", scopes.size());
+	// JVL_INFO("pushed new scratch buffer to global emitter ({} scopes)", scopes.size());
 }
 
 void Emitter::pop()
 {
 	scopes.pop();
-	JVL_INFO("popped scratch buffer from global emitter ({} scopes)", scopes.size());
+	// JVL_INFO("popped scratch buffer from global emitter ({} scopes)", scopes.size());
 }
 
 // Emitting instructions during function invocation
 Emitter::index_t Emitter::emit(const thunder::Atom &atom)
 {
-	if (scopes.size())
-		return scopes.top().get().emit(atom);
-
-	return Scratch::emit(atom);
+	JVL_ASSERT(scopes.size(), "in emit: no active scope");
+	return scopes.top().get().emit(atom);
 }
 
 Emitter::index_t Emitter::emit(const thunder::Branch &branch)
@@ -99,90 +89,25 @@ std::vector <Emitter::index_t> Emitter::emit_sequence(const std::initializer_lis
 
 void Emitter::control_flow_callback(int ref, int p)
 {
-	if (scopes.size()) {
-		auto &atom = scopes.top().get().pool[ref];
-		// TODO: branch classification
-		JVL_ASSERT(atom.is <thunder::Branch> (),
-			"callback location (scoped) is not a branch: {} (@{})",
-			atom, ref);
-		atom.as <thunder::Branch> ().failto = p;
-	} else {
-		auto &atom = pool[ref];
-		JVL_ASSERT(atom.is <thunder::Branch> (),
-			"callback location (scoped) is not a branch: {} (@{})",
-			atom, ref);
-		atom.as <thunder::Branch> ().failto = p;
-	}
-}
-
-// Validating IR
-void Emitter::validate() const
-{
-	// Phase 1: Verify that layout IOs are consistent
-	// TODO: recursive IR cmp
-
-	wrapped::hash_table <int, int> inputs;
-	wrapped::hash_table <int, int> outputs;
-
-	for (int i = 0; i < pointer; i++) {
-		thunder::Atom g = pool[i];
-		if (!g.is <thunder::Global>())
-			continue;
-
-		thunder::Global global = g.as <thunder::Global> ();
-		if (global.qualifier == thunder::GlobalQualifier::layout_in) {
-			int type = global.type;
-			int binding = global.binding;
-			if (inputs.count(binding) && inputs[binding] != type)
-				fmt::println("JVL (error): layout in type conflict with binding #{}", binding);
-			else
-				inputs[binding] = type;
-		} else if (global.qualifier == thunder::GlobalQualifier::layout_out) {
-			int type = global.type;
-			int binding = global.binding;
-			if (outputs.count(binding) && outputs[binding] != type)
-				fmt::println("JVL (error): layout out type conflict with binding #{}", binding);
-			else
-				outputs[binding] = type;
-		}
-	}
-}
-
-// Kernel transfer
-thunder::Kernel Emitter::export_to_kernel()
-{
-	// TODO: export the kernel, then optimize and dce, and then validate...
-	// validate();
-
-	// TODO: run through optimizations
-
-	thunder::Kernel kernel(thunder::Kernel::eAll);
-	kernel.atoms = pool;
-	kernel.atoms.resize(pointer);
-
-	// No longer "owns" the IR
-	clear();
-
-	return kernel;
+	auto &atom = scopes.top().get().pool[ref];
+	// TODO: branch classification
+	JVL_ASSERT(atom.is <thunder::Branch> (),
+		"callback location (scoped) is not a branch: {} (@{})",
+		atom, ref);
+	atom.as <thunder::Branch> ().failto = p;
 }
 
 // Printing the IR state
 void Emitter::dump()
 {
-	if (scopes.empty()) {
-		fmt::println("------------------------------");
-		fmt::println("GLOBALS ({}/{})", pointer, pool.size());
-		fmt::println("------------------------------");
-		for (size_t i = 0; i < pointer; i++)
-			fmt::println("  [{:4d}]: {}", i, pool[i].to_string());
-	} else {
-		auto &scratch = scopes.top().get();
-		fmt::println("------------------------------");
-		fmt::println("GLOBALS-SCRATCH ({}/{})", scratch.pointer, scratch.pool.size());
-		fmt::println("------------------------------");
-		for (size_t i = 0; i < scratch.pointer; i++)
-			fmt::println("  [{:4d}]: {}", i, scratch.pool[i].to_string());
-	}
+	JVL_ASSERT(scopes.size(), "in dump: no active scope");
+
+	auto &scratch = scopes.top().get();
+	fmt::println("------------------------------");
+	fmt::println("GLOBALS-SCRATCH ({}/{})", scratch.pointer, scratch.pool.size());
+	fmt::println("------------------------------");
+	for (size_t i = 0; i < scratch.pointer; i++)
+		fmt::println("  [{:4d}]: {}", i, scratch.pool[i].to_string());
 }
 
 thread_local Emitter Emitter::active;

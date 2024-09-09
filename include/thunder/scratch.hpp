@@ -4,6 +4,9 @@
 
 namespace jvl::thunder {
 
+// Forward declarations
+struct Kernel;
+
 // Arbitrary pools of atoms
 struct Scratch {
 	std::vector <Atom> pool;
@@ -13,12 +16,10 @@ struct Scratch {
 
 	Scratch();
 
-	void reserve(size_t);
-
 	index_t emit(const Atom &);
-
+	Kernel export_to_kernel() const;
+	void validate() const;
 	void clear();
-
 	void dump();
 };
 

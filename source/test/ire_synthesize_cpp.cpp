@@ -29,7 +29,6 @@ void check_cpluslpus_source(const std::string &cpp)
 template <typename T>
 void simple_io()
 {
-	Emitter::active.dump();
 	auto shader = []() {
 		layout_in <T> lin(0);
 		layout_out <T> lout(0);

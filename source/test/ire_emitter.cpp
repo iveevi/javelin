@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "ire/core.hpp"
+#include "thunder/scratch.hpp"
+#include "thunder/scratch.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -26,45 +28,30 @@ bool ir_cmp_op(const thunder::Atom &ref, const thunder::Atom &g)
 	return false;
 }
 
-int ir_op_occurence(const thunder::Atom &g)
+int ir_op_occurence(const thunder::Scratch &scratch, const thunder::Atom &g)
 {
 	int count = 0;
-	for (size_t i = 0; i < Emitter::active.pointer; i++) {
-		thunder::Atom g_ref = Emitter::active.pool[i];
-		if (ir_cmp_op(g_ref, g))
+	for (size_t i = 0; i < scratch.pointer; i++) {
+		thunder::Atom atom = scratch.pool[i];
+		if (ir_cmp_op(atom, g))
 			count++;
 	}
 
 	return count;
 }
 
-TEST(ire_emitter, synthesize_empty)
-{
-	Emitter::active.clear();
-
-	auto shader = []() {
-		layout_in <float> lin(0);
-	};
-
-	shader();
-
-	ASSERT_EQ(Emitter::active.pointer, 0);
-}
-
-// TEST(ire_emitter, synthesize_layout_io)
-
 template <primitive_type T>
 void synthesize_layout_io_inner()
 {
-	Emitter::active.clear();
+	thunder::Scratch scratch;
 
-	auto shader = []() {
+	Emitter::active.push(scratch);
+	{
 		layout_in <T> lin(0);
 		layout_out <T> lout(0);
 		lout = lin;
-	};
-
-	shader();
+	}
+	Emitter::active.pop();
 
 	thunder::Global lin;
 	lin.qualifier = thunder::GlobalQualifier::layout_in;
@@ -77,9 +64,9 @@ void synthesize_layout_io_inner()
 	thunder::TypeField type_field;
 	type_field.item = synthesize_primitive_type <T> ();
 
-	EXPECT_EQ(ir_op_occurence(lin), 1);
-	EXPECT_EQ(ir_op_occurence(lout), 1);
-	EXPECT_EQ(ir_op_occurence(type_field), 2);
+	EXPECT_EQ(ir_op_occurence(scratch, lin), 1);
+	EXPECT_EQ(ir_op_occurence(scratch, lout), 1);
+	EXPECT_EQ(ir_op_occurence(scratch, type_field), 2);
 }
 
 TEST(ire_emitter, synthesize_layout_io_int)

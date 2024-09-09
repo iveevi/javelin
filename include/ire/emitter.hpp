@@ -13,19 +13,16 @@
 namespace jvl::ire {
 
 // More advanced pool which manages control flow as well as scopes of pools
-struct Emitter : thunder::Scratch {
+struct Emitter {
 	using index_t = thunder::index_t;
 
 	std::stack <index_t> control_flow_ends;
-	std::stack <std::reference_wrapper <Scratch>> scopes;
+	std::stack <std::reference_wrapper <thunder::Scratch>> scopes;
 
-	Emitter();
-
-	// Resizing and compaction
-	void clear();
+	Emitter() = default;
 
 	// Managing the scope
-	void push(Scratch &);
+	void push(thunder::Scratch &);
 	void pop();
 
 	// Emitting instructions during function invocation
@@ -63,13 +60,6 @@ struct Emitter : thunder::Scratch {
 	// Callbacks for control flow types
 	void control_flow_callback(int, int);
 
-	// Validating IR
-	// TODO: pass stage
-	void validate() const;
-
-	// Transfering to a Kernel object
-	thunder::Kernel export_to_kernel();
-
 	// Printing the IR state
 	void dump();
 
@@ -79,9 +69,17 @@ struct Emitter : thunder::Scratch {
 template <typename F, typename ... Args>
 thunder::Kernel kernel_from_args(const F &ftn, const Args &... args)
 {
-	Emitter::active.clear();
+	auto &em = Emitter::active;
+	thunder::Scratch scratch;
+	em.push(scratch);
 	ftn(args...);
-	return Emitter::active.export_to_kernel();
+	// TODO: export to kernel for scratches in general
+
+	auto kernel = scratch.export_to_kernel();
+	
+	em.pop();
+
+	return kernel;
 }
 
 } // namespace jvl::ire
