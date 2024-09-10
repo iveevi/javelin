@@ -34,14 +34,15 @@ auto ftn = callable_info_r <f32> () >> [](vec3 n, vec3 h)
 	end();
 
 	returns(acos(theta));
+	Emitter::active.dump();
 };
 
 int main()
 {
 	ftn.dump();
-	thunder::opt_transform(ftn);
-	ftn.dump();
+	// thunder::opt_transform(ftn);
+	// ftn.dump();
 
 	fmt::println("{}", ftn.export_to_kernel().compile(profiles::cplusplus_11));
-	fmt::println("{}", ftn.export_to_kernel().compile(profiles::glsl_450));
+	// fmt::println("{}", ftn.export_to_kernel().compile(profiles::glsl_450));
 }

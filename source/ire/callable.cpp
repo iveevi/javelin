@@ -48,8 +48,7 @@ void Callable::dump()
 	fmt::println("------------------------------");
 	fmt::println("CALLABLE ${} ({}/{})", name, pointer, pool.size());
 	fmt::println("------------------------------");
-	for (size_t i = 0; i < pointer; i++)
-		fmt::println("   [{:4d}]: {}", i, pool[i].to_string());
+	Buffer::dump();
 }
 
 } // namespace jvl::ire

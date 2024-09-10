@@ -119,7 +119,7 @@ struct callable_t : Callable {
 			cache_index_t cit;
 			cit = em.emit(call);
 
-			layout.__ref_with(cit);
+			layout.ref_with(cit);
 			return instance;
 		}
 

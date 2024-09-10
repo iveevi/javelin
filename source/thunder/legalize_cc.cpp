@@ -293,22 +293,6 @@ void legalize_for_cc(Buffer &buffer)
 		em.pop();
 	}
 
-	auto list_args = [&](index_t i) {
-		// TODO: util function
-		std::vector <index_t> args;
-		while (i != -1) {
-			auto &atom = pool[i];
-			assert(atom.is <List> ());
-
-			List list = atom.as <List> ();
-			args.push_back(list.item);
-
-			i = list.next;
-		}
-
-		return args;
-	};
-
 	for (index_t i = 0; i < mapped.size(); i++) {
 		bool transformed = false;
 
@@ -323,7 +307,7 @@ void legalize_for_cc(Buffer &buffer)
 			// primitive types at this point
 			// fmt::println("binary operation: {}", atom);
 
-			auto args = list_args(operation->args);
+			auto args = buffer.expand_list(operation->args);
 			// fmt::println("type for each args:");
 
 			std::vector <PrimitiveType> types;
@@ -352,7 +336,7 @@ void legalize_for_cc(Buffer &buffer)
 				fmt::println("legalizing constructor: {}", atom);
 				fmt::println("constructor for vector type: {}", tbl_primitive_types[ptype]);
 				size_t components = vector_component_count(ptype);
-				auto args = list_args(constructor->args);
+				auto args = buffer.expand_list(constructor->args);
 				std::vector <PrimitiveType> types;
 				for (auto i : args) {
 					auto ptype = primitive_type_of(pool, i);
@@ -366,7 +350,7 @@ void legalize_for_cc(Buffer &buffer)
 		// Some intrinsics need to be legalized, and
 		// others are not supported for CC targets
 		if (auto intrinsic = atom.get <Intrinsic> ()) {
-			auto args = list_args(intrinsic->args);
+			auto args = buffer.expand_list(intrinsic->args);
 			std::vector <PrimitiveType> types;
 			for (auto i : args) {
 				auto ptype = primitive_type_of(pool, i);

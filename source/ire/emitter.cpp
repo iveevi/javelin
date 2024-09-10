@@ -102,12 +102,11 @@ void Emitter::dump()
 {
 	JVL_ASSERT(scopes.size(), "in dump: no active scope");
 
-	auto &scratch = scopes.top().get();
+	auto &buffer = scopes.top().get();
 	fmt::println("------------------------------");
-	fmt::println("GLOBALS-SCRATCH ({}/{})", scratch.pointer, scratch.pool.size());
+	fmt::println("BUFFER IN PROGRESS ({}/{})", buffer.pointer, buffer.pool.size());
 	fmt::println("------------------------------");
-	for (size_t i = 0; i < scratch.pointer; i++)
-		fmt::println("  [{:4d}]: {}", i, scratch.pool[i].to_string());
+	buffer.dump();
 }
 
 thread_local Emitter Emitter::active;
