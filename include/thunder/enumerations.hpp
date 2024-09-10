@@ -177,37 +177,42 @@ static_assert(__oc_end + 1 == sizeof(tbl_operation_code)/sizeof(const char *));
 enum IntrinsicOperation : uint16_t {
 	discard,
 
+	// Trigonometric functions
 	sin,
 	cos,
 	tan,
 
+	// Inverse trigonometric functions
 	asin,
 	acos,
 	atan,
 
+	// Powering functions
 	sqrt,
 	exp,
 	pow,
 
+	// Limiting functions
 	clamp,
 	min,
 	max,
-
 	fract,
 	floor,
 	ceil,
 
-	reflect,
-
+	// Vector operations
 	dot,
 	cross,
 	normalize,
+	reflect,
 
+	// GLSL image buffer operations
 	glsl_dFdx,
 	glsl_dFdy,
 	glsl_dFdxFine,
 	glsl_dFdyFine,
 
+	// GLSL casting operations
 	glsl_floatBitsToInt,
 	glsl_floatBitsToUint,
 	glsl_intBitsToFloat,
@@ -234,16 +239,14 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"clamp",
 	"min",
 	"max",
-
 	"fract",
 	"floor",
 	"ceil",
 
-	"reflect",
-
 	"dot",
 	"cross",
 	"normalize",
+	"reflect",
 
 	"dFdx",
 	"dFdy",

@@ -11,7 +11,7 @@ MODULE(buffer);
 
 Buffer::Buffer() : pointer(0), pool(4) {}
 
-index_t Buffer::emit(const Atom &atom)
+index_t Buffer::emit(const Atom &atom, bool enable_classification)
 {
 	if (pointer >= pool.size())
 		pool.resize((pool.size() << 1));
@@ -21,141 +21,12 @@ index_t Buffer::emit(const Atom &atom)
 		pointer, pool.size());
 
 	pool[pointer] = atom;
-	if (auto td = classify(atom))
-		types[pointer] = td;
+	if (enable_classification) {
+		if (auto td = classify(pointer))
+			types[pointer] = td;
+	}
 	
 	return pointer++;
-}
-	
-// TODO: binary operation specialization
-// TODO: separate source file
-struct overload {
-	TypeDecl result;
-	std::vector <TypeDecl> args;
-
-	template <typename ... Args>
-	static overload from(TypeDecl result, const Args &...args) {
-		std::vector <TypeDecl> list { args... };
-		return overload(result, list);
-	}
-
-	static std::string type_decls_to_string(const std::vector <TypeDecl> &args) {
-		std::string result = "(";
-		for (size_t i = 0; i < args.size(); i++) {
-			auto &td = args[0];
-
-			result += td.to_string();
-			if (i + 1 < args.size())
-				result += ", ";
-		}
-
-		return result + ")";
-	}
-};
-	
-using overload_list = std::vector <overload>;
-
-template <typename T>
-struct overload_table : public wrapped::hash_table <T, overload_list> {
-	using wrapped::hash_table <T, overload_list> ::hash_table;
-
-	TypeDecl lookup(const T &key, const std::vector <TypeDecl> &args) const {
-		const char *const *name_table = nullptr;
-		if constexpr (std::same_as <T, IntrinsicOperation>)
-			name_table = tbl_intrinsic_operation;
-		else if constexpr (std::same_as <T, OperationCode>)
-			name_table = tbl_operation_code;
-
-		JVL_ASSERT(this->contains(key),
-			"overload table does not contain entry for ${}",
-			name_table[key]);
-
-		auto &overloads = this->at(key);
-		for (auto &ovl : overloads) {
-			if (ovl.args.size() != args.size())
-				continue;
-
-			bool success = true;
-			for (size_t i = 0; i < args.size(); i++) {
-				if (ovl.args[i] != args[i]) {
-					success = false;
-					break;
-				}
-			}
-
-			if (success)
-				return ovl.result;
-		}
-
-		JVL_WARNING("no matching overload {} found for ${}",
-			overload::type_decls_to_string(args),
-			name_table[key]);
-
-		// TODO: note diagnostics
-		JVL_INFO("available overloads for ${}:", name_table[key]);
-		for (auto &ovl : overloads) {
-			fmt::println("  {} -> {}",
-				overload::type_decls_to_string(ovl.args),
-				ovl.result.to_string());
-		}
-
-		return TypeDecl();
-	}
-};
-
-TypeDecl Buffer::classify(const Atom &original) const
-{
-	static const overload_table <IntrinsicOperation> intrinsic_overloads {
-		{ acos, {
-			overload::from(f32, f32)
-		} },
-
-		{ dot, {
-			overload::from(f32, vec2, vec2),
-			overload::from(f32, vec3, vec3),
-			overload::from(f32, vec4, vec4),
-		} },
-	};
-
-	Atom atom = original;
-
-	index_t index = -1;
-	while (true) {
-		switch (atom.index()) {
-
-		case Atom::type_index <TypeField> ():
-		{
-			auto &type_field = atom.as <TypeField> ();
-			if (type_field.item != bad)
-				return TypeDecl(type_field.item);
-
-			return TypeDecl();
-		}
-
-		case Atom::type_index <Primitive> ():
-			return TypeDecl(atom.as <Primitive> ().type);
-
-		case Atom::type_index <Global> ():
-		{
-			index = atom.as <Global> ().type;
-			atom = pool[index];
-		} break;
-
-		case Atom::type_index <Intrinsic> ():
-		{
-			auto &intrinsic = atom.as <Intrinsic> ();
-			auto args = expand_list_types(intrinsic.args);
-			auto result = intrinsic_overloads.lookup(intrinsic.opn, args);
-			return result;
-		}
-
-		default:
-			return TypeDecl();
-
-		}
-	}
-
-	return TypeDecl();
 }
 
 // Kernel transfer
@@ -213,11 +84,11 @@ void Buffer::clear()
 	pool.resize(4);
 }
 
-void Buffer::dump()
+void Buffer::dump() const
 {
 	for (size_t i = 0; i < pointer; i++) {
 		std::string type_string = types.get(i).value_or(TypeDecl()).to_string();
-		fmt::println("   [{:4d}]: {:30} :: {}", i, pool[i].to_string(), type_string);
+		fmt::println("   [{:4d}]: {:40} :: {}", i, pool[i].to_string(), type_string);
 	}
 }
 

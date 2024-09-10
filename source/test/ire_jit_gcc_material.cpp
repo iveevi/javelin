@@ -97,8 +97,6 @@ TEST(ire_jit, material)
 
 	auto output = compiled(input, float3(0, 1, 0), float3(0, 1, 0));
 	
-	fmt::println("Output: {}", output);
-	
 	auto reference_input = ReferenceMaterial();
 
 	reference_input.diffuse = float3(1, 2, 3);
@@ -112,7 +110,9 @@ TEST(ire_jit, material)
 
 	auto reference_output = ref(reference_input, float3(0, 1, 0), float3(0, 1, 0));
 
-	fmt::println("Reference: {}", reference_output);
+	
+	fmt::println("Output    {}", output);
+	fmt::println("Expected  {}", reference_output);
 
 	ASSERT_EQ(output, reference_output);
 }

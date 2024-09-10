@@ -1,7 +1,7 @@
 #pragma once
 
 #include "atom.hpp"
-#include "thunder/buffer.hpp"
+#include "buffer.hpp"
 
 namespace jvl::thunder {
 

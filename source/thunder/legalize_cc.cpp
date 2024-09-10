@@ -77,7 +77,7 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 
 	// Reset and activate the scratch
 	mapped.transformed.clear();
-	em.push(mapped.transformed);
+	em.push(mapped.transformed, false);
 
 	fmt::println("legalizing operation {} for overload ({}, {})",
 		tbl_operation_code[code],
@@ -180,7 +180,7 @@ void legalize_for_cc_vector_constructor(mapped_instruction_t &mapped,
 	
 	// Reset and activate the scratch
 	mapped.transformed.clear();
-	em.push(mapped.transformed);
+	em.push(mapped.transformed, false);
 
 	PrimitiveType type_a = types[0];
 	if (type_a == type_to_construct) {
@@ -241,7 +241,7 @@ void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 
 		// Reset and activate the scratch
 		mapped.transformed.clear();
-		em.push(mapped.transformed);
+		em.push(mapped.transformed, false);
 
 		size_t ccount = vector_component_count(type_a);
 		PrimitiveType ctype = swizzle_type_of(type_a, SwizzleCode::x);
@@ -288,7 +288,7 @@ void legalize_for_cc(Buffer &buffer)
 		auto &atom = pool[i];
 
 		// Default population of scratches is preservation
-		em.push(mapped[i].transformed);
+		em.push(mapped[i].transformed, false);
 		em.emit(atom);
 		em.pop();
 	}

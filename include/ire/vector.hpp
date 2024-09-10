@@ -147,7 +147,7 @@ public:
 		auto &em = Emitter::active;
 
 		thunder::Construct ctor;
-		ctor.type = type_field_from_args <vec <T, 4>> ().id;
+		ctor.type = type_field_from_args <vec <T, 3>> ().id;
 		ctor.args = list_from_args(x, y, z);
 
 		ref = em.emit(ctor);

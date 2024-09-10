@@ -14,13 +14,14 @@ namespace jvl::ire {
 struct Emitter {
 	using index_t = thunder::index_t;
 
+	std::stack <bool> classify;
 	std::stack <index_t> control_flow_ends;
 	std::stack <std::reference_wrapper <thunder::Buffer>> scopes;
 
 	Emitter() = default;
 
 	// Managing the scope
-	void push(thunder::Buffer &);
+	void push(thunder::Buffer &, bool = true);
 	void pop();
 
 	// Emitting instructions during function invocation

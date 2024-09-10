@@ -16,15 +16,17 @@ namespace jvl::ire {
 MODULE(emitter);
 
 // Scope management
-void Emitter::push(thunder::Buffer &scratch)
+void Emitter::push(thunder::Buffer &scratch, bool enable_classify)
 {
 	scopes.push(std::ref(scratch));
+	classify.push(enable_classify);
 	// JVL_INFO("pushed new scratch buffer to global emitter ({} scopes)", scopes.size());
 }
 
 void Emitter::pop()
 {
 	scopes.pop();
+	classify.pop();
 	// JVL_INFO("popped scratch buffer from global emitter ({} scopes)", scopes.size());
 }
 
@@ -32,7 +34,7 @@ void Emitter::pop()
 Emitter::index_t Emitter::emit(const thunder::Atom &atom)
 {
 	JVL_ASSERT(scopes.size(), "in emit: no active scope");
-	return scopes.top().get().emit(atom);
+	return scopes.top().get().emit(atom, classify.top());
 }
 
 Emitter::index_t Emitter::emit(const thunder::Branch &branch)
