@@ -317,6 +317,11 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 				indentation++;
 				break;
 			
+			case loop_while:
+				source += finish(fmt::format("while ({}) {{", inlined(branch->cond)), false);
+				indentation++;
+				break;
+			
 			case conditional_else_if:
 				indentation--;
 				source += finish(fmt::format("}} else if ({}) {{", inlined(branch->cond)), false);

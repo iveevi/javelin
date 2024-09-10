@@ -26,19 +26,20 @@
 using namespace jvl;
 using namespace jvl::ire;
 
-auto ftn = callable_info_r <f32> () >> [](vec3 n, vec3 h)
+auto ftn = callable_info("shuffle") >> [](ivec3 in, i32 iterations)
 {
-	f32 theta = dot(n, h);
-	cond(theta > 1);
-		returns(-1);
-	elif(theta < 0.5);
-		returns(theta / 2.0f);
-	elif();
-		returns(-2);
+	i32 counter = 0;
+	loop(counter < iterations);
+	{
+		in.x <<= in.z;
+		in.x >>= in.y;
+		in.x |= in.y ^ in.z;
+		in.x &= in.y - in.z;
+		counter += 1;
+	}
 	end();
 
-	returns(acos(theta));
-	Emitter::active.dump();
+	return in;
 };
 
 int main()

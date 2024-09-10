@@ -85,6 +85,7 @@ void Emitter::control_flow_callback(index_t i)
 	switch (branch.kind) {
 
 	case thunder::conditional_if:
+	case thunder::loop_while:
 		return control_flow_ends.push(i);
 
 	case thunder::conditional_else:

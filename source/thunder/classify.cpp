@@ -327,7 +327,9 @@ static TypeDecl lookup_operation_overload(const OperationCode &key, const std::v
 	};
 
 	static const overload_list comparison_overloads {
+		overload::from(boolean, i32, i32),
 		overload::from(boolean, f32, f32),
+		overload::from(boolean, u32, u32),
 	};
 
         static const overload_table <OperationCode> table {

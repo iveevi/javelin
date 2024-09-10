@@ -86,6 +86,54 @@ public:
 		return *this;
 	}
 
+	// Bit shift operators
+	template <integral_primitive_type U>
+	swizzle_element &operator>>=(const primitive_t <U> &a)
+	requires integral_primitive_type <T> {
+		base_type tmp = *this;
+		tmp >>= a;
+		return *this;
+	}
+	
+	template <integral_primitive_type U, typename Up_, thunder::SwizzleCode swz_>
+	swizzle_element &operator>>=(const swizzle_element <U, Up_, swz_> &a)
+	requires integral_primitive_type <T> {
+		base_type tmp = *this;
+		tmp >>= primitive_t <U> (a);
+		return *this;
+	}
+	
+	template <integral_primitive_type U>
+	swizzle_element &operator<<=(const primitive_t <U> &a)
+	requires integral_primitive_type <T> {
+		base_type tmp = *this;
+		tmp <<= a;
+		return *this;
+	}
+	
+	template <integral_primitive_type U, typename Up_, thunder::SwizzleCode swz_>
+	swizzle_element &operator<<=(const swizzle_element <U, Up_, swz_> &a)
+	requires integral_primitive_type <T> {
+		base_type tmp = *this;
+		tmp <<= primitive_t <U> (a);
+		return *this;
+	}
+	
+	// Bitwise operators
+	swizzle_element &operator|=(const base_type &a)
+	requires integral_primitive_type <T> {
+		base_type tmp = *this;
+		tmp |= a;
+		return *this;
+	}
+	
+	swizzle_element &operator&=(const base_type &a)
+	requires integral_primitive_type <T> {
+		base_type tmp = *this;
+		tmp &= a;
+		return *this;
+	}
+
 	template <primitive_type U, size_t N>
 	requires (N >= 1 && N <= 4)
 	friend class swizzle_base;
@@ -278,24 +326,6 @@ struct vec : swizzle_base <T, N> {
 		return operation_from_args <vec> (thunder::multiplication, a, b);
 	}
 
-	// Bitwise operators
-	friend vec operator|(const vec &a, const auto &b) {
-		return operation_from_args <vec> (thunder::bit_or, a, b);
-	}
-
-	friend vec operator&(const vec &a, const auto &b) {
-		return operation_from_args <vec> (thunder::bit_and, a, b);
-	}
-
-	// Shifting operators
-	friend vec operator>>(const vec &a, const auto &b) {
-		return operation_from_args <vec> (thunder::bit_shift_right, a, b);
-	}
-
-	friend vec operator<<(const vec &a, const auto &b) {
-		return operation_from_args <vec> (thunder::bit_shift_left, a, b);
-	}
-
 	// Mixed arithmetic operators
 	#define MIXED_OP(sym, code)								\
 		friend vec operator sym(const vec &a, const primitive_t <T> &b) {		\
@@ -333,5 +363,43 @@ struct vec : swizzle_base <T, N> {
 		return platform_intrinsic_from_args <vec> (thunder::reflect, a, b);
 	}
 };
+
+// Bitwise operators
+template <integral_primitive_type T, size_t N>
+vec <T, N> operator|(const vec <T, N>  &a, const vec <T, N> &b)
+{
+	return operation_from_args <vec <T, N>> (thunder::bit_or, a, b);
+}
+
+template <integral_primitive_type T, integral_primitive_type U, size_t N>
+vec <T, N> operator|(const vec <T, N>  &a, const U &b)
+{
+	return a | vec <T, N> (b);
+}
+
+template <integral_primitive_type T, size_t N>
+vec <T, N> operator&(const vec <T, N>  &a, const vec <T, N> &b)
+{
+	return operation_from_args <vec <T, N>> (thunder::bit_and, a, b);
+}
+
+template <integral_primitive_type T, integral_primitive_type U, size_t N>
+vec <T, N> operator&(const vec <T, N>  &a, const U &b)
+{
+	return a & vec <T, N> (b);
+}
+
+// Shifting operators
+template <integral_primitive_type T, integral_primitive_type U, size_t N>
+vec <T, N> operator>>(const vec <T, N> &a, const U &b)
+{
+	return operation_from_args <vec <T, N>> (thunder::bit_shift_right, a, b);
+}
+
+template <integral_primitive_type T, integral_primitive_type U, size_t N>
+vec <T, N> operator<<(const vec <T, N> &a, const U &b)
+{
+	return operation_from_args <vec <T, N>> (thunder::bit_shift_left, a, b);
+}
 
 } // namespace jvl::ire
