@@ -7,6 +7,115 @@ namespace jvl::thunder {
 	
 MODULE(buffer-classify);
 
+// Overload lookup methods; forward declarations
+static TypeDecl lookup_intrinsic_overload(const IntrinsicOperation &, const std::vector <TypeDecl> &);
+static TypeDecl lookup_operation_overload(const OperationCode &, const std::vector <TypeDecl> &);
+
+// TODO: const ref return
+TypeDecl Buffer::classify(index_t i) const
+{
+	// Caching
+	if (types.contains(i))
+		return types.at(i);
+
+	Atom atom = pool[i];
+
+	switch (atom.index()) {
+
+	case Atom::type_index <TypeField> ():
+	{
+		auto &type_field = atom.as <TypeField> ();
+		if (type_field.item != bad)
+			return TypeDecl(type_field.item, type_field.next);
+		if (type_field.down != -1)
+			return TypeDecl(type_field.down, type_field.next);
+
+		return TypeDecl();
+	}
+
+	case Atom::type_index <Primitive> ():
+		return TypeDecl(atom.as <Primitive> ().type);
+
+	case Atom::type_index <Global> ():
+	{
+		index_t type = atom.as <Global> ().type;
+		TypeDecl decl = classify(type);
+		if (decl.is_struct_field())
+			return TypeDecl(type);
+
+		return decl;
+	}
+
+	case Atom::type_index <Construct> ():
+		// TODO: atom.type()
+		return classify(atom.as <Construct> ().type);
+
+	case Atom::type_index <Call> ():
+		return classify(atom.as <Call> ().type);
+	
+	case Atom::type_index <Operation> ():
+	{
+		auto &operation = atom.as <Operation> ();
+		auto args = expand_list_types(operation.args);
+		auto result = lookup_operation_overload(operation.code, args);
+		if (!result)
+			JVL_ABORT("failed to find overload for operation: {}", atom);
+		return result;
+	}
+
+	case Atom::type_index <Intrinsic> ():
+	{
+		auto &intrinsic = atom.as <Intrinsic> ();
+		auto args = expand_list_types(intrinsic.args);
+		auto result = lookup_intrinsic_overload(intrinsic.opn, args);
+		if (!result)
+			JVL_ABORT("failed to find overload for intrinsic: {}", atom);
+		return result;
+	}
+
+	case Atom::type_index <Swizzle> ():
+	{
+		auto &swz = atom.as <Swizzle> ();
+		TypeDecl decl = classify(swz.src);
+		JVL_ASSERT(vector_type(decl.primitive),
+			"swizzle should only operate on vector types, "
+			"but operand is {} with type {}",
+			pool[swz.src], decl.to_string());
+
+		return TypeDecl(swizzle_type_of(decl.primitive, swz.code));
+	}
+
+	case Atom::type_index <Load> ():
+	{
+		auto &load = atom.as <Load> ();
+		TypeDecl decl = classify(load.src);
+		if (load.idx == -1)
+			return decl;
+
+		JVL_ASSERT(!decl.is_primitive(),
+			"cannot load from primitive variables");
+
+		index_t i = decl.concrete;
+		index_t left = load.idx;
+		do {
+			decl = types.at(i);
+			i = decl.next;
+		} while ((--left) > 0);
+
+		if (decl.is_primitive())
+			return TypeDecl(decl.primitive);
+
+		return TypeDecl(decl.concrete);
+	}
+
+	default:
+		return TypeDecl();
+
+	}
+
+	return TypeDecl();
+}
+
 // TODO: binary operation specialization
 struct overload {
 	TypeDecl result;
@@ -33,6 +142,14 @@ struct overload {
 };
 	
 using overload_list = std::vector <overload>;
+
+overload_list concat(const overload_list &A, const overload_list &B)
+{
+	overload_list C = A;
+	for (auto &ovl : B)
+		C.push_back(ovl);
+	return C;
+}
 
 template <typename T>
 struct overload_table : public wrapped::hash_table <T, overload_list> {
@@ -93,8 +210,7 @@ struct overload_table : public wrapped::hash_table <T, overload_list> {
 };
 
 // Overload table for intrinsics
-// TODO: put at the end of the file
-static auto overload_intrinsics()
+static TypeDecl lookup_intrinsic_overload(const IntrinsicOperation &key, const std::vector <TypeDecl> &args)
 {
         static const overload_table <IntrinsicOperation> table {
 		// Trigonometric functions
@@ -167,108 +283,91 @@ static auto overload_intrinsics()
                 } },
         };
 
-        return table;
+        return table.lookup(key, args);
 }
 
-// TODO: const ref
-TypeDecl Buffer::classify(index_t i) const
+// Overload table for operations
+static TypeDecl lookup_operation_overload(const OperationCode &key, const std::vector <TypeDecl> &args)
 {
-	// Caching
-	if (types.contains(i))
-		return types.at(i);
+	static const overload_list arithmetic_overloads {
+		overload::from(i32, i32, i32),
+		overload::from(u32, u32, u32),
+		overload::from(f32, f32, f32),
+		
+		overload::from(vec2, vec2, vec2),
+		overload::from(vec3, vec3, vec3),
+		overload::from(vec4, vec4, vec4),
 
-	Atom atom = pool[i];
+		overload::from(vec3, vec3, f32),
+		overload::from(vec3, f32, vec3),
 
-	switch (atom.index()) {
+		overload::from(uvec3, uvec3, u32),
+		overload::from(uvec3, u32, u32),
+	};
 
-	case Atom::type_index <TypeField> ():
-	{
-		auto &type_field = atom.as <TypeField> ();
-		if (type_field.item != bad)
-			return TypeDecl(type_field.item, type_field.next);
-		if (type_field.down != -1)
-			return TypeDecl(type_field.down, type_field.next);
+	static const overload_list matrix_multiplication_overloads {
+		overload::from(vec2, mat2, vec2),
+		overload::from(vec3, mat3, vec3),
+		overload::from(vec4, mat4, vec4),
+	};
+	
+	static const overload_list bitwise_operator_overloads {
+		overload::from(i32, i32, i32),
+		overload::from(ivec2, ivec2, ivec2),
+		overload::from(ivec3, ivec3, ivec3),
+		overload::from(ivec4, ivec4, ivec4),
+		overload::from(u32, u32, u32),
+		overload::from(uvec2, uvec2, uvec2),
+		overload::from(uvec2, uvec2, u32),
+		overload::from(uvec3, uvec3, uvec3),
+		overload::from(uvec3, uvec3, u32),
+		overload::from(uvec4, uvec4, uvec4),
+		overload::from(uvec4, uvec4, u32),
+	};
 
-		return TypeDecl();
-	}
+	static const overload_list comparison_overloads {
+		overload::from(boolean, f32, f32),
+	};
 
-	case Atom::type_index <Primitive> ():
-		return TypeDecl(atom.as <Primitive> ().type);
+        static const overload_table <OperationCode> table {
+		{ unary_negation, {
+			overload::from(f32, f32),
+			overload::from(vec2, vec2),
+			overload::from(vec3, vec3),
+			overload::from(vec4, vec4),
+		} },
 
-	case Atom::type_index <Global> ():
-	{
-		index_t type = atom.as <Global> ().type;
-		TypeDecl decl = classify(type);
-		if (decl.is_struct_field())
-			return TypeDecl(type);
+		{ addition, arithmetic_overloads },
+		{ subtraction, arithmetic_overloads },
+		{ multiplication, concat(arithmetic_overloads, matrix_multiplication_overloads) },
+		{ division, arithmetic_overloads },
 
-		return decl;
-	}
+		{ bool_or, { overload::from(boolean, boolean, boolean) } },
+		{ bool_and, { overload::from(boolean, boolean, boolean) } },
+		
+		{ bit_and, bitwise_operator_overloads },
+		{ bit_or, bitwise_operator_overloads },
+		{ bit_xor, bitwise_operator_overloads },
+		
+		{ bit_shift_left, {
+			overload::from(i32, i32, i32),
+			overload::from(u32, u32, u32),
+			overload::from(uvec3, uvec3, u32),
+		} },
+		
+		{ bit_shift_right, {
+			overload::from(i32, i32, i32),
+			overload::from(u32, u32, u32),
+			overload::from(uvec3, uvec3, u32),
+		} },
 
-	case Atom::type_index <Construct> ():
-		// TODO: atom.type()
-		return classify(atom.as <Construct> ().type);
+		{ cmp_ge, comparison_overloads },
+		{ cmp_geq, comparison_overloads },
+		{ cmp_le, comparison_overloads },
+		{ cmp_leq, comparison_overloads },
+	};
 
-	case Atom::type_index <Call> ():
-		return classify(atom.as <Call> ().type);
-
-	case Atom::type_index <Operation> ():
-		// TODO: use overload table
-		return classify(atom.as <Operation> ().type);
-
-	case Atom::type_index <Intrinsic> ():
-	{
-		auto &intrinsic = atom.as <Intrinsic> ();
-		auto args = expand_list_types(intrinsic.args);
-		auto result = overload_intrinsics().lookup(intrinsic.opn, args);
-		if (!result) {
-			dump();
-			JVL_ABORT("failed to get correct overload for {}", atom);
-		}
-		return result;
-	}
-
-	case Atom::type_index <Swizzle> ():
-	{
-		auto &swz = atom.as <Swizzle> ();
-		TypeDecl decl = classify(swz.src);
-		JVL_ASSERT(vector_type(decl.primitive),
-			"swizzle should only operate on vector types, "
-			"but operand is {} with type {}",
-			pool[swz.src], decl.to_string());
-
-		return TypeDecl(swizzle_type_of(decl.primitive, swz.code));
-	}
-
-	case Atom::type_index <Load> ():
-	{
-		auto &load = atom.as <Load> ();
-		TypeDecl decl = classify(load.src);
-		if (load.idx == -1)
-			return decl;
-
-		JVL_ASSERT(!decl.is_primitive(),
-			"cannot load from primitive variables");
-
-		index_t i = decl.concrete;
-		index_t left = load.idx;
-		do {
-			decl = types.at(i);
-			i = decl.next;
-		} while ((--left) > 0);
-
-		if (decl.is_primitive())
-			return TypeDecl(decl.primitive);
-
-		return TypeDecl(decl.concrete);
-	}
-
-	default:
-		return TypeDecl();
-
-	}
-
-	return TypeDecl();
+	return table.lookup(key, args);
 }
 
 } // namespace jvl::thunder
