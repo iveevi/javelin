@@ -241,6 +241,7 @@ static_assert(atom_instruction <Load>);
 struct Branch {
 	index_t cond = -1;
 	index_t failto = -1;
+	BranchKind kind = conditional_if;
 
 	bool operator==(const Branch &) const;
 	Addresses addresses();
@@ -248,21 +249,6 @@ struct Branch {
 };
 
 static_assert(atom_instruction <Branch>);
-
-// Looping instruction
-//
-//   cond: reference to the condition value
-//   failto: reference to the jump address (for failure)
-struct While {
-	index_t cond = -1;
-	index_t failto = -1;
-
-	bool operator==(const While &) const;
-	Addresses addresses();
-	std::string to_string() const;
-};
-
-static_assert(atom_instruction <While>);
 
 // Returning values from subroutines and kernels
 //
@@ -279,16 +265,6 @@ struct Returns {
 
 static_assert(atom_instruction <Returns>);
 
-// Target address of a branch/loop failto index
-// TODO: remove end
-struct End {
-	bool operator==(const End &) const;
-	Addresses addresses();
-	std::string to_string() const;
-};
-
-static_assert(atom_instruction <End>);
-
 // Atom instructions
 using atom_base = wrapped::variant <
 	Global,
@@ -303,9 +279,7 @@ using atom_base = wrapped::variant <
 	Store,
 	Load,
 	Branch,
-	While,
-	Returns,
-	End
+	Returns
 >;
 
 struct alignas(4) Atom : atom_base {
@@ -350,10 +324,8 @@ static_assert(sizeof(Construct) == 4);
 static_assert(sizeof(Call)      == 6);
 static_assert(sizeof(Store)     == 4);
 static_assert(sizeof(Load)      == 4);
-static_assert(sizeof(Branch)    == 4);
-static_assert(sizeof(While)     == 4);
+static_assert(sizeof(Branch)    == 6);
 static_assert(sizeof(Returns)   == 4);
-static_assert(sizeof(End)       == 1);
 static_assert(sizeof(Atom)      == 8);
 
 } // namespace jvl::thunder

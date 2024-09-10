@@ -31,6 +31,10 @@ auto ftn = callable_info_r <f32> () >> [](vec3 n, vec3 h)
 	f32 theta = dot(n, h);
 	cond(theta > 1);
 		returns(-1);
+	elif(theta < 0.5);
+		returns(theta / 2.0f);
+	elif();
+		returns(-2);
 	end();
 
 	returns(acos(theta));

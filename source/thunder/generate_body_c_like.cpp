@@ -305,15 +305,33 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 	auto synthesize = [&](const Atom &atom, int index) -> void {
 		// TODO: index-based switch?
 		if (auto branch = atom.get <Branch> ()) {
-			std::string v = inlined(branch->cond);
-			std::string ifs = "if (" + v + ") {";
-			source += finish(ifs, false);
-			indentation++;
-		} else if (auto loop = atom.get <While> ()) {
-			std::string v = inlined(loop->cond);
-			std::string whiles = "while (" + v + ") {";
-			source += finish(whiles, false);
-			indentation++;
+			switch (branch->kind) {
+
+			case control_flow_end:
+				indentation--;
+				source += finish("}", false);
+				break;
+
+			case conditional_if:
+				source += finish(fmt::format("if ({}) {{", inlined(branch->cond)), false);
+				indentation++;
+				break;
+			
+			case conditional_else_if:
+				indentation--;
+				source += finish(fmt::format("}} else if ({}) {{", inlined(branch->cond)), false);
+				indentation++;
+				break;
+			
+			case conditional_else:
+				indentation--;
+				source += finish("} else {", false);
+				indentation++;
+				break;
+
+			default:
+				JVL_ABORT("unhandled branch case in synthesize: {}", atom);	
+			}
 		} else if (auto ctor = atom.get <Construct> ()) {
 			std::string t = type_name(pool, struct_names, ctor->type, -1);
 			if (ctor->args == -1) {
@@ -364,9 +382,6 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 			// TODO: create a tuple type struct if necesary
 			auto args = arglist(ret->args);
 			source += finish("return " + strargs(args));
-		} else if (atom.get <End> ()) {
-			indentation--;
-			source += finish("}", false);
 		} else if (atom.is <TypeField> ()) {
 			// Already taken care of during type/struct synthesis
 		} else if (atom.is <Global> ()) {

@@ -45,15 +45,9 @@ bool Atom::operator==(const Atom &B) const
 	case Atom::type_index <Branch> ():
 		return as <Branch> () == B.as <Branch> ();
 	
-	case Atom::type_index <While> ():
-		return as <While> () == B.as <While> ();
-	
 	case Atom::type_index <Returns> ():
 		return as <Returns> () == B.as <Returns> ();
 	
-	case Atom::type_index <End> ():
-		return true;
-
 	default:
 	{
 		fmt::println("unsupported Atom sub-type in operator==: {}", index());

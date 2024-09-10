@@ -7,6 +7,7 @@
 
 #include "ire/emitter.hpp"
 #include "thunder/atom.hpp"
+#include "thunder/enumerations.hpp"
 #include "thunder/opt.hpp"
 #include "wrapped_types.hpp"
 #include "logging.hpp"
@@ -39,30 +40,10 @@ Emitter::index_t Emitter::emit(const thunder::Atom &atom)
 
 Emitter::index_t Emitter::emit(const thunder::Branch &branch)
 {
-	JVL_INFO("emitting branch instruction");
-
 	// TODO: check else if and loops
+	// TODO: check for end
 	index_t i = emit((thunder::Atom) branch);
-	control_flow_ends.push(i);
-	return i;
-}
-
-Emitter::index_t Emitter::emit(const thunder::While &loop)
-{
-	JVL_ABORT("emitting for loops not implemented");
-	return -1;
-}
-
-Emitter::index_t Emitter::emit(const thunder::End &end)
-{
-	JVL_ASSERT(control_flow_ends.size(), "end instruction called without an existing control flow");
-
-	index_t i = emit((thunder::Atom) end);
-	index_t ref = control_flow_ends.top();
-	JVL_INFO("emitting end instruction @{} to close ref @{}", i, ref);
-
-	control_flow_callback(ref, i);
-	control_flow_ends.pop();
+	control_flow_callback(i);
 	return i;
 }
 
@@ -89,14 +70,53 @@ std::vector <Emitter::index_t> Emitter::emit_sequence(const std::initializer_lis
 	return result;
 }
 
-void Emitter::control_flow_callback(int ref, int p)
+void Emitter::control_flow_callback(index_t i)
 {
-	auto &atom = scopes.top().get().pool[ref];
-	// TODO: branch classification
+	auto &buffer = scopes.top().get();
+
+	auto &atom = buffer[i];
+
 	JVL_ASSERT(atom.is <thunder::Branch> (),
-		"callback location (scoped) is not a branch: {} (@{})",
-		atom, ref);
-	atom.as <thunder::Branch> ().failto = p;
+		"origin of control flow callback must be a branch: {}",
+		atom);
+
+	auto &branch = atom.as <thunder::Branch> ();
+
+	switch (branch.kind) {
+
+	case thunder::conditional_if:
+		return control_flow_ends.push(i);
+
+	case thunder::conditional_else:
+	case thunder::conditional_else_if:
+	{
+		index_t failto = control_flow_ends.top();
+		control_flow_ends.pop();
+
+		auto &prior = buffer[failto];
+		auto &branch = prior.as <thunder::Branch> ();
+		branch.failto = i;
+
+		return control_flow_ends.push(i);
+	}
+
+	case thunder::control_flow_end:
+	{
+		index_t failto = control_flow_ends.top();
+		control_flow_ends.pop();
+
+		auto &prior = buffer[failto];
+		auto &branch = prior.as <thunder::Branch> ();
+		branch.failto = i;
+
+		return;
+	}
+
+	default:
+		break;
+	}
+		
+	JVL_ABORT("unhandled case of control_flow_callback: {}", atom);
 }
 
 // Printing the IR state

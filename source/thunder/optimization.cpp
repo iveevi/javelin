@@ -116,8 +116,7 @@ bool opt_transform_dce_exempt(const Atom &atom)
 	return atom.is <Returns> ()
 		|| atom.is <Store> ()
 		|| atom.is <Global> ()
-		|| atom.is <Branch> ()
-		|| atom.is <End> (); // TODO: we should be able to optimize this out...
+		|| atom.is <Branch> ();
 }
 
 bool opt_transform_dead_code_elimination(Buffer &result)

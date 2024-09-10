@@ -4,9 +4,10 @@
 
 #include <libgccjit.h>
 
+#include "logging.hpp"
 #include "thunder/enumerations.hpp"
 #include "thunder/linkage.hpp"
-#include "logging.hpp"
+#include "thunder/properties.hpp"
 #include "wrapped_types.hpp"
 
 extern "C" float clamp(float x, float low, float high)

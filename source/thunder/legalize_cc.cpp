@@ -1,9 +1,10 @@
 #include "ire/emitter.hpp"
+#include "logging.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
-#include "thunder/opt.hpp"
 #include "thunder/linkage.hpp"
-#include "logging.hpp"
+#include "thunder/opt.hpp"
+#include "thunder/properties.hpp"
 
 namespace jvl::thunder::detail {
 

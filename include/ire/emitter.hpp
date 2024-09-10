@@ -27,8 +27,6 @@ struct Emitter {
 	// Emitting instructions during function invocation
 	index_t emit(const thunder::Atom &);
 	index_t emit(const thunder::Branch &);
-	index_t emit(const thunder::While &);
-	index_t emit(const thunder::End &);
 
 	// Easier ways to construct list chains
 	index_t emit_list_chain(const std::vector <index_t> &);
@@ -57,7 +55,7 @@ struct Emitter {
 	}
 
 	// Callbacks for control flow types
-	void control_flow_callback(int, int);
+	void control_flow_callback(index_t);
 
 	// Printing the IR state
 	void dump();

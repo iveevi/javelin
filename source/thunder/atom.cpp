@@ -1,5 +1,6 @@
 #include "thunder/atom.hpp"
 #include "ire/callable.hpp"
+#include "thunder/enumerations.hpp"
 
 namespace jvl::thunder {
 
@@ -285,27 +286,13 @@ Addresses Branch::addresses()
         
 std::string Branch::to_string() const
 {
+        if (kind == control_flow_end)
+                return "end";
+
         if (cond >= 0)
-                return fmt::format("br %{} -> %{}", cond, failto);
+                return fmt::format("br: %{} ({}) -> %{}", cond, tbl_branch_kind[kind], failto);
 
-        return fmt::format("br (nil) -> %{}", failto);
-}
-
-// While
-bool While::operator==(const While &other) const
-{
-        return (cond == other.cond)
-                && (failto == other.failto);
-}
-
-Addresses While::addresses()
-{
-        return { cond, failto };
-}
-        
-std::string While::to_string() const
-{
-        return fmt::format("while %{} -> %{}", cond, failto);
+        return fmt::format("br: (nil) ({}) -> %{}", tbl_branch_kind[kind], failto);
 }
 
 // Returns
@@ -323,22 +310,6 @@ Addresses Returns::addresses()
 std::string Returns::to_string() const
 {
         return fmt::format("return %{} -> %{}", args, type);
-}
-
-// End
-bool End::operator==(const End &) const
-{
-        return true;
-}
-
-Addresses End::addresses()
-{
-        return { Addresses::null(), Addresses::null() };
-}
-
-std::string End::to_string() const
-{
-        return "end";
 }
 
 } // namespace jvl::thunder
