@@ -34,6 +34,7 @@ usage_set usage(const Buffer &, index_t);
 usage_graph usage(const Buffer &);
 
 // Optimization transformation passes
+// TODO: store elision
 bool opt_transform_compact(Buffer &);
 bool opt_transform_constructor_elision(Buffer &);
 bool opt_transform_dead_code_elimination(Buffer &);

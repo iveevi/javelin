@@ -14,6 +14,10 @@ std::unordered_set <index_t> synthesize_list(const std::vector <Atom> &atoms)
 		switch (atom.index()) {
 
 		case Atom::type_index <Store> ():
+			synthesized.insert(i);
+			synthesized.insert(atom.as <Store> ().dst);
+			break;
+
 		case Atom::type_index <Branch> ():
 		case Atom::type_index <End> ():
 			synthesized.insert(i);

@@ -9,6 +9,8 @@
 
 namespace jvl::thunder::detail {
 
+MODULE(generate-body-c-like);
+
 std::string type_name(const std::vector <Atom> &pool,
 		      const wrapped::hash_table <int, std::string> &struct_names,
 		      index_t index,
@@ -106,6 +108,12 @@ std::string glsl_format_operation(OperationCode code, const std::vector <std::st
 	case OperationCode::bit_xor:
 		assert(args.size() == 2);
 		return fmt::format("({} ^ {})", args[0], args[1]);
+	case OperationCode::bit_and:
+		assert(args.size() == 2);
+		return fmt::format("({} & {})", args[0], args[1]);
+	case OperationCode::bit_or:
+		assert(args.size() == 2);
+		return fmt::format("({} | {})", args[0], args[1]);
 	case OperationCode::cmp_ge:
 		assert(args.size() == 2);
 		return fmt::format("({} > {})", args[0], args[1]);
@@ -122,19 +130,19 @@ std::string glsl_format_operation(OperationCode code, const std::vector <std::st
 		break;
 	}
 
-	fmt::println("C-like unhandled operation $({})", tbl_operation_code[code]);
-	abort();
+	JVL_ABORT("unhandled operation $({})", tbl_operation_code[code]);
 }
 
+// TODO: take body_t as argument with all of these
 std::string generate_body_c_like(const std::vector <Atom> &pool,
 		                 const wrapped::hash_table <int, std::string> &struct_names,
 		                 const std::unordered_set <index_t> &synthesized,
 				 size_t size)
 {
-	wrapped::hash_table <int, std::string> variables;
+	wrapped::hash_table <index_t, std::string> variables;
 
-	std::function <std::string (int)> inlined;
-	std::function <std::string (int)> ref;
+	std::function <std::string (index_t)> inlined;
+	std::function <std::string (index_t)> ref;
 
 	int indentation = 1;
 	auto finish = [&](const std::string &s, bool semicolon = true) {
@@ -157,29 +165,27 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 		return finish(stmt);
 	};
 
-	ref = [&](int index) -> std::string {
-		if (index == -1) {
-			fmt::println("C-like: invalid index passed to ref");
-			abort();
-		}
+	ref = [&](index_t index) -> std::string {
+		JVL_ASSERT(index != -1, "invalid index passed to ref");
 
-		Atom g = pool[index];
-		if (auto global = g.get <Global> ()) {
+		if (variables.count(index))
+			return variables[index];
+
+		const Atom &atom = pool[index];
+
+		if (auto global = atom.get <Global> ()) {
 			return glsl_global_ref(*global);
-		} else if (auto load = g.get <Load> ()) {
+		} else if (auto load = atom.get <Load> ()) {
 			std::string accessor;
 			if (load->idx != -1)
 				accessor = fmt::format(".f{}", load->idx);
 			return ref(load->src) + accessor;
-		} else if (auto swizzle = g.get <Swizzle> ()) {
+		} else if (auto swizzle = atom.get <Swizzle> ()) {
 			std::string accessor = tbl_swizzle_code[swizzle->code];
 			return ref(swizzle->src) + "." + accessor;
-		} else if (!variables.count(index)) {
-			fmt::println("C-like: unexpected IR requested for ref(...): {} (@{})", g.to_string(), index);
-			abort();
 		}
 
-		return variables[index];
+		JVL_ABORT("cannot generate referenced alias to: {} (@{})", atom, index);
 	};
 
 	auto assign_to = [&](int index, const std::string &v) -> std::string {
@@ -226,55 +232,48 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 		return args;
 	};
 
-	inlined = [&](int index) -> std::string {
+	inlined = [&](index_t index) -> std::string {
+		JVL_ASSERT(index != -1, "invalid index passed to inlined");
+
 		if (variables.count(index))
 			return variables[index];
 
-		if (index == -1) {
-			fmt::println("invalid index passed to inlined");
-			abort();
-		}
+		const Atom &atom = pool[index];
 
-		Atom g = pool[index];
-
-		if (auto prim = g.get <Primitive> ()) {
+		if (auto prim = atom.get <Primitive> ()) {
 			return glsl_primitive(*prim);
-		} else if (auto global = g.get <Global> ()) {
+		} else if (auto global = atom.get <Global> ()) {
 			return glsl_global_ref(*global);
-		} else if (auto ctor = g.get <Construct> ()) {
+		} else if (auto ctor = atom.get <Construct> ()) {
 			std::string t = type_name(pool, struct_names, ctor->type, -1);
 			return t + "(" + inlined(ctor->args) + ")";
-		} else if (auto call = g.get <Call> ()) {
+		} else if (auto call = atom.get <Call> ()) {
 			ire::Callable *cbl = ire::Callable::search_tracked(call->cid);
 			std::string args;
 			if (call->args != -1)
 				args = strargs(arglist(call->args));
 			return fmt::format("{}{}", cbl->name, args);
-		} else if (auto list = g.get <List> ()) {
+		} else if (auto list = atom.get <List> ()) {
 			std::string v = inlined(list->item);
 			if (list->next != -1)
 				v += ", " + inlined(list->next);
-
 			return v;
-		} else if (auto load = g.get <Load> ()) {
+		} else if (auto load = atom.get <Load> ()) {
 			std::string accessor;
 			if (load->idx != -1)
 				accessor = fmt::format(".f{}", load->idx);
 			return inlined(load->src) + accessor;
-		} else if (auto swizzle = g.get <Swizzle> ()) {
+		} else if (auto swizzle = atom.get <Swizzle> ()) {
 			std::string accessor = tbl_swizzle_code[swizzle->code];
 			return inlined(swizzle->src) + "." + accessor;
-		} else if (auto op = g.get <Operation> ()) {
+		} else if (auto op = atom.get <Operation> ()) {
 			return glsl_format_operation(op->code, arglist(op->args));
-		} else if (auto intr = g.get <Intrinsic> ()) {
+		} else if (auto intr = atom.get <Intrinsic> ()) {
 			auto args = arglist(intr->args);
 			return tbl_intrinsic_operation[intr->opn] + strargs(args);
-		} else {
-			fmt::println("not sure how to inline atom: {}", g.to_string());
-			// abort();
 		}
 
-		return "<inl:?>";
+		JVL_ABORT("failed to inline atom: {} (@{})", atom, index);
 	};
 
 	auto intrinsic = [&](const Intrinsic &intr, int index) -> std::string {
@@ -303,19 +302,19 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 	// Final emitted source code
 	std::string source;
 
-	auto synthesize = [&](const Atom &g, int index) -> void {
+	auto synthesize = [&](const Atom &atom, int index) -> void {
 		// TODO: index-based switch?
-		if (auto branch = g.get <Branch> ()) {
+		if (auto branch = atom.get <Branch> ()) {
 			std::string v = inlined(branch->cond);
 			std::string ifs = "if (" + v + ") {";
 			source += finish(ifs, false);
 			indentation++;
-		} else if (auto loop = g.get <While> ()) {
+		} else if (auto loop = atom.get <While> ()) {
 			std::string v = inlined(loop->cond);
 			std::string whiles = "while (" + v + ") {";
 			source += finish(whiles, false);
 			indentation++;
-		} else if (auto ctor = g.get <Construct> ()) {
+		} else if (auto ctor = atom.get <Construct> ()) {
 			std::string t = type_name(pool, struct_names, ctor->type, -1);
 			if (ctor->args == -1) {
 				source += declare_new(t, index);
@@ -324,7 +323,7 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 				std::string v = t + args;
 				source += assign_new(t, v, index);
 			}
-		} else if (auto call = g.get <Call> ()) {
+		} else if (auto call = atom.get <Call> ()) {
 			ire::Callable *cbl = ire::Callable::search_tracked(call->cid);
 			std::string args = "()";
 			if (call->args != -1)
@@ -333,7 +332,7 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 			std::string t = type_name(pool, struct_names, call->type, -1);
 			std::string v = cbl->name + args;
 			source += assign_new(t, v, index);
-		} else if (auto load = g.get <Load> ()) {
+		} else if (auto load = atom.get <Load> ()) {
 			std::string accessor;
 			if (load->idx != -1)
 				accessor = fmt::format(".f{}", load->idx);
@@ -341,50 +340,48 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 			std::string t = type_name(pool, struct_names, load->src, load->idx);
 			std::string v = inlined(load->src) + accessor;
 			source += assign_new(t, v, index);
-		} else if (auto swizzle = g.get <Swizzle> ()) {
+		} else if (auto swizzle = atom.get <Swizzle> ()) {
 			// TODO: generalize
 			std::string t = "float";
 			std::string v = inlined(index);
 			source += assign_new(t, v, index);
-		} else if (auto store = g.get <Store> ()) {
+		} else if (auto store = atom.get <Store> ()) {
 			// TODO: there could be a store index chain...
 			std::string v = inlined(store->src);
 			source += assign_to(store->dst, v);
-		} else if (auto prim = g.get <Primitive> ()) {
+		} else if (auto prim = atom.get <Primitive> ()) {
 			std::string t = tbl_primitive_types[prim->type];
 			std::string v = glsl_primitive(*prim);
 			source += assign_new(t, v, index);
-		} else if (auto intr = g.get <Intrinsic> ()) {
+		} else if (auto intr = atom.get <Intrinsic> ()) {
 			source += intrinsic(intr.value(), index);
-		} else if (auto op = g.get <Operation> ()) {
+		} else if (auto op = atom.get <Operation> ()) {
 			// TODO: lambda shortcut
 			std::string t = type_name(pool, struct_names, op->type, -1);
 			std::string v = glsl_format_operation(op->code, arglist(op->args));
 			source += assign_new(t, v, index);
-		} else if (auto ret = g.get <Returns> ()) {
+		} else if (auto ret = atom.get <Returns> ()) {
 			// TODO: create a tuple type struct if necesary
 			auto args = arglist(ret->args);
 			source += finish("return " + strargs(args));
-		} else if (g.get <End> ()) {
+		} else if (atom.get <End> ()) {
 			indentation--;
 			source += finish("}", false);
-		} else if (g.is <TypeField> ()) {
+		} else if (atom.is <TypeField> ()) {
 			// Already taken care of during type/struct synthesis
-		} else if (g.is <Global> ()) {
+		} else if (atom.is <Global> ()) {
 			// Same reason; otherwise there are shader intrinsics
 			// which do not need to be synthesized
 		} else {
 			// TODO: error reporting for jvl facilities
-			fmt::println("C-like: unexpected IR requested for synthesize(...): {}", g.to_string());
+			fmt::println("C-like: unexpected IR requested for synthesize(...): {}", atom.to_string());
 			abort();
 		}
 	};
 
 	for (int i = 0; i < size; i++) {
-		if (!synthesized.count(i))
-			continue;
-
-		synthesize(pool[i], i);
+		if (synthesized.count(i))
+			synthesize(pool[i], i);
 	}
 
 	return source;

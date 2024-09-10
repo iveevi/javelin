@@ -198,13 +198,11 @@ jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType it
 		return generate_type_field_primitive_vector(context, "vec4", f32, 4);
 
 	default:
-		JVL_ABORT("unsupported primitive type {} "
-			"encountered in {}",
-			tbl_primitive_types[item],
-			__FUNCTION__);
+		break;
 	}
 
-	return nullptr;
+	JVL_ABORT("unsupported primitive type {} encountered in {}",
+		tbl_primitive_types[item], __FUNCTION__);
 }
 
 jit_struct *generate_type_field(jit_context &context, index_t index)
