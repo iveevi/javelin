@@ -94,8 +94,8 @@ struct Emitter {
 		return emit(thunder::Branch(cond, failto, kind));
 	}
 
-	index_t emit_return(index_t args, index_t type) {
-		return emit(thunder::Returns(args, type));
+	index_t emit_return(index_t value, index_t type) {
+		return emit(thunder::Returns(value, type));
 	}
 
 	// Easier ways to construct list chains

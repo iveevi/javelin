@@ -251,10 +251,10 @@ static_assert(atom_instruction <Branch>);
 
 // Returning values from subroutines and kernels
 //
-//   args: reference to List chain of return values
+//   value: reference to the value to be returned
 //   type: return type
 struct Returns {
-	index_t args = -1;
+	index_t value = -1;
 	index_t type = -1;
 
 	bool operator==(const Returns &) const;

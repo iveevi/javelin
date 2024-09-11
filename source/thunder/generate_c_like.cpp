@@ -381,8 +381,7 @@ std::string generate_c_like(const body_t &body)
 			source += assign_new(t, v, index);
 		} else if (auto ret = atom.get <Returns> ()) {
 			// TODO: create a tuple type struct if necesary
-			auto args = arglist(ret->args);
-			source += finish("return " + strargs(args));
+			source += finish("return " + inlined(ret->value));
 		} else if (atom.is <TypeInformation> ()) {
 			// Already taken care of during type/struct synthesis
 		} else if (atom.is <Qualifier> ()) {

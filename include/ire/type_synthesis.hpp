@@ -98,7 +98,7 @@ static inline bool valid(const thunder::TypeInformation &tf)
 	return (tf.down != -1) || (tf.item != thunder::bad);
 }
 
-template <size_t I, typename T, typename ... Args>
+template <size_t I, generic T, generic ... Args>
 cache_index_t type_field_from_args_impl()
 {
 	auto &em = Emitter::active;

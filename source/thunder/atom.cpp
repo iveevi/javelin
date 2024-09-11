@@ -299,18 +299,18 @@ std::string Branch::to_string() const
 // Returns
 bool Returns::operator==(const Returns &other) const
 {
-        return (args == other.args)
+        return (value == other.value)
                 && (type == other.type);
 }
 
 Addresses Returns::addresses()
 {
-        return { args, type };
+        return { value, type };
 }
 
 std::string Returns::to_string() const
 {
-        return fmt::format("{:10} value: %{}", "return", args);
+        return fmt::format("{:10} value: %{}", "return", value);
 }
 
 } // namespace jvl::thunder

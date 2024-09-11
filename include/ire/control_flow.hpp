@@ -52,22 +52,19 @@ inline void end()
 }
 
 // TODO: match/match_case statements
-
-template <typename ... Args>
-inline void returns(const Args &... args)
+template <primitive_type T>
+inline void returns(const T &value)
 {
-	auto &em = Emitter::active;
-	thunder::Returns ret;
-	if constexpr (sizeof...(Args)) {
-		ret.args = list_from_args(args...);
-		ret.type = type_field_from_args <std::decay_t <Args>...> ().id;
-	} else {
-		thunder::TypeInformation tf;
-		tf.item = thunder::none;
-		ret.type = em.emit(tf);
-	}
+	Emitter::active.emit_return(
+		primitive_t <T> (value).synthesize().id,
+		type_field_from_args <T> ().id);
+}
 
-	em.emit(ret);
+template <non_trivial_generic T>
+inline void returns(const T &value)
+{
+	Emitter::active.emit_return(value.synthesize().id,
+		type_field_from_args <T> ().id);
 }
 
 } // namespace jvl::ire

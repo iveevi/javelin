@@ -691,9 +691,8 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 	case Atom::type_index <Returns> ():
 	{
 		auto &returns = atom.as <Returns> ();
-		auto args = load_rvalue_arguments(context, returns.args);
-		JVL_ASSERT_PLAIN(args.size() == 1);
-		gcc_jit_block_end_with_return(context.block, LOCATION(context.gcc), args[0]);
+		auto value = (gcc_jit_rvalue *) context.cached[returns.value].value;
+		gcc_jit_block_end_with_return(context.block, LOCATION(context.gcc), value);
 	} return jit_instruction::null();
 
 	case Atom::type_index <Intrinsic> ():
