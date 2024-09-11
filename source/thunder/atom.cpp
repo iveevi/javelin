@@ -42,15 +42,15 @@ std::string TypeInformation::to_string() const
 {
         std::string result;
 
-        result += fmt::format("type: ");
+        result += fmt::format("type    item: ");
         if (item != bad)
                 result += fmt::format("{}", tbl_primitive_types[item]);
         else if (down != -1)
                 result += fmt::format("%{}", down);
         else
-                result += fmt::format("<BAD>");
+                result += fmt::format("<?>");
 
-        result += fmt::format(" -> ");
+        result += fmt::format(" next: ");
         if (next >= 0)
                 result += fmt::format("%{}", next);
         else
@@ -252,7 +252,7 @@ Addresses Store::addresses()
         
 std::string Store::to_string() const
 {
-        return fmt::format("store %{} -> %{}", src, dst);
+        return fmt::format("store   src: %{}   dst: %{}   bss: {}", src, dst, bss);
 }
 
 // Load
@@ -269,7 +269,7 @@ Addresses Load::addresses()
 
 std::string Load::to_string() const
 {
-        return fmt::format("load %{} #{}", src, idx);
+        return fmt::format("load    src: %{}   field: #{}", src, idx);
 }
 
 // Branch

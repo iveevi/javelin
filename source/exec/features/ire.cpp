@@ -1,7 +1,10 @@
 #include <fmt/format.h>
+#include <type_traits>
 
 #include "ire/aggregate.hpp"
+#include "ire/aliases.hpp"
 #include "ire/core.hpp"
+#include "ire/emitter.hpp"
 #include "ire/solidify.hpp"
 #include "ire/uniform_layout.hpp"
 #include "profiles/targets.hpp"
@@ -26,30 +29,60 @@
 using namespace jvl;
 using namespace jvl::ire;
 
-template <generic T, thunder::index_t N>
-struct array {
+// TODO: unsized arrays as well
 
+template <generic T, thunder::index_t N>
+struct array {};
+
+// TODO: array base with constructors, and then array with operator[]
+template <primitive_type T, thunder::index_t N>
+struct array <T, N> : public tagged {
+	using element = primitive_t <T>;
+
+	array() {
+		auto &em = Emitter::active;
+		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
+		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
+		this->ref = qualifier;
+	}
+
+	template <generic U, generic ... Args>
+	void __initialize(thunder::index_t index, const U &arg, const Args &... args) {
+		JVL_ASSERT(cached(), "arrays must be cached before initialization");
+
+		auto &em = Emitter::active;
+
+		element e(arg);
+		thunder::index_t indexed = em.emit_load(this->ref.id, index);
+		thunder::index_t stored = em.emit_store(indexed, e.synthesize().id, true);
+
+		if constexpr (sizeof...(Args))
+			__initialize(index + 1, args...);
+	}
+
+	template <generic ... Args>
+	array(const Args &...args) : array() {
+		__initialize <Args...> (0, args...);
+	}
+
+	// TODO: index with primitive int
+	element operator[](thunder::index_t index) const {
+		JVL_ASSERT(cached(), "arrays must be cached by the time of use");
+		
+		auto &em = Emitter::active;
+		return em.emit_load(this->ref.id, index);
+	}
+
+	// TODO: zero initializing constructor
 };
 
 auto ftn = callable_info("shuffle") >> [](ivec3 in, i32 iterations)
 {
-	i32 counter = 0;
-	loop(counter < iterations);
-	{
-		in.x <<= in.z;
-		in.x >>= in.y;
-		loop((in.x & 0b1) != 0b1);
-		{
-			in.x |= in.y ^ in.z;
-			in.x &= in.y - in.z;
-		}
-		end();
-		
-		counter += 1;
-	}
-	end();
-
+	// TODO: color wheel generator
+	array <int, 3> list { 1, 2, 3 };
+	Emitter::active.dump();
 	return in;
+	// return in + list[1];
 };
 
 int main()
@@ -57,6 +90,6 @@ int main()
 	thunder::opt_transform(ftn);
 	ftn.dump();
 
-	fmt::println("{}", ftn.export_to_kernel().compile(profiles::cplusplus_11));
-	// fmt::println("{}", ftn.export_to_kernel().compile(profiles::glsl_450));
+	// fmt::println("{}", ftn.export_to_kernel().compile(profiles::cplusplus_11));
+	fmt::println("{}", ftn.export_to_kernel().compile(profiles::glsl_450));
 }

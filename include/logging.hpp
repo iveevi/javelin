@@ -28,6 +28,20 @@ inline void assertion(bool cond, const std::string &module, const std::string &m
 	__builtin_trap();
 }
 
+inline void assertion(bool cond, const std::string &module, const std::string &msg, const char *const file, int line)
+{
+	if (cond) return;
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "({}): ", module);
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::purple), "assertion failed: ");
+	fmt::println("{}", msg);
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::pink), "note: ");
+	fmt::println("declared from {}:{}", file, line);
+	std::fflush(stdout);
+	__builtin_trap();
+}
+
 [[noreturn]]
 inline void abort(const std::string &msg)
 {
@@ -100,6 +114,14 @@ inline void info(const std::string &module, const std::string &msg)
 	std::fflush(stdout);
 }
 
+inline void note(const std::string &msg)
+{
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::pink), "note: ");
+	fmt::println("{}", msg);
+	std::fflush(stdout);
+}
+
 struct stage_bracket {
 	std::string module;
 
@@ -136,13 +158,15 @@ struct stage_bracket {
 // Helper macros for easier logging
 #define MODULE(name) static constexpr const char __module__[] = #name
 
-#define JVL_ASSERT(cond, ...)	log::assertion(cond, __module__, fmt::format(__VA_ARGS__))
+#define JVL_ASSERT(cond, ...)	log::assertion(cond, __module__, fmt::format(__VA_ARGS__), __FILE__, __LINE__)
 #define JVL_ASSERT_PLAIN(cond)	log::assertion(cond, __module__, fmt::format("{}:{}\t{}", __FILE__, __LINE__, #cond))
 
 #define JVL_ABORT(...)		log::abort(__module__, fmt::format(__VA_ARGS__))
 #define JVL_ERROR(...)		log::error(__module__, fmt::format(__VA_ARGS__))
 #define JVL_WARNING(...)	log::warning(__module__, fmt::format(__VA_ARGS__))
 #define JVL_INFO(...)		log::info(__module__, fmt::format(__VA_ARGS__))
+#define JVL_NOTE(...)		log::note(fmt::format(__VA_ARGS__))
+
 #define JVL_STAGE()		log::stage_bracket __stage(__module__)
 #define JVL_STAGE_SECTION(s)	log::stage_bracket __stage(s)
 

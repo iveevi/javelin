@@ -78,8 +78,8 @@ struct Emitter {
 		return emit(thunder::Call(cid, args, type));
 	}
 
-	index_t emit_store(index_t dst, index_t src) {
-		return emit(thunder::Store(dst, src));
+	index_t emit_store(index_t dst, index_t src, bool bss) {
+		return emit(thunder::Store(dst, src, bss));
 	}
 
 	index_t emit_load(index_t src, index_t idx) {

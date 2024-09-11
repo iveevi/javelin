@@ -93,8 +93,10 @@ TypeDecl Buffer::classify(index_t i) const
 		if (load.idx == -1)
 			return decl;
 
-		JVL_ASSERT(!decl.is_primitive(),
-			"cannot load from primitive variables");
+		if (decl.is_primitive())
+			dump();
+
+		JVL_ASSERT(!decl.is_primitive(), "cannot load from primitive variables");
 
 		index_t i = decl.concrete;
 		index_t left = load.idx;

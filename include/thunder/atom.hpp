@@ -203,9 +203,13 @@ static_assert(atom_instruction <Call>);
 //
 //   dst: reference to store into
 //   src: reference to the value
+//   bss: indicates if the store should be
+//      acted out statically
+//      (i.e. as initialization)
 struct Store {
 	index_t dst = -1;
 	index_t src = -1;
+	bool bss = false;
 
 	bool operator==(const Store &) const;
 	Addresses addresses();
@@ -308,19 +312,19 @@ inline auto format_as(const Atom &atom)
 static_assert(atom_instruction <Atom>);
 
 // Atom size checks
-static_assert(sizeof(Qualifier)	== 6);
-static_assert(sizeof(TypeInformation) == 6);
-static_assert(sizeof(Primitive) == 5);
-static_assert(sizeof(Swizzle)   == 4);
-static_assert(sizeof(Operation) == 6);
-static_assert(sizeof(Intrinsic) == 6);
-static_assert(sizeof(List)      == 4);
-static_assert(sizeof(Construct) == 4);
-static_assert(sizeof(Call)      == 6);
-static_assert(sizeof(Store)     == 4);
-static_assert(sizeof(Load)      == 4);
-static_assert(sizeof(Branch)    == 6);
-static_assert(sizeof(Returns)   == 4);
-static_assert(sizeof(Atom)      == 8);
+static_assert(sizeof(Qualifier)		== 6);
+static_assert(sizeof(TypeInformation)	== 6);
+static_assert(sizeof(Primitive)		== 5);
+static_assert(sizeof(Swizzle)		== 4);
+static_assert(sizeof(Operation)		== 6);
+static_assert(sizeof(Intrinsic)		== 6);
+static_assert(sizeof(List)		== 4);
+static_assert(sizeof(Construct)		== 4);
+static_assert(sizeof(Call)		== 6);
+static_assert(sizeof(Store)		== 6);
+static_assert(sizeof(Load)		== 4);
+static_assert(sizeof(Branch)		== 6);
+static_assert(sizeof(Returns)		== 4);
+static_assert(sizeof(Atom)		== 8);
 
 } // namespace jvl::thunder
