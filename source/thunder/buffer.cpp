@@ -10,22 +10,22 @@ namespace jvl::thunder {
 
 MODULE(buffer);
 
-Buffer::Buffer() : pointer(0), pool(4) {}
+Buffer::Buffer() : pointer(0), pool(4), types(4) {}
 
 index_t Buffer::emit(const Atom &atom, bool enable_classification)
 {
-	if (pointer >= pool.size())
+	if (pointer >= pool.size()) {
 		pool.resize((pool.size() << 1));
+		types.resize(pool.size());
+	}
 
 	JVL_ASSERT(pointer < pool.size(),
 		"scratch buffer pointer is out of bounds ({} >= {})",
 		pointer, pool.size());
 
 	pool[pointer] = atom;
-	if (enable_classification) {
-		if (auto qt = classify(pointer))
-			types[pointer] = qt;
-	}
+	if (enable_classification)
+		types[pointer] = classify(pointer);
 	
 	return pointer++;
 }
@@ -87,10 +87,8 @@ void Buffer::clear()
 
 void Buffer::dump() const
 {
-	for (size_t i = 0; i < pointer; i++) {
-		auto qt = types.get(i).value_or(QualifiedType::nil());
-		fmt::println("   [{:4d}]: {:40} :: {}", i, pool[i].to_string(), qt);
-	}
+	for (size_t i = 0; i < pointer; i++)
+		fmt::println("   [{:4d}]: {:40} :: {}", i, pool[i], types[i]);
 }
 
 // Utility methods
@@ -128,13 +126,9 @@ std::vector <QualifiedType> Buffer::expand_list_types(index_t i) const
 		JVL_ASSERT_PLAIN(atom.is <List> ());
 
 		List list = atom.as <List> ();
-
-		if (types.contains(list.item))
-			args.push_back(types.at(list.item));
-		else
-			args.push_back(QualifiedType());
-
 		i = list.next;
+		
+		args.push_back(types[list.item]);
 	}
 
 	return args;

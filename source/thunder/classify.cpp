@@ -17,8 +17,8 @@ static QualifiedType lookup_operation_overload(const OperationCode &, const std:
 QualifiedType Buffer::classify(index_t i) const
 {
 	// Caching
-	if (types.contains(i))
-		return types.at(i);
+	if (types[i])
+		return types[i];
 
 	Atom atom = pool[i];
 
