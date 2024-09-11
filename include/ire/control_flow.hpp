@@ -62,7 +62,7 @@ inline void returns(const Args &... args)
 		ret.args = list_from_args(args...);
 		ret.type = type_field_from_args <std::decay_t <Args>...> ().id;
 	} else {
-		thunder::TypeField tf;
+		thunder::TypeInformation tf;
 		tf.item = thunder::none;
 		ret.type = em.emit(tf);
 	}

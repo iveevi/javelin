@@ -7,7 +7,7 @@ namespace jvl::thunder {
 
 // Conventional synthesis will have the first type field be the
 // primal value, and the secnod be the dual/derivative value
-int synthesize_differential_type(const std::vector <Atom> &pool, const TypeField &tf)
+int synthesize_differential_type(const std::vector <Atom> &pool, const TypeInformation &tf)
 {
 	auto &em = ire::Emitter::active;
 
@@ -80,7 +80,7 @@ index_t ad_fwd_binary_operation_dual_value(mapped_instruction_t &mapped,
 
 	case multiplication:
 	{
-		index_t base_type = em.emit(TypeField(-1, -1, f32));
+		index_t base_type = em.emit(TypeInformation(-1, -1, f32));
 		index_t df_g = em.emit_list_chain(arg0[1], arg1[0]);
 		index_t f_dg = em.emit_list_chain(arg0[0], arg1[1]);
 		auto products = em.emit_sequence(Operation(df_g, base_type, multiplication),
@@ -92,7 +92,7 @@ index_t ad_fwd_binary_operation_dual_value(mapped_instruction_t &mapped,
 
 	case division:
 	{
-		index_t base_type = em.emit(TypeField(-1, -1, f32));
+		index_t base_type = em.emit(TypeInformation(-1, -1, f32));
 		index_t df_g = em.emit_list_chain(arg0[1], arg1[0]);
 		index_t f_dg = em.emit_list_chain(arg0[0], arg1[1]);
 		auto products = em.emit_sequence(Operation(df_g, base_type, multiplication),
@@ -197,9 +197,9 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 
 	// Promote the type field to the
 	// corresponding differential type
-	case Atom::type_index <TypeField> ():
+	case Atom::type_index <TypeInformation> ():
 	{
-		auto tf = atom.template as <TypeField> ();
+		auto tf = atom.template as <TypeInformation> ();
 
 		diffed.insert(i);
 
@@ -212,15 +212,15 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 	// Nothing to do for the global itself,
 	// but for the differentiated parameters,
 	// new types need to be instantiated
-	case Atom::type_index <Global> ():
+	case Atom::type_index <Qualifier> ():
 	{
-		auto global = atom.template as <Global> ();
-		if (global.qualifier == GlobalQualifier::parameter) {
+		auto global = atom.template as <Qualifier> ();
+		if (global.kind == parameter) {
 			// NOTE: assuming this a differentiated parameter...
 			diffed.insert(i);
 
 			// Dependencies are pushed front
-			queue.push_front(global.type);
+			queue.push_front(global.underlying);
 		}
 
 		em.emit(global);
@@ -305,7 +305,7 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 		mapped.track(primal, 0b10);
 
 		// Dual type storage
-		auto tf = context.pool[opn.type].as <TypeField> ();
+		auto tf = context.pool[opn.type].as <TypeInformation> ();
 
 		Construct dual_ctor;
 		dual_ctor.type = synthesize_differential_type(context.pool, tf);
@@ -347,7 +347,7 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 		index_t dual = ad_fwd_intrinsic_dual_value(mapped, arg0, intr.opn, intr.type);
 
 		// Dual type storage
-		auto tf = context.pool[intr.type].as <TypeField> ();
+		auto tf = context.pool[intr.type].as <TypeInformation> ();
 
 		Construct dual_ctor;
 		dual_ctor.type = synthesize_differential_type(context.pool, tf);
@@ -387,8 +387,8 @@ void ad_fwd_transform(Buffer &result, const Buffer &source)
 
 	for (index_t i = 0; i < mapped.size(); i++) {
 		auto &atom = pool[i];
-		if (auto global = atom.template get <Global> ()) {
-			if (global->qualifier == GlobalQualifier::parameter)
+		if (auto global = atom.template get <Qualifier> ()) {
+			if (global->kind == parameter)
 				context.queue.push_back(i);
 		}
 

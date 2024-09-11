@@ -15,12 +15,12 @@ index_t instruction_type(const std::vector <Atom> &pool, index_t i)
 	auto &atom = pool[i];
 
 	switch (atom.index()) {
-	case Atom::type_index <TypeField> ():
+	case Atom::type_index <TypeInformation> ():
 	case Atom::type_index <Swizzle> ():
 		// For now we let swizzle be a special case
 		return i;
-	case Atom::type_index <Global> ():
-		return atom.as <Global> ().type;
+	case Atom::type_index <Qualifier> ():
+		return atom.as <Qualifier> ().underlying;
 	case Atom::type_index <Primitive> ():
 		return atom.as <Primitive> ().type;
 	case Atom::type_index <Operation> ():
@@ -35,9 +35,9 @@ index_t instruction_type(const std::vector <Atom> &pool, index_t i)
 		index_t idx = load.idx;
 		while (idx > 0) {
 			auto &atom = pool[t];
-			log::assertion(atom.is <TypeField> (), __module__);
+			log::assertion(atom.is <TypeInformation> (), __module__);
 
-			TypeField type_field = atom.as <TypeField> ();
+			TypeInformation type_field = atom.as <TypeInformation> ();
 			t = type_field.next;
 			idx--;
 		}
@@ -58,11 +58,11 @@ PrimitiveType primitive_type_of(const std::vector <Atom> &pool, index_t i)
 	index_t t = instruction_type(pool, i);
 
 	auto &atom = pool[t];
-	log::assertion(atom.is <TypeField> (), __module__,
+	log::assertion(atom.is <TypeInformation> (), __module__,
 		fmt::format("result of instruction_type(...) "
 			"is not a typefield: {}", atom));
 
-	TypeField tf = atom.as <TypeField> ();
+	TypeInformation tf = atom.as <TypeInformation> ();
 
 	return (tf.down == -1 && tf.next == -1) ? tf.item : bad;
 }
@@ -104,12 +104,12 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 			index_t l = em.emit(List(cb, -1));
 			l = em.emit(List(ca, l));
 
-			index_t t = em.emit(TypeField(-1, -1, ctype));
+			index_t t = em.emit(TypeInformation(-1, -1, ctype));
 			components[i] = em.emit(Operation(l, t, code));
 		}
 
 		index_t l = em.emit_list_chain(components);
-		index_t t = em.emit(TypeField(-1, -1, type_a));
+		index_t t = em.emit(TypeInformation(-1, -1, type_a));
 		em.emit(Construct(t, l));
 
 		// fmt::println("legalized code:");
@@ -129,12 +129,12 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 			mapped.track(l, 0b01);
 			l = em.emit(List(c, l));
 
-			index_t t = em.emit(TypeField(-1, -1, type_b));
+			index_t t = em.emit(TypeInformation(-1, -1, type_b));
 			components[i] = em.emit(Operation(l, t, code));
 		}
 
 		index_t l = em.emit_list_chain(components);
-		index_t t = em.emit(TypeField(-1, -1, type_a));
+		index_t t = em.emit(TypeInformation(-1, -1, type_a));
 		em.emit(Construct(t, l));
 	} else if (!vector_type(type_a) && vector_type(type_b)) {
 		assert(type_a == swizzle_type_of(type_b, SwizzleCode::x));
@@ -150,12 +150,12 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 			l = em.emit(List(a, l));
 			mapped.track(l, 0b01);
 
-			index_t t = em.emit(TypeField(-1, -1, type_a));
+			index_t t = em.emit(TypeInformation(-1, -1, type_a));
 			components[i] = em.emit(Operation(l, t, code));
 		}
 
 		index_t l = em.emit_list_chain(components);
-		index_t t = em.emit(TypeField(-1, -1, type_b));
+		index_t t = em.emit(TypeInformation(-1, -1, type_b));
 		em.emit(Construct(t, l));
 	} else {
 		// TODO: legalize by converting to higher type
@@ -196,7 +196,7 @@ void legalize_for_cc_vector_constructor(mapped_instruction_t &mapped,
 		}
 
 		index_t l = em.emit_list_chain(components);
-		index_t t = em.emit(TypeField(-1, -1, type_to_construct));
+		index_t t = em.emit(TypeInformation(-1, -1, type_to_construct));
 		em.emit(Construct(t, l));
 	} else {
 		JVL_ABORT("unsupported argument {} when legalizing constructor for {}",
@@ -261,14 +261,14 @@ void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 			index_t l = em.emit(List(cb, -1));
 			l = em.emit(List(ca, l));
 
-			index_t t = em.emit(TypeField(-1, -1, ctype));
+			index_t t = em.emit(TypeInformation(-1, -1, ctype));
 			products[i] = em.emit(Operation(l, t, multiplication));
 		}
 
 		index_t top = products[0];
 		for (size_t i = 0; i < ccount - 1; i++) {
 			index_t l = em.emit_list_chain(top, products[i + 1]);
-			index_t t = em.emit(TypeField(-1, -1, ctype));
+			index_t t = em.emit(TypeInformation(-1, -1, ctype));
 			top = em.emit(Operation(l, t, addition));
 		}
 

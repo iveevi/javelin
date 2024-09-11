@@ -1,70 +1,93 @@
 #include <gtest/gtest.h>
 
 #include "ire/core.hpp"
+#include "ire/type_synthesis.hpp"
+#include "thunder/atom.hpp"
+#include "thunder/buffer.hpp"
+#include "thunder/enumerations.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;
 
 // Checking that certain operations appear in IR
-bool ir_cmp_op(const thunder::Atom &ref, const thunder::Atom &g)
+bool check_contents(const thunder::Buffer &ref, const thunder::Buffer &given)
 {
-	if (ref.index() != g.index())
+	if (ref.pointer != given.pointer)
 		return false;
 
-	if (auto g_global = g.get <thunder::Global> ()) {
-		auto ref_global = ref.get <thunder::Global> ();
-		// TODO: recursive check if not -max
-		return (ref_global->qualifier == g_global->qualifier)
-			&& (ref_global->binding == ref_global->binding);
+	for (size_t i = 0; i < ref.pointer; i++) {
+		if (ref[i] != given[i])
+			return false;
 	}
 
-	if (auto g_global = g.get <thunder::TypeField> ()) {
-		auto ref_global = ref.get <thunder::TypeField> ();
-		return (ref_global->item == g_global->item);
-	}
-
-	return false;
-}
-
-int ir_op_occurence(const thunder::Buffer &scratch, const thunder::Atom &g)
-{
-	int count = 0;
-	for (size_t i = 0; i < scratch.pointer; i++) {
-		thunder::Atom atom = scratch.pool[i];
-		if (ir_cmp_op(atom, g))
-			count++;
-	}
-
-	return count;
+	return true;
 }
 
 template <primitive_type T>
 void synthesize_layout_io_inner()
 {
-	thunder::Buffer scratch;
+	auto &em = Emitter::active;
 
-	Emitter::active.push(scratch);
+	// Generate code manually as a reference
+	thunder::Buffer ref_buffer;
+
+	em.push(ref_buffer);
+	{
+		using thunder::index_t;
+
+		// TODO: per instruction methods from Emitter
+		// em.emit_type_information(...)
+		// em.emit_qualifier(...)
+		// em.emit_load(...)
+		// em.emit_store(...)
+		// ... etc
+		thunder::TypeInformation type_info;
+		type_info.item = synthesize_primitive_type <T> ();
+
+		index_t type = em.emit(type_info);
+
+		thunder::Qualifier input_qualifier;
+		input_qualifier.underlying = type;
+		input_qualifier.numerical = 0;
+		input_qualifier.kind = thunder::layout_in;
+
+		index_t in = em.emit(input_qualifier);
+
+		thunder::Load load;
+		load.src = in;
+
+		index_t ld = em.emit(load);
+		
+		// Duplicate type is expected to be generated
+		type = em.emit(type_info);
+		
+		thunder::Qualifier output_qualifier;
+		output_qualifier.underlying = type;
+		output_qualifier.numerical = 0;
+		output_qualifier.kind = thunder::layout_out;
+
+		index_t out = em.emit(output_qualifier);
+
+		thunder::Store store;
+		store.src = ld;
+		store.dst = out;
+
+		em.emit(store);
+	}
+	em.pop();
+
+	// Generate code using the IRE
+	thunder::Buffer ire_buffer;
+
+	em.push(ire_buffer);
 	{
 		layout_in <T> lin(0);
 		layout_out <T> lout(0);
 		lout = lin;
 	}
-	Emitter::active.pop();
+	em.pop();
 
-	thunder::Global lin;
-	lin.qualifier = thunder::GlobalQualifier::layout_in;
-	lin.binding = 0;
-
-	thunder::Global lout;
-	lout.qualifier = thunder::GlobalQualifier::layout_out;
-	lout.binding = 0;
-
-	thunder::TypeField type_field;
-	type_field.item = synthesize_primitive_type <T> ();
-
-	EXPECT_EQ(ir_op_occurence(scratch, lin), 1);
-	EXPECT_EQ(ir_op_occurence(scratch, lout), 1);
-	EXPECT_EQ(ir_op_occurence(scratch, type_field), 2);
+	ASSERT_TRUE(check_contents(ref_buffer, ire_buffer));
 }
 
 TEST(ire_emitter, synthesize_layout_io_int)

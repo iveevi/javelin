@@ -95,7 +95,7 @@ void void_platform_intrinsic_from_args(thunder::IntrinsicOperation opn, const Ar
 {
 	auto &em = Emitter::active;
 
-	thunder::TypeField tf;
+	thunder::TypeInformation tf;
 	tf.item = thunder::PrimitiveType::none;
 
 	thunder::Intrinsic intr;

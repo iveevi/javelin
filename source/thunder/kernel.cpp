@@ -19,10 +19,10 @@ index_t generate_type_declaration(Linkage &linkage, const std::vector <Atom> &at
 	index_t i = index;
 	while (i != -1) {
 		Atom g = atoms[i];
-		if (!g.is <TypeField> ())
+		if (!g.is <TypeInformation> ())
 			abort();
 
-		TypeField tf = g.as <TypeField> ();
+		TypeInformation tf = g.as <TypeInformation> ();
 
 		Linkage::struct_element element;
 		if (tf.down != -1)
@@ -64,26 +64,26 @@ Linkage Kernel::linkage() const
 		if (auto call = atom.get <Call> ())
 			linkage.callables.insert(call->cid);
 
-		if (auto global = atom.get <Global> ()) {
-			index_t type = global->type;
+		if (auto global = atom.get <Qualifier> ()) {
+			index_t type = global->underlying;
 			index_t generated_type = generate_type_declaration(linkage, atoms, type);
-			index_t binding = global->binding;
+			index_t binding = global->numerical;
 
 			// TODO: the kernel must undergo validation
-			switch (global->qualifier) {
-			case GlobalQualifier::layout_in:
+			switch (global->kind) {
+			case layout_in:
 				linkage.lins[binding] = generated_type;
 				break;
-			case GlobalQualifier::layout_out:
+			case layout_out:
 				linkage.louts[binding] = generated_type;
 				break;
-			case GlobalQualifier::parameter:
+			case parameter:
 				// Need the concrete type for parameters,
 				// so that the type fields can be accessed from JIT
 				// TODO: find some way to fix this
 				block.parameters[binding] = type;
 				break;
-			case GlobalQualifier::push_constant:
+			case push_constant:
 				linkage.push_constant = generated_type;
 				break;
 			default:
@@ -94,7 +94,7 @@ Linkage Kernel::linkage() const
 		if (auto returns = atom.get <Returns> ())
 			block.returns = returns->type;
 
-		if (auto type_field = atom.get <TypeField> ())
+		if (auto type_field = atom.get <TypeInformation> ())
 			generate_type_declaration(linkage, atoms, i);
 	}
 

@@ -93,7 +93,7 @@ auto uniform_layout(const std::string &name, const Args &... args)
 
 // Synthesize types for an entire sequence of arguments
 [[gnu::always_inline]]
-static inline bool valid(const thunder::TypeField &tf)
+static inline bool valid(const thunder::TypeInformation &tf)
 {
 	return (tf.down != -1) || (tf.item != thunder::bad);
 }
@@ -103,7 +103,7 @@ cache_index_t type_field_from_args_impl()
 {
 	auto &em = Emitter::active;
 
-	thunder::TypeField tf;
+	thunder::TypeInformation type_info;
 
 	if constexpr (uniform_compatible <T>) {
 		using layout_t = decltype(T().layout());
@@ -112,20 +112,20 @@ cache_index_t type_field_from_args_impl()
 		if constexpr (I == 0)
 			return type_field_from_args(layout_t());
 		else
-			tf.down = type_field_from_args(layout_t()).id;
+			type_info.down = type_field_from_args(layout_t()).id;
 	} else {
-		tf.item = synthesize_primitive_type <T> ();
+		type_info.item = synthesize_primitive_type <T> ();
 	}
 
-	assert(valid(tf));
+	assert(valid(type_info));
 
 	if constexpr (sizeof...(Args))
-		tf.next = type_field_from_args_impl <I + 1, Args...> ().id;
+		type_info.next = type_field_from_args_impl <I + 1, Args...> ().id;
 	else
-		tf.next = -1;
+		type_info.next = -1;
 
 	cache_index_t cached;
-	cached = em.emit(tf);
+	cached = em.emit(type_info);
 	return cached;
 }
 
@@ -158,7 +158,7 @@ cache_index_t type_field_index_from_args(int index)
 
 	auto &em = Emitter::active;
 
-	thunder::TypeField tf;
+	thunder::TypeInformation tf;
 
 	if constexpr (uniform_compatible <T>) {
 		using layout_t = decltype(T().layout());

@@ -115,7 +115,7 @@ bool opt_transform_dce_exempt(const Atom &atom)
 {
 	return atom.is <Returns> ()
 		|| atom.is <Store> ()
-		|| atom.is <Global> ()
+		|| atom.is <Qualifier> ()
 		|| atom.is <Branch> ();
 }
 

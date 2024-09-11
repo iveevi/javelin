@@ -4,41 +4,41 @@
 
 namespace jvl::thunder {
 
-// Global
-bool Global::operator==(const Global &other) const
+// Qualifier
+bool Qualifier::operator==(const Qualifier &other) const
 {
-        return (type == other.type)
-                && (binding == other.binding)
-                && (qualifier == other.qualifier);
+        return (underlying == other.underlying)
+                && (numerical  == other.numerical)
+                && (kind == other.kind);
 }
 
-Addresses Global::addresses()
+Addresses Qualifier::addresses()
 {
-        return { type, Addresses::null() };
+        return { underlying, Addresses::null() };
 }
 
-std::string Global::to_string() const
+std::string Qualifier::to_string() const
 {
-        return fmt::format("global: %{} = ({}, {})",
-                type,
-                tbl_global_qualifier[qualifier],
-                binding);
+        return fmt::format("qualifier {}(%{})[{}]",
+                tbl_qualifier_kind[kind],
+                underlying,
+                numerical);
 }
 
-// TypeField
-bool TypeField::operator==(const TypeField &other) const
+// TypeInformation
+bool TypeInformation::operator==(const TypeInformation &other) const
 {
         return (down == other.down)
                 && (next == other.next)
                 && (item == other.item);
 }
 
-Addresses TypeField::addresses()
+Addresses TypeInformation::addresses()
 {
         return { down, next };
 }
 
-std::string TypeField::to_string() const
+std::string TypeInformation::to_string() const
 {
         std::string result;
 

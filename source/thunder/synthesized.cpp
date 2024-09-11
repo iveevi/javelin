@@ -42,11 +42,11 @@ std::unordered_set <index_t> synthesize_list(const std::vector <Atom> &atoms)
 			synthesized.insert(i);
 			break;
 
-		case Atom::type_index <Global> ():
+		case Atom::type_index <Qualifier> ():
 		{
-			auto &global = atom.as <Global> ();
+			auto &global = atom.as <Qualifier> ();
 			synthesized.insert(i);
-			synthesized.insert(global.type);
+			synthesized.insert(global.underlying);
 		} break;
 
 		case Atom::type_index <Returns> ():
@@ -62,9 +62,9 @@ std::unordered_set <index_t> synthesize_list(const std::vector <Atom> &atoms)
 			synthesized.insert(atom.as <Operation> ().type);
 			break;
 
-		case Atom::type_index <TypeField> ():
+		case Atom::type_index <TypeInformation> ():
 		{
-			auto &type_field = atom.as <TypeField> ();
+			auto &type_field = atom.as <TypeInformation> ();
 			if (type_field.down != -1)
 				synthesized.insert(type_field.down);
 		} break;

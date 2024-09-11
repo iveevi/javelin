@@ -23,9 +23,9 @@ TypeDecl Buffer::classify(index_t i) const
 
 	switch (atom.index()) {
 
-	case Atom::type_index <TypeField> ():
+	case Atom::type_index <TypeInformation> ():
 	{
-		auto &type_field = atom.as <TypeField> ();
+		auto &type_field = atom.as <TypeInformation> ();
 		if (type_field.item != bad)
 			return TypeDecl(type_field.item, type_field.next);
 		if (type_field.down != -1)
@@ -37,9 +37,9 @@ TypeDecl Buffer::classify(index_t i) const
 	case Atom::type_index <Primitive> ():
 		return TypeDecl(atom.as <Primitive> ().type);
 
-	case Atom::type_index <Global> ():
+	case Atom::type_index <Qualifier> ():
 	{
-		index_t type = atom.as <Global> ().type;
+		index_t type = atom.as <Qualifier> ().underlying;
 		TypeDecl decl = classify(type);
 		if (decl.is_struct_field())
 			return TypeDecl(type);

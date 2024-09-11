@@ -22,19 +22,19 @@ std::string type_name(const std::vector <Atom> &pool,
 		if (field == -1)
 			return struct_names.at(index);
 
-		assert(g.is <TypeField> ());
+		assert(g.is <TypeInformation> ());
 		if (field > 0) {
-			index_t i = g.as <TypeField> ().next;
+			index_t i = g.as <TypeInformation> ().next;
 			// TODO: traverse inline
 			return type_name(pool, struct_names, i, field - 1);
 		}
 	}
 
-	if (auto global = g.get <Global> ()) {
-		return type_name(pool, struct_names, global->type, field);
+	if (auto global = g.get <Qualifier> ()) {
+		return type_name(pool, struct_names, global->underlying, field);
 	} else if (auto ctor = g.get <Construct> ()) {
 		return type_name(pool, struct_names, ctor->type, field);
-	} else if (auto tf = g.get <TypeField> ()) {
+	} else if (auto tf = g.get <TypeInformation> ()) {
 		if (tf->down != -1)
 			return type_name(pool, struct_names, tf->down, -1);
 		if (tf->item != bad)
@@ -47,18 +47,18 @@ std::string type_name(const std::vector <Atom> &pool,
 }
 
 // TODO: pass options to the body_t type
-std::string generate_global_reference(const Global &global)
+std::string generate_global_reference(const Qualifier &global)
 {
-	switch (global.qualifier) {
-	case GlobalQualifier::layout_in:
-		return fmt::format("_lin{}", global.binding);
-	case GlobalQualifier::layout_out:
-		return fmt::format("_lout{}", global.binding);
-	case GlobalQualifier::parameter:
-		return fmt::format("_arg{}", global.binding);
-	case GlobalQualifier::push_constant:
+	switch (global.kind) {
+	case QualifierKind::layout_in:
+		return fmt::format("_lin{}", global.numerical);
+	case QualifierKind::layout_out:
+		return fmt::format("_lout{}", global.numerical);
+	case QualifierKind::parameter:
+		return fmt::format("_arg{}", global.numerical);
+	case QualifierKind::push_constant:
 		return "_pc";
-	case GlobalQualifier::glsl_vertex_intrinsic_gl_Position:
+	case QualifierKind::glsl_vertex_intrinsic_gl_Position:
 		return "gl_Position";
 	default:
 		break;
@@ -168,7 +168,7 @@ std::string generate_c_like(const body_t &body)
 
 		const Atom &atom = atoms[index];
 
-		if (auto global = atom.get <Global> ()) {
+		if (auto global = atom.get <Qualifier> ()) {
 			return generate_global_reference(*global);
 		} else if (auto load = atom.get <Load> ()) {
 			std::string accessor;
@@ -237,7 +237,7 @@ std::string generate_c_like(const body_t &body)
 
 		if (auto prim = atom.get <Primitive> ()) {
 			return generate_primitive(*prim);
-		} else if (auto global = atom.get <Global> ()) {
+		} else if (auto global = atom.get <Qualifier> ()) {
 			return generate_global_reference(*global);
 		} else if (auto ctor = atom.get <Construct> ()) {
 			std::string t = type_name(atoms, struct_names, ctor->type, -1);
@@ -277,10 +277,10 @@ std::string generate_c_like(const body_t &body)
 			return finish(tbl_intrinsic_operation[intr.opn]);
 
 		Atom g = atoms[intr.type];
-		if (!g.is <TypeField> ())
+		if (!g.is <TypeInformation> ())
 			return "?";
 
-		TypeField tf = g.as <TypeField> ();
+		TypeInformation tf = g.as <TypeInformation> ();
 		if (tf.item == none) {
 			// Void return type, so no assignment
 			auto args = arglist(intr.args);
@@ -382,9 +382,9 @@ std::string generate_c_like(const body_t &body)
 			// TODO: create a tuple type struct if necesary
 			auto args = arglist(ret->args);
 			source += finish("return " + strargs(args));
-		} else if (atom.is <TypeField> ()) {
+		} else if (atom.is <TypeInformation> ()) {
 			// Already taken care of during type/struct synthesis
-		} else if (atom.is <Global> ()) {
+		} else if (atom.is <Qualifier> ()) {
 			// Same reason; otherwise there are shader intrinsics
 			// which do not need to be synthesized
 		} else {

@@ -60,25 +60,25 @@ struct callable_t : Callable {
 
 			auto layout = x.layout().remove_const();
 
-			thunder::Global global;
-			global.qualifier = thunder::GlobalQualifier::parameter;
-			global.type = type_field_from_args(layout).id;
-			global.binding = index;
+			thunder::Qualifier qualifier;
+			qualifier.kind= thunder::parameter;
+			qualifier.underlying = type_field_from_args(layout).id;
+			qualifier.numerical = index;
 
 			cache_index_t ref;
-			ref = em.emit(global);
+			ref = em.emit(qualifier);
 			layout.ref_with(ref);
 		} else {
 			auto &x = std::get <index> (tpl);
 
 			using type_of_x = std::decay_t <decltype(x)>;
 
-			thunder::Global global;
-			global.qualifier = thunder::GlobalQualifier::parameter;
-			global.type = type_field_from_args <type_of_x> ().id;
-			global.binding = index;
+			thunder::Qualifier qualifier;
+			qualifier.kind = thunder::parameter;
+			qualifier.underlying = type_field_from_args <type_of_x> ().id;
+			qualifier.numerical = index;
 
-			x.ref = em.emit(global);
+			x.ref = em.emit(qualifier);
 		}
 
 		if constexpr (index + 1 < sizeof...(Args))

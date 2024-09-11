@@ -74,7 +74,7 @@ static_assert(__pt_end + 1 == sizeof(tbl_primitive_types)/sizeof(const char *));
 // Global qualifier //
 //////////////////////
 
-enum GlobalQualifier : int8_t {
+enum QualifierKind : int8_t {
 	parameter,
 	layout_in,
 	layout_out,
@@ -83,16 +83,16 @@ enum GlobalQualifier : int8_t {
 	__gq_end
 };
 
-static constexpr const char *tbl_global_qualifier[] = {
+static constexpr const char *tbl_qualifier_kind[] = {
 	"parameter",
-	"layout input",
-	"layout output",
+	"layout_input",
+	"layout_output",
 	"push_constant",
 	"glsl:vertex:gl_Position",
 	"__end"
 };
 
-static_assert(__gq_end + 1 == sizeof(tbl_global_qualifier)/sizeof(const char *));
+static_assert(__gq_end + 1 == sizeof(tbl_qualifier_kind)/sizeof(const char *));
 
 //////////////////
 // Swizzle Code //

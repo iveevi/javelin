@@ -21,9 +21,9 @@ struct __gl_Position_t {
 	const __gl_Position_t &operator=(const vec <float, 4> &other) {
 		auto &em = Emitter::active;
 
-		thunder::Global global;
-		global.type = type_field_from_args <vec <float, 4>> ().id;
-		global.qualifier = thunder::glsl_vertex_intrinsic_gl_Position;
+		thunder::Qualifier global;
+		global.underlying = type_field_from_args <vec <float, 4>> ().id;
+		global.kind = thunder::glsl_vertex_intrinsic_gl_Position;
 
 		thunder::Store store;
 		store.dst = em.emit(global);
@@ -37,9 +37,9 @@ struct __gl_Position_t {
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
 
-		thunder::Global global;
-		global.type = type_field_from_args <vec <float, 4>> ().id;
-		global.qualifier = thunder::glsl_vertex_intrinsic_gl_Position;
+		thunder::Qualifier global;
+		global.underlying = type_field_from_args <vec <float, 4>> ().id;
+		global.kind = thunder::glsl_vertex_intrinsic_gl_Position;
 
 		cache_index_t cit;
 		return (cit = em.emit(global));

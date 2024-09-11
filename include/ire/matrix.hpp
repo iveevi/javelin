@@ -21,7 +21,7 @@ struct mat_base : tagged {
 
 		// TODO: manual assignment, except for mat2x2
 		// TODO: instantiate all primitive types at header
-		thunder::TypeField tf;
+		thunder::TypeInformation tf;
 		tf.item = thunder::mat4;
 
 		thunder::Primitive p;

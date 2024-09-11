@@ -9,11 +9,11 @@ bool Atom::operator==(const Atom &B) const
 
 	switch (index()) {
 
-	case Atom::type_index <Global> ():
-		return as <Global> () == B.as <Global> ();
+	case Atom::type_index <Qualifier> ():
+		return as <Qualifier> () == B.as <Qualifier> ();
 		
-	case Atom::type_index <TypeField> ():
-		return as <TypeField> () == B.as <TypeField> ();
+	case Atom::type_index <TypeInformation> ():
+		return as <TypeInformation> () == B.as <TypeInformation> ();
 	
 	case Atom::type_index <Primitive> ():
 		return as <Primitive> () == B.as <Primitive> ();

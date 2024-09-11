@@ -54,21 +54,21 @@ void Buffer::validate() const
 	wrapped::hash_table <index_t, index_t> outputs;
 
 	for (int i = 0; i < pointer; i++) {
-		thunder::Atom g = pool[i];
-		if (!g.is <thunder::Global>())
+		Atom g = pool[i];
+		if (!g.is <Qualifier>())
 			continue;
 
-		thunder::Global global = g.as <thunder::Global> ();
-		if (global.qualifier == thunder::layout_in) {
-			int type = global.type;
-			int binding = global.binding;
+		Qualifier global = g.as <Qualifier> ();
+		if (global.kind == layout_in) {
+			int type = global.underlying;
+			int binding = global.numerical;
 			if (inputs.count(binding) && inputs[binding] != type)
 				fmt::println("JVL (error): layout in type conflict with binding #{}", binding);
 			else
 				inputs[binding] = type;
-		} else if (global.qualifier == thunder::layout_out) {
-			int type = global.type;
-			int binding = global.binding;
+		} else if (global.kind == layout_out) {
+			int type = global.underlying;
+			int binding = global.numerical;
 			if (outputs.count(binding) && outputs[binding] != type)
 				fmt::println("JVL (error): layout out type conflict with binding #{}", binding);
 			else

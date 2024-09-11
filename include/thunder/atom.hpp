@@ -45,40 +45,39 @@ concept atom_instruction = requires(T &t, const T &cta, const T &ctb) {
 	} -> std::same_as <std::string>;
 };
 
-// Global variable or parameter:
+// Qualifier for an underlying type
 //
-//   type: reference to the type of the variable/parameter
-//   binding: binding location, if applicable
+//   underlying: reference to the underlying type
+//   numerical: possibly a binding location, array count, etc.
 //   qualifier: qualifier type for the global variable/parameter
-struct Global {
-	index_t type = -1;
-	index_t binding = -1;
-	GlobalQualifier qualifier;
+struct Qualifier {
+	index_t underlying = -1;
+	index_t numerical = -1;
+	QualifierKind kind;
 
-	bool operator==(const Global &) const;
+	bool operator==(const Qualifier &) const;
 	Addresses addresses();
 	std::string to_string() const;
-
 };
 
-static_assert(atom_instruction <Global>);
+static_assert(atom_instruction <Qualifier>);
 
-// Struct field of a uniform compatible type
+// Type information, including primitives and structs
 //
 //   down: if valid (!= -1), points to a nested struct
 //   next: if valid (!= -1), points to the next field in the struct
 //   item: if valid (!= BAD), indicates the primitive type of the current field
-struct TypeField {
+struct TypeInformation {
 	index_t down = -1;
 	index_t next = -1;
 	PrimitiveType item = bad;
 
-	bool operator==(const TypeField &) const;
+	bool operator==(const TypeInformation &) const;
 	Addresses addresses();
 	std::string to_string() const;
 };
 
-static_assert(atom_instruction <TypeField>);
+static_assert(atom_instruction <TypeInformation>);
 
 // Primitive value
 //
@@ -267,8 +266,8 @@ static_assert(atom_instruction <Returns>);
 
 // Atom instructions
 using atom_base = wrapped::variant <
-	Global,
-	TypeField,
+	Qualifier,
+	TypeInformation,
 	Primitive,
 	Swizzle,
 	Operation,
@@ -313,8 +312,8 @@ inline auto format_as(const Atom &atom)
 static_assert(atom_instruction <Atom>);
 
 // Atom size checks
-static_assert(sizeof(Global)    == 6);
-static_assert(sizeof(TypeField) == 6);
+static_assert(sizeof(Qualifier)	== 6);
+static_assert(sizeof(TypeInformation) == 6);
 static_assert(sizeof(Primitive) == 5);
 static_assert(sizeof(Swizzle)   == 4);
 static_assert(sizeof(Operation) == 6);
