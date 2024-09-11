@@ -27,16 +27,25 @@ QualifiedType Buffer::classify(index_t i) const
 	case Atom::type_index <TypeInformation> ():
 	{
 		auto &type_field = atom.as <TypeInformation> ();
+
+		std::optional <PlainDataType> pd;
 		if (type_field.item != bad)
-			return QualifiedType::primitive(type_field.item);
+			pd = PlainDataType(type_field.item);
 		if (type_field.down != -1)
-			return QualifiedType::concrete(type_field.down);
+			pd = PlainDataType(type_field.down);
+
+		if (pd) {
+			if (type_field.next != -1)
+				return StructFieldType(pd.value(), type_field.next);
+			else
+				return pd.value();
+		}
 
 		return QualifiedType::nil();
 	}
 
 	case Atom::type_index <Primitive> ():
-		return QualifiedType(atom.as <Primitive> ().type);
+		return QualifiedType::primitive(atom.as <Primitive> ().type);
 
 	case Atom::type_index <Qualifier> ():
 	{
@@ -45,8 +54,13 @@ QualifiedType Buffer::classify(index_t i) const
 		QualifiedType decl = classify(qualifier.underlying);
 		if (qualifier.kind == arrays)
 			return QualifiedType::array(decl, qualifier.numerical);
+		
+		if (auto pd = decl.get <PlainDataType> ()) {
+			if (pd->is <PrimitiveType> ())
+				return decl;
+		}
 
-		return decl;
+		return QualifiedType::concrete(qualifier.underlying);
 	}
 
 	case Atom::type_index <Construct> ():
@@ -85,7 +99,9 @@ QualifiedType Buffer::classify(index_t i) const
 			"but operand is {} with type {}",
 			pool[swz.src], decl.to_string());
 
-		return QualifiedType(swizzle_type_of(plain.as <PrimitiveType> (), swz.code));
+		PrimitiveType swizzled = swizzle_type_of(plain.as <PrimitiveType> (), swz.code);
+
+		return QualifiedType::primitive(swizzled);
 	}
 
 	case Atom::type_index <Load> ():
@@ -96,26 +112,39 @@ QualifiedType Buffer::classify(index_t i) const
 			return qt;
 
 		switch (qt.index()) {
+
+		case QualifiedType::type_index <PlainDataType> ():
+		{
+			auto &pd = qt.as <PlainDataType> ();
+			JVL_ASSERT(pd.is <index_t> (), "cannot load field/element from primitive type: {}", qt);
+
+			index_t concrete = pd.as <index_t> ();
+			index_t left = load.idx;
+			while (true) {
+				JVL_ASSERT(concrete != -1, "load attempting to access out of bounds field");
+				auto &atom = pool[concrete];
+				JVL_ASSERT(atom.is <TypeInformation> (), "expected type information, instead got: {}", atom);
+				auto &ti = atom.as <TypeInformation> ();
+				if ((--left) > 0)
+					concrete = ti.next;
+				else
+					break;
+			}
+
+			QualifiedType qt_field = types[concrete].remove_qualifiers();
+			
+			fmt::println("field index: {}", concrete);
+			fmt::println("qualified field type: {}", qt_field);
+
+			return qt_field;
+		}
+
 		case QualifiedType::type_index <ArrayType> ():
-			return PlainDataType(qt.as <ArrayType> ());
+			return qt.as <ArrayType> ().base();
 		}
 
 		dump();
-		JVL_ABORT("unfinished implementation for load: {}", qt);
-
-		// JVL_ASSERT(!decl.is_primitive(), "cannot load from primitive variables");
-
-		// index_t i = decl.concrete;
-		// index_t left = load.idx;
-		// do {
-		// 	decl = types.at(i);
-		// 	i = decl.next;
-		// } while ((--left) > 0);
-
-		// if (decl.is_primitive())
-		// 	return QualifiedType(decl.primitive);
-
-		// return QualifiedType(decl.concrete);
+		JVL_ABORT("unfinished implementation for load: {}", atom);
 	}
 	
 	case Atom::type_index <Returns> ():
@@ -130,14 +159,15 @@ QualifiedType Buffer::classify(index_t i) const
 }
 
 // TODO: binary operation specialization
+// Overload for primitive type operations/intrinsics
 struct overload {
 	QualifiedType result;
 	std::vector <QualifiedType> args;
 
 	template <typename ... Args>
-	static overload from(QualifiedType result, const Args &...args) {
-		std::vector <QualifiedType> list { args... };
-		return overload(result, list);
+	static overload from(PrimitiveType result, const Args &...args) {
+		std::vector <QualifiedType> list { QualifiedType::primitive(args)... };
+		return overload(QualifiedType::primitive(result), list);
 	}
 
 	static std::string type_decls_to_string(const std::vector <QualifiedType> &args) {
@@ -311,11 +341,14 @@ static QualifiedType lookup_operation_overload(const OperationCode &key, const s
 		overload::from(vec3, vec3, vec3),
 		overload::from(vec4, vec4, vec4),
 
-		overload::from(vec3, vec3, f32),
-		overload::from(vec3, f32, vec3),
+		overload::from(ivec3, ivec3, i32),
+		overload::from(ivec3, i32, i32),
 
 		overload::from(uvec3, uvec3, u32),
 		overload::from(uvec3, u32, u32),
+		
+		overload::from(vec3, vec3, f32),
+		overload::from(vec3, f32, vec3),
 	};
 
 	static const overload_list matrix_multiplication_overloads {

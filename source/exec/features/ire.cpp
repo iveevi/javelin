@@ -77,17 +77,27 @@ struct array <T, N> : public tagged {
 	// TODO: zero initializing constructor
 };
 
-auto ftn = callable_info("shuffle") >> [](ivec3 in, i32 iterations)
+struct shuffle_info {
+	i32 iterations;
+	i32 stride;
+
+	auto layout() const {
+		return uniform_layout("shuffle_info",
+			named_field(iterations),
+			named_field(stride));
+	}
+};
+
+auto ftn = callable_info("shuffle") >> [](ivec3 in, shuffle_info info)
 {
 	// TODO: color wheel generator
 	array <int, 3> list { 1, 2, 3 };
-	Emitter::active.dump();
-	return in;
-	// return in + list[1];
+	return in + list[1];
 };
 
 int main()
 {
+	ftn.dump();
 	thunder::opt_transform(ftn);
 	ftn.dump();
 

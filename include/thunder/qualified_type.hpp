@@ -40,6 +40,29 @@ struct PlainDataType : public plain_data_type {
 	}
 };
 
+// Plain data type which is a struct field
+struct StructFieldType : PlainDataType {
+	using PlainDataType::PlainDataType;
+
+	index_t next;
+
+	StructFieldType(PlainDataType ut_, index_t next_)
+		: PlainDataType(ut_), next(next_) {}
+	
+	bool operator==(const StructFieldType &other) const {
+		return PlainDataType::operator==(other)
+			&& (next == other.next);
+	}
+
+	std::string to_string() const {
+		return fmt::format("{:15} next: %{}", PlainDataType::to_string(), next);
+	}
+
+	PlainDataType base() const {
+		return PlainDataType(*this);
+	}
+};
+
 // Array of unqualified types
 struct ArrayType : public PlainDataType {
 	index_t size;
@@ -55,6 +78,10 @@ struct ArrayType : public PlainDataType {
 	std::string to_string() const {
 		return fmt::format("{}[{}]", PlainDataType::to_string(), size);
 	}
+
+	PlainDataType base() const {
+		return PlainDataType(*this);
+	}
 };
 
 // TODO: inout
@@ -65,6 +92,7 @@ struct ArrayType : public PlainDataType {
 using qualified_type_base = wrapped::variant <
 	NilType,
 	PlainDataType,
+	StructFieldType,
 	ArrayType
 >;
 
@@ -87,6 +115,8 @@ struct QualifiedType : qualified_type_base {
 			return as <NilType> () == other.as <NilType> ();
 		case type_index <PlainDataType> ():
 			return as <PlainDataType> () == other.as <PlainDataType> ();
+		case type_index <StructFieldType> ():
+			return as <StructFieldType> () == other.as <StructFieldType> ();
 		case type_index <ArrayType> ():
 			return as <ArrayType> () == other.as <ArrayType> ();
 		default:
@@ -105,6 +135,8 @@ struct QualifiedType : qualified_type_base {
 		MODULE(qualified-type-remove-qualifiers);
 
 		switch (index()) {
+		case type_index <StructFieldType> ():
+			return as <StructFieldType> ().base();
 		default:
 			break;
 		}

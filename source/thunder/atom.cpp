@@ -51,11 +51,8 @@ std::string TypeInformation::to_string() const
         else
                 result += fmt::format("<?>");
 
-        result += fmt::format(" next: ");
-        if (next >= 0)
-                result += fmt::format("%{}", next);
-        else
-                result += fmt::format("(nil)");
+        if (next != -1)
+                result += fmt::format(" next: %{}", next);
 
         return result;
 }
