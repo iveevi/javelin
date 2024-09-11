@@ -278,7 +278,7 @@ void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 
 void legalize_for_cc(Buffer &buffer)
 {
-	JVL_INFO("legalizing intermediate representation for CC targets");
+	JVL_STAGE();
 
 	auto &em = ire::Emitter::active;
 	auto &pool = buffer.pool;
@@ -367,8 +367,6 @@ void legalize_for_cc(Buffer &buffer)
 
 	buffer = Buffer();
 	stitch_mapped_instructions(buffer, mapped);
-	
-	JVL_INFO("completed legalization pass");
 }
 
 } // namespace jvl::thunder::detail

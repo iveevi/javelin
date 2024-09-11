@@ -42,7 +42,7 @@ index_t Linkage::insert(const struct_declaration &A)
 // Fully resolve the linkage
 Linkage &Linkage::resolve()
 {
-	JVL_INFO("resolving linkage");
+	JVL_STAGE_SECTION("resolve-linkge");
 
 	// If there are no callables used, there is nothing to resolve
 	if (callables.empty())
