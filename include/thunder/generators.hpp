@@ -29,7 +29,7 @@ struct c_like_generator_t : body_t {
 
 	void finish(const std::string &, bool = true);
 
-	void declare(const std::string &, index_t);
+	void declare(const std::string &, index_t, index_t = -1);
 	void define(const std::string &, const std::string &, index_t);
 	void assign(int, const std::string &);
 	

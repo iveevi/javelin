@@ -200,13 +200,16 @@ std::string Construct::to_string() const
 {
         std::string result;
 
-        result += fmt::format("construct: %{} = ", type);
-        if (args == -1)
-                result += fmt::format("(nil)");
-        else
-                result += fmt::format("%{}", args);
+        result += fmt::format("{:10} type: %{} ", "construct", type);
 
-        result += fmt::format(" transient: {}", transient);
+        if (transient)
+		return result + "[transient]";
+
+	result += "args: ";
+        if (args == -1)
+		result += "(nil)";
+        else
+		result += fmt::format("%{}", args);
 
         return result;
 }

@@ -84,9 +84,11 @@ bool opt_transform_constructor_elision(Buffer &result)
 		if (construct.transient)
 			continue;
 
-		std::vector <index_t> fields;
-
 		index_t arg = construct.args;
+		if (arg == -1)
+			continue;
+		
+		std::vector <index_t> fields;
 		while (arg != -1) {
 			auto &atom = result.pool[arg];
 			JVL_ASSERT_PLAIN(atom.is <List> ());

@@ -18,7 +18,7 @@
 // TODO: immutability for shader inputs types
 // TODO: warnings for the unused sections
 // TODO: autodiff on inputs, for callables and shaders
-// TODO: synthesizable with name hints
+// TODO: generating code with correct names
 // TODO: test on shader toy shaders, use this as a gfx test
 // TODO: passing layout inputs/outputs (should ignore them)
 // TODO: test nested structs again
@@ -45,7 +45,7 @@ struct array <T, N> : public tagged {
 		auto &em = Emitter::active;
 		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
 		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
-		this->ref = em.emit_construct(qualifier, -1, true);
+		this->ref = em.emit_construct(qualifier, -1, false);
 	}
 
 	template <generic U, generic ... Args>
@@ -54,6 +54,7 @@ struct array <T, N> : public tagged {
 
 		auto &em = Emitter::active;
 
+		// TODO: generate a list of arguments as the initializer list
 		element e(arg);
 		thunder::index_t indexed = em.emit_load(this->ref.id, index);
 		thunder::index_t stored = em.emit_store(indexed, e.synthesize().id, true);
@@ -69,6 +70,7 @@ struct array <T, N> : public tagged {
 
 	// TODO: index with primitive int
 	element operator[](thunder::index_t index) const {
+		// TODO: bounds check?
 		JVL_ASSERT(cached(), "arrays must be cached by the time of use");
 		
 		auto &em = Emitter::active;
@@ -95,6 +97,7 @@ auto ftn = callable_info("shuffle") >> [](ivec3 in, shuffle_info info)
 {
 	// TODO: color wheel generator
 	array <int, 3> list { 1, 2, 3 };
+	list[1] = in.x + in.y/in.z;
 	return in + list[1];
 };
 

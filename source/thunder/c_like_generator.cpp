@@ -1,6 +1,7 @@
 #include "thunder/atom.hpp"
 #include "thunder/generators.hpp"
 #include "ire/callable.hpp"
+#include "thunder/qualified_type.hpp"
 
 namespace jvl::thunder::detail {
 
@@ -109,11 +110,16 @@ void c_like_generator_t::finish(const std::string &s, bool semicolon)
 	source += std::string(indentation << 2, ' ') + s + (semicolon ? ";" : "") + "\n";
 }
 
-void c_like_generator_t::declare(const std::string &t, index_t index)
+void c_like_generator_t::declare(const std::string &t, index_t index, index_t elements)
 {
 	int n = local_variables.size();
 	std::string var = fmt::format("s{}", n);
-	std::string stmt = fmt::format("{} {}", t, var);
+	std::string stmt;
+	if (elements == -1)
+		stmt = fmt::format("{} {}", t, var);
+	else
+		stmt = fmt::format("{} {}[{}]", t, var, elements);
+
 	local_variables[index] = var;
 	finish(stmt);
 }
@@ -146,10 +152,16 @@ std::string c_like_generator_t::reference(index_t index) const
 
 	case Atom::type_index <Load> ():
 	{
+		// TODO: load_accessor()
 		auto &load = atom.as <Load> ();
+		auto &qt_source = types[load.src];
+		
 		std::string accessor;
-		if (load.idx != -1)
+		if (qt_source.is <ArrayType> ())
+			accessor = fmt::format("[{}]", load.idx);
+		else if (load.idx != -1)
 			accessor = fmt::format(".f{}", load.idx);
+
 		return reference(load.src) + accessor;
 	}
 
@@ -176,39 +188,75 @@ std::string c_like_generator_t::inlined(index_t index) const
 
 	const Atom &atom = pool[index];
 
-	if (auto prim = atom.get <Primitive> ()) {
-		return generate_primitive(*prim);
-	} else if (auto global = atom.get <Qualifier> ()) {
-		return generate_global_reference(*global);
-	} else if (auto ctor = atom.get <Construct> ()) {
-		std::string t = generate_type_string(ctor->type, -1);
-		if (ctor->args != -1)
-			return t + "(" + inlined(ctor->args) + ")";
+	switch (atom.index()) {
+
+	case Atom::type_index <Qualifier> ():
+		return generate_global_reference(atom.as <Qualifier> ());
+
+	case Atom::type_index <Primitive> ():
+		return generate_primitive(atom.as <Primitive> ());
+
+	case Atom::type_index <Swizzle> ():
+	{
+		auto &swizzle = atom.as <Swizzle> ();
+		std::string accessor = tbl_swizzle_code[swizzle.code];
+		return inlined(swizzle.src) + "." + accessor;
+	}
+	
+	case Atom::type_index <Operation> ():
+	{
+		auto &operation = atom.as <Operation> ();
+		return generate_operation(operation.code, arguments(operation.args));
+	}
+
+	case Atom::type_index <Intrinsic> ():
+	{
+		auto &intrinsic = atom.as <Intrinsic> ();
+		auto args = arguments(intrinsic.args);
+		return tbl_intrinsic_operation[intrinsic.opn] + arguments_to_string(args);
+	}
+
+	case Atom::type_index <Construct> ():
+	{
+		auto &constructor = atom.as <Construct> ();
+		if (constructor.transient)
+			return inlined(constructor.type);
+
+		std::string t = generate_type_string(constructor.type, -1);
+		if (constructor.args != -1)
+			return t + "(" + inlined(constructor.args) + ")";
+
 		return t + "()";
-	} else if (auto call = atom.get <Call> ()) {
-		ire::Callable *cbl = ire::Callable::search_tracked(call->cid);
+	}
+
+	case Atom::type_index <Call> ():
+	{
+		auto &call = atom.as <Call> ();
+		
+		ire::Callable *cbl = ire::Callable::search_tracked(call.cid);
 		std::string args;
-		if (call->args != -1)
-			args = arguments_to_string(arguments(call->args));
+		if (call.args != -1)
+			args = arguments_to_string(arguments(call.args));
+
 		return fmt::format("{}{}", cbl->name, args);
-	} else if (auto list = atom.get <List> ()) {
-		std::string v = inlined(list->item);
-		if (list->next != -1)
-			v += ", " + inlined(list->next);
-		return v;
-	} else if (auto load = atom.get <Load> ()) {
+	}
+
+	case Atom::type_index <Load> ():
+	{
+		auto &load = atom.as <Load> ();
+		auto &qt_source = types[load.src];
+
 		std::string accessor;
-		if (load->idx != -1)
-			accessor = fmt::format(".f{}", load->idx);
-		return inlined(load->src) + accessor;
-	} else if (auto swizzle = atom.get <Swizzle> ()) {
-		std::string accessor = tbl_swizzle_code[swizzle->code];
-		return inlined(swizzle->src) + "." + accessor;
-	} else if (auto op = atom.get <Operation> ()) {
-		return generate_operation(op->code, arguments(op->args));
-	} else if (auto intr = atom.get <Intrinsic> ()) {
-		auto args = arguments(intr->args);
-		return tbl_intrinsic_operation[intr->opn] + arguments_to_string(args);
+		if (qt_source.is <ArrayType> ())
+			accessor = fmt::format("[{}]", load.idx);
+		else if (load.idx != -1)
+			accessor = fmt::format(".f{}", load.idx);
+
+		return inlined(load.src) + accessor;
+	}
+
+	default:
+		break;
 	}
 
 	JVL_ABORT("failed to inline atom: {} (@{})", atom, index);
@@ -338,14 +386,22 @@ void c_like_generator_t::generate <Intrinsic> (const Intrinsic &intrinsic, index
 template <>
 void c_like_generator_t::generate <Construct> (const Construct &construct, index_t index)
 {
+	if (construct.transient)
+		return;
+
+	auto &qt = types[index];
+	
+	index_t elements = -1;
+	if (qt.is <ArrayType> ())
+		elements = qt.as <ArrayType> ().size;
+
 	std::string t = generate_type_string(construct.type, -1);
-	if (construct.args == -1) {
-		declare(t, index);
-	} else {
-		std::string args = arguments_to_string(arguments(construct.args));
-		std::string v = t + args;
-		define(t, v, index);
-	}
+	if (construct.args == -1)
+		return declare(t, index, elements);
+	
+	std::string args = arguments_to_string(arguments(construct.args));
+	std::string v = t + args;
+	define(t, v, index);
 }
 
 template <>
