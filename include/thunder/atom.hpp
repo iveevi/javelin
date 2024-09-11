@@ -284,6 +284,7 @@ using atom_base = wrapped::variant <
 struct alignas(4) Atom : atom_base {
 	using atom_base::atom_base;
 
+	// TODO: use visitor pattern
 	bool operator==(const Atom &) const;
 
 	Addresses addresses() {

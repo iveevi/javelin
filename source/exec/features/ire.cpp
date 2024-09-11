@@ -21,10 +21,11 @@
 // TODO: test on shader toy shaders, use this as a gfx test
 // TODO: passing layout inputs/outputs (should ignore them)
 // TODO: test nested structs again
-// TODO: partial evaluation of callables
+// TODO: partial evaluation of callables through substitution methods
 // TODO: parameter qualifiers (e.g. out/inout) as wrapped types
 // TODO: array types
 // TODO: binary operations
+// TODO: external constant specialization
 
 using namespace jvl;
 using namespace jvl::ire;

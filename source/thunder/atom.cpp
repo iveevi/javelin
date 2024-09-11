@@ -19,7 +19,8 @@ Addresses Qualifier::addresses()
 
 std::string Qualifier::to_string() const
 {
-        return fmt::format("qualifier {}(%{})[{}]",
+        return fmt::format("{:10} {}(%{})[{}]",
+                "qualifier",
                 tbl_qualifier_kind[kind],
                 underlying,
                 numerical);
@@ -42,7 +43,7 @@ std::string TypeInformation::to_string() const
 {
         std::string result;
 
-        result += fmt::format("type    item: ");
+        result += fmt::format("{:10} item: ", "type");
         if (item != bad)
                 result += fmt::format("{}", tbl_primitive_types[item]);
         else if (down != -1)
@@ -83,7 +84,7 @@ Addresses Primitive::addresses()
 std::string Primitive::to_string() const
 {
         std::string result;
-        result = fmt::format("primitive: {} = ", tbl_primitive_types[type]);
+        result = fmt::format("{:10} value: ", "primitive");
 
         switch (type) {
         case i32:
@@ -176,7 +177,7 @@ std::string List::to_string() const
 {
         std::string result;
 
-        result += fmt::format("list: %{} -> ", item);
+        result += fmt::format("{:10} item: %{} next: ", "list", item);
         if (next >= 0)
                 result += fmt::format("%{}", next);
         else
@@ -252,7 +253,7 @@ Addresses Store::addresses()
         
 std::string Store::to_string() const
 {
-        return fmt::format("store   src: %{}   dst: %{}   bss: {}", src, dst, bss);
+        return fmt::format("{:10} src: %{} dst: %{} bss: {}", "store", src, dst, bss);
 }
 
 // Load
@@ -269,7 +270,7 @@ Addresses Load::addresses()
 
 std::string Load::to_string() const
 {
-        return fmt::format("load    src: %{}   field: #{}", src, idx);
+        return fmt::format("{:10} src: %{} field: #{}", "load", src, idx);
 }
 
 // Branch
@@ -309,7 +310,7 @@ Addresses Returns::addresses()
 
 std::string Returns::to_string() const
 {
-        return fmt::format("return %{} -> %{}", args, type);
+        return fmt::format("{:10} value: %{}", "return", args);
 }
 
 } // namespace jvl::thunder

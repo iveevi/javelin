@@ -41,16 +41,20 @@ struct Emitter {
 	template <typename T>
 	index_t emit_primitive(T value) {
 		thunder::Primitive primitive;
-		if constexpr (std::same_as <T, bool>)
+		if constexpr (std::same_as <T, bool>) {
 			primitive.bdata = value;
-		if constexpr (std::same_as <T, int32_t>)
+			primitive.type = thunder::boolean;
+		} else if constexpr (std::same_as <T, int32_t>) {
 			primitive.idata = value;
-		if constexpr (std::same_as <T, uint32_t>)
+			primitive.type = thunder::i32;
+		} else if constexpr (std::same_as <T, uint32_t>) {
 			primitive.udata = value;
-		if constexpr (std::same_as <T, float>)
+			primitive.type = thunder::u32;
+		} else if constexpr (std::same_as <T, float>) {
 			primitive.fdata = value;
+			primitive.type = thunder::f32;
+		}
 
-		primitive.type = synthesize_primitive_type <T> ();
 		return emit(primitive);
 	}
 

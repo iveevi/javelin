@@ -1,8 +1,9 @@
+#include "logging.hpp"
 #include "thunder/atom.hpp"
+#include "thunder/buffer.hpp"
 #include "thunder/enumerations.hpp"
 #include "thunder/kernel.hpp"
-#include "thunder/buffer.hpp"
-#include "logging.hpp"
+#include "thunder/qualified_type.hpp"
 #include "wrapped_types.hpp"
 
 namespace jvl::thunder {
@@ -22,8 +23,8 @@ index_t Buffer::emit(const Atom &atom, bool enable_classification)
 
 	pool[pointer] = atom;
 	if (enable_classification) {
-		if (auto td = classify(pointer))
-			types[pointer] = td;
+		if (auto qt = classify(pointer))
+			types[pointer] = qt;
 	}
 	
 	return pointer++;
@@ -87,8 +88,8 @@ void Buffer::clear()
 void Buffer::dump() const
 {
 	for (size_t i = 0; i < pointer; i++) {
-		std::string type_string = types.get(i).value_or(TypeDecl()).to_string();
-		fmt::println("   [{:4d}]: {:40} :: {}", i, pool[i].to_string(), type_string);
+		auto qt = types.get(i).value_or(QualifiedType::nil());
+		fmt::println("   [{:4d}]: {:40} :: {}", i, pool[i].to_string(), qt);
 	}
 }
 
@@ -119,9 +120,9 @@ std::vector <index_t> Buffer::expand_list(index_t i) const
 	return args;
 }
 
-std::vector <TypeDecl> Buffer::expand_list_types(index_t i) const
+std::vector <QualifiedType> Buffer::expand_list_types(index_t i) const
 {
-	std::vector <TypeDecl> args;
+	std::vector <QualifiedType> args;
 	while (i != -1) {
 		auto &atom = pool[i];
 		JVL_ASSERT_PLAIN(atom.is <List> ());
@@ -131,7 +132,7 @@ std::vector <TypeDecl> Buffer::expand_list_types(index_t i) const
 		if (types.contains(list.item))
 			args.push_back(types.at(list.item));
 		else
-			args.push_back(TypeDecl());
+			args.push_back(QualifiedType());
 
 		i = list.next;
 	}

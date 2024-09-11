@@ -69,7 +69,7 @@ struct optional <variant <Args...>> : std::optional <variant <Args...>> {
 	template <typename T>
 	inline optional <T> as() {
 		if (this->has_value())
-			return (this->value()).template as<T>();
+			return (this->value()).template as <T> ();
 
 		return std::nullopt;
 	}

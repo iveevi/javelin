@@ -2,61 +2,45 @@
 
 namespace jvl::thunder {
 
+MODULE(atom-comparison);
+
 bool Atom::operator==(const Atom &B) const
 {
 	if (index() != B.index())
 		return false;
 
 	switch (index()) {
-
-	case Atom::type_index <Qualifier> ():
+	case type_index <Qualifier> ():
 		return as <Qualifier> () == B.as <Qualifier> ();
-		
-	case Atom::type_index <TypeInformation> ():
+	case type_index <TypeInformation> ():
 		return as <TypeInformation> () == B.as <TypeInformation> ();
-	
-	case Atom::type_index <Primitive> ():
+	case type_index <Primitive> ():
 		return as <Primitive> () == B.as <Primitive> ();
-
-	case Atom::type_index <Swizzle> ():
+	case type_index <Swizzle> ():
 		return as <Swizzle> () == B.as <Swizzle> ();
-
-	case Atom::type_index <Operation> ():
+	case type_index <Operation> ():
 		return as <Operation> () == B.as <Operation> ();
-	
-	case Atom::type_index <Construct> ():
+	case type_index <Construct> ():
 		return as <Construct> () == B.as <Construct> ();
-	
-	case Atom::type_index <Call> ():
+	case type_index <Call> ():
 		return as <Call> () == B.as <Call> ();
-	
-	case Atom::type_index <Intrinsic> ():
+	case type_index <Intrinsic> ():
 		return as <Intrinsic> () == B.as <Intrinsic> ();
-	
-	case Atom::type_index <List> ():
+	case type_index <List> ():
 		return as <List> () == B.as <List> ();
-	
-	case Atom::type_index <Store> ():
+	case type_index <Store> ():
 		return as <Store> () == B.as <Store> ();
-	
-	case Atom::type_index <Load> ():
+	case type_index <Load> ():
 		return as <Load> () == B.as <Load> ();
-	
-	case Atom::type_index <Branch> ():
+	case type_index <Branch> ():
 		return as <Branch> () == B.as <Branch> ();
-	
-	case Atom::type_index <Returns> ():
+	case type_index <Returns> ():
 		return as <Returns> () == B.as <Returns> ();
-	
 	default:
-	{
-		fmt::println("unsupported Atom sub-type in operator==: {}", index());
-		abort();
+		break;
 	}
-
-	}
-
-	return false;
+		
+	JVL_ABORT("unsupported Atom sub-type in operator==: {}", index());
 }
 
 } // namespace jvl::thunder

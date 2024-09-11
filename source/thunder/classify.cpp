@@ -3,17 +3,18 @@
 #include "thunder/buffer.hpp"
 #include "thunder/enumerations.hpp"
 #include "thunder/properties.hpp"
+#include "thunder/qualified_type.hpp"
 
 namespace jvl::thunder {
 	
 MODULE(classify-atoms);
 
 // Overload lookup methods; forward declarations
-static TypeDecl lookup_intrinsic_overload(const IntrinsicOperation &, const std::vector <TypeDecl> &);
-static TypeDecl lookup_operation_overload(const OperationCode &, const std::vector <TypeDecl> &);
+static QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &, const std::vector <QualifiedType> &);
+static QualifiedType lookup_operation_overload(const OperationCode &, const std::vector <QualifiedType> &);
 
 // TODO: const ref return
-TypeDecl Buffer::classify(index_t i) const
+QualifiedType Buffer::classify(index_t i) const
 {
 	// Caching
 	if (types.contains(i))
@@ -27,28 +28,28 @@ TypeDecl Buffer::classify(index_t i) const
 	{
 		auto &type_field = atom.as <TypeInformation> ();
 		if (type_field.item != bad)
-			return TypeDecl(type_field.item, type_field.next);
+			return QualifiedType::primitive(type_field.item);
 		if (type_field.down != -1)
-			return TypeDecl(type_field.down, type_field.next);
+			return QualifiedType::concrete(type_field.down);
 
-		return TypeDecl();
+		return QualifiedType::nil();
 	}
 
 	case Atom::type_index <Primitive> ():
-		return TypeDecl(atom.as <Primitive> ().type);
+		return QualifiedType(atom.as <Primitive> ().type);
 
 	case Atom::type_index <Qualifier> ():
 	{
-		index_t type = atom.as <Qualifier> ().underlying;
-		TypeDecl decl = classify(type);
-		if (decl.is_struct_field())
-			return TypeDecl(type);
+		auto &qualifier = atom.as <Qualifier> ();
+		
+		QualifiedType decl = classify(qualifier.underlying);
+		if (qualifier.kind == arrays)
+			return QualifiedType::array(decl, qualifier.numerical);
 
 		return decl;
 	}
 
 	case Atom::type_index <Construct> ():
-		// TODO: atom.type()
 		return classify(atom.as <Construct> ().type);
 
 	case Atom::type_index <Call> ():
@@ -77,60 +78,69 @@ TypeDecl Buffer::classify(index_t i) const
 	case Atom::type_index <Swizzle> ():
 	{
 		auto &swz = atom.as <Swizzle> ();
-		TypeDecl decl = classify(swz.src);
-		JVL_ASSERT(vector_type(decl.primitive),
+		QualifiedType decl = classify(swz.src);
+		PlainDataType plain = decl.remove_qualifiers();
+		JVL_ASSERT(plain.is <PrimitiveType> (),
 			"swizzle should only operate on vector types, "
 			"but operand is {} with type {}",
 			pool[swz.src], decl.to_string());
 
-		return TypeDecl(swizzle_type_of(decl.primitive, swz.code));
+		return QualifiedType(swizzle_type_of(plain.as <PrimitiveType> (), swz.code));
 	}
 
 	case Atom::type_index <Load> ():
 	{
 		auto &load = atom.as <Load> ();
-		TypeDecl decl = classify(load.src);
+		QualifiedType qt = classify(load.src);
 		if (load.idx == -1)
-			return decl;
+			return qt;
 
-		if (decl.is_primitive())
-			dump();
+		switch (qt.index()) {
+		case QualifiedType::type_index <ArrayType> ():
+			return PlainDataType(qt.as <ArrayType> ());
+		}
 
-		JVL_ASSERT(!decl.is_primitive(), "cannot load from primitive variables");
+		dump();
+		JVL_ABORT("unfinished implementation for load: {}", qt);
 
-		index_t i = decl.concrete;
-		index_t left = load.idx;
-		do {
-			decl = types.at(i);
-			i = decl.next;
-		} while ((--left) > 0);
+		// JVL_ASSERT(!decl.is_primitive(), "cannot load from primitive variables");
 
-		if (decl.is_primitive())
-			return TypeDecl(decl.primitive);
+		// index_t i = decl.concrete;
+		// index_t left = load.idx;
+		// do {
+		// 	decl = types.at(i);
+		// 	i = decl.next;
+		// } while ((--left) > 0);
 
-		return TypeDecl(decl.concrete);
+		// if (decl.is_primitive())
+		// 	return QualifiedType(decl.primitive);
+
+		// return QualifiedType(decl.concrete);
 	}
+	
+	case Atom::type_index <Returns> ():
+		return classify(atom.as <Returns> ().type);
 
 	default:
-		return TypeDecl();
+		return QualifiedType();
 
 	}
 
-	return TypeDecl();
+	return QualifiedType();
 }
 
 // TODO: binary operation specialization
 struct overload {
-	TypeDecl result;
-	std::vector <TypeDecl> args;
+	QualifiedType result;
+	std::vector <QualifiedType> args;
 
 	template <typename ... Args>
-	static overload from(TypeDecl result, const Args &...args) {
-		std::vector <TypeDecl> list { args... };
+	static overload from(QualifiedType result, const Args &...args) {
+		std::vector <QualifiedType> list { args... };
 		return overload(result, list);
 	}
 
-	static std::string type_decls_to_string(const std::vector <TypeDecl> &args) {
+	static std::string type_decls_to_string(const std::vector <QualifiedType> &args) {
 		std::string result = "(";
 		for (size_t i = 0; i < args.size(); i++) {
 			auto &td = args[i];
@@ -158,7 +168,7 @@ template <typename T>
 struct overload_table : public wrapped::hash_table <T, overload_list> {
 	using wrapped::hash_table <T, overload_list> ::hash_table;
 
-	TypeDecl lookup(const T &key, const std::vector <TypeDecl> &args) const {
+	QualifiedType lookup(const T &key, const std::vector <QualifiedType> &args) const {
 		const char *const *name_table = nullptr;
 		if constexpr (std::same_as <T, IntrinsicOperation>)
 			name_table = tbl_intrinsic_operation;
@@ -208,12 +218,12 @@ struct overload_table : public wrapped::hash_table <T, overload_list> {
 				ovl.result.to_string());
 		}
 
-		return TypeDecl();
+		return QualifiedType();
 	}
 };
 
 // Overload table for intrinsics
-static TypeDecl lookup_intrinsic_overload(const IntrinsicOperation &key, const std::vector <TypeDecl> &args)
+static QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std::vector <QualifiedType> &args)
 {
         static const overload_table <IntrinsicOperation> table {
 		// Trigonometric functions
@@ -290,7 +300,7 @@ static TypeDecl lookup_intrinsic_overload(const IntrinsicOperation &key, const s
 }
 
 // Overload table for operations
-static TypeDecl lookup_operation_overload(const OperationCode &key, const std::vector <TypeDecl> &args)
+static QualifiedType lookup_operation_overload(const OperationCode &key, const std::vector <QualifiedType> &args)
 {
 	static const overload_list arithmetic_overloads {
 		overload::from(i32, i32, i32),
