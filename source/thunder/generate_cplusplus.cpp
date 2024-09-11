@@ -257,12 +257,13 @@ std::string Linkage::generate_cplusplus()
 		for (auto [binding, t] : louts)
 			source += fmt::format("    {} _lout{};\n", translate_type(t), binding);
 
-		auto synthesized = detail::synthesize_list(b.unit);
+		detail::body_t body {
+			.atoms = b.unit,
+			.struct_names = local_struct_names,
+			.synthesized = detail::synthesize_list(b.unit),
+		};
 
-		source += detail::generate_body_c_like(b.unit,
-			local_struct_names,
-			synthesized,
-			b.unit.size());
+		source += detail::generate_c_like(body);
 
 		// Synthesizing the return statement
 		if (louts.size() == 1) {

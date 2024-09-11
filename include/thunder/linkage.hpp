@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_set>
 #include <vector>
 
 #include "atom.hpp"
@@ -80,10 +81,13 @@ namespace detail {
 std::unordered_set <index_t> synthesize_list(const std::vector <Atom> &);
 
 // For C-like languages
-std::string generate_body_c_like(const std::vector <Atom> &,
-		                 const wrapped::hash_table <int, std::string> &,
-		                 const std::unordered_set <index_t> &,
-				 size_t);
+struct body_t {
+	const std::vector <Atom> &atoms;
+	const wrapped::hash_table <int, std::string> &struct_names;
+	const std::unordered_set <index_t> synthesized;
+};
+
+std::string generate_c_like(const body_t &);
 
 // Legalization methods
 void legalize_for_cc(Buffer &);

@@ -1,7 +1,24 @@
 #include "thunder/atom.hpp"
 #include "thunder/linkage.hpp"
+#include "logging.hpp"
 
 namespace jvl::thunder::detail {
+
+MODULE(synthesized);
+
+index_t reference_of(const std::vector <Atom> &atoms, index_t i)
+{
+	auto &atom = atoms[i];
+
+	switch (atom.index()) {
+	case Atom::type_index <Swizzle> ():
+		return reference_of(atoms, atom.as <Swizzle> ().src);
+	case Atom::type_index <Load> ():
+		return reference_of(atoms, atom.as <Load> ().src);
+	default:
+		return i;
+	}
+}
 
 std::unordered_set <index_t> synthesize_list(const std::vector <Atom> &atoms)
 {
@@ -14,9 +31,12 @@ std::unordered_set <index_t> synthesize_list(const std::vector <Atom> &atoms)
 		switch (atom.index()) {
 
 		case Atom::type_index <Store> ():
+		{
+			index_t dst = atom.as <Store> ().dst;
 			synthesized.insert(i);
-			synthesized.insert(atom.as <Store> ().dst);
+			synthesized.insert(reference_of(atoms, dst));
 			break;
+		}
 
 		case Atom::type_index <Branch> ():
 			synthesized.insert(i);

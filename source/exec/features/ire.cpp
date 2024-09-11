@@ -44,7 +44,6 @@ auto ftn = callable_info("shuffle") >> [](ivec3 in, i32 iterations)
 
 int main()
 {
-	// ftn.dump();
 	thunder::opt_transform(ftn);
 	ftn.dump();
 

@@ -134,11 +134,12 @@ std::string glsl_format_operation(OperationCode code, const std::vector <std::st
 }
 
 // TODO: take body_t as argument with all of these
-std::string generate_body_c_like(const std::vector <Atom> &pool,
-		                 const wrapped::hash_table <int, std::string> &struct_names,
-		                 const std::unordered_set <index_t> &synthesized,
-				 size_t size)
+std::string generate_c_like(const body_t &body)
 {
+	auto &atoms = body.atoms;
+	auto &struct_names = body.struct_names;
+	auto &synthesized = body.synthesized;
+
 	wrapped::hash_table <index_t, std::string> variables;
 
 	std::function <std::string (index_t)> inlined;
@@ -171,7 +172,7 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 		if (variables.count(index))
 			return variables[index];
 
-		const Atom &atom = pool[index];
+		const Atom &atom = atoms[index];
 
 		if (auto global = atom.get <Global> ()) {
 			return glsl_global_ref(*global);
@@ -211,7 +212,7 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 
 		int l = start;
 		while (l != -1) {
-			Atom h = pool[l];
+			Atom h = atoms[l];
 			if (!h.is <List> ()) {
 				fmt::println("unexpected atom in arglist: {}", h.to_string());
 				fmt::print("\n");
@@ -238,14 +239,14 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 		if (variables.count(index))
 			return variables[index];
 
-		const Atom &atom = pool[index];
+		const Atom &atom = atoms[index];
 
 		if (auto prim = atom.get <Primitive> ()) {
 			return glsl_primitive(*prim);
 		} else if (auto global = atom.get <Global> ()) {
 			return glsl_global_ref(*global);
 		} else if (auto ctor = atom.get <Construct> ()) {
-			std::string t = type_name(pool, struct_names, ctor->type, -1);
+			std::string t = type_name(atoms, struct_names, ctor->type, -1);
 			return t + "(" + inlined(ctor->args) + ")";
 		} else if (auto call = atom.get <Call> ()) {
 			ire::Callable *cbl = ire::Callable::search_tracked(call->cid);
@@ -281,7 +282,7 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 		if (intr.type == -1)
 			return finish(tbl_intrinsic_operation[intr.opn]);
 
-		Atom g = pool[intr.type];
+		Atom g = atoms[intr.type];
 		if (!g.is <TypeField> ())
 			return "?";
 
@@ -293,7 +294,7 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 			return finish(v);
 		} else {
 			auto args = arglist(intr.args);
-			std::string t = type_name(pool, struct_names, intr.type, -1);
+			std::string t = type_name(atoms, struct_names, intr.type, -1);
 			std::string v = tbl_intrinsic_operation[intr.opn] + strargs(args);
 			return assign_new(t, v, index);
 		}
@@ -338,7 +339,7 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 				JVL_ABORT("unhandled branch case in synthesize: {}", atom);	
 			}
 		} else if (auto ctor = atom.get <Construct> ()) {
-			std::string t = type_name(pool, struct_names, ctor->type, -1);
+			std::string t = type_name(atoms, struct_names, ctor->type, -1);
 			if (ctor->args == -1) {
 				source += declare_new(t, index);
 			} else {
@@ -352,7 +353,7 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 			if (call->args != -1)
 				args = strargs(arglist(call->args));
 
-			std::string t = type_name(pool, struct_names, call->type, -1);
+			std::string t = type_name(atoms, struct_names, call->type, -1);
 			std::string v = cbl->name + args;
 			source += assign_new(t, v, index);
 		} else if (auto load = atom.get <Load> ()) {
@@ -360,7 +361,7 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 			if (load->idx != -1)
 				accessor = fmt::format(".f{}", load->idx);
 
-			std::string t = type_name(pool, struct_names, load->src, load->idx);
+			std::string t = type_name(atoms, struct_names, load->src, load->idx);
 			std::string v = inlined(load->src) + accessor;
 			source += assign_new(t, v, index);
 		} else if (auto swizzle = atom.get <Swizzle> ()) {
@@ -380,7 +381,7 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 			source += intrinsic(intr.value(), index);
 		} else if (auto op = atom.get <Operation> ()) {
 			// TODO: lambda shortcut
-			std::string t = type_name(pool, struct_names, op->type, -1);
+			std::string t = type_name(atoms, struct_names, op->type, -1);
 			std::string v = glsl_format_operation(op->code, arglist(op->args));
 			source += assign_new(t, v, index);
 		} else if (auto ret = atom.get <Returns> ()) {
@@ -399,9 +400,9 @@ std::string generate_body_c_like(const std::vector <Atom> &pool,
 		}
 	};
 
-	for (int i = 0; i < size; i++) {
+	for (int i = 0; i < atoms.size(); i++) {
 		if (synthesized.count(i))
-			synthesize(pool[i], i);
+			synthesize(atoms[i], i);
 	}
 
 	return source;

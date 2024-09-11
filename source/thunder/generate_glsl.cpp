@@ -112,17 +112,16 @@ std::string Linkage::generate_glsl(const std::string &version)
 				parameters += ", ";
 		}
 
-		auto synthesized = detail::synthesize_list(b.unit);
+		detail::body_t body {
+			.atoms = b.unit,
+			.struct_names = local_struct_names,
+			.synthesized = detail::synthesize_list(b.unit),
+		};
 
 		// TODO: toggle naming specs depending on kernel flags
 		source += fmt::format("{} {}({})\n", returns, "main", parameters);
 		source += "{\n";
-
-		source += detail::generate_body_c_like(b.unit,
-			local_struct_names,
-			synthesized,
-			b.unit.size());
-
+		source += detail::generate_c_like(body);
 		source += "}\n\n";
 	}
 
