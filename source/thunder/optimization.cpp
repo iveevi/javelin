@@ -87,7 +87,7 @@ bool opt_transform_constructor_elision(Buffer &result)
 		index_t arg = ctor.args;
 		while (arg != -1) {
 			auto &atom = result.pool[arg];
-			assert(atom.is <List> ());
+			JVL_ASSERT_PLAIN(atom.is <List> ());
 
 			const List &list = atom.as <List> ();
 			fields.push_back(list.item);

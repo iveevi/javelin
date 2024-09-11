@@ -35,44 +35,14 @@ void synthesize_layout_io_inner()
 	{
 		using thunder::index_t;
 
-		// TODO: per instruction methods from Emitter
-		// em.emit_type_information(...)
-		// em.emit_qualifier(...)
-		// em.emit_load(...)
-		// em.emit_store(...)
-		// ... etc
-		thunder::TypeInformation type_info;
-		type_info.item = synthesize_primitive_type <T> ();
-
-		index_t type = em.emit(type_info);
-
-		thunder::Qualifier input_qualifier;
-		input_qualifier.underlying = type;
-		input_qualifier.numerical = 0;
-		input_qualifier.kind = thunder::layout_in;
-
-		index_t in = em.emit(input_qualifier);
-
-		thunder::Load load;
-		load.src = in;
-
-		index_t ld = em.emit(load);
+		index_t type_in = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
+		index_t in = em.emit_qualifier(type_in, 0, thunder::layout_in);
+		index_t ld = em.emit_load(in, -1);
 		
 		// Duplicate type is expected to be generated
-		type = em.emit(type_info);
-		
-		thunder::Qualifier output_qualifier;
-		output_qualifier.underlying = type;
-		output_qualifier.numerical = 0;
-		output_qualifier.kind = thunder::layout_out;
-
-		index_t out = em.emit(output_qualifier);
-
-		thunder::Store store;
-		store.src = ld;
-		store.dst = out;
-
-		em.emit(store);
+		index_t type_out = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
+		index_t out = em.emit_qualifier(type_out, 0, thunder::layout_out);
+		index_t st = em.emit_store(out, ld);
 	}
 	em.pop();
 

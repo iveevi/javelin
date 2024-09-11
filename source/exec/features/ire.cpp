@@ -21,6 +21,7 @@
 // TODO: partial evaluation of callables
 // TODO: parameter qualifiers (e.g. out/inout) as wrapped types
 // TODO: array types
+// TODO: binary operations
 
 using namespace jvl;
 using namespace jvl::ire;

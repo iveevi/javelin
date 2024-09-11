@@ -147,7 +147,7 @@ std::string Linkage::generate_cplusplus()
 	for (index_t i = 0; i < structs.size(); i++) {
 		const auto &decl = structs[i];
 
-		assert(decl.size() >= 1);
+		JVL_ASSERT_PLAIN(decl.size() >= 1);
 		if (decl.size() == 1 && decl[0].item != bad) {
 			auto item = decl[0].item;
 

@@ -210,7 +210,7 @@ jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType it
 jit_struct *generate_type_field(jit_context &context, index_t index)
 {
 	auto &atom = context.pool[index];
-	assert(atom.is <TypeInformation> ());
+	JVL_ASSERT_PLAIN(atom.is <TypeInformation> ());
 
 	TypeInformation tf = atom.as <TypeInformation> ();
 	if (tf.next == -1 && tf.down == -1) {
@@ -227,7 +227,7 @@ jit_struct *generate_type_field(jit_context &context, index_t index)
 	index_t i = index;
 	while (i != -1) {
 		auto &atom = context.pool[i];
-		assert(atom.is <TypeInformation> ());
+		JVL_ASSERT_PLAIN(atom.is <TypeInformation> ());
 
 		TypeInformation tf = atom.as <TypeInformation> ();
 
@@ -266,7 +266,7 @@ std::vector <gcc_jit_rvalue *> load_rvalue_arguments(jit_context &context, index
 	index_t next = argsi;
 	while (next != -1) {
 		auto &g = context.pool[next];
-		assert(g.is <List> ());
+		JVL_ASSERT_PLAIN(g.is <List> ());
 
 		auto &list = g.as <List> ();
 
@@ -340,7 +340,7 @@ jit_instruction generate_instruction_binary_operation(jit_context &context,
 			nullptr, gcc_code.value(),
 			return_type->type, args[0], args[1]);
 
-		assert(expr);
+		JVL_ASSERT_PLAIN(expr);
 
 		jit_instruction ji;
 		ji.value = (gcc_jit_object *) expr;
@@ -369,7 +369,7 @@ jit_instruction generate_instruction_intrinsic(jit_context &context,
 	case acos:
 	case atan:
 	{
-		assert(args.size() == 1);
+		JVL_ASSERT_PLAIN(args.size() == 1);
 
 		static const wrapped::hash_table <IntrinsicOperation, const char *> builtin {
 			{ sin, "sin" },
@@ -385,16 +385,16 @@ jit_instruction generate_instruction_intrinsic(jit_context &context,
 			tbl_intrinsic_operation[opn]);
 
 		gcc_jit_function *intr_ftn = gcc_jit_context_get_builtin_function(context.gcc, builtin.at(opn));
-		assert(intr_ftn);
+		JVL_ASSERT_PLAIN(intr_ftn);
 
 		// Casting the arguments
 		gcc_jit_type *double_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_DOUBLE);
 		gcc_jit_type *float_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
-		assert(double_type);
-		assert(float_type);
+		JVL_ASSERT_PLAIN(double_type);
+		JVL_ASSERT_PLAIN(float_type);
 
 		gcc_jit_rvalue *arg = gcc_jit_context_new_cast(context.gcc, LOCATION(context.gcc), args[0], double_type);
-		assert(arg);
+		JVL_ASSERT_PLAIN(arg);
 
 		gcc_jit_rvalue *expr;
 		expr = gcc_jit_context_new_call(context.gcc, LOCATION(context.gcc), intr_ftn, 1, &arg);
@@ -408,7 +408,7 @@ jit_instruction generate_instruction_intrinsic(jit_context &context,
 
 	case clamp:
 	{
-		assert(args.size() == 3);
+		JVL_ASSERT_PLAIN(args.size() == 3);
 		
 		gcc_jit_type *float_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
 		
@@ -445,7 +445,7 @@ jit_instruction generate_instruction_intrinsic(jit_context &context,
 
 	case pow:
 	{
-		assert(args.size() == 2);
+		JVL_ASSERT_PLAIN(args.size() == 2);
 		
 		gcc_jit_type *float_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
 		
@@ -577,7 +577,7 @@ jit_instruction generate_instruction_store(jit_context &context, const Store &st
 		}
 	}
 
-	assert(dst != -1);
+	JVL_ASSERT_PLAIN(dst != -1);
 
 	auto copy = access_chain_indices;
 	fmt::print("final access chain: ");
@@ -633,7 +633,7 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 	case Atom::type_index <Qualifier> ():
 	{
 		auto &global = atom.as <Qualifier> ();
-		assert(global.kind == parameter);
+		JVL_ASSERT_PLAIN(global.kind == parameter);
 		return context.parameters[global.numerical];
 	}
 
@@ -692,7 +692,7 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 	{
 		auto &returns = atom.as <Returns> ();
 		auto args = load_rvalue_arguments(context, returns.args);
-		assert(args.size() == 1);
+		JVL_ASSERT_PLAIN(args.size() == 1);
 		gcc_jit_block_end_with_return(context.block, LOCATION(context.gcc), args[0]);
 	} return jit_instruction::null();
 

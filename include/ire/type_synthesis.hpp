@@ -117,7 +117,7 @@ cache_index_t type_field_from_args_impl()
 		type_info.item = synthesize_primitive_type <T> ();
 	}
 
-	assert(valid(type_info));
+	JVL_ASSERT(valid(type_info), "invalid type information was generated");
 
 	if constexpr (sizeof...(Args))
 		type_info.next = type_field_from_args_impl <I + 1, Args...> ().id;

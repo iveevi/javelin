@@ -2,6 +2,7 @@
 #include <string>
 
 #include "ire/callable.hpp"
+#include "logging.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
 #include "thunder/linkage.hpp"
@@ -22,7 +23,7 @@ std::string type_name(const std::vector <Atom> &pool,
 		if (field == -1)
 			return struct_names.at(index);
 
-		assert(g.is <TypeInformation> ());
+		JVL_ASSERT_PLAIN(g.is <TypeInformation> ());
 		if (field > 0) {
 			index_t i = g.as <TypeInformation> ().next;
 			// TODO: traverse inline

@@ -137,6 +137,8 @@ struct stage_bracket {
 #define MODULE(name) static constexpr const char __module__[] = #name
 
 #define JVL_ASSERT(cond, ...)	log::assertion(cond, __module__, fmt::format(__VA_ARGS__))
+#define JVL_ASSERT_PLAIN(cond)	log::assertion(cond, __module__, fmt::format("{}:{}\t{}", __FILE__, __LINE__, #cond))
+
 #define JVL_ABORT(...)		log::abort(__module__, fmt::format(__VA_ARGS__))
 #define JVL_ERROR(...)		log::error(__module__, fmt::format(__VA_ARGS__))
 #define JVL_WARNING(...)	log::warning(__module__, fmt::format(__VA_ARGS__))

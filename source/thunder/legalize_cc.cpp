@@ -35,7 +35,7 @@ index_t instruction_type(const std::vector <Atom> &pool, index_t i)
 		index_t idx = load.idx;
 		while (idx > 0) {
 			auto &atom = pool[t];
-			log::assertion(atom.is <TypeInformation> (), __module__);
+			JVL_ASSERT_PLAIN(atom.is <TypeInformation> ());
 
 			TypeInformation type_field = atom.as <TypeInformation> ();
 			t = type_field.next;
@@ -58,9 +58,9 @@ PrimitiveType primitive_type_of(const std::vector <Atom> &pool, index_t i)
 	index_t t = instruction_type(pool, i);
 
 	auto &atom = pool[t];
-	log::assertion(atom.is <TypeInformation> (), __module__,
-		fmt::format("result of instruction_type(...) "
-			"is not a typefield: {}", atom));
+	JVL_ASSERT(atom.is <TypeInformation> (),
+		"result of instruction_type(...) is not a typefield: {}",
+		atom);
 
 	TypeInformation tf = atom.as <TypeInformation> ();
 
@@ -90,8 +90,8 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 		PrimitiveType ctype = swizzle_type_of(type_a, SwizzleCode::x);
 		size_t ccount = vector_component_count(type_a);
 
-		assert(ctype == swizzle_type_of(type_b, SwizzleCode::x));
-		assert(ccount == vector_component_count(type_b));
+		JVL_ASSERT_PLAIN(ctype == swizzle_type_of(type_b, SwizzleCode::x));
+		JVL_ASSERT_PLAIN(ccount == vector_component_count(type_b));
 
 		std::vector <index_t> components(ccount);
 		for (size_t i = 0; i < ccount; i++) {
@@ -114,9 +114,9 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 
 		// fmt::println("legalized code:");
 		// mapped.transformed.dump();
-		// assert(false);
+		// JVL_ASSERT_PLAIN(false);
 	} else if (vector_type(type_a) && !vector_type(type_b)) {
-		assert(type_b == swizzle_type_of(type_a, SwizzleCode::x));
+		JVL_ASSERT_PLAIN(type_b == swizzle_type_of(type_a, SwizzleCode::x));
 
 		size_t ccount = vector_component_count(type_a);
 
@@ -137,7 +137,7 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 		index_t t = em.emit(TypeInformation(-1, -1, type_a));
 		em.emit(Construct(t, l));
 	} else if (!vector_type(type_a) && vector_type(type_b)) {
-		assert(type_a == swizzle_type_of(type_b, SwizzleCode::x));
+		JVL_ASSERT_PLAIN(type_a == swizzle_type_of(type_b, SwizzleCode::x));
 
 		size_t ccount = vector_component_count(type_b);
 
@@ -159,7 +159,7 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 		em.emit(Construct(t, l));
 	} else {
 		// TODO: legalize by converting to higher type
-		assert(false);
+		JVL_ASSERT_PLAIN(false);
 	}
 
 	em.pop();
@@ -236,9 +236,9 @@ void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 		PrimitiveType type_a = types[0];
 		PrimitiveType type_b = types[1];
 
-		assert(vector_type(type_a) && vector_type(type_b));
-		assert(swizzle_type_of(type_a, SwizzleCode::x) == swizzle_type_of(type_b, SwizzleCode::x));
-		assert(vector_component_count(type_a) == vector_component_count(type_b));
+		JVL_ASSERT_PLAIN(vector_type(type_a) && vector_type(type_b));
+		JVL_ASSERT_PLAIN(swizzle_type_of(type_a, SwizzleCode::x) == swizzle_type_of(type_b, SwizzleCode::x));
+		JVL_ASSERT_PLAIN(vector_component_count(type_a) == vector_component_count(type_b));
 
 		// Reset and activate the scratch
 		mapped.transformed.clear();

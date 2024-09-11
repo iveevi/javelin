@@ -7,6 +7,7 @@
 #include "../thunder/buffer.hpp"
 #include "../thunder/atom.hpp"
 #include "../thunder/kernel.hpp"
+#include "../thunder/enumerations.hpp"
 
 namespace jvl::ire {
 
@@ -27,6 +28,71 @@ struct Emitter {
 	// Emitting instructions during function invocation
 	index_t emit(const thunder::Atom &);
 	index_t emit(const thunder::Branch &);
+
+	// Instruction specific emitters
+	index_t emit_qualifier(index_t underlying, index_t numerical, thunder::QualifierKind kind) {
+		return emit(thunder::Qualifier(underlying, numerical, kind));
+	}
+
+	index_t emit_type_information(index_t down, index_t next, thunder::PrimitiveType item) {
+		return emit(thunder::TypeInformation(down, next, item));
+	}
+
+	template <typename T>
+	index_t emit_primitive(T value) {
+		thunder::Primitive primitive;
+		if constexpr (std::same_as <T, bool>)
+			primitive.bdata = value;
+		if constexpr (std::same_as <T, int32_t>)
+			primitive.idata = value;
+		if constexpr (std::same_as <T, uint32_t>)
+			primitive.udata = value;
+		if constexpr (std::same_as <T, float>)
+			primitive.fdata = value;
+
+		primitive.type = synthesize_primitive_type <T> ();
+		return emit(primitive);
+	}
+
+	index_t emit_swizzle(index_t src, thunder::SwizzleCode code) {
+		return emit(thunder::Swizzle(src, code));
+	}
+
+	index_t emit_operation(index_t args, index_t type, thunder::OperationCode code) {
+		return emit(thunder::Operation(args, type, code));
+	}
+
+	index_t emit_intrinsic(index_t args, index_t type, thunder::IntrinsicOperation opn) {
+		return emit(thunder::Intrinsic(args, type, opn));
+	}
+
+	index_t emit_list(index_t item, index_t next) {
+		return emit(thunder::List(item, next));
+	}
+
+	index_t emit_construct(index_t type, index_t args) {
+		return emit(thunder::Construct(type, args));
+	}
+
+	index_t emit_call(index_t cid, index_t args, index_t type) {
+		return emit(thunder::Call(cid, args, type));
+	}
+
+	index_t emit_store(index_t dst, index_t src) {
+		return emit(thunder::Store(dst, src));
+	}
+
+	index_t emit_load(index_t src, index_t idx) {
+		return emit(thunder::Load(src, idx));
+	}
+
+	index_t emit_branch(index_t cond, index_t failto, thunder::BranchKind kind) {
+		return emit(thunder::Branch(cond, failto, kind));
+	}
+
+	index_t emit_return(index_t args, index_t type) {
+		return emit(thunder::Returns(args, type));
+	}
 
 	// Easier ways to construct list chains
 	index_t emit_list_chain(const std::vector <index_t> &);

@@ -108,7 +108,7 @@ std::vector <index_t> Buffer::expand_list(index_t i) const
 	std::vector <index_t> args;
 	while (i != -1) {
 		auto &atom = pool[i];
-		assert(atom.is <List> ());
+		JVL_ASSERT_PLAIN(atom.is <List> ());
 
 		List list = atom.as <List> ();
 		args.push_back(list.item);
@@ -124,7 +124,7 @@ std::vector <TypeDecl> Buffer::expand_list_types(index_t i) const
 	std::vector <TypeDecl> args;
 	while (i != -1) {
 		auto &atom = pool[i];
-		assert(atom.is <List> ());
+		JVL_ASSERT_PLAIN(atom.is <List> ());
 
 		List list = atom.as <List> ();
 

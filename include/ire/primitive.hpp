@@ -1,9 +1,10 @@
 #pragma once
 
+#include <type_traits>
+
 #include "emitter.hpp"
 #include "tagged.hpp"
 #include "thunder/enumerations.hpp"
-#include <type_traits>
 
 namespace jvl::ire {
 

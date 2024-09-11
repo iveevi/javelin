@@ -1,14 +1,11 @@
 #pragma once
 
-#include <cassert>
-#include <unordered_set>
-#include <vector>
-
 #include <fmt/printf.h>
 #include <fmt/format.h>
 
 #include "enumerations.hpp"
 #include "../wrapped_types.hpp"
+#include "../logging.hpp"
 
 namespace jvl::thunder {
 
@@ -22,8 +19,10 @@ struct Addresses {
 	index_t &a1;
 
 	static index_t &null() {
+		MODULE(atom-addresses);
+
 		static thread_local index_t null = -1;
-		assert(null == -1);
+		JVL_ASSERT(null == -1, "address null is invalid");
 		return null;
 	}
 };
@@ -118,9 +117,6 @@ struct Swizzle {
 };
 
 static_assert(atom_instruction <Swizzle>);
-
-// TODO: specialize into binary args (second could be null),
-// and type should be a primitive type (int8_t)
 
 // Operation instruction
 //
