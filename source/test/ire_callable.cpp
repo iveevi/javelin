@@ -11,7 +11,7 @@ const std::string expected_sum_glsl = R"(
 
 int main(int _arg0)
 {
-    return (_arg0);
+    return _arg0;
 }
 )";
 
@@ -36,7 +36,7 @@ const std::string expected_arithmetic_glsl = R"(
 
 float main(float _arg0, float _arg1, float _arg2)
 {
-    return (((_arg0 + (_arg1 * _arg2)) / ((((_arg0 + (_arg1 * _arg2)) / (_arg0 - _arg1)) * _arg2) * _arg2)));
+    return ((_arg0 + (_arg1 * _arg2)) / ((((_arg0 + (_arg1 * _arg2)) / (_arg0 - _arg1)) * _arg2) * _arg2));
 }
 )";
 
@@ -81,9 +81,9 @@ const std::string expected_conditional_returns_glsl = R"(
 float main(float _arg0, float _arg1, float _arg2)
 {
     if (((_arg0 + (_arg1 * _arg2)) < 0)) {
-        return (((_arg0 + (_arg1 * _arg2)) / ((((_arg0 + (_arg1 * _arg2)) / (_arg0 - _arg1)) * _arg2) * _arg2)));
+        return ((_arg0 + (_arg1 * _arg2)) / ((((_arg0 + (_arg1 * _arg2)) / (_arg0 - _arg1)) * _arg2) * _arg2));
     }
-    return ((_arg0 + (_arg1 * _arg2)));
+    return (_arg0 + (_arg1 * _arg2));
 }
 )";
 
@@ -123,7 +123,7 @@ vec4 main(s0_t _arg0, vec3 _arg1)
     s0 = (_arg0.f0 * s0);
     s0 = (_arg0.f1 * s0);
     s0 = (_arg0.f2 * s0);
-    return (s0);
+    return s0;
 }
 )";
 
@@ -171,7 +171,7 @@ struct s0_t {
 
 uint main(s0_t _arg0)
 {
-    return (((_arg0.f0 << _arg0.f1) & (_arg0.f1 | _arg0.f0)));
+    return ((_arg0.f0 << _arg0.f1) & (_arg0.f1 | _arg0.f0));
 }
 )";
 

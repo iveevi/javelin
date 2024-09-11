@@ -6,6 +6,7 @@
 #include "ire/core.hpp"
 #include "ire/emitter.hpp"
 #include "ire/solidify.hpp"
+#include "ire/tagged.hpp"
 #include "ire/uniform_layout.hpp"
 #include "profiles/targets.hpp"
 #include "thunder/linkage.hpp"
@@ -71,7 +72,9 @@ struct array <T, N> : public tagged {
 		JVL_ASSERT(cached(), "arrays must be cached by the time of use");
 		
 		auto &em = Emitter::active;
-		return em.emit_load(this->ref.id, index);
+		cache_index_t ci;
+		ci = em.emit_load(this->ref.id, index);
+		return ci;
 	}
 
 	// TODO: zero initializing constructor

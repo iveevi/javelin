@@ -1,7 +1,8 @@
-#include "thunder/enumerations.hpp"
-#include "thunder/linkage.hpp"
 #include "ire/callable.hpp"
 #include "logging.hpp"
+#include "thunder/enumerations.hpp"
+#include "thunder/generators.hpp"
+#include "thunder/linkage.hpp"
 
 namespace jvl::thunder {
 
@@ -263,7 +264,9 @@ std::string Linkage::generate_cplusplus()
 			.synthesized = detail::synthesize_list(b.unit),
 		};
 
-		source += detail::generate_c_like(body);
+		detail::c_like_generator_t generator(body);
+
+		source += generator.generate();
 
 		// Synthesizing the return statement
 		if (louts.size() == 1) {

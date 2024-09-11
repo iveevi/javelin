@@ -36,16 +36,17 @@ add_library(javelin-ire STATIC
 	source/thunder/atom.cpp
 	source/thunder/autodiff_forward.cpp
 	source/thunder/buffer.cpp
-	source/thunder/comparison.cpp
+	source/thunder/c_like_generator.cpp
 	source/thunder/classify.cpp
-	source/thunder/generate_c_like.cpp
-	source/thunder/generate_cplusplus.cpp
+	source/thunder/comparison.cpp
 	source/thunder/gcc.cpp
+	source/thunder/generate_cplusplus.cpp
 	source/thunder/generate_glsl.cpp
 	source/thunder/kernel.cpp
 	source/thunder/legalize_cc.cpp
 	source/thunder/linkage.cpp
 	source/thunder/optimization.cpp
+	source/thunder/qualified_type.cpp
 	source/thunder/stitch.cpp
 	source/thunder/synthesized.cpp
 	source/thunder/usage.cpp)

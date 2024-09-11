@@ -25,7 +25,7 @@ struct lex_state {
 	std::vector <token> produced;
 
 	bool eof() const {
-		return index >= source.size();
+		return index >= (int) source.size();
 	}
 
 	char getc() const {

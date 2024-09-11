@@ -80,15 +80,6 @@ namespace detail {
 // Determine the set of instructions to concretely synthesized
 std::unordered_set <index_t> synthesize_list(const std::vector <Atom> &);
 
-// For C-like languages
-struct body_t {
-	const std::vector <Atom> &atoms;
-	const wrapped::hash_table <int, std::string> &struct_names;
-	const std::unordered_set <index_t> synthesized;
-};
-
-std::string generate_c_like(const body_t &);
-
 // Legalization methods
 void legalize_for_cc(Buffer &);
 

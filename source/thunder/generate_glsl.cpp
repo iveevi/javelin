@@ -3,6 +3,7 @@
 #include "ire/callable.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
+#include "thunder/generators.hpp"
 #include "thunder/linkage.hpp"
 #include "wrapped_types.hpp"
 
@@ -118,10 +119,12 @@ std::string Linkage::generate_glsl(const std::string &version)
 			.synthesized = detail::synthesize_list(b.unit),
 		};
 
+		detail::c_like_generator_t generator(body);
+
 		// TODO: toggle naming specs depending on kernel flags
 		source += fmt::format("{} {}({})\n", returns, "main", parameters);
 		source += "{\n";
-		source += detail::generate_c_like(body);
+		source += generator.generate();
 		source += "}\n\n";
 	}
 
