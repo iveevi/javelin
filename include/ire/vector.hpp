@@ -20,6 +20,7 @@ struct swizzle_base : tagged {};
 struct __gl_Position_t;
 
 // Swizzle element
+// TODO: move to a separate header at this point
 template <primitive_type T, typename Up, thunder::SwizzleCode swz>
 class swizzle_element {
 	Up *upper;
@@ -41,14 +42,10 @@ public:
 	}
 
 	swizzle_element &operator=(const base_type &v) {
-		auto &em = Emitter::active;
-
 		thunder::Store store;
 		store.src = v.synthesize().id;
 		store.dst = synthesize().id;
-
-		em.emit(store);
-
+		Emitter::active.emit(store);
 		return *this;
 	}
 
@@ -90,33 +87,33 @@ public:
 	template <integral_primitive_type U>
 	swizzle_element &operator>>=(const primitive_t <U> &a)
 	requires integral_primitive_type <T> {
-		base_type tmp = *this;
-		tmp >>= a;
+		thunder::Store store;
+		store.src = (base_type(*this) >> a).synthesize().id;
+		store.dst = synthesize().id;
+		Emitter::active.emit(store);
 		return *this;
 	}
 	
 	template <integral_primitive_type U, typename Up_, thunder::SwizzleCode swz_>
 	swizzle_element &operator>>=(const swizzle_element <U, Up_, swz_> &a)
 	requires integral_primitive_type <T> {
-		base_type tmp = *this;
-		tmp >>= primitive_t <U> (a);
-		return *this;
+		return operator>>=(primitive_t <U> (a));
 	}
 	
 	template <integral_primitive_type U>
 	swizzle_element &operator<<=(const primitive_t <U> &a)
 	requires integral_primitive_type <T> {
-		base_type tmp = *this;
-		tmp <<= a;
+		thunder::Store store;
+		store.src = (base_type(*this) << a).synthesize().id;
+		store.dst = synthesize().id;
+		Emitter::active.emit(store);
 		return *this;
 	}
 	
 	template <integral_primitive_type U, typename Up_, thunder::SwizzleCode swz_>
 	swizzle_element &operator<<=(const swizzle_element <U, Up_, swz_> &a)
 	requires integral_primitive_type <T> {
-		base_type tmp = *this;
-		tmp <<= primitive_t <U> (a);
-		return *this;
+		return operator<<=(primitive_t <U> (a));
 	}
 	
 	// Bitwise operators

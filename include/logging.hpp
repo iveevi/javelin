@@ -66,7 +66,7 @@ inline void error(const std::string &module, const std::string &msg)
 inline void warning(const std::string &msg)
 {
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
-	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gold), "warning: ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::magenta), "warning: ");
 	fmt::println("{}", msg);
 	std::fflush(stdout);
 }
@@ -75,7 +75,7 @@ inline void warning(const std::string &module, const std::string &msg)
 {
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin ");
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "({}): ", module);
-	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gold), "warning: ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::magenta), "warning: ");
 	fmt::println("{}", msg);
 	std::fflush(stdout);
 }
@@ -101,16 +101,16 @@ struct stage_bracket {
 	std::string module;
 
 	stage_bracket(const std::string &module_) : module(module_) {
-		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin ");
-		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "({}): ", module);
-		fmt::print(fmt::emphasis::underline | fmt::emphasis::bold | fmt::fg(fmt::color::white_smoke), "stage enter\n");
+		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
+		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gold), "stage: ");
+		fmt::print(fmt::emphasis::underline | fmt::emphasis::bold | fmt::fg(fmt::color::white_smoke), "{}\n", module);
 		std::fflush(stdout);
 	}
 
 	~stage_bracket() {
-		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin ");
-		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "({}): ", module);
-		fmt::print(fmt::emphasis::underline | fmt::emphasis::bold | fmt::fg(fmt::color::white_smoke), "stage exit\n");
+		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
+		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gold), "close: ");
+		fmt::print(fmt::emphasis::underline | fmt::emphasis::bold | fmt::fg(fmt::color::white_smoke), "{}\n", module);
 		std::fflush(stdout);
 	}
 };
