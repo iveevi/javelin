@@ -10,12 +10,12 @@ namespace jvl::ire {
 /////////////////////////
 
 // Addition
+// TODO: macros to avoid the headers
 template <primitive_type T, typename U>
 requires std::is_convertible_v <U, primitive_t <T>>
 primitive_t <T> operator+(const primitive_t <T> &a, const U &b)
 {
-	auto pb = primitive_t <T> (b);
-	return operation_from_args <primitive_t <T>> (thunder::addition, a, pb);
+	return operation_from_args <primitive_t <T>> (thunder::addition, a, primitive_t <T> (b));
 }
 
 template <primitive_type T, non_trivial_generic U>
@@ -37,24 +37,21 @@ template <primitive_type T, typename U>
 requires std::is_convertible_v <U, primitive_t <T>>
 primitive_t <T> operator-(const primitive_t <T> &a, const U &b)
 {
-	auto pb = primitive_t <T> (b);
-	return operation_from_args <primitive_t <T>> (thunder::subtraction, a, pb);
+	return operation_from_args <primitive_t <T>> (thunder::subtraction, a, primitive_t <T> (b));
 }
 
 template <primitive_type T, non_trivial_generic U>
 requires std::is_convertible_v <U, primitive_t <T>>
 primitive_t <T> operator-(const T &a, const U &b)
 {
-	auto pa = primitive_t <T> (a);
-	return pa - b;
+	return primitive_t <T> (a) - b;
 }
 
 template <primitive_type T, typename Up, thunder::SwizzleCode swz, typename U>
 requires std::is_convertible_v <U, primitive_t <T>>
 primitive_t <T> operator-(const swizzle_element <T, Up, swz> &a, const U &b)
 {
-	auto pa = primitive_t <T> (a);
-	return pa - b;
+	return primitive_t <T> (a) - b;
 }
 
 // Multiplication
@@ -62,24 +59,21 @@ template <primitive_type T, typename U>
 requires std::is_convertible_v <U, primitive_t <T>>
 primitive_t <T> operator*(const primitive_t <T> &a, const U &b)
 {
-	auto pb = primitive_t <T> (b);
-	return operation_from_args <primitive_t <T>> (thunder::multiplication, a, pb);
+	return operation_from_args <primitive_t <T>> (thunder::multiplication, a, primitive_t <T> (b));
 }
 
 template <primitive_type T, non_trivial_generic U>
 requires std::is_convertible_v <U, primitive_t <T>>
 primitive_t <T> operator*(const T &a, const U &b)
 {
-	auto pa = primitive_t <T> (a);
-	return pa * b;
+	return primitive_t <T> (a) * b;
 }
 
 template <primitive_type T, typename Up, thunder::SwizzleCode swz, typename U>
 requires std::is_convertible_v <U, primitive_t <T>>
 primitive_t <T> operator*(const swizzle_element <T, Up, swz> &a, const U &b)
 {
-	auto pa = primitive_t <T> (a);
-	return pa * b;
+	return primitive_t <T> (a) * b;
 }
 
 // Division
@@ -87,24 +81,50 @@ template <primitive_type T, typename U>
 requires std::is_convertible_v <U, primitive_t <T>>
 primitive_t <T> operator/(const primitive_t <T> &a, const U &b)
 {
-	auto pb = primitive_t <T> (b);
-	return operation_from_args <primitive_t <T>> (thunder::division, a, pb);
+	return operation_from_args <primitive_t <T>> (thunder::division, a, primitive_t <T> (b));
 }
 
 template <primitive_type T, non_trivial_generic U>
 requires std::is_convertible_v <U, primitive_t <T>>
 primitive_t <T> operator/(const T &a, const U &b)
 {
-	auto pa = primitive_t <T> (a);
-	return pa / b;
+	return primitive_t <T> (a) / b;
 }
 
 template <primitive_type T, typename Up, thunder::SwizzleCode swz, typename U>
 requires std::is_convertible_v <U, primitive_t <T>>
 primitive_t <T> operator/(const swizzle_element <T, Up, swz> &a, const U &b)
 {
-	auto pa = primitive_t <T> (a);
-	return pa / b;
+	return primitive_t <T> (a) / b;
+}
+
+// Binary OR
+template <primitive_type T, typename U>
+requires std::is_convertible_v <U, primitive_t <T>>
+primitive_t <T> operator|(const primitive_t <T> &a, const U &b)
+{
+	return operation_from_args <primitive_t <T>> (thunder::bit_or, a, primitive_t <T> (b));
+}
+
+template <primitive_type T, typename Up, thunder::SwizzleCode swz, typename U>
+requires std::is_convertible_v <U, primitive_t <T>>
+primitive_t <T> operator|(const swizzle_element <T, Up, swz> &a, const U &b)
+{
+	return primitive_t <T> (a) | b;
+}
+
+template <primitive_type T, typename U>
+requires std::is_convertible_v <U, primitive_t <T>>
+primitive_t <T> operator&(const primitive_t <T> &a, const U &b)
+{
+	return operation_from_args <primitive_t <T>> (thunder::bit_and, a, primitive_t <T> (b));
+}
+
+template <primitive_type T, typename Up, thunder::SwizzleCode swz, typename U>
+requires std::is_convertible_v <U, primitive_t <T>>
+primitive_t <T> operator&(const swizzle_element <T, Up, swz> &a, const U &b)
+{
+	return primitive_t <T> (a) & b;
 }
 
 // Binary XOR

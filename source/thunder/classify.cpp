@@ -6,7 +6,7 @@
 
 namespace jvl::thunder {
 	
-MODULE(buffer-classify);
+MODULE(classify-atoms);
 
 // Overload lookup methods; forward declarations
 static TypeDecl lookup_intrinsic_overload(const IntrinsicOperation &, const std::vector <TypeDecl> &);
@@ -368,6 +368,8 @@ static TypeDecl lookup_operation_overload(const OperationCode &key, const std::v
 		{ cmp_geq, comparison_overloads },
 		{ cmp_le, comparison_overloads },
 		{ cmp_leq, comparison_overloads },
+		{ equals, comparison_overloads },
+		{ not_equals, comparison_overloads },
 	};
 
 	return table.lookup(key, args);

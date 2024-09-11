@@ -11,6 +11,7 @@ namespace jvl::thunder::detail {
 
 MODULE(generate-body-c-like);
 
+// TODO: method for body_t
 std::string type_name(const std::vector <Atom> &pool,
 		      const wrapped::hash_table <int, std::string> &struct_names,
 		      index_t index,
@@ -45,7 +46,8 @@ std::string type_name(const std::vector <Atom> &pool,
 	return "<BAD>";
 }
 
-std::string glsl_global_ref(const Global &global)
+// TODO: pass options to the body_t type
+std::string generate_global_reference(const Global &global)
 {
 	switch (global.qualifier) {
 	case GlobalQualifier::layout_in:
@@ -65,7 +67,7 @@ std::string glsl_global_ref(const Global &global)
 	return "<glo:?>";
 }
 
-std::string glsl_primitive(const Primitive &p)
+std::string generate_primitive(const Primitive &p)
 {
 	switch (p.type) {
 	case i32:
@@ -81,56 +83,48 @@ std::string glsl_primitive(const Primitive &p)
 	return "<prim:?>";
 }
 
-std::string glsl_format_operation(OperationCode code, const std::vector <std::string> &args)
+std::string generate_operation(OperationCode code, const std::vector <std::string> &args)
 {
-	switch (code) {
-	case OperationCode::unary_negation:
-		assert(args.size() == 1);
+	// Binary operator strings
+	static const wrapped::hash_table <OperationCode, const char *> operators {
+		{ addition, "+" },
+		{ subtraction, "-" },
+		{ multiplication, "*" },
+		{ division, "/" },
+		
+		{ bit_shift_left, "<<" },
+		{ bit_shift_right, ">>" },
+		
+		{ bit_and, "&" },
+		{ bit_or, "|" },
+		{ bit_xor, "^" },
+		
+		{ cmp_ge, ">" },
+		{ cmp_geq, ">=" },
+		{ cmp_le, "<" },
+		{ cmp_leq, "<=" },
+		{ equals, "==" },
+		{ not_equals, "!=" },
+	};
+
+	// Handle the special cases
+	if (code == unary_negation) {
+		JVL_ASSERT(args.size() == 1, "unary negation should have exactly one argument");
 		return fmt::format("-{}", args[0]);
-	case OperationCode::addition:
-		assert(args.size() == 2);
-		return fmt::format("({} + {})", args[0], args[1]);
-	case OperationCode::subtraction:
-		assert(args.size() == 2);
-		return fmt::format("({} - {})", args[0], args[1]);
-	case OperationCode::multiplication:
-		assert(args.size() == 2);
-		return fmt::format("({} * {})", args[0], args[1]);
-	case OperationCode::division:
-		assert(args.size() == 2);
-		return fmt::format("({} / {})", args[0], args[1]);
-	case OperationCode::bit_shift_left:
-		assert(args.size() == 2);
-		return fmt::format("({} << {})", args[0], args[1]);
-	case OperationCode::bit_shift_right:
-		assert(args.size() == 2);
-		return fmt::format("({} >> {})", args[0], args[1]);
-	case OperationCode::bit_xor:
-		assert(args.size() == 2);
-		return fmt::format("({} ^ {})", args[0], args[1]);
-	case OperationCode::bit_and:
-		assert(args.size() == 2);
-		return fmt::format("({} & {})", args[0], args[1]);
-	case OperationCode::bit_or:
-		assert(args.size() == 2);
-		return fmt::format("({} | {})", args[0], args[1]);
-	case OperationCode::cmp_ge:
-		assert(args.size() == 2);
-		return fmt::format("({} > {})", args[0], args[1]);
-	case OperationCode::cmp_le:
-		assert(args.size() == 2);
-		return fmt::format("({} < {})", args[0], args[1]);
-	case OperationCode::cmp_geq:
-		assert(args.size() == 2);
-		return fmt::format("({} >= {})", args[0], args[1]);
-	case OperationCode::cmp_leq:
-		assert(args.size() == 2);
-		return fmt::format("({} <= {})", args[0], args[1]);
-	default:
-		break;
 	}
 
-	JVL_ABORT("unhandled operation $({})", tbl_operation_code[code]);
+	// Should be left with purely binary operations
+	JVL_ASSERT(args.size() == 2,
+		"$({}) is expected to take exactly two arguments",
+		tbl_operation_code[code]);
+	
+	JVL_ASSERT(operators.contains(code),
+		"no operator symbol found for $({})",
+		tbl_operation_code[code]);
+
+	const char *const op = operators.at(code);
+
+	return fmt::format("({} {} {})", args[0], op, args[1]);
 }
 
 // TODO: take body_t as argument with all of these
@@ -175,7 +169,7 @@ std::string generate_c_like(const body_t &body)
 		const Atom &atom = atoms[index];
 
 		if (auto global = atom.get <Global> ()) {
-			return glsl_global_ref(*global);
+			return generate_global_reference(*global);
 		} else if (auto load = atom.get <Load> ()) {
 			std::string accessor;
 			if (load->idx != -1)
@@ -242,9 +236,9 @@ std::string generate_c_like(const body_t &body)
 		const Atom &atom = atoms[index];
 
 		if (auto prim = atom.get <Primitive> ()) {
-			return glsl_primitive(*prim);
+			return generate_primitive(*prim);
 		} else if (auto global = atom.get <Global> ()) {
-			return glsl_global_ref(*global);
+			return generate_global_reference(*global);
 		} else if (auto ctor = atom.get <Construct> ()) {
 			std::string t = type_name(atoms, struct_names, ctor->type, -1);
 			return t + "(" + inlined(ctor->args) + ")";
@@ -268,7 +262,7 @@ std::string generate_c_like(const body_t &body)
 			std::string accessor = tbl_swizzle_code[swizzle->code];
 			return inlined(swizzle->src) + "." + accessor;
 		} else if (auto op = atom.get <Operation> ()) {
-			return glsl_format_operation(op->code, arglist(op->args));
+			return generate_operation(op->code, arglist(op->args));
 		} else if (auto intr = atom.get <Intrinsic> ()) {
 			auto args = arglist(intr->args);
 			return tbl_intrinsic_operation[intr->opn] + strargs(args);
@@ -375,14 +369,14 @@ std::string generate_c_like(const body_t &body)
 			source += assign_to(store->dst, v);
 		} else if (auto prim = atom.get <Primitive> ()) {
 			std::string t = tbl_primitive_types[prim->type];
-			std::string v = glsl_primitive(*prim);
+			std::string v = generate_primitive(*prim);
 			source += assign_new(t, v, index);
 		} else if (auto intr = atom.get <Intrinsic> ()) {
 			source += intrinsic(intr.value(), index);
 		} else if (auto op = atom.get <Operation> ()) {
 			// TODO: lambda shortcut
 			std::string t = type_name(atoms, struct_names, op->type, -1);
-			std::string v = glsl_format_operation(op->code, arglist(op->args));
+			std::string v = generate_operation(op->code, arglist(op->args));
 			source += assign_new(t, v, index);
 		} else if (auto ret = atom.get <Returns> ()) {
 			// TODO: create a tuple type struct if necesary
@@ -394,9 +388,7 @@ std::string generate_c_like(const body_t &body)
 			// Same reason; otherwise there are shader intrinsics
 			// which do not need to be synthesized
 		} else {
-			// TODO: error reporting for jvl facilities
-			fmt::println("C-like: unexpected IR requested for synthesize(...): {}", atom.to_string());
-			abort();
+			JVL_ABORT("unexpected IR requested for synthesize(...): {}", atom.to_string());
 		}
 	};
 

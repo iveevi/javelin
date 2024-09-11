@@ -33,8 +33,13 @@ auto ftn = callable_info("shuffle") >> [](ivec3 in, i32 iterations)
 	{
 		in.x <<= in.z;
 		in.x >>= in.y;
-		in.x |= in.y ^ in.z;
-		in.x &= in.y - in.z;
+		loop((in.x & 0b1) != 0b1);
+		{
+			in.x |= in.y ^ in.z;
+			in.x &= in.y - in.z;
+		}
+		end();
+		
 		counter += 1;
 	}
 	end();
