@@ -62,6 +62,13 @@ std::unordered_set <index_t> synthesize_list(const std::vector <Atom> &atoms)
 			synthesized.insert(atom.as <Operation> ().type);
 			break;
 
+		case Atom::type_index <Construct> ():
+		{
+			auto &constructor = atom.as <Construct> ();
+			if (constructor.transient)
+				synthesized.insert(i);
+		} break;
+
 		case Atom::type_index <TypeInformation> ():
 		{
 			auto &type_field = atom.as <TypeInformation> ();

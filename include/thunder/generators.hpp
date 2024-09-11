@@ -1,13 +1,23 @@
 #pragma once
 
 #include "atom.hpp"
+#include "qualified_type.hpp"
+#include "buffer.hpp"
 
 namespace jvl::thunder::detail {
 
-struct body_t {
-	const std::vector <Atom> &atoms;
+// TODO: type alias for synthesis list
+// Determine the set of instructions to concretely synthesized
+std::unordered_set <index_t> synthesize_list(const std::vector <Atom> &);
+
+struct body_t : Buffer {
 	const wrapped::hash_table <int, std::string> &struct_names;
-	const std::unordered_set <index_t> synthesized;
+	std::unordered_set <index_t> synthesized;
+
+	body_t(const Buffer &buffer, const auto &names)
+			: Buffer(buffer), struct_names(names) {
+		synthesized = synthesize_list(pool);
+	}
 };
 
 struct c_like_generator_t : body_t {

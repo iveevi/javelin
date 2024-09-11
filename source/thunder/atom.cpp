@@ -187,7 +187,8 @@ std::string List::to_string() const
 bool Construct::operator==(const Construct &other) const
 {
         return (type == other.type)
-                && (args == other.args);
+                && (args == other.args)
+                && (transient == other.transient);
 }
 
 Addresses Construct::addresses()
@@ -204,6 +205,8 @@ std::string Construct::to_string() const
                 result += fmt::format("(nil)");
         else
                 result += fmt::format("%{}", args);
+
+        result += fmt::format(" transient: {}", transient);
 
         return result;
 }

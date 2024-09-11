@@ -45,7 +45,7 @@ struct array <T, N> : public tagged {
 		auto &em = Emitter::active;
 		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
 		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
-		this->ref = qualifier;
+		this->ref = em.emit_construct(qualifier, -1, true);
 	}
 
 	template <generic U, generic ... Args>

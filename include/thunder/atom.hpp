@@ -171,9 +171,11 @@ static_assert(atom_instruction <List>);
 //
 //   type: type to construct
 //   args: reference to a List chain of arguments
+//   transient: whether the constructed item requires concrete storage
 struct Construct {
 	index_t type = -1;
 	index_t args = -1;
+	bool transient = false;
 
 	bool operator==(const Construct &) const;
 	Addresses addresses();
@@ -320,7 +322,7 @@ static_assert(sizeof(Swizzle)		== 4);
 static_assert(sizeof(Operation)		== 6);
 static_assert(sizeof(Intrinsic)		== 6);
 static_assert(sizeof(List)		== 4);
-static_assert(sizeof(Construct)		== 4);
+static_assert(sizeof(Construct)		== 6);
 static_assert(sizeof(Call)		== 6);
 static_assert(sizeof(Store)		== 6);
 static_assert(sizeof(Load)		== 4);

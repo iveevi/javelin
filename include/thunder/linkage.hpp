@@ -33,12 +33,16 @@ struct Linkage {
 	// Block information
 	using struct_map_t = wrapped::hash_table <index_t, index_t>;
 
-	struct block_t {
+	struct block_t : Buffer {
 		std::string name;
+
 		wrapped::hash_table <index_t, index_t> parameters;
 		struct_map_t struct_map;
-		std::vector <Atom> unit;
 		index_t returns = -1;
+
+		block_t() = default;
+		block_t(const Buffer &buffer, const std::string &s)
+			: Buffer(buffer), name(s) {}
 	};
 
 	wrapped::hash_table <index_t, block_t> blocks;
@@ -76,9 +80,6 @@ struct Linkage {
 
 // Helper functions for code generation
 namespace detail {
-
-// Determine the set of instructions to concretely synthesized
-std::unordered_set <index_t> synthesize_list(const std::vector <Atom> &);
 
 // Legalization methods
 void legalize_for_cc(Buffer &);

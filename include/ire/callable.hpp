@@ -5,6 +5,7 @@
 #include "../thunder/atom.hpp"
 #include "../thunder/kernel.hpp"
 #include "../thunder/buffer.hpp"
+#include "ire/tagged.hpp"
 #include "uniform_layout.hpp"
 #include "type_synthesis.hpp"
 
@@ -59,26 +60,18 @@ struct callable_t : Callable {
 			auto &x = std::get <index> (tpl);
 
 			auto layout = x.layout().remove_const();
-
-			thunder::Qualifier qualifier;
-			qualifier.kind= thunder::parameter;
-			qualifier.underlying = type_field_from_args(layout).id;
-			qualifier.numerical = index;
-
-			cache_index_t ref;
-			ref = em.emit(qualifier);
-			layout.ref_with(ref);
+			thunder::index_t t = type_field_from_args(layout).id;
+			thunder::index_t q = em.emit_qualifier(t, index, thunder::parameter);
+			thunder::index_t c = em.emit_construct(q, -1, true);
+			layout.ref_with(cache_index_t::from(c));
 		} else {
 			auto &x = std::get <index> (tpl);
 
-			using type_of_x = std::decay_t <decltype(x)>;
-
-			thunder::Qualifier qualifier;
-			qualifier.kind = thunder::parameter;
-			qualifier.underlying = type_field_from_args <type_of_x> ().id;
-			qualifier.numerical = index;
-
-			x.ref = em.emit(qualifier);
+			using T = std::decay_t <decltype(x)>;
+			
+			thunder::index_t t = type_field_from_args <T> ().id;
+			thunder::index_t q = em.emit_qualifier(t, index, thunder::parameter);
+			x.ref = em.emit_construct(q, -1, true);
 		}
 
 		if constexpr (index + 1 < sizeof...(Args))

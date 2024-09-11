@@ -80,11 +80,13 @@ bool opt_transform_constructor_elision(Buffer &result)
 		// Gather the arguments
 		// NOTE: this assumes that the constructor is a
 		// plain initializer list and that it is in order
-		Construct ctor = atom.as <Construct> ();
+		Construct construct = atom.as <Construct> ();
+		if (construct.transient)
+			continue;
 
 		std::vector <index_t> fields;
 
-		index_t arg = ctor.args;
+		index_t arg = construct.args;
 		while (arg != -1) {
 			auto &atom = result.pool[arg];
 			JVL_ASSERT_PLAIN(atom.is <List> ());

@@ -26,6 +26,12 @@ struct cache_index_t {
 	bool operator==(const cache_index_t &c) {
 		return id == c.id;
 	}
+	
+	static cache_index_t from(value_type id) {
+		cache_index_t cit;
+		cit = id;
+		return cit;
+	}
 
 	static cache_index_t null() {
 		return {.id = -1};

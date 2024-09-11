@@ -21,6 +21,8 @@ index_t instruction_type(const std::vector <Atom> &pool, index_t i)
 		return i;
 	case Atom::type_index <Qualifier> ():
 		return atom.as <Qualifier> ().underlying;
+	case Atom::type_index <Construct> ():
+		return atom.as <Construct> ().type;
 	case Atom::type_index <Primitive> ():
 		return atom.as <Primitive> ().type;
 	case Atom::type_index <Operation> ():
@@ -276,6 +278,7 @@ void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 	}
 }
 
+// TODO: legalization context...
 void legalize_for_cc(Buffer &buffer)
 {
 	JVL_STAGE();
@@ -333,7 +336,7 @@ void legalize_for_cc(Buffer &buffer)
 		// with the arguments provided
 		if (auto constructor = atom.get <Construct> ()) {
 			auto ptype = primitive_type_of(pool, constructor->type);
-			if (vector_type(ptype)) {
+			if (!constructor->transient && vector_type(ptype)) {
 				fmt::println("legalizing constructor: {}", atom);
 				fmt::println("constructor for vector type: {}", tbl_primitive_types[ptype]);
 				size_t components = vector_component_count(ptype);

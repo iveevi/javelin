@@ -1,7 +1,8 @@
+#include "logging.hpp"
 #include "thunder/atom.hpp"
+#include "thunder/generators.hpp"
 #include "thunder/kernel.hpp"
 #include "thunder/linkage.hpp"
-#include "logging.hpp"
 
 namespace jvl::thunder {
 
@@ -46,31 +47,30 @@ Linkage Kernel::linkage() const
 	Linkage linkage;
 
 	// TODO: preserve the cid if present
-	linkage.blocks[-1] = Linkage::block_t { name, {}, {}, atoms };
+	linkage.blocks[-1] = Linkage::block_t(*this, name);
 	linkage.sorted = { -1 };
 
 	// Generate struct information for linkage
-	auto synthesized = detail::synthesize_list(atoms);
+	auto synthesized = detail::synthesize_list(pool);
 
 	// Generate block information
 	auto &block = linkage.blocks[-1];
 
-	for (int i = 0; i < atoms.size(); i++) {
+	for (int i = 0; i < pointer; i++) {
 		if (!synthesized.contains(i))
 			continue;
 
-		auto atom = atoms[i];
+		auto atom = pool[i];
 
 		if (auto call = atom.get <Call> ())
 			linkage.callables.insert(call->cid);
 
-		if (auto global = atom.get <Qualifier> ()) {
-			index_t type = global->underlying;
-			index_t generated_type = generate_type_declaration(linkage, atoms, type);
-			index_t binding = global->numerical;
+		if (auto qualifier = atom.get <Qualifier> ()) {
+			index_t type = qualifier->underlying;
+			index_t generated_type = generate_type_declaration(linkage, pool, type);
+			index_t binding = qualifier->numerical;
 
-			// TODO: the kernel must undergo validation
-			switch (global->kind) {
+			switch (qualifier->kind) {
 			case layout_in:
 				linkage.lins[binding] = generated_type;
 				break;
@@ -78,9 +78,6 @@ Linkage Kernel::linkage() const
 				linkage.louts[binding] = generated_type;
 				break;
 			case parameter:
-				// Need the concrete type for parameters,
-				// so that the type fields can be accessed from JIT
-				// TODO: find some way to fix this
 				block.parameters[binding] = type;
 				break;
 			case push_constant:
@@ -95,7 +92,7 @@ Linkage Kernel::linkage() const
 			block.returns = returns->type;
 
 		if (auto type_field = atom.get <TypeInformation> ())
-			generate_type_declaration(linkage, atoms, i);
+			generate_type_declaration(linkage, pool, i);
 	}
 
 	return linkage;
@@ -107,7 +104,7 @@ void Kernel::dump() const
 	fmt::println("------------------------------");
 	fmt::println("KERNEL:");
 	fmt::println("~~~~~~~");
-	fmt::println("atoms: {}", atoms.size());
+	fmt::println("atoms: {}", pool.size());
 	fmt::println("flags:");
 
 	if (is_compatible(eVertexShader))
@@ -120,8 +117,8 @@ void Kernel::dump() const
 		fmt::println(".... callable");
 
 	fmt::println("------------------------------");
-	for (size_t i = 0; i < atoms.size(); i++)
-		fmt::println("  [{:4d}]: {}", i, atoms[i].to_string());
+
+	Buffer::dump();
 }
 
 // Generating GLSL source code

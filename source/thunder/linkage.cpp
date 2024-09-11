@@ -42,7 +42,7 @@ index_t Linkage::insert(const struct_declaration &A)
 // Fully resolve the linkage
 Linkage &Linkage::resolve()
 {
-	JVL_STAGE_SECTION("resolve-linkge");
+	JVL_STAGE_SECTION("resolve-linkage");
 
 	// If there are no callables used, there is nothing to resolve
 	if (callables.empty())
@@ -68,7 +68,8 @@ Linkage &Linkage::resolve()
 			index_t k = (j == -1) ? i : j;
 			blocks[k].name = cbl->name;
 			blocks[k].struct_map = map;
-			blocks[k].unit = b.unit;
+			blocks[k].pool = b.pool;
+			blocks[k].types = b.types;
 
 			blocks[k].returns = b.returns;
 			if (b.returns != -1)
@@ -143,7 +144,7 @@ void Linkage::dump() const
 			fmt::println("  Block ${}:", cbl->name);
 		}
 
-		fmt::println("    instructions: {}", b.unit.size());
+		fmt::println("    instructions: {}", b.pool.size());
 		fmt::println("    returns: %{}", b.returns);
 
 		fmt::println("    parameters: {}", b.parameters.size());

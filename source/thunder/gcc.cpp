@@ -7,6 +7,7 @@
 #include "logging.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
+#include "thunder/generators.hpp"
 #include "thunder/linkage.hpp"
 #include "thunder/properties.hpp"
 #include "wrapped_types.hpp"
@@ -716,7 +717,7 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 	fmt::println("generating block");
 
 	jit_context context {
-		.pool = block.unit,
+		.pool = block.pool,
 		.gcc = gcc,
 	};
 
@@ -725,7 +726,7 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 
 	gcc_parameters.resize(block.parameters.size());
 	context.parameters.resize(block.parameters.size());
-	context.cached.resize(block.unit.size(), jit_instruction::null());
+	context.cached.resize(block.pool.size(), jit_instruction::null());
 
 	for (auto &[i, t] : block.parameters) {
 		fmt::println("\nGENERATING PARAMETER ARG{} (type {})", i, t);
@@ -753,7 +754,7 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 	if (auto ptr = context.cached[block.returns].type_info) {
 		return_type = ptr->type;
 	} else {
-		fmt::println("block returns value: {} (ret: {})", block.unit[block.returns], block.returns);
+		fmt::println("block returns value: {} (ret: {})", block.pool[block.returns], block.returns);
 		return_type = generate_type_field(context, block.returns)->type;
 		fmt::println("return type: @{}", (void *) return_type);
 	}
@@ -771,7 +772,7 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 	context.block = gcc_jit_function_new_block(context.function, "primary");
 
 	// TODO: cache block synthesized status
-	auto synthesized = detail::synthesize_list(block.unit);
+	auto synthesized = detail::synthesize_list(block.pool);
 
 	// Do some extra processing to get the list of required instructions
 	auto used = decltype(synthesized)();
@@ -787,7 +788,7 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 		if (next == -1)
 			continue;
 
-		auto &atom = block.unit[next];	
+		auto &atom = block.pool[next];	
 		if (atom.is <TypeInformation> () && !synthesized.contains(next)) {
 			// Unless explicitly requires from the
 			// synthesized list of atoms, we
@@ -803,7 +804,7 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 	}
 
 	// Finally, generate the instructions in JIT
-	for (index_t i = 0; i < block.unit.size(); i++) {
+	for (index_t i = 0; i < block.pool.size(); i++) {
 		if (used.contains(i))
 			context.cached[i] = generate_instruction(context, i);
 
@@ -815,7 +816,7 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 
 Linkage::jit_result_t Linkage::generate_jit_gcc()
 {
-	JVL_INFO("compiling linkage unit with gcc jit");
+	JVL_INFO("compiling linkage pool with gcc jit");
 
 	gcc_jit_context *context = gcc_jit_context_acquire();
 	JVL_ASSERT(context, "failed to acquire context");

@@ -74,8 +74,8 @@ struct Emitter {
 		return emit(thunder::List(item, next));
 	}
 
-	index_t emit_construct(index_t type, index_t args) {
-		return emit(thunder::Construct(type, args));
+	index_t emit_construct(index_t type, index_t args, bool transient) {
+		return emit(thunder::Construct(type, args, transient));
 	}
 
 	index_t emit_call(index_t cid, index_t args, index_t type) {

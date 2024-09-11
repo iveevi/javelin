@@ -134,7 +134,7 @@ struct stage_bracket {
 
 	stage_bracket(const std::string &module_) : module(module_) {
 		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
-		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gold), "stage: ");
+		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gold), "begin: ");
 		fmt::print(fmt::emphasis::underline | fmt::emphasis::bold | fmt::fg(fmt::color::white_smoke), "{}\n", module);
 		std::fflush(stdout);
 

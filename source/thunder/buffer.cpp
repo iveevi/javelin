@@ -37,10 +37,15 @@ Kernel Buffer::export_to_kernel() const
 	// validate();
 
 	// TODO: run through optimizations
+	// TODO: find the right kernel flags
 
-	thunder::Kernel kernel(thunder::Kernel::eAll);
-	kernel.atoms = pool;
-	kernel.atoms.resize(pointer);
+	auto kernel = Kernel(*this, thunder::Kernel::eAll);
+	
+	kernel.pool.resize(pointer);
+	kernel.pool.shrink_to_fit();
+	
+	kernel.types.resize(pointer);
+	kernel.types.shrink_to_fit();
 
 	return kernel;
 }

@@ -1,3 +1,4 @@
+#include "thunder/atom.hpp"
 #include "thunder/generators.hpp"
 #include "ire/callable.hpp"
 
@@ -139,18 +140,28 @@ std::string c_like_generator_t::reference(index_t index) const
 	if (local_variables.count(index))
 		return local_variables.at(index);
 
-	const Atom &atom = atoms[index];
+	const Atom &atom = pool[index];
 
-	if (auto global = atom.get <Qualifier> ()) {
-		return generate_global_reference(*global);
-	} else if (auto load = atom.get <Load> ()) {
+	switch (atom.index()) {
+
+	case Atom::type_index <Load> ():
+	{
+		auto &load = atom.as <Load> ();
 		std::string accessor;
-		if (load->idx != -1)
-			accessor = fmt::format(".f{}", load->idx);
-		return reference(load->src) + accessor;
-	} else if (auto swizzle = atom.get <Swizzle> ()) {
-		std::string accessor = tbl_swizzle_code[swizzle->code];
-		return reference(swizzle->src) + "." + accessor;
+		if (load.idx != -1)
+			accessor = fmt::format(".f{}", load.idx);
+		return reference(load.src) + accessor;
+	}
+
+	case Atom::type_index <Swizzle> ():
+	{
+		auto &swizzle = atom.as <Swizzle> ();
+		std::string accessor = tbl_swizzle_code[swizzle.code];
+		return reference(swizzle.src) + "." + accessor;
+	}
+
+	default:
+		break;
 	}
 
 	JVL_ABORT("failed to generate reference for: {} (@{})", atom, index);
@@ -163,7 +174,7 @@ std::string c_like_generator_t::inlined(index_t index) const
 	if (local_variables.count(index))
 		return local_variables.at(index);
 
-	const Atom &atom = atoms[index];
+	const Atom &atom = pool[index];
 
 	if (auto prim = atom.get <Primitive> ()) {
 		return generate_primitive(*prim);
@@ -171,7 +182,9 @@ std::string c_like_generator_t::inlined(index_t index) const
 		return generate_global_reference(*global);
 	} else if (auto ctor = atom.get <Construct> ()) {
 		std::string t = generate_type_string(ctor->type, -1);
-		return t + "(" + inlined(ctor->args) + ")";
+		if (ctor->args != -1)
+			return t + "(" + inlined(ctor->args) + ")";
+		return t + "()";
 	} else if (auto call = atom.get <Call> ()) {
 		ire::Callable *cbl = ire::Callable::search_tracked(call->cid);
 		std::string args;
@@ -207,7 +220,7 @@ std::vector <std::string> c_like_generator_t::arguments(index_t start) const
 
 	int l = start;
 	while (l != -1) {
-		Atom h = atoms[l];
+		Atom h = pool[l];
 		if (!h.is <List> ()) {
 			fmt::println("unexpected atom in arglist: {}", h.to_string());
 			fmt::print("\n");
@@ -230,7 +243,7 @@ std::vector <std::string> c_like_generator_t::arguments(index_t start) const
 
 std::string c_like_generator_t::generate_type_string(index_t index, index_t field) const
 {
-	auto &atom = atoms[index];
+	auto &atom = pool[index];
 	if (struct_names.contains(index)) {
 		if (field == -1)
 			return struct_names.at(index);
@@ -304,7 +317,7 @@ void c_like_generator_t::generate <Intrinsic> (const Intrinsic &intrinsic, index
 	if (intrinsic.type == -1)
 		return finish(tbl_intrinsic_operation[intrinsic.opn]);
 
-	auto &atom = atoms[intrinsic.type];
+	auto &atom = pool[intrinsic.type];
 	if (!atom.is <TypeInformation> ())
 		return finish("?", false);
 
@@ -415,15 +428,17 @@ void c_like_generator_t::generate <Returns> (const Returns &returns, index_t)
 void c_like_generator_t::generate(index_t i)
 {
 	auto ftn = [&](auto atom) { return generate(atom, i); };
-	return std::visit(ftn, atoms[i]);
+	return std::visit(ftn, pool[i]);
 }
 
 // General generator
 std::string c_like_generator_t::generate()
 {
-	for (int i = 0; i < atoms.size(); i++) {
-		if (synthesized.count(i))
+	for (int i = 0; i < pointer; i++) {
+		if (synthesized.count(i)) {
+			fmt::println("generating: {}", pool[i]);
 			generate(i);
+		}
 	}
 
 	return source;

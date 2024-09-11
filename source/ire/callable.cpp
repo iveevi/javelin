@@ -36,10 +36,8 @@ Callable &Callable::operator=(const Callable &other)
 
 thunder::Kernel Callable::export_to_kernel() const
 {
-	thunder::Kernel kernel(thunder::Kernel::eCallable);
+	auto kernel = Buffer::export_to_kernel();
 	kernel.name = name;
-	kernel.atoms.resize(pointer);
-	std::memcpy(kernel.atoms.data(), pool.data(), sizeof(thunder::Atom) * pointer);
 	return kernel;
 }
 

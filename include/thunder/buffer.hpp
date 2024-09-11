@@ -26,6 +26,8 @@ struct Buffer {
 	void clear();
 	void dump() const;
 
+	// TODO: shrink to fit method
+
 	// Utility methods
 	Atom &operator[](size_t);
 	const Atom &operator[](size_t) const;

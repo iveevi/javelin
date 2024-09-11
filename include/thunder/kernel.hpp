@@ -1,24 +1,19 @@
 #pragma once
 
-#include <functional>
-#include <vector>
-
+#include "buffer.hpp"
 #include "../profiles/targets.hpp"
-#include "atom.hpp"
 
 namespace jvl::thunder {
 
 struct Linkage;
 
-class Kernel {
+struct Kernel : Buffer {
+protected:
 	std::string generate_glsl(const std::string &);
 	std::string generate_cplusplus();
 public:
 	// Name of the kernel, usually not set by the user
 	std::string name;
-
-	// At this point the IR atoms are unlikely to change
-	std::vector <Atom> atoms;
 
 	// Possible kernel flags, which enable certain paths of synthesis
 	enum Kind {
@@ -30,7 +25,7 @@ public:
 	} kind;
 
 	// Must specify the type by the time of construction
-	Kernel(Kind k) : name("kernel"), kind(k) {}
+	Kernel(const Buffer &buffer, Kind k) : Buffer(buffer), name("kernel"), kind(k) {}
 
 	// Get linkage model for the kernel
 	Linkage linkage() const;
