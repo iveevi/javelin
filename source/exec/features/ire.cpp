@@ -31,13 +31,9 @@ struct shuffle_info {
 auto ftn = callable_info("shuffle") >> [](ivec3 in, shuffle_info info)
 {
 	// TODO: color wheel generator
-	// array <f32, 3> list { 1, 2, 3 };
-	// array <shuffle_info, 16> shuffles;
-	// // list[1] = in.x + in.y / in.z;
-	// return shuffles[info.iterations % 3];
-	shuffle_info out;
-	out.iterations = info.iterations/info.stride;
-	return out;
+	array <i32, 3> list { 1, 2, 3 };
+	list[1] = in.x + in.y / in.z;
+	return list[2] * list[1];
 };
 
 int main()

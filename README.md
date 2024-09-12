@@ -9,6 +9,8 @@ Javelin is a system for **graphics programming**; to this serve this purpose, it
 
 Many components of Javelin are currently a work in progress.
 
+![GoogleTest](https://github.com/iveevi/javelin/actions/workflows/ci.yml/badge.svg)
+
 ## Intermediate Representation Emitter
 
 The Intermediate Representation Emitter (IRE) is Javelin's JIT framework for runtime shader and kernel generation. It aims to provide a seamless C++ experience when working with graphics shaders as well as multi-platform kernels.
