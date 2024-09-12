@@ -5,8 +5,13 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-24.04
+
+    strategy:
+      matrix:
+        compiler: [ {c : gcc, cxx: g++}, {c: clang, cxx: clang++ } ]
+        build: [ Release, Debug ]
 
     defaults:
       run:
@@ -17,7 +22,8 @@ jobs:
         run: |
           sudo apt update -y
           sudo apt install -y cmake libvulkan1 libglfw3-dev \
-            glslang-tools glslang-dev libfmt-dev gcc-14 libgccjit-14-dev
+            glslang-tools glslang-dev libfmt-dev            \
+            clang gcc-14 libgccjit-14-dev
           sudo ln -s /usr/lib/gcc/x86_64-linux-gnu/14/include/libgccjit.h /usr/include/libgccjit.h
           sudo ln -s /usr/lib/gcc/x86_64-linux-gnu/14/libgccjit.so /usr/lib/libgccjit.so
       - uses: actions/checkout@v3
@@ -26,7 +32,8 @@ jobs:
           fetch-depth: '0'
       - name: build
         run: |
-          cmake -B build .
+          export CC=${{ matrix.compiler.c }} CXX=${{ matrix.compiler.cxx }}
+          cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build }} .
           cmake --build build -j -t test
       - name: test
         run: ./build/test
