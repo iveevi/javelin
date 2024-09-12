@@ -59,7 +59,7 @@ struct tagged {
 };
 
 template <typename T>
-concept synthesizable = requires(const T &t) {
+concept builtin = requires(const T &t) {
 	{
 		t.synthesize()
 	} -> std::same_as <cache_index_t>;

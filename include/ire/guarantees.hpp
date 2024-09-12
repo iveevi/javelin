@@ -7,28 +7,28 @@
 
 namespace jvl::ire {
 
-static_assert(synthesizable <primitive_t <bool>>);
-static_assert(synthesizable <primitive_t <int>>);
-static_assert(synthesizable <primitive_t <float>>);
+static_assert(builtin <primitive_t <bool>>);
+static_assert(builtin <primitive_t <int>>);
+static_assert(builtin <primitive_t <float>>);
 
-static_assert(synthesizable <vec <bool, 2>>);
-static_assert(synthesizable <vec <bool, 3>>);
-static_assert(synthesizable <vec <bool, 4>>);
+static_assert(builtin <vec <bool, 2>>);
+static_assert(builtin <vec <bool, 3>>);
+static_assert(builtin <vec <bool, 4>>);
 
-static_assert(synthesizable <vec <int, 2>>);
-static_assert(synthesizable <vec <int, 3>>);
-static_assert(synthesizable <vec <int, 4>>);
+static_assert(builtin <vec <int, 2>>);
+static_assert(builtin <vec <int, 3>>);
+static_assert(builtin <vec <int, 4>>);
 
-static_assert(synthesizable <vec <float, 2>>);
-static_assert(synthesizable <vec <float, 3>>);
-static_assert(synthesizable <vec <float, 4>>);
+static_assert(builtin <vec <float, 2>>);
+static_assert(builtin <vec <float, 3>>);
+static_assert(builtin <vec <float, 4>>);
 
-static_assert(synthesizable <mat <float, 2, 2>>);
-static_assert(synthesizable <mat <float, 3, 3>>);
-static_assert(synthesizable <mat <float, 4, 4>>);
+static_assert(builtin <mat <float, 2, 2>>);
+static_assert(builtin <mat <float, 3, 3>>);
+static_assert(builtin <mat <float, 4, 4>>);
 
-static_assert(synthesizable <layout_in <bool>>);
-static_assert(synthesizable <layout_in <int>>);
-static_assert(synthesizable <layout_in <float>>);
+static_assert(builtin <layout_in <bool>>);
+static_assert(builtin <layout_in <int>>);
+static_assert(builtin <layout_in <float>>);
 
 } // namespace jvl::ire

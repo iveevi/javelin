@@ -66,7 +66,7 @@ using corrected_aggregate = aggregrate_generator <Args...> ::type::aggregate;
 
 // User-level construct for intefacing the aggregates
 template <typename ... Args>
-struct aggregate : corrected_aggregate <Args...> {
+struct aggregate_storage : corrected_aggregate <Args...> {
 	template <size_t I>
 	auto &get() {
 		constexpr size_t N = sizeof...(Args);

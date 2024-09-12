@@ -9,7 +9,7 @@
 
 namespace jvl::ire {
 
-template <primitive_type T, typename ... Args>
+template <native T, typename ... Args>
 int list_from_args(const T &t, const Args &... args)
 {
 	auto &em = Emitter::active;
@@ -23,7 +23,7 @@ int list_from_args(const T &t, const Args &... args)
 	return em.emit(l);
 }
 
-template <synthesizable T, typename ... Args>
+template <builtin T, typename ... Args>
 int list_from_args(const T &t, const Args &... args)
 {
 	auto &em = Emitter::active;
@@ -37,7 +37,7 @@ int list_from_args(const T &t, const Args &... args)
 	return em.emit(l);
 }
 
-template <uniform_compatible T, typename ... Args>
+template <aggregate T, typename ... Args>
 int list_from_args(const T &t, const Args &... args)
 {
 	auto &em = Emitter::active;
@@ -74,7 +74,7 @@ R operation_from_args(thunder::OperationCode type, const Args &... args)
 	return cit;
 }
 
-template <synthesizable R, synthesizable ... Args>
+template <builtin R, builtin ... Args>
 R platform_intrinsic_from_args(thunder::IntrinsicOperation opn, const Args &... args)
 {
 	auto &em = Emitter::active;
@@ -90,7 +90,7 @@ R platform_intrinsic_from_args(thunder::IntrinsicOperation opn, const Args &... 
 	return cit;
 }
 
-template <synthesizable ... Args>
+template <builtin ... Args>
 void void_platform_intrinsic_from_args(thunder::IntrinsicOperation opn, const Args &... args)
 {
 	auto &em = Emitter::active;

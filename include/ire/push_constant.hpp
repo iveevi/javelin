@@ -9,18 +9,18 @@
 namespace jvl::ire {
 
 template <typename T>
-using push_constant_base = std::conditional_t <synthesizable <T> || uniform_compatible <T>, T, tagged>;
+using push_constant_base = std::conditional_t <builtin <T> || aggregate <T>, T, tagged>;
 
-template <global_qualifier_compatible T>
+template <generic T>
 struct push_constant : push_constant_base <T> {
 	using upcast_t = decltype(upcast(T()));
 
 	// TODO: handle operator= disabling
 	push_constant()
-	requires primitive_type <T> = default;
+	requires native <T> = default;
 
 	push_constant()
-	requires synthesizable <T> {
+	requires builtin <T> {
 		auto &em = Emitter::active;
 
 		thunder::Qualifier global;
@@ -32,7 +32,7 @@ struct push_constant : push_constant_base <T> {
 
 	template <typename ... Args>
 	push_constant(const Args &... args)
-	requires uniform_compatible <T> : T(args...) {
+	requires aggregate <T> : T(args...) {
 		auto &em = Emitter::active;
 
 		auto layout = this->layout().remove_const();
@@ -47,7 +47,7 @@ struct push_constant : push_constant_base <T> {
 	}
 
 	cache_index_t synthesize() const
-	requires primitive_type <T> {
+	requires native <T> {
 		if (this->cached())
 			return this->ref;
 
@@ -64,7 +64,7 @@ struct push_constant : push_constant_base <T> {
 	}
 
 	operator upcast_t ()
-	requires primitive_type <T> {
+	requires native <T> {
 		return upcast_t(synthesize());
 	}
 };

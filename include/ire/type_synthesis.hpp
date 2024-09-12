@@ -1,27 +1,18 @@
 #pragma once
 
 #include "../thunder/atom.hpp"
+#include "emitter.hpp"
 #include "ire/string_literal.hpp"
 #include "primitive.hpp"
-#include "uniform_layout.hpp"
 #include "tagged.hpp"
-#include "emitter.hpp"
+#include "type_system.hpp"
+#include "uniform_layout.hpp"
 
 namespace jvl::ire {
 
 // Forward declarations
 template <typename T>
 constexpr thunder::PrimitiveType synthesize_primitive_type();
-
-// Fundamental types for IRE
-template <typename T>
-concept generic = primitive_type <T> || synthesizable <T> || uniform_compatible <T>;
-
-template <typename T>
-concept non_trivial_generic = synthesizable <T> || uniform_compatible <T>;
-
-template <typename T>
-concept non_trivial_generic_or_void = synthesizable <T> || uniform_compatible <T> || std::same_as <T, void>;
 
 // Automatically determining layout types
 template <string_literal name, non_trivial_generic T>
@@ -105,7 +96,7 @@ cache_index_t type_field_from_args_impl()
 
 	thunder::TypeInformation type_info;
 
-	if constexpr (uniform_compatible <T>) {
+	if constexpr (aggregate <T>) {
 		using layout_t = decltype(T().layout());
 
 		// If its a single struct, then we should not nest
@@ -160,7 +151,7 @@ cache_index_t type_field_index_from_args(int index)
 
 	thunder::TypeInformation tf;
 
-	if constexpr (uniform_compatible <T>) {
+	if constexpr (aggregate <T>) {
 		using layout_t = decltype(T().layout());
 		tf.down = type_field_from_args(layout_t()).id;
 	} else {

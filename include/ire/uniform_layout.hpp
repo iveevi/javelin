@@ -114,7 +114,7 @@ struct const_uniform_layout_t {
 
 // Concept for ensuring that a struct can be synthesized
 template <typename T>
-concept uniform_compatible = requires(T &ref, const T &cref) {
+concept aggregate = requires(T &ref, const T &cref) {
 	{
 		cref.layout().fields
 	} -> std::same_as <std::vector <layout_const_field> &&>;
@@ -138,7 +138,7 @@ template <typename T>
 concept __field_type = __field_type_t <T> ::value;
 
 // Backend methods for creating uniform layouts
-template <synthesizable T, string_literal name, typename ... UArgs>
+template <builtin T, string_literal name, typename ... UArgs>
 void __const_init(layout_const_field *fields, int index, const __field <name, T> &t, const UArgs &... uargs)
 {
 	layout_const_field f;
@@ -151,7 +151,7 @@ void __const_init(layout_const_field *fields, int index, const __field <name, T>
 		__const_init(fields, index + 1, uargs...);
 }
 
-template <uniform_compatible T, string_literal name, typename ... UArgs>
+template <aggregate T, string_literal name, typename ... UArgs>
 void __const_init(layout_const_field *fields, int index, const __field <name, T> &t, const UArgs &... uargs)
 {
 	using layout_t = decltype(T().layout());
@@ -171,7 +171,7 @@ struct higher_const_uniform_layout_t : const_uniform_layout_t <Args...> {
 	static constexpr auto group = field_group;
 };
 
-template <uniform_compatible T, string_literal field>
+template <aggregate T, string_literal field>
 constexpr auto uniform_field_index()
 {
 	using layout_t = decltype(T().layout());

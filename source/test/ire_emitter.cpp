@@ -23,7 +23,7 @@ bool check_contents(const thunder::Buffer &ref, const thunder::Buffer &given)
 	return true;
 }
 
-template <primitive_type T>
+template <native T>
 void synthesize_layout_io_inner()
 {
 	auto &em = Emitter::active;

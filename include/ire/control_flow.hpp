@@ -55,7 +55,7 @@ inline void end()
 }
 
 // TODO: match/match_case statements
-template <primitive_type T>
+template <native T>
 inline void returns(const T &value)
 {
 	Emitter::active.emit_return(
@@ -63,14 +63,14 @@ inline void returns(const T &value)
 		type_field_from_args <T> ().id);
 }
 
-template <synthesizable T>
+template <builtin T>
 inline void returns(const T &value)
 {
 	Emitter::active.emit_return(value.synthesize().id,
 		type_field_from_args <T> ().id);
 }
 
-template <uniform_compatible T>
+template <aggregate T>
 inline void returns(const T &value)
 {
 	auto &em = Emitter::active;

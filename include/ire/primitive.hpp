@@ -54,16 +54,16 @@ inline thunder::index_t translate_primitive(float f)
 }
 
 template <typename T>
-concept primitive_type = requires(const T &t) {
+concept native = requires(const T &t) {
 	{
 		translate_primitive(t)
 	} -> std::same_as <thunder::index_t>;
 };
 
 template <typename T>
-concept integral_primitive_type = std::is_integral_v <T> && primitive_type <T>;
+concept integral_native = std::is_integral_v <T> && native <T>;
 
-template <primitive_type T>
+template <native T>
 struct primitive_t : tagged {
 	using tagged::tagged;
 
@@ -145,28 +145,28 @@ struct primitive_t : tagged {
 	}
 
 	// In place bitwise operators
-	template <integral_primitive_type U>
+	template <integral_native U>
 	primitive_t &operator>>=(const primitive_t <U> &a)
-	requires integral_primitive_type <T> {
+	requires integral_native <T> {
 		*this = operation_from_args <primitive_t> (thunder::bit_shift_right, (*this), a);
 		return *this;
 	}
 	
-	template <integral_primitive_type U>
+	template <integral_native U>
 	primitive_t &operator<<=(const primitive_t <U> &a)
-	requires integral_primitive_type <T> {
+	requires integral_native <T> {
 		*this = operation_from_args <primitive_t> (thunder::bit_shift_left, (*this), a);
 		return *this;
 	}
 	
 	primitive_t &operator|=(const primitive_t &a)
-	requires integral_primitive_type <T> {
+	requires integral_native <T> {
 		*this = operation_from_args <primitive_t> (thunder::bit_or, (*this), a);
 		return *this;
 	}
 	
 	primitive_t &operator&=(const primitive_t &a)
-	requires integral_primitive_type <T> {
+	requires integral_native <T> {
 		*this = operation_from_args <primitive_t> (thunder::bit_and, (*this), a);
 		return *this;
 	}

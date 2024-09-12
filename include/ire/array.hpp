@@ -10,7 +10,7 @@ struct array_base {
 	using element = void;
 };
 
-template <primitive_type T, thunder::index_t N>
+template <native T, thunder::index_t N>
 struct array_base <T, N> : public tagged {
 	using element = primitive_t <T>;
 
@@ -32,7 +32,7 @@ struct array_base <T, N> : public tagged {
 	}
 };
 
-template <synthesizable T, thunder::index_t N>
+template <builtin T, thunder::index_t N>
 struct array_base <T, N> : public tagged {
 	using element = T;
 
@@ -54,7 +54,7 @@ struct array_base <T, N> : public tagged {
 	}
 };
 
-template <uniform_compatible T, thunder::index_t N>
+template <aggregate T, thunder::index_t N>
 struct array_base <T, N> : public tagged {
 	using element = T;
 
@@ -97,9 +97,9 @@ struct array : public array_base <T, N> {
 		return cache_index_t::from(c);
 	}
 
-	template <integral_primitive_type U>
+	template <integral_native U>
 	element operator[](const primitive_t <U> &index) const
-	requires synthesizable <T> || primitive_type <T> {
+	requires builtin <T> || native <T> {
 		JVL_ASSERT(this->cached(), "arrays must be cached by the time of use");
 		auto &em = Emitter::active;
 		thunder::index_t l = index.synthesize().id;
@@ -107,9 +107,9 @@ struct array : public array_base <T, N> {
 		return cache_index_t::from(c);
 	}
 
-	template <integral_primitive_type U>
+	template <integral_native U>
 	element operator[](const primitive_t <U> &index) const
-	requires uniform_compatible <T> {
+	requires aggregate <T> {
 		JVL_ASSERT(this->cached(), "arrays must be cached by the time of use");
 		auto &em = Emitter::active;
 		thunder::index_t l = index.synthesize().id;

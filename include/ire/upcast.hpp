@@ -6,16 +6,13 @@
 
 namespace jvl::ire {
 
-template <primitive_type T>
+template <native T>
 constexpr primitive_t <T> upcast(const T &) { return primitive_t <T> (); }
 
-template <uniform_compatible T>
+template <aggregate T>
 constexpr T upcast(const T &) { return T(); }
 
-template <synthesizable T>
+template <builtin T>
 constexpr T upcast(const T &) { return T(); }
-
-template <typename T>
-concept global_qualifier_compatible = primitive_type <T> || uniform_compatible <T> || synthesizable <T>;
 
 } // namespace jvl::ire

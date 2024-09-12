@@ -57,7 +57,7 @@ struct callable_t : Callable {
 
 		using type_t = std::decay_t <decltype(std::get <index> (tpl))>;
 
-		if constexpr (uniform_compatible <type_t>) {
+		if constexpr (aggregate <type_t>) {
 			auto &x = std::get <index> (tpl);
 
 			auto layout = x.layout().remove_const();
@@ -100,7 +100,7 @@ struct callable_t : Callable {
 		auto &em = Emitter::active;
 
 		// If R is uniform compatible, then we need to bind its members...
-		if constexpr (uniform_compatible <R>) {
+		if constexpr (aggregate <R>) {
 			R instance;
 
 			auto layout = instance.layout().remove_const();

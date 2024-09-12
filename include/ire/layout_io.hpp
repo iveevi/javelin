@@ -13,22 +13,22 @@ namespace jvl::ire {
 struct __empty {};
 
 template <typename T>
-using layout_in_base = std::conditional_t <synthesizable <T> || uniform_compatible <T>, T, tagged>;
+using layout_in_base = std::conditional_t <builtin <T> || aggregate <T>, T, tagged>;
 
 template <typename T>
-using layout_out_base = std::conditional_t <synthesizable <T> || uniform_compatible <T>, T, __empty>;
+using layout_out_base = std::conditional_t <builtin <T> || aggregate <T>, T, __empty>;
 
-template <global_qualifier_compatible T>
+template <generic T>
 struct layout_in : layout_in_base <T> {
 	using upcast_t = decltype(upcast(T()));
 
 	const size_t binding;
 
 	layout_in(size_t binding_)
-	requires primitive_type <T> : binding(binding_) {}
+	requires native <T> : binding(binding_) {}
 
 	layout_in(size_t binding_)
-	requires synthesizable <T> : binding(binding_) {
+	requires builtin <T> : binding(binding_) {
 		auto &em = Emitter::active;
 
 		thunder::Qualifier global;
@@ -41,7 +41,7 @@ struct layout_in : layout_in_base <T> {
 
 	template <typename ... Args>
 	layout_in(size_t binding_, const Args &... args)
-	requires uniform_compatible <T> : T(args...), binding(binding_) {
+	requires native <T> : T(args...), binding(binding_) {
 		auto &em = Emitter::active;
 
 		auto layout = this->layout().remove_const();
@@ -57,7 +57,7 @@ struct layout_in : layout_in_base <T> {
 	}
 
 	cache_index_t synthesize() const
-	requires primitive_type <T> {
+	requires native <T> {
 		if (this->cached())
 			return this->ref;
 
@@ -79,28 +79,27 @@ struct layout_in : layout_in_base <T> {
 	}
 
 	operator upcast_t() const
-	requires synthesizable <T> {
+	requires builtin <T> {
 		return upcast_t(synthesize());
 	}
 
 	operator upcast_t () const
-	requires primitive_type <T> {
+	requires native <T> {
 		return upcast_t(synthesize());
 	}
 };
 
-template <typename T>
-requires primitive_type <T> || synthesizable <T> || uniform_compatible <T>
+template <generic T>
 struct layout_out : layout_out_base <T> {
 	using upcast_t = decltype(upcast(T()));
 
 	size_t binding;
 
 	layout_out(size_t binding_)
-	requires primitive_type <T> : binding(binding_) {}
+	requires native <T> : binding(binding_) {}
 
 	layout_out(size_t binding_)
-	requires synthesizable <T> : binding(binding_) {
+	requires builtin <T> : binding(binding_) {
 		auto &em = Emitter::active;
 
 		thunder::Qualifier global;
@@ -113,7 +112,7 @@ struct layout_out : layout_out_base <T> {
 
 	template <typename ... Args>
 	layout_out(size_t binding_, const Args &... args)
-	requires uniform_compatible <T> : T(args...), binding(binding_) {
+	requires native <T> : T(args...), binding(binding_) {
 		auto &em = Emitter::active;
 
 		auto layout = this->layout().remove_const();
@@ -129,7 +128,7 @@ struct layout_out : layout_out_base <T> {
 	}
 
 	layout_out &operator=(const T &t)
-	requires primitive_type <T> {
+	requires native <T> {
 		auto &em = Emitter::active;
 
 		thunder::Qualifier global;
