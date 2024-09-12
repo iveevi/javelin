@@ -60,14 +60,14 @@ Linkage Kernel::linkage() const
 		if (!synthesized.contains(i))
 			continue;
 
-		auto atom = pool[i];
+		auto atom = atoms[i];
 
 		if (auto call = atom.get <Call> ())
 			linkage.callables.insert(call->cid);
 
 		if (auto qualifier = atom.get <Qualifier> ()) {
 			index_t type = qualifier->underlying;
-			index_t generated_type = generate_type_declaration(linkage, pool, type);
+			index_t generated_type = generate_type_declaration(linkage, atoms, type);
 			index_t binding = qualifier->numerical;
 
 			switch (qualifier->kind) {
@@ -92,7 +92,7 @@ Linkage Kernel::linkage() const
 			block.returns = returns->type;
 
 		if (auto type_field = atom.get <TypeInformation> ())
-			generate_type_declaration(linkage, pool, i);
+			generate_type_declaration(linkage, atoms, i);
 	}
 
 	return linkage;
@@ -104,7 +104,7 @@ void Kernel::dump() const
 	fmt::println("------------------------------");
 	fmt::println("KERNEL:");
 	fmt::println("~~~~~~~");
-	fmt::println("atoms: {}", pool.size());
+	fmt::println("atoms: {}", atoms.size());
 	fmt::println("flags:");
 
 	if (is_compatible(eVertexShader))

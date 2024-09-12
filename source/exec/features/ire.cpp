@@ -1,8 +1,4 @@
 #include "ire/core.hpp"
-#include "ire/primitive.hpp"
-#include "ire/tagged.hpp"
-#include "ire/type_synthesis.hpp"
-#include "ire/uniform_layout.hpp"
 #include "thunder/opt.hpp"
 
 // TODO: immutability for shader inputs types
@@ -14,7 +10,6 @@
 // TODO: test nested structs again
 // TODO: partial evaluation of callables through substitution methods
 // TODO: parameter qualifiers (e.g. out/inout) as wrapped types
-// TODO: array types
 // TODO: binary operations
 // TODO: external constant specialization
 
@@ -36,9 +31,12 @@ auto ftn = callable_info("shuffle") >> [](ivec3 in, shuffle_info info)
 {
 	// TODO: color wheel generator
 	// array <f32, 3> list { 1, 2, 3 };
-	array <shuffle_info, 16> shuffles;
-	// list[1] = in.x + in.y / in.z;
-	return shuffles[info.iterations % 3];
+	// array <shuffle_info, 16> shuffles;
+	// // list[1] = in.x + in.y / in.z;
+	// return shuffles[info.iterations % 3];
+	shuffle_info out;
+	out.iterations = info.iterations/info.stride;
+	return out;
 };
 
 int main()

@@ -10,9 +10,9 @@ namespace jvl::thunder::detail {
 
 MODULE(legalize-cc);
 
-index_t instruction_type(const std::vector <Atom> &pool, index_t i)
+index_t instruction_type(const std::vector <Atom> &atoms, index_t i)
 {
-	auto &atom = pool[i];
+	auto &atom = atoms[i];
 
 	switch (atom.index()) {
 	case Atom::type_index <TypeInformation> ():
@@ -32,11 +32,11 @@ index_t instruction_type(const std::vector <Atom> &pool, index_t i)
 	case Atom::type_index <Load> ():
 	{
 		auto &load = atom.as <Load> ();
-		index_t t = instruction_type(pool, load.src);
+		index_t t = instruction_type(atoms, load.src);
 
 		index_t idx = load.idx;
 		while (idx > 0) {
-			auto &atom = pool[t];
+			auto &atom = atoms[t];
 			JVL_ASSERT_PLAIN(atom.is <TypeInformation> ());
 
 			TypeInformation type_field = atom.as <TypeInformation> ();
@@ -55,11 +55,11 @@ index_t instruction_type(const std::vector <Atom> &pool, index_t i)
 }
 
 // TODO: cache this while emitting
-PrimitiveType primitive_type_of(const std::vector <Atom> &pool, index_t i)
+PrimitiveType primitive_type_of(const std::vector <Atom> &atoms, index_t i)
 {
-	index_t t = instruction_type(pool, i);
+	index_t t = instruction_type(atoms, i);
 
-	auto &atom = pool[t];
+	auto &atom = atoms[t];
 	JVL_ASSERT(atom.is <TypeInformation> (),
 		"result of instruction_type(...) is not a typefield: {}",
 		atom);
@@ -284,12 +284,12 @@ void legalize_for_cc(Buffer &buffer)
 	JVL_STAGE();
 
 	auto &em = ire::Emitter::active;
-	auto &pool = buffer.pool;
+	auto &atoms = buffer.atoms;
 
 	std::vector <mapped_instruction_t> mapped(buffer.pointer);
 
 	for (index_t i = 0; i < mapped.size(); i++) {
-		auto &atom = pool[i];
+		auto &atom = atoms[i];
 
 		// Default population of scratches is preservation
 		em.push(mapped[i].transformed, false);
@@ -300,7 +300,7 @@ void legalize_for_cc(Buffer &buffer)
 	for (index_t i = 0; i < mapped.size(); i++) {
 		bool transformed = false;
 
-		auto &atom = pool[i];
+		auto &atom = atoms[i];
 
 		// If its a binary operation, we need to ensure
 		// that the overload is legalized, at this stage
@@ -316,7 +316,7 @@ void legalize_for_cc(Buffer &buffer)
 
 			std::vector <PrimitiveType> types;
 			for (auto i : args) {
-				auto ptype = primitive_type_of(pool, i);
+				auto ptype = primitive_type_of(atoms, i);
 				// fmt::println("  {} -> {}", i, tbl_primitive_types[ptype]);
 				types.push_back(ptype);
 			}
@@ -335,7 +335,7 @@ void legalize_for_cc(Buffer &buffer)
 		// the fields are not mapped one-to-one
 		// with the arguments provided
 		if (auto constructor = atom.get <Construct> ()) {
-			auto ptype = primitive_type_of(pool, constructor->type);
+			auto ptype = primitive_type_of(atoms, constructor->type);
 			if (!constructor->transient && vector_type(ptype)) {
 				fmt::println("legalizing constructor: {}", atom);
 				fmt::println("constructor for vector type: {}", tbl_primitive_types[ptype]);
@@ -343,7 +343,7 @@ void legalize_for_cc(Buffer &buffer)
 				auto args = buffer.expand_list(constructor->args);
 				std::vector <PrimitiveType> types;
 				for (auto i : args) {
-					auto ptype = primitive_type_of(pool, i);
+					auto ptype = primitive_type_of(atoms, i);
 					types.push_back(ptype);
 				}
 
@@ -357,7 +357,7 @@ void legalize_for_cc(Buffer &buffer)
 			auto args = buffer.expand_list(intrinsic->args);
 			std::vector <PrimitiveType> types;
 			for (auto i : args) {
-				auto ptype = primitive_type_of(pool, i);
+				auto ptype = primitive_type_of(atoms, i);
 				types.push_back(ptype);
 			}
 

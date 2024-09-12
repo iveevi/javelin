@@ -24,7 +24,7 @@ usage_set usage(const Buffer &scratch, index_t index)
 {
 	usage_set indices;
 	for (index_t i = index + 1; i < scratch.pointer; i++) {
-		if (uses(scratch.pool[i], index))
+		if (uses(scratch.atoms[i], index))
 			indices.insert(i);
 	}
 

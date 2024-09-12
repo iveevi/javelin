@@ -7,7 +7,7 @@ namespace jvl::thunder {
 
 // Conventional synthesis will have the first type field be the
 // primal value, and the secnod be the dual/derivative value
-int synthesize_differential_type(const std::vector <Atom> &pool, const TypeInformation &tf)
+int synthesize_differential_type(const std::vector <Atom> &atoms, const TypeInformation &tf)
 {
 	auto &em = ire::Emitter::active;
 
@@ -39,24 +39,24 @@ int synthesize_differential_type(const std::vector <Atom> &pool, const TypeInfor
 // are two kinds of indices which need to be reindexed:
 //
 //   1. Local indices, which are references to atoms in
-//	the same scratch pool, and simply need to be offset
+//	the same scratch atoms, and simply need to be offset
 //
 //   2. Global indices, which were derived from the original atom,
 //      and need to be reindexed to the end of that atom's transformed
-//	scratch pool
+//	scratch atoms
 //
 // The latter is easier to keep track of, so we store addresses to those
 // indices in a per-atom list after the atoms have been emitted.
 
 // Each original instruction is mapped to:
-//   - a scratch pool of atoms as its transformed code
+//   - a scratch atoms of atoms as its transformed code
 //   - a list of references to indices pointing to original atoms
 // using ref_index_t = std::reference_wrapper <index_t>;
 
 struct ad_fwd_iteration_context_t {
 	std::deque <index_t> queue;
 	std::unordered_set <index_t> diffed;
-	const std::vector <Atom> &pool;
+	const std::vector <Atom> &atoms;
 };
 
 index_t ad_fwd_binary_operation_dual_value(mapped_instruction_t &mapped,
@@ -180,7 +180,7 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 				  index_t i)
 {
 	auto &em = ire::Emitter::active;
-	auto &atom = context.pool[i];
+	auto &atom = context.atoms[i];
 	auto &diffed = context.diffed;
 	auto &queue = context.queue;
 	auto &refs = mapped.refs;
@@ -204,7 +204,7 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 		diffed.insert(i);
 
 		// Create the differentiated type
-		synthesize_differential_type(context.pool, tf);
+		synthesize_differential_type(context.atoms, tf);
 
 		// Everything should be a local index by now
 	} break;
@@ -278,7 +278,7 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 
 		index_t li = opn.args;
 		while (li != -1) {
-			Atom arg = context.pool[li];
+			Atom arg = context.atoms[li];
 			if (!arg.is <List> ()) {
 				fmt::println("expected opn args to be a list chain");
 				abort();
@@ -305,10 +305,10 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 		mapped.track(primal, 0b10);
 
 		// Dual type storage
-		auto tf = context.pool[opn.type].as <TypeInformation> ();
+		auto tf = context.atoms[opn.type].as <TypeInformation> ();
 
 		Construct dual_ctor;
-		dual_ctor.type = synthesize_differential_type(context.pool, tf);
+		dual_ctor.type = synthesize_differential_type(context.atoms, tf);
 		dual_ctor.args = em.emit_list_chain(primal, dual);
 
 		em.emit(dual_ctor);
@@ -328,7 +328,7 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 
 		index_t li = intr.args;
 		while (li != -1) {
-			Atom arg = context.pool[li];
+			Atom arg = context.atoms[li];
 			if (!arg.is <List> ()) {
 				fmt::println("expected opn args to be a list chain");
 				abort();
@@ -347,10 +347,10 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 		index_t dual = ad_fwd_intrinsic_dual_value(mapped, arg0, intr.opn, intr.type);
 
 		// Dual type storage
-		auto tf = context.pool[intr.type].as <TypeInformation> ();
+		auto tf = context.atoms[intr.type].as <TypeInformation> ();
 
 		Construct dual_ctor;
-		dual_ctor.type = synthesize_differential_type(context.pool, tf);
+		dual_ctor.type = synthesize_differential_type(context.atoms, tf);
 		dual_ctor.args = em.emit_list_chain(primal, dual);
 
 		em.emit(dual_ctor);
@@ -377,16 +377,16 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 void ad_fwd_transform(Buffer &result, const Buffer &source)
 {
 	auto &em = ire::Emitter::active;
-	auto &pool = source.pool;
+	auto &atoms = source.atoms;
 
 	// Map each atom to a potentially new list of atoms
 	std::vector <mapped_instruction_t> mapped(source.pointer);
 
 	// Marking each differentiable parameter
-	ad_fwd_iteration_context_t context { .pool = pool };
+	ad_fwd_iteration_context_t context { .atoms = atoms };
 
 	for (index_t i = 0; i < mapped.size(); i++) {
-		auto &atom = pool[i];
+		auto &atom = atoms[i];
 		if (auto global = atom.template get <Qualifier> ()) {
 			if (global->kind == parameter)
 				context.queue.push_back(i);

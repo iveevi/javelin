@@ -13,8 +13,9 @@ struct QualifiedType;
 // Arbitrary pools of atoms
 struct Buffer {
 	// TODO: mirror table with vector <index_t> as list
+	// TODO: synthesize list
 	std::vector <QualifiedType> types;
-	std::vector <Atom> pool;
+	std::vector <Atom> atoms;
 	size_t pointer;
 
 	Buffer();

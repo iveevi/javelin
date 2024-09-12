@@ -68,7 +68,7 @@ Linkage &Linkage::resolve()
 			index_t k = (j == -1) ? i : j;
 			blocks[k].name = cbl->name;
 			blocks[k].struct_map = map;
-			blocks[k].pool = b.pool;
+			blocks[k].atoms = b.atoms;
 			blocks[k].types = b.types;
 
 			blocks[k].returns = b.returns;
@@ -144,7 +144,7 @@ void Linkage::dump() const
 			fmt::println("  Block ${}:", cbl->name);
 		}
 
-		fmt::println("    instructions: {}", b.pool.size());
+		fmt::println("    instructions: {}", b.atoms.size());
 		fmt::println("    returns: %{}", b.returns);
 
 		fmt::println("    parameters: {}", b.parameters.size());

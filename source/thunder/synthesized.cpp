@@ -38,7 +38,7 @@ std::unordered_set <index_t> synthesize_list(const Buffer &buffer)
 		{
 			index_t dst = atom.as <Store> ().dst;
 			synthesized.insert(i);
-			synthesized.insert(reference_of(buffer.pool, dst));
+			synthesized.insert(reference_of(buffer.atoms, dst));
 			break;
 		}
 

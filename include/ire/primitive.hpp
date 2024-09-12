@@ -87,13 +87,13 @@ struct primitive_t : tagged {
 	}
 
 	primitive_t &operator=(const T &v) {
-		// At this point we are required to have storage for this
 		auto &em = Emitter::active;
-
-		thunder::Store store;
-		store.dst = ref.id;
-		store.src = translate_primitive(v);
-		em.emit(store);
+		if (cached()) {
+			// At this point we are required to have storage for this
+			em.emit_store(ref.id, translate_primitive(v), false);
+		} else {
+			ref = translate_primitive(v);
+		}
 
 		return *this;
 	}
@@ -101,11 +101,12 @@ struct primitive_t : tagged {
 	primitive_t &operator=(const primitive_t &v) {
 		// At this point we are required to have storage for this
 		auto &em = Emitter::active;
-
-		thunder::Store store;
-		store.dst = ref.id;
-		store.src = v.synthesize().id;
-		em.emit(store);
+		if (cached()) {
+			// At this point we are required to have storage for this
+			em.emit_store(ref.id, v.synthesize().id, false);
+		} else {
+			ref = v.synthesize().id;
+		}
 
 		return *this;
 	}

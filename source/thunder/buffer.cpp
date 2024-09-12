@@ -10,20 +10,20 @@ namespace jvl::thunder {
 
 MODULE(buffer);
 
-Buffer::Buffer() : pointer(0), pool(4), types(4) {}
+Buffer::Buffer() : pointer(0), atoms(4), types(4) {}
 
 index_t Buffer::emit(const Atom &atom, bool enable_classification)
 {
-	if (pointer >= pool.size()) {
-		pool.resize((pool.size() << 1));
-		types.resize(pool.size());
+	if (pointer >= atoms.size()) {
+		atoms.resize((atoms.size() << 1));
+		types.resize(atoms.size());
 	}
 
-	JVL_ASSERT(pointer < pool.size(),
+	JVL_ASSERT(pointer < atoms.size(),
 		"scratch buffer pointer is out of bounds ({} >= {})",
-		pointer, pool.size());
+		pointer, atoms.size());
 
-	pool[pointer] = atom;
+	atoms[pointer] = atom;
 	if (enable_classification)
 		types[pointer] = classify(pointer);
 	
@@ -41,8 +41,8 @@ Kernel Buffer::export_to_kernel() const
 
 	auto kernel = Kernel(*this, thunder::Kernel::eAll);
 	
-	kernel.pool.resize(pointer);
-	kernel.pool.shrink_to_fit();
+	kernel.atoms.resize(pointer);
+	kernel.atoms.shrink_to_fit();
 	
 	kernel.types.resize(pointer);
 	kernel.types.shrink_to_fit();
@@ -60,7 +60,7 @@ void Buffer::validate() const
 	wrapped::hash_table <index_t, index_t> outputs;
 
 	for (int i = 0; i < pointer; i++) {
-		Atom g = pool[i];
+		Atom g = atoms[i];
 		if (!g.is <Qualifier>())
 			continue;
 
@@ -86,32 +86,32 @@ void Buffer::validate() const
 void Buffer::clear()
 {
 	pointer = 0;
-	pool.clear();
-	pool.resize(4);
+	atoms.clear();
+	atoms.resize(4);
 }
 
 void Buffer::dump() const
 {
 	for (size_t i = 0; i < pointer; i++)
-		fmt::println("   [{:4d}]: {:40} :: {}", i, pool[i], types[i]);
+		fmt::println("   [{:4d}]: {:40} :: {}", i, atoms[i], types[i]);
 }
 
 // Utility methods
 Atom &Buffer::operator[](size_t i)
 {
-	return pool[i];
+	return atoms[i];
 }
 
 const Atom &Buffer::operator[](size_t i) const
 {
-	return pool[i];
+	return atoms[i];
 }
 
 std::vector <index_t> Buffer::expand_list(index_t i) const
 {
 	std::vector <index_t> args;
 	while (i != -1) {
-		auto &atom = pool[i];
+		auto &atom = atoms[i];
 		JVL_ASSERT_PLAIN(atom.is <List> ());
 
 		List list = atom.as <List> ();
@@ -127,7 +127,7 @@ std::vector <QualifiedType> Buffer::expand_list_types(index_t i) const
 {
 	std::vector <QualifiedType> args;
 	while (i != -1) {
-		auto &atom = pool[i];
+		auto &atom = atoms[i];
 		JVL_ASSERT_PLAIN(atom.is <List> ());
 
 		List list = atom.as <List> ();

@@ -17,14 +17,14 @@ bool opt_transform_compact(Buffer &result)
 		if (relocation.contains(i))
 			continue;
 
-		Atom atom = result.pool[i];
+		Atom atom = result.atoms[i];
 
 		// Exhaustive search through other items
 		for (index_t j = i + 1; j < result.pointer; j++) {
 			if (relocation.contains(j))
 				continue;
 
-			Atom other = result.pool[j];
+			Atom other = result.atoms[j];
 			if (atom == other) {
 				relocation[j] = i;
 				marked = true;
@@ -37,7 +37,7 @@ bool opt_transform_compact(Buffer &result)
 
 	// Reindex the relevant parts
 	for (index_t i = 0; i < result.pointer; i++)
-		result.pool[i].reindex(relocation);
+		result.atoms[i].reindex(relocation);
 
 	return marked;
 }
@@ -66,14 +66,14 @@ bool opt_transform_constructor_elision(Buffer &result)
 		relocation[user] = fields[idx];
 
 		for (auto i : loaders)
-			result.pool[i].reindex(relocation);
+			result.atoms[i].reindex(relocation);
 
 		shortened = true;
 	};
 
 	for (index_t i = 0; i < result.pointer; i++) {
 		// Find all the construct calls
-		auto &atom = result.pool[i];
+		auto &atom = result.atoms[i];
 		if (!atom.is <Construct> ())
 			continue;
 
@@ -90,7 +90,7 @@ bool opt_transform_constructor_elision(Buffer &result)
 		
 		std::vector <index_t> fields;
 		while (arg != -1) {
-			auto &atom = result.pool[arg];
+			auto &atom = result.atoms[arg];
 			JVL_ASSERT_PLAIN(atom.is <List> ());
 
 			const List &list = atom.as <List> ();
@@ -101,7 +101,7 @@ bool opt_transform_constructor_elision(Buffer &result)
 		usage_set users = graph[i];
 
 		for (auto user : users) {
-			auto &atom = result.pool[user];
+			auto &atom = result.atoms[user];
 			if (atom.is <Load> ())
 				constructor_elision(fields, atom.as <Load> ().idx, user);
 			if (atom.is <Swizzle> ())
@@ -151,7 +151,7 @@ bool opt_transform_dead_code_elimination(Buffer &result)
 			index_t i = check_list.front();
 			check_list.pop();
 
-			auto &atom = result.pool[i];
+			auto &atom = result.atoms[i];
 			bool exempt = opt_transform_dce_exempt(atom);
 			if (graph[i].empty() && !exempt) {
 				include[i] = false;
@@ -185,8 +185,8 @@ bool opt_transform_dead_code_elimination(Buffer &result)
 	Buffer doubled;
 	for (index_t i = 0; i < result.pointer; i++) {
 		if (relocation.contains(i)) {
-			result.pool[i].reindex(relocation);
-			doubled.emit(result.pool[i]);
+			result.atoms[i].reindex(relocation);
+			doubled.emit(result.atoms[i]);
 		}
 	}
 

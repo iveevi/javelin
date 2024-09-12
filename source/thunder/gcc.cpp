@@ -76,7 +76,7 @@ struct jit_instruction {
 };
 
 struct jit_context {
-	const std::vector <Atom> &pool;
+	const std::vector <Atom> &atoms;
 
 	gcc_jit_context *const gcc;
 	gcc_jit_function *function;
@@ -210,7 +210,7 @@ jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType it
 
 jit_struct *generate_type_field(jit_context &context, index_t index)
 {
-	auto &atom = context.pool[index];
+	auto &atom = context.atoms[index];
 	JVL_ASSERT_PLAIN(atom.is <TypeInformation> ());
 
 	TypeInformation tf = atom.as <TypeInformation> ();
@@ -227,7 +227,7 @@ jit_struct *generate_type_field(jit_context &context, index_t index)
 
 	index_t i = index;
 	while (i != -1) {
-		auto &atom = context.pool[i];
+		auto &atom = context.atoms[i];
 		JVL_ASSERT_PLAIN(atom.is <TypeInformation> ());
 
 		TypeInformation tf = atom.as <TypeInformation> ();
@@ -266,7 +266,7 @@ std::vector <gcc_jit_rvalue *> load_rvalue_arguments(jit_context &context, index
 
 	index_t next = argsi;
 	while (next != -1) {
-		auto &g = context.pool[next];
+		auto &g = context.atoms[next];
 		JVL_ASSERT_PLAIN(g.is <List> ());
 
 		auto &list = g.as <List> ();
@@ -484,7 +484,7 @@ jit_instruction generate_instruction_intrinsic(jit_context &context,
 
 jit_instruction generate_instruction_access_field(jit_context &context, index_t src, index_t idx)
 {
-	auto &atom = context.pool[src];
+	auto &atom = context.atoms[src];
 
 	jit_instruction source_instruction = context.cached[src];
 	jit_struct *type_info = source_instruction.type_info;
@@ -549,7 +549,7 @@ jit_instruction generate_instruction_store(jit_context &context, const Store &st
 	index_t idx = store.dst;
 	index_t dst = -1;
 	while (dst == -1) {
-		auto &atom = context.pool[idx];
+		auto &atom = context.atoms[idx];
 
 		fmt::println("  {}", atom);
 
@@ -587,7 +587,7 @@ jit_instruction generate_instruction_store(jit_context &context, const Store &st
 		copy.pop();
 	}
 	fmt::print("\n");
-	fmt::println("with destination: {}", context.pool[dst]);
+	fmt::println("with destination: {}", context.atoms[dst]);
 
 	// Value side
 	gcc_jit_rvalue *rvalue = (gcc_jit_rvalue *) context.cached[store.src].value;
@@ -596,7 +596,7 @@ jit_instruction generate_instruction_store(jit_context &context, const Store &st
 	gcc_jit_object *object = context.cached[dst].value;
 	gcc_jit_lvalue *lvalue = nullptr;
 
-	auto &destination = context.pool[dst];
+	auto &destination = context.atoms[dst];
 	switch (destination.index()) {
 	case Atom::type_index <Qualifier> ():
 		lvalue = gcc_jit_param_as_lvalue((gcc_jit_param *) object);
@@ -627,7 +627,7 @@ jit_instruction generate_instruction_store(jit_context &context, const Store &st
 
 jit_instruction generate_instruction(jit_context &context, index_t i)
 {
-	auto &atom = context.pool[i];
+	auto &atom = context.atoms[i];
 
 	switch (atom.index()) {
 
@@ -717,7 +717,7 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 	fmt::println("generating block");
 
 	jit_context context {
-		.pool = block.pool,
+		.atoms = block.atoms,
 		.gcc = gcc,
 	};
 
@@ -726,7 +726,7 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 
 	gcc_parameters.resize(block.parameters.size());
 	context.parameters.resize(block.parameters.size());
-	context.cached.resize(block.pool.size(), jit_instruction::null());
+	context.cached.resize(block.atoms.size(), jit_instruction::null());
 
 	for (auto &[i, t] : block.parameters) {
 		fmt::println("\nGENERATING PARAMETER ARG{} (type {})", i, t);
@@ -754,7 +754,7 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 	if (auto ptr = context.cached[block.returns].type_info) {
 		return_type = ptr->type;
 	} else {
-		fmt::println("block returns value: {} (ret: {})", block.pool[block.returns], block.returns);
+		fmt::println("block returns value: {} (ret: {})", block.atoms[block.returns], block.returns);
 		return_type = generate_type_field(context, block.returns)->type;
 		fmt::println("return type: @{}", (void *) return_type);
 	}
@@ -788,7 +788,7 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 		if (next == -1)
 			continue;
 
-		auto &atom = block.pool[next];	
+		auto &atom = block.atoms[next];	
 		if (atom.is <TypeInformation> () && !synthesized.contains(next)) {
 			// Unless explicitly requires from the
 			// synthesized list of atoms, we
@@ -804,7 +804,7 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 	}
 
 	// Finally, generate the instructions in JIT
-	for (index_t i = 0; i < block.pool.size(); i++) {
+	for (index_t i = 0; i < block.atoms.size(); i++) {
 		if (used.contains(i))
 			context.cached[i] = generate_instruction(context, i);
 
@@ -816,7 +816,7 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 
 Linkage::jit_result_t Linkage::generate_jit_gcc()
 {
-	JVL_INFO("compiling linkage pool with gcc jit");
+	JVL_INFO("compiling linkage atoms with gcc jit");
 
 	gcc_jit_context *context = gcc_jit_context_acquire();
 	JVL_ASSERT(context, "failed to acquire context");

@@ -25,14 +25,14 @@ void stitch_mapped_instructions(Buffer &result, std::vector <mapped_instruction_
 
 		auto ref_state_from = [&](const ref_index_t &ri) {
 			ref_state_t state(ri);
-			auto &&addrs = s.pool[ri.index].addresses();
+			auto &&addrs = s.atoms[ri.index].addresses();
 			state.v0 = addrs.a0;
 			state.v1 = addrs.a1;
 			return state;
 		};
 
 		auto ref_state_restore = [&](const ref_state_t &state) {
-			auto &&addrs = s.pool[state.index].addresses();
+			auto &&addrs = s.atoms[state.index].addresses();
 			if (state.v0 != -1 && (state.mask & 0b01) == 0b01)
 				addrs.a0 = state.v0;
 			if (state.v1 != -1 && (state.mask & 0b10) == 0b10)
@@ -45,7 +45,7 @@ void stitch_mapped_instructions(Buffer &result, std::vector <mapped_instruction_
 
 		// Reindex each atom
 		for (size_t i = 0; i < s.pointer; i++)
-			s.pool[i].reindex(reindex);
+			s.atoms[i].reindex(reindex);
 
 		// Restore global refs
 		for (index_t i = 0; i < store.size(); i++)
@@ -64,7 +64,7 @@ void stitch_mapped_instructions(Buffer &result, std::vector <mapped_instruction_
 		auto &g = mapped[i].refs;
 
 		for (auto &r : g) {
-			auto &&addrs = s.pool[r.index].addresses();
+			auto &&addrs = s.atoms[r.index].addresses();
 			if (addrs.a0 != -1 && (r.mask & 0b01) == 0b01)
 				addrs.a0 = block_offsets[addrs.a0];
 			if (addrs.a1 != -1 && (r.mask & 0b10) == 0b10)
@@ -76,7 +76,7 @@ void stitch_mapped_instructions(Buffer &result, std::vector <mapped_instruction_
 	for (auto &m : mapped) {
 		auto &s = m.transformed;
 		for (size_t i = 0; i < s.pointer; i++)
-			result.emit(s.pool[i]);
+			result.emit(s.atoms[i]);
 	}
 }
 

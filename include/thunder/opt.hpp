@@ -20,7 +20,7 @@ struct mapped_instruction_t {
 	std::vector <ref_index_t> refs;
 
 	Atom &operator[](size_t index) {
-		return transformed.pool[index];
+		return transformed.atoms[index];
 	}
 
 	void track(index_t index, int8_t mask = 0b11) {

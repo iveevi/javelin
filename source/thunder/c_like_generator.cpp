@@ -152,7 +152,7 @@ std::string c_like_generator_t::reference(index_t index) const
 	if (local_variables.count(index))
 		return local_variables.at(index);
 
-	const Atom &atom = pool[index];
+	const Atom &atom = atoms[index];
 
 	switch (atom.index()) {
 
@@ -195,7 +195,7 @@ std::string c_like_generator_t::inlined(index_t index) const
 	if (local_variables.count(index))
 		return local_variables.at(index);
 
-	const Atom &atom = pool[index];
+	const Atom &atom = atoms[index];
 
 	switch (atom.index()) {
 
@@ -282,7 +282,7 @@ std::vector <std::string> c_like_generator_t::arguments(index_t start) const
 
 	int l = start;
 	while (l != -1) {
-		Atom h = pool[l];
+		Atom h = atoms[l];
 		if (!h.is <List> ()) {
 			fmt::println("unexpected atom in arglist: {}", h.to_string());
 			fmt::print("\n");
@@ -306,7 +306,7 @@ std::vector <std::string> c_like_generator_t::arguments(index_t start) const
 std::string c_like_generator_t::generate_type_string(index_t index, index_t field) const
 {
 	// TODO: from QualifiedType...
-	auto &atom = pool[index];
+	auto &atom = atoms[index];
 	if (struct_names.contains(index)) {
 		if (field == -1)
 			return struct_names.at(index);
@@ -380,7 +380,7 @@ void c_like_generator_t::generate <Intrinsic> (const Intrinsic &intrinsic, index
 	if (intrinsic.type == -1)
 		return finish(tbl_intrinsic_operation[intrinsic.opn]);
 
-	auto &atom = pool[intrinsic.type];
+	auto &atom = atoms[intrinsic.type];
 	if (!atom.is <TypeInformation> ())
 		return finish("?", false);
 
@@ -515,7 +515,7 @@ void c_like_generator_t::generate <Returns> (const Returns &returns, index_t)
 void c_like_generator_t::generate(index_t i)
 {
 	auto ftn = [&](auto atom) { return generate(atom, i); };
-	return std::visit(ftn, pool[i]);
+	return std::visit(ftn, atoms[i]);
 }
 
 // General generator
@@ -523,7 +523,7 @@ std::string c_like_generator_t::generate()
 {
 	for (int i = 0; i < pointer; i++) {
 		if (synthesized.count(i)) {
-			fmt::println("generating: {}", pool[i]);
+			// fmt::println("generating: {}", atoms[i]);
 			generate(i);
 		}
 	}

@@ -127,7 +127,7 @@ void Emitter::dump()
 
 	auto &buffer = scopes.top().get();
 	fmt::println("------------------------------");
-	fmt::println("BUFFER IN PROGRESS ({}/{})", buffer.pointer, buffer.pool.size());
+	fmt::println("BUFFER IN PROGRESS ({}/{})", buffer.pointer, buffer.atoms.size());
 	fmt::println("------------------------------");
 	buffer.dump();
 }

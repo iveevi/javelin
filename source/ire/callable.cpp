@@ -22,7 +22,7 @@ Callable::Callable(const Callable &other)
 Callable &Callable::operator=(const Callable &other)
 {
 	if (this != &other) {
-		pool = other.pool;
+		atoms = other.atoms;
 		pointer = other.pointer;
 		cid = other.cid;
 		name = other.name;
@@ -44,7 +44,7 @@ thunder::Kernel Callable::export_to_kernel() const
 void Callable::dump()
 {
 	fmt::println("------------------------------");
-	fmt::println("CALLABLE ${} ({}/{})", name, pointer, pool.size());
+	fmt::println("CALLABLE ${} ({}/{})", name, pointer, atoms.size());
 	fmt::println("------------------------------");
 	Buffer::dump();
 }

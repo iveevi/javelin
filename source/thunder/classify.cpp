@@ -20,7 +20,7 @@ QualifiedType Buffer::classify(index_t i) const
 	if (types[i])
 		return types[i];
 
-	Atom atom = pool[i];
+	Atom atom = atoms[i];
 
 	switch (atom.index()) {
 
@@ -109,7 +109,7 @@ QualifiedType Buffer::classify(index_t i) const
 		JVL_ASSERT(plain.is <PrimitiveType> (),
 			"swizzle should only operate on vector types, "
 			"but operand is {} with type {}",
-			pool[swz.src], decl.to_string());
+			atoms[swz.src], decl.to_string());
 
 		PrimitiveType swizzled = swizzle_type_of(plain.as <PrimitiveType> (), swz.code);
 
@@ -134,7 +134,7 @@ QualifiedType Buffer::classify(index_t i) const
 			index_t left = load.idx;
 			while (true) {
 				JVL_ASSERT(concrete != -1, "load attempting to access out of bounds field");
-				auto &atom = pool[concrete];
+				auto &atom = atoms[concrete];
 				JVL_ASSERT(atom.is <TypeInformation> (), "expected type information, instead got: {}", atom);
 				auto &ti = atom.as <TypeInformation> ();
 				if ((--left) > 0)
@@ -173,6 +173,7 @@ QualifiedType Buffer::classify(index_t i) const
 
 	case Atom::type_index <List> ():
 	case Atom::type_index <Store> ():
+	case Atom::type_index <Branch> ():
 		return QualifiedType::nil();
 
 	default:
