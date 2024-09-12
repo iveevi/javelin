@@ -30,8 +30,8 @@ struct c_like_generator_t : body_t {
 
 	void finish(const std::string &, bool = true);
 
-	void declare(const std::string &, index_t, index_t = -1);
-	void define(const std::string &, const std::string &, index_t, index_t = -1);
+	void declare(index_t);
+	void define(index_t, const std::string &);
 	void assign(int, const std::string &);
 	
 	std::string reference(index_t) const;
@@ -39,7 +39,12 @@ struct c_like_generator_t : body_t {
 
 	std::vector <std::string> arguments(index_t) const;
 
-	std::string generate_type_string(index_t, index_t) const;
+	struct type_string {
+		std::string pre;
+		std::string post;
+	};
+
+	type_string type_to_string(const QualifiedType &) const;
 
 	// Per-atom generator
 	void generate(index_t);

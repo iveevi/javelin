@@ -33,7 +33,9 @@ auto ftn = callable_info("shuffle") >> [](ivec3 in, shuffle_info info)
 	// TODO: color wheel generator
 	array <i32, 3> list { 1, 2, 3 };
 	list[1] = in.x + in.y / in.z;
-	return list[2] * list[1];
+	i32 x = in.y - in.z/in.x;
+	x += 4 * in.z;
+	return list[2] * list[1] / x;
 };
 
 int main()
