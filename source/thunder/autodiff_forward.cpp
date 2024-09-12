@@ -5,6 +5,8 @@
 
 namespace jvl::thunder {
 
+MODULE(ad-forward);
+
 // Conventional synthesis will have the first type field be the
 // primal value, and the secnod be the dual/derivative value
 int synthesize_differential_type(const std::vector <Atom> &atoms, const TypeInformation &tf)
@@ -73,7 +75,7 @@ index_t ad_fwd_binary_operation_dual_value(mapped_instruction_t &mapped,
 	case subtraction:
 	{
 		index_t dual_args = em.emit_list_chain(arg0[1], arg1[1]);
-		index_t dual = em.emit(Operation(dual_args, type, code));
+		index_t dual = em.emit(Operation(dual_args, code));
 		mapped.track(dual, 0b10);
 		return dual;
 	}
@@ -83,11 +85,11 @@ index_t ad_fwd_binary_operation_dual_value(mapped_instruction_t &mapped,
 		index_t base_type = em.emit(TypeInformation(-1, -1, f32));
 		index_t df_g = em.emit_list_chain(arg0[1], arg1[0]);
 		index_t f_dg = em.emit_list_chain(arg0[0], arg1[1]);
-		auto products = em.emit_sequence(Operation(df_g, base_type, multiplication),
-						 Operation(f_dg, base_type, multiplication));
+		auto products = em.emit_sequence(Operation(df_g, multiplication),
+						 Operation(f_dg, multiplication));
 		index_t sum_args = em.emit_list_chain(products[0], products[1]);
 		// TODO: track values?
-		return em.emit(Operation(sum_args, base_type, addition));
+		return em.emit(Operation(sum_args, addition));
 	}
 
 	case division:
@@ -95,16 +97,16 @@ index_t ad_fwd_binary_operation_dual_value(mapped_instruction_t &mapped,
 		index_t base_type = em.emit(TypeInformation(-1, -1, f32));
 		index_t df_g = em.emit_list_chain(arg0[1], arg1[0]);
 		index_t f_dg = em.emit_list_chain(arg0[0], arg1[1]);
-		auto products = em.emit_sequence(Operation(df_g, base_type, multiplication),
-						 Operation(f_dg, base_type, multiplication));
+		auto products = em.emit_sequence(Operation(df_g, multiplication),
+						 Operation(f_dg, multiplication));
 		index_t sub_args = em.emit_list_chain(products[0], products[1]);
-		index_t numerator = em.emit(Operation(sub_args, base_type, subtraction));
+		index_t numerator = em.emit(Operation(sub_args, subtraction));
 
 		auto square_args = em.emit_list_chain(arg1[0], arg1[0]);
-		index_t demoninator = em.emit(Operation(square_args, base_type, multiplication));
+		index_t demoninator = em.emit(Operation(square_args, multiplication));
 
 		auto div_args = em.emit_list_chain(numerator, demoninator);
-		return em.emit(Operation(div_args, base_type, division));
+		return em.emit(Operation(div_args, division));
 	}
 
 	default:
@@ -128,7 +130,7 @@ index_t ad_fwd_intrinsic_dual_value(mapped_instruction_t &mapped,
 
 	auto chain_rule = [&](index_t result) -> index_t {
 		index_t args = em.emit_list_chain(result, arg0[1]);
-		result = em.emit(Operation(args, type, multiplication));
+		result = em.emit(Operation(args, multiplication));
 		mapped.track(result, 0b10);
 		return result;
 	};
@@ -157,7 +159,7 @@ index_t ad_fwd_intrinsic_dual_value(mapped_instruction_t &mapped,
 		mapped.track(result, 0b10);
 
 		args = em.emit_list_chain(result);
-		result = em.emit(Operation(args, type, unary_negation));
+		result = em.emit(Operation(args, unary_negation));
 		mapped.track(result, 0b10);
 
 		return chain_rule(result);
@@ -271,32 +273,23 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 		diffed.insert(i);
 
 		// Dependencies
-		queue.push_front(opn.args);
+		queue.push_front(opn.a);
+		if (opn.b != -1)
+			queue.push_front(opn.b);
 
 		// Get arguments (assuming binary)
-		std::vector <index_t> args;
-
-		index_t li = opn.args;
-		while (li != -1) {
-			Atom arg = context.atoms[li];
-			if (!arg.is <List> ()) {
-				fmt::println("expected opn args to be a list chain");
-				abort();
-			}
-
-			List list = arg.as <List> ();
-			args.push_back(list.item);
-
-			li = list.next;
-		}
+		JVL_ASSERT(opn.b != -1,
+			"forward differentiation of operations "
+			"requires binary operations, instead got: {}",
+			atom);
 
 		// Now fill in the actuall operation
-		auto arg0 = em.emit_sequence(Load(args[0], 0), Load(args[0], 1));
-		auto arg1 = em.emit_sequence(Load(args[1], 0), Load(args[1], 1));
+		auto arg0 = em.emit_sequence(Load(opn.a, 0), Load(opn.a, 1));
+		auto arg1 = em.emit_sequence(Load(opn.b, 0), Load(opn.b, 1));
 		index_t opn_primal_args = em.emit_list_chain(arg0[0], arg1[0]);
 
-		index_t primal = em.emit(Operation(opn_primal_args, opn.type, opn.code));
-		index_t dual = ad_fwd_binary_operation_dual_value(mapped, arg0, arg1, opn.code, opn.type);
+		index_t primal = em.emit(Operation(opn_primal_args, opn.code));
+		index_t dual = ad_fwd_binary_operation_dual_value(mapped, arg0, arg1, opn.code, -1);
 
 		mapped.track(arg0[0], 0b01);
 		mapped.track(arg1[0], 0b01);
@@ -305,7 +298,10 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 		mapped.track(primal, 0b10);
 
 		// Dual type storage
-		auto tf = context.atoms[opn.type].as <TypeInformation> ();
+		JVL_ABORT("unfinished implementation of autodiff forward for binary operations");
+
+		auto tf = context.atoms[0].as <TypeInformation> ();
+		// auto tf = context.atoms[opn.type].as <TypeInformation> ();
 
 		Construct dual_ctor;
 		dual_ctor.type = synthesize_differential_type(context.atoms, tf);

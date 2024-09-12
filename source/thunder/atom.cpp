@@ -124,22 +124,22 @@ std::string Swizzle::to_string() const
 // Operation
 bool Operation::operator==(const Operation &other) const
 {
-        return (args == other.args)
-                && (type == other.type)
+        return (a == other.a)
+                && (b == other.b)
                 && (code == other.code);
 }
 
 Addresses Operation::addresses()
 {
-        return { args, type };
+        return { a, b };
 }
         
 std::string Operation::to_string() const
 {
-        return fmt::format("{:10} $({}) args: %{}",
+        return fmt::format("{:10} $({}) a: %{} b: %{}",
                 "operation",
                 tbl_operation_code[code],
-                args);
+                a, b);
 }
 
 // Intrinsic

@@ -677,9 +677,12 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 	case Atom::type_index <Operation> ():
 	{
 		auto &opn = atom.as <Operation> ();
-		auto args = load_rvalue_arguments(context, opn.args);
-		auto return_type = context.cached[opn.type].type_info;
-		return generate_instruction_binary_operation(context, opn.code, return_type, args);
+		// auto args = load_rvalue_arguments(context, opn.args);
+		JVL_ABORT("unfinished implementation of operation generation");
+		// // TODO: separate type info and values...
+		// auto return_type = context.cached[0].type_info;
+		// // auto return_type = context.cached[opn.type].type_info;
+		// return generate_instruction_binary_operation(context, opn.code, return_type, args);
 	}
 
 	case Atom::type_index <Load> ():

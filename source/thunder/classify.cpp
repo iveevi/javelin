@@ -84,8 +84,14 @@ QualifiedType Buffer::classify(index_t i) const
 	case Atom::type_index <Operation> ():
 	{
 		auto &operation = atom.as <Operation> ();
-		auto args = expand_list_types(operation.args);
-		auto result = lookup_operation_overload(operation.code, args);
+
+		std::vector <QualifiedType> qts;
+		qts.push_back(types[operation.a]);
+		if (operation.b != -1)
+			qts.push_back(types[operation.b]);
+
+		// TODO: binary ops, no vector
+		auto result = lookup_operation_overload(operation.code, qts);
 		if (!result)
 			JVL_ABORT("failed to find overload for operation: {}", atom);
 		return result;

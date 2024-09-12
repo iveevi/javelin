@@ -58,7 +58,7 @@ std::string generate_primitive(const Primitive &p)
 	return "<prim:?>";
 }
 
-std::string generate_operation(OperationCode code, const std::vector <std::string> &args)
+std::string generate_operation(OperationCode code, const std::string &a, const std::string &b)
 {
 	// Binary operator strings
 	static const wrapped::hash_table <OperationCode, const char *> operators {
@@ -85,23 +85,17 @@ std::string generate_operation(OperationCode code, const std::vector <std::strin
 	};
 
 	// Handle the special cases
-	if (code == unary_negation) {
-		JVL_ASSERT(args.size() == 1, "unary negation should have exactly one argument");
-		return fmt::format("-{}", args[0]);
-	}
+	if (code == unary_negation)
+		return fmt::format("-{}", a);
 
 	// Should be left with purely binary operations
-	JVL_ASSERT(args.size() == 2,
-		"$({}) is expected to take exactly two arguments",
-		tbl_operation_code[code]);
-	
 	JVL_ASSERT(operators.contains(code),
 		"no operator symbol found for $({})",
 		tbl_operation_code[code]);
 
 	const char *const op = operators.at(code);
 
-	return fmt::format("({} {} {})", args[0], op, args[1]);
+	return fmt::format("({} {} {})", a, op, b);
 }
 
 c_like_generator_t::c_like_generator_t(const body_t &body)
@@ -226,7 +220,9 @@ std::string c_like_generator_t::inlined(index_t index) const
 	case Atom::type_index <Operation> ():
 	{
 		auto &operation = atom.as <Operation> ();
-		return generate_operation(operation.code, arguments(operation.args));
+		std::string a = inlined(operation.a);
+		std::string b = (operation.b == -1) ? "" : inlined(operation.b);
+		return generate_operation(operation.code, a, b);
 	}
 
 	case Atom::type_index <Intrinsic> ():
@@ -379,8 +375,10 @@ void c_like_generator_t::generate <Swizzle> (const Swizzle &swizzle, index_t ind
 template <>
 void c_like_generator_t::generate <Operation> (const Operation &operation, index_t index)
 {
-	std::string t = generate_type_string(operation.type, -1);
-	std::string v = generate_operation(operation.code, arguments(operation.args));
+	std::string t = "?";
+	std::string a = inlined(operation.a);
+	std::string b = (operation.b == -1) ? "" : inlined(operation.b);
+	std::string v = generate_operation(operation.code, a, b);
 	define(t, v, index);
 }
 

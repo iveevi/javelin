@@ -76,7 +76,7 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 			l = em.emit(List(ca, l));
 
 			index_t t = em.emit(TypeInformation(-1, -1, ctype));
-			components[i] = em.emit(Operation(l, t, code));
+			components[i] = em.emit(Operation(l, code));
 		}
 
 		index_t l = em.emit_list_chain(components);
@@ -101,7 +101,7 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 			l = em.emit(List(c, l));
 
 			index_t t = em.emit(TypeInformation(-1, -1, type_b));
-			components[i] = em.emit(Operation(l, t, code));
+			components[i] = em.emit(Operation(l, code));
 		}
 
 		index_t l = em.emit_list_chain(components);
@@ -122,7 +122,7 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 			mapped.track(l, 0b01);
 
 			index_t t = em.emit(TypeInformation(-1, -1, type_a));
-			components[i] = em.emit(Operation(l, t, code));
+			components[i] = em.emit(Operation(l, code));
 		}
 
 		index_t l = em.emit_list_chain(components);
@@ -235,14 +235,14 @@ void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 			l = em.emit(List(ca, l));
 
 			index_t t = em.emit(TypeInformation(-1, -1, ctype));
-			products[i] = em.emit(Operation(l, t, multiplication));
+			products[i] = em.emit(Operation(l, multiplication));
 		}
 
 		index_t top = products[0];
 		for (size_t i = 0; i < ccount - 1; i++) {
 			index_t l = em.emit_list_chain(top, products[i + 1]);
 			index_t t = em.emit(TypeInformation(-1, -1, ctype));
-			top = em.emit(Operation(l, t, addition));
+			top = em.emit(Operation(l, addition));
 		}
 
 		em.pop();
@@ -282,10 +282,11 @@ void legalize_for_cc(Buffer &buffer)
 		if (auto operation = atom.get <Operation> ()) {
 			// The operands are guaranteed to be
 			// primitive types at this point
-			// fmt::println("binary operation: {}", atom);
 
-			auto args = buffer.expand_list(operation->args);
-			// fmt::println("type for each args:");
+			std::vector <index_t> args;
+			args.push_back(operation->a);
+			if (operation->b != -1)
+				args.push_back(operation->b);
 
 			std::vector <PrimitiveType> types;
 			for (auto i : args) {

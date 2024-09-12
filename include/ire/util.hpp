@@ -58,18 +58,33 @@ int list_from_args(const T &t, const Args &... args)
 	return em.emit(l);
 }
 
-template <typename R, typename ... Args>
-R operation_from_args(thunder::OperationCode type, const Args &... args)
+template <builtin R, builtin A>
+R operation_from_args(thunder::OperationCode type, const A &a)
 {
 	auto &em = Emitter::active;
 
-	thunder::Operation intr;
-	intr.code = type;
-	intr.args = list_from_args(args...);
-	intr.type = type_field_from_args <R> ().id;
+	thunder::Operation operation;
+	operation.a = a.synthesize().id;
+	operation.code = type;
 
 	cache_index_t cit;
-	cit = em.emit(intr);
+	cit = em.emit(operation);
+
+	return cit;
+}
+
+template <builtin R, builtin A, builtin B>
+R operation_from_args(thunder::OperationCode type, const A &a, const B &b)
+{
+	auto &em = Emitter::active;
+
+	thunder::Operation operation;
+	operation.a = a.synthesize().id;
+	operation.b = b.synthesize().id;
+	operation.code = type;
+
+	cache_index_t cit;
+	cit = em.emit(operation);
 
 	return cit;
 }

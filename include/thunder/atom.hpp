@@ -9,6 +9,8 @@
 
 namespace jvl::thunder {
 
+// TODO: docs generator for atoms
+
 // Index type, small to create compact IR
 using index_t = int16_t;
 
@@ -120,12 +122,12 @@ static_assert(atom_instruction <Swizzle>);
 
 // Operation instruction
 //
-//   args: reference to a List chain of operands
-//   type: return type of the operation
+//   a: reference to the first argument
+//   b: reference to the second argument
 //   code: operation type (OperationCode)
 struct Operation {
-	index_t args = -1;
-	index_t type = -1;
+	index_t a = -1;
+	index_t b = -1;
 	OperationCode code;
 
 	bool operator==(const Operation &) const;
@@ -141,6 +143,7 @@ static_assert(atom_instruction <Operation>);
 //   type: return type of the instrinsic
 //   opn: intrinsic operation code
 struct Intrinsic {
+	// TODO: bool keyword
 	index_t args = -1;
 	index_t type = -1;
 	IntrinsicOperation opn;

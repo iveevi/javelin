@@ -74,11 +74,8 @@ struct primitive_t : tagged {
 	primitive_t operator-() const {
 		auto &em = Emitter::active;
 
-		thunder::List list;
-		list.item = synthesize().id;
-
 		thunder::Operation neg;
-		neg.args = em.emit(list);
+		neg.a = synthesize().id;
 		neg.code = thunder::OperationCode::unary_negation;
 
 		cache_index_t cit;

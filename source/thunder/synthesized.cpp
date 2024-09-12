@@ -62,10 +62,6 @@ std::unordered_set <index_t> synthesize_list(const Buffer &buffer)
 				synthesized.insert(returns.type);
 		} break;
 
-		case Atom::type_index <Operation> ():
-			synthesized.insert(atom.as <Operation> ().type);
-			break;
-
 		case Atom::type_index <Construct> ():
 		{
 			auto &constructor = atom.as <Construct> ();

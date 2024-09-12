@@ -390,13 +390,13 @@ vec <T, N> operator&(const vec <T, N>  &a, const U &b)
 template <integral_native T, integral_native U, size_t N>
 vec <T, N> operator>>(const vec <T, N> &a, const U &b)
 {
-	return operation_from_args <vec <T, N>> (thunder::bit_shift_right, a, b);
+	return operation_from_args <vec <T, N>> (thunder::bit_shift_right, a, primitive_t <U> (b));
 }
 
 template <integral_native T, integral_native U, size_t N>
 vec <T, N> operator<<(const vec <T, N> &a, const U &b)
 {
-	return operation_from_args <vec <T, N>> (thunder::bit_shift_left, a, b);
+	return operation_from_args <vec <T, N>> (thunder::bit_shift_left, a, primitive_t <U> (b));
 }
 
 } // namespace jvl::ire
