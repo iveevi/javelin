@@ -15,6 +15,8 @@ index_t reference_of(const std::vector <Atom> &atoms, index_t i)
 		return reference_of(atoms, atom.as <Swizzle> ().src);
 	case Atom::type_index <Load> ():
 		return reference_of(atoms, atom.as <Load> ().src);
+	case Atom::type_index <ArrayAccess> ():
+		return reference_of(atoms, atom.as <ArrayAccess> ().src);
 	default:
 		return i;
 	}

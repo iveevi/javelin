@@ -8,6 +8,7 @@
 #include "../thunder/atom.hpp"
 #include "../thunder/kernel.hpp"
 #include "../thunder/enumerations.hpp"
+#include "thunder/qualified_type.hpp"
 
 namespace jvl::ire {
 
@@ -88,6 +89,10 @@ struct Emitter {
 
 	index_t emit_load(index_t src, index_t idx) {
 		return emit(thunder::Load(src, idx));
+	}
+	
+	index_t emit_array_access(index_t src, index_t loc) {
+		return emit(thunder::ArrayAccess(src, loc));
 	}
 
 	index_t emit_branch(index_t cond, index_t failto, thunder::BranchKind kind) {

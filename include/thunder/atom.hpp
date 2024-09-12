@@ -208,6 +208,7 @@ static_assert(atom_instruction <Call>);
 //   bss: indicates if the store should be
 //      acted out statically
 //      (i.e. as initialization)
+// TODO: separate the bss version when its time
 struct Store {
 	index_t dst = -1;
 	index_t src = -1;
@@ -234,6 +235,21 @@ struct Load {
 };
 
 static_assert(atom_instruction <Load>);
+
+// Accessing elements of arrays
+//
+//   src: reference to the value to load from
+//   loc: reference to the index of the access
+struct ArrayAccess {
+	index_t src = -1;
+	index_t loc = -1;
+	
+	bool operator==(const ArrayAccess &) const;
+	Addresses addresses();
+	std::string to_string() const;
+};
+
+static_assert(atom_instruction <ArrayAccess>);
 
 // Branching instruction
 //
@@ -279,6 +295,7 @@ using atom_base = wrapped::variant <
 	List,
 	Store,
 	Load,
+	ArrayAccess,
 	Branch,
 	Returns
 >;

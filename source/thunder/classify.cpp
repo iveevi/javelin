@@ -139,23 +139,35 @@ QualifiedType Buffer::classify(index_t i) const
 			return qt_field;
 		}
 
-		case QualifiedType::type_index <ArrayType> ():
-			return qt.as <ArrayType> ().base();
 		}
 
 		dump();
 		JVL_ABORT("unfinished implementation for load: {}", atom);
 	}
 	
+	case Atom::type_index <ArrayAccess> ():
+	{
+		auto &access = atom.as <ArrayAccess> ();
+		QualifiedType qt = classify(access.src);
+		JVL_ASSERT(qt.is <ArrayType> (),
+			"array accesses must operate on array "
+			"types, but source is of type {}", qt);
+
+		return qt.as <ArrayType> ().base();
+	}
+	
 	case Atom::type_index <Returns> ():
 		return classify(atom.as <Returns> ().type);
 
-	default:
-		return QualifiedType();
+	case Atom::type_index <List> ():
+	case Atom::type_index <Store> ():
+		return QualifiedType::nil();
 
+	default:
+		break;
 	}
 
-	return QualifiedType();
+	JVL_ABORT("failed to classify instruction: {}", atom);
 }
 
 // TODO: binary operation specialization
@@ -389,6 +401,12 @@ static QualifiedType lookup_operation_overload(const OperationCode &key, const s
 		{ subtraction, arithmetic_overloads },
 		{ multiplication, concat(arithmetic_overloads, matrix_multiplication_overloads) },
 		{ division, arithmetic_overloads },
+
+		{ modulus, {
+			// TODO: legalize floating point modulus?
+			overload::from(i32, i32, i32),
+			overload::from(u32, u32, u32),
+		} },
 
 		{ bool_or, { overload::from(boolean, boolean, boolean) } },
 		{ bool_and, { overload::from(boolean, boolean, boolean) } },

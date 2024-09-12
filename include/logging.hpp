@@ -63,6 +63,20 @@ inline void abort(const std::string &module, const std::string &msg)
 	exit(-1);
 }
 
+[[noreturn]]
+inline void abort(const std::string &module, const std::string &msg, const char *const file, int line)
+{
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "({}): ", module);
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::orange_red), "fatal error: ");
+	fmt::println("{}", msg);
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::pink), "note: ");
+	fmt::println("declared from {}:{}", file, line);
+	std::fflush(stdout);
+	exit(-1);
+}
+
 inline void error(const std::string &msg)
 {
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
@@ -161,7 +175,7 @@ struct stage_bracket {
 #define JVL_ASSERT(cond, ...)	log::assertion(cond, __module__, fmt::format(__VA_ARGS__), __FILE__, __LINE__)
 #define JVL_ASSERT_PLAIN(cond)	log::assertion(cond, __module__, fmt::format("{}:{}\t{}", __FILE__, __LINE__, #cond))
 
-#define JVL_ABORT(...)		log::abort(__module__, fmt::format(__VA_ARGS__))
+#define JVL_ABORT(...)		log::abort(__module__, fmt::format(__VA_ARGS__), __FILE__, __LINE__)
 #define JVL_ERROR(...)		log::error(__module__, fmt::format(__VA_ARGS__))
 #define JVL_WARNING(...)	log::warning(__module__, fmt::format(__VA_ARGS__))
 #define JVL_INFO(...)		log::info(__module__, fmt::format(__VA_ARGS__))

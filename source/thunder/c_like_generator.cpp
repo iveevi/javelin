@@ -67,6 +67,8 @@ std::string generate_operation(OperationCode code, const std::vector <std::strin
 		{ multiplication, "*" },
 		{ division, "/" },
 		
+		{ modulus, "%" },
+		
 		{ bit_shift_left, "<<" },
 		{ bit_shift_right, ">>" },
 		
@@ -124,11 +126,15 @@ void c_like_generator_t::declare(const std::string &t, index_t index, index_t el
 	finish(stmt);
 }
 
-void c_like_generator_t::define(const std::string &t, const std::string &v, index_t index)
+void c_like_generator_t::define(const std::string &t, const std::string &v, index_t index, index_t elements)
 {
 	int n = local_variables.size();
 	std::string var = fmt::format("s{}", n);
-	std::string stmt = fmt::format("{} {} = {}", t, var, v);
+	std::string stmt;
+	if (elements == -1)
+		stmt = fmt::format("{} {} = {}", t, var, v);
+	else
+		stmt = fmt::format("{} {}[{}] = {}", t, var, elements, v);
 	local_variables[index] = var;
 	finish(stmt);
 }
@@ -154,12 +160,9 @@ std::string c_like_generator_t::reference(index_t index) const
 	{
 		// TODO: load_accessor()
 		auto &load = atom.as <Load> ();
-		auto &qt_source = types[load.src];
 		
 		std::string accessor;
-		if (qt_source.is <ArrayType> ())
-			accessor = fmt::format("[{}]", load.idx);
-		else if (load.idx != -1)
+		if (load.idx != -1)
 			accessor = fmt::format(".f{}", load.idx);
 
 		return reference(load.src) + accessor;
@@ -170,6 +173,12 @@ std::string c_like_generator_t::reference(index_t index) const
 		auto &swizzle = atom.as <Swizzle> ();
 		std::string accessor = tbl_swizzle_code[swizzle.code];
 		return reference(swizzle.src) + "." + accessor;
+	}
+	
+	case Atom::type_index <ArrayAccess> ():
+	{
+		auto &access = atom.as <ArrayAccess> ();
+		return fmt::format("{}[{}]", inlined(access.src), inlined(access.loc));
 	}
 
 	default:
@@ -223,8 +232,10 @@ std::string c_like_generator_t::inlined(index_t index) const
 			return inlined(constructor.type);
 
 		std::string t = generate_type_string(constructor.type, -1);
-		if (constructor.args != -1)
-			return t + "(" + inlined(constructor.args) + ")";
+		if (constructor.args != -1) {
+			auto args = arguments(constructor.args);
+			return t + arguments_to_string(args);
+		}
 
 		return t + "()";
 	}
@@ -244,15 +255,18 @@ std::string c_like_generator_t::inlined(index_t index) const
 	case Atom::type_index <Load> ():
 	{
 		auto &load = atom.as <Load> ();
-		auto &qt_source = types[load.src];
 
 		std::string accessor;
-		if (qt_source.is <ArrayType> ())
-			accessor = fmt::format("[{}]", load.idx);
-		else if (load.idx != -1)
+		if (load.idx != -1)
 			accessor = fmt::format(".f{}", load.idx);
 
 		return inlined(load.src) + accessor;
+	}
+	
+	case Atom::type_index <ArrayAccess> ():
+	{
+		auto &access = atom.as <ArrayAccess> ();
+		return fmt::format("{}[{}]", inlined(access.src), inlined(access.loc));
 	}
 
 	default:
@@ -291,6 +305,7 @@ std::vector <std::string> c_like_generator_t::arguments(index_t start) const
 
 std::string c_like_generator_t::generate_type_string(index_t index, index_t field) const
 {
+	// TODO: from QualifiedType...
 	auto &atom = pool[index];
 	if (struct_names.contains(index)) {
 		if (field == -1)
@@ -400,8 +415,13 @@ void c_like_generator_t::generate <Construct> (const Construct &construct, index
 		return declare(t, index, elements);
 	
 	std::string args = arguments_to_string(arguments(construct.args));
-	std::string v = t + args;
-	define(t, v, index);
+	
+	std::string ct = t;
+	if (elements != -1)
+		ct += fmt::format("[{}]", elements);
+
+	std::string v = ct + args;
+	define(t, v, index, elements);
 }
 
 template <>
@@ -432,6 +452,14 @@ void c_like_generator_t::generate <Load> (const Load &load, index_t index)
 
 	std::string t = generate_type_string(load.src, load.idx);
 	std::string v = inlined(load.src) + accessor;
+	define(t, v, index);
+}
+
+template <>
+void c_like_generator_t::generate <ArrayAccess> (const ArrayAccess &access, index_t index)
+{
+	std::string t = generate_type_string(access.src, -1);
+	std::string v = fmt::format("{}[{}]", inlined(access.src), inlined(access.loc));
 	define(t, v, index);
 }
 

@@ -115,7 +115,8 @@ Addresses Swizzle::addresses()
 
 std::string Swizzle::to_string() const
 {
-        return fmt::format("swizzle %{} #{}", src, tbl_swizzle_code[code]);
+        return fmt::format("{:10} src: %{} component: #{}",
+                "swizzle", src, tbl_swizzle_code[code]);
 }
 
 // Operation
@@ -133,9 +134,10 @@ Addresses Operation::addresses()
         
 std::string Operation::to_string() const
 {
-        return fmt::format("op $({}) %{} -> %{}",
+        return fmt::format("{:10} $({}) args: %{}",
+                "operation",
                 tbl_operation_code[code],
-                args, type);
+                args);
 }
 
 // Intrinsic
@@ -274,6 +276,23 @@ Addresses Load::addresses()
 std::string Load::to_string() const
 {
         return fmt::format("{:10} src: %{} field: #{}", "load", src, idx);
+}
+
+// Load
+bool ArrayAccess::operator==(const ArrayAccess &other) const
+{
+        return (src == other.src)
+                && (loc == other.loc);
+}
+
+Addresses ArrayAccess::addresses()
+{
+        return { src, Addresses::null() };
+}
+
+std::string ArrayAccess::to_string() const
+{
+        return fmt::format("{:10} src: %{} loc: %{}", "access", src, loc);
 }
 
 // Branch

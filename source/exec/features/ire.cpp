@@ -1,19 +1,4 @@
-#include <fmt/format.h>
-#include <type_traits>
-
-#include "ire/aggregate.hpp"
-#include "ire/aliases.hpp"
 #include "ire/core.hpp"
-#include "ire/emitter.hpp"
-#include "ire/solidify.hpp"
-#include "ire/tagged.hpp"
-#include "ire/uniform_layout.hpp"
-#include "profiles/targets.hpp"
-#include "thunder/linkage.hpp"
-#include "thunder/opt.hpp"
-#include "math_types.hpp"
-#include "logging.hpp"
-#include "constants.hpp"
 
 // TODO: immutability for shader inputs types
 // TODO: warnings for the unused sections
@@ -48,38 +33,38 @@ struct array <T, N> : public tagged {
 		this->ref = em.emit_construct(qualifier, -1, false);
 	}
 
-	template <generic U, generic ... Args>
-	void __initialize(thunder::index_t index, const U &arg, const Args &... args) {
-		JVL_ASSERT(cached(), "arrays must be cached before initialization");
-
-		auto &em = Emitter::active;
-
-		// TODO: generate a list of arguments as the initializer list
-		element e(arg);
-		thunder::index_t indexed = em.emit_load(this->ref.id, index);
-		thunder::index_t stored = em.emit_store(indexed, e.synthesize().id, true);
-
-		if constexpr (sizeof...(Args))
-			__initialize(index + 1, args...);
-	}
-
-	template <generic ... Args>
-	array(const Args &...args) : array() {
-		__initialize <Args...> (0, args...);
-	}
-
-	// TODO: index with primitive int
-	element operator[](thunder::index_t index) const {
-		// TODO: bounds check?
-		JVL_ASSERT(cached(), "arrays must be cached by the time of use");
-		
-		auto &em = Emitter::active;
-		cache_index_t ci;
-		ci = em.emit_load(this->ref.id, index);
-		return ci;
-	}
-
 	// TODO: zero initializing constructor
+	template <generic ... Args>
+	array(const Args &...args) {
+		auto &em = Emitter::active;
+		thunder::index_t l = list_from_args(args...);
+		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
+		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
+		this->ref = em.emit_construct(qualifier, l, false);
+	}
+
+	element operator[](thunder::index_t index) const {
+		MODULE(array);
+
+		JVL_ASSERT(cached(), "arrays must be cached by the time of use");
+		if (index < 0 || index >= N)
+			JVL_WARNING("index (={}) is out of bounds (size={})", index, N);
+
+		auto &em = Emitter::active;
+		primitive_t <int32_t> location(index);
+		thunder::index_t l = location.synthesize().id;
+		thunder::index_t c = em.emit_array_access(this->ref.id, l);
+		return cache_index_t::from(c);
+	}
+
+	template <integral_primitive_type U>
+	element operator[](const primitive_t <U> &index) const {
+		JVL_ASSERT(cached(), "arrays must be cached by the time of use");
+		auto &em = Emitter::active;
+		thunder::index_t l = index.synthesize().id;
+		thunder::index_t c = em.emit_array_access(this->ref.id, l);
+		return cache_index_t::from(c);
+	}
 };
 
 struct shuffle_info {
@@ -97,14 +82,13 @@ auto ftn = callable_info("shuffle") >> [](ivec3 in, shuffle_info info)
 {
 	// TODO: color wheel generator
 	array <int, 3> list { 1, 2, 3 };
-	list[1] = in.x + in.y/in.z;
-	return in + list[1];
+	list[1] = in.x + in.y / in.z;
+	return in + list[info.iterations % 3];
 };
 
 int main()
 {
-	ftn.dump();
-	thunder::opt_transform(ftn);
+	// thunder::opt_transform(ftn);
 	ftn.dump();
 
 	// fmt::println("{}", ftn.export_to_kernel().compile(profiles::cplusplus_11));
