@@ -8,7 +8,7 @@ namespace jvl::thunder::detail {
 MODULE(c-like-generator);
 
 // TODO: pass options to the body_t type
-static std::string generate_global_reference(const Qualifier &global)
+static std::optional <std::string> generate_global_reference(const Qualifier &global)
 {
 	switch (global.kind) {
 	case QualifierKind::layout_in:
@@ -25,7 +25,7 @@ static std::string generate_global_reference(const Qualifier &global)
 		break;
 	}
 
-	return "<glo:?>";
+	return std::nullopt;
 }
 	
 static std::string arguments_to_string(const std::vector <std::string> &args)
@@ -156,6 +156,13 @@ std::string c_like_generator_t::reference(index_t index) const
 
 	switch (atom.index()) {
 
+	case Atom::type_index <Qualifier> ():
+	{
+		auto ref = generate_global_reference(atom.as <Qualifier> ());
+		if (ref)
+			return ref.value();
+	} break;
+
 	case Atom::type_index <Load> ():
 	{
 		// TODO: load_accessor()
@@ -200,7 +207,11 @@ std::string c_like_generator_t::inlined(index_t index) const
 	switch (atom.index()) {
 
 	case Atom::type_index <Qualifier> ():
-		return generate_global_reference(atom.as <Qualifier> ());
+	{
+		auto ref = generate_global_reference(atom.as <Qualifier> ());
+		if (ref)
+			return ref.value();
+	} break;
 
 	case Atom::type_index <Primitive> ():
 		return generate_primitive(atom.as <Primitive> ());

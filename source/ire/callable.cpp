@@ -22,8 +22,7 @@ Callable::Callable(const Callable &other)
 Callable &Callable::operator=(const Callable &other)
 {
 	if (this != &other) {
-		atoms = other.atoms;
-		pointer = other.pointer;
+		Buffer::operator=(other);
 		cid = other.cid;
 		name = other.name;
 

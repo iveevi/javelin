@@ -186,8 +186,8 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 	auto &refs = mapped.refs;
 
 	// Clear the currently present scratch and add it for recording
-	mapped.transformed.clear();
-	em.push(mapped.transformed);
+	mapped.clear();
+	em.push(mapped, false);
 
 	// fmt::print("atom: ");
 	// dump_ir_operation(atom);
@@ -393,7 +393,7 @@ void ad_fwd_transform(Buffer &result, const Buffer &source)
 		}
 
 		// Default population of scratches is preservation
-		em.push(mapped[i].transformed);
+		em.push(mapped[i], false);
 		em.emit(atom);
 		em.pop();
 	}

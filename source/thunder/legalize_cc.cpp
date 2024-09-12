@@ -5,68 +5,37 @@
 #include "thunder/linkage.hpp"
 #include "thunder/opt.hpp"
 #include "thunder/properties.hpp"
+#include "thunder/qualified_type.hpp"
 
 namespace jvl::thunder::detail {
 
 MODULE(legalize-cc);
 
-index_t instruction_type(const std::vector <Atom> &atoms, index_t i)
+PrimitiveType primitive_type_of(const Buffer &buffer, index_t i)
 {
-	auto &atom = atoms[i];
+	auto &qt = buffer.types[i];
 
-	switch (atom.index()) {
-	case Atom::type_index <TypeInformation> ():
-	case Atom::type_index <Swizzle> ():
-		// For now we let swizzle be a special case
-		return i;
-	case Atom::type_index <Qualifier> ():
-		return atom.as <Qualifier> ().underlying;
-	case Atom::type_index <Construct> ():
-		return atom.as <Construct> ().type;
-	case Atom::type_index <Primitive> ():
-		return atom.as <Primitive> ().type;
-	case Atom::type_index <Operation> ():
-		return atom.as <Operation> ().type;
-	case Atom::type_index <Intrinsic> ():
-		return atom.as <Intrinsic> ().type;
-	case Atom::type_index <Load> ():
+	switch (qt.index()) {
+
+	case QualifiedType::type_index <NilType> ():
+		return bad;
+
+	case QualifiedType::type_index <PlainDataType> ():
 	{
-		auto &load = atom.as <Load> ();
-		index_t t = instruction_type(atoms, load.src);
+		auto pd = qt.as <PlainDataType> ();
+		if (pd.is <PrimitiveType> ())
+			return pd.as <PrimitiveType> ();
 
-		index_t idx = load.idx;
-		while (idx > 0) {
-			auto &atom = atoms[t];
-			JVL_ASSERT_PLAIN(atom.is <TypeInformation> ());
-
-			TypeInformation type_field = atom.as <TypeInformation> ();
-			t = type_field.next;
-			idx--;
-		}
-
-		return t;
+		// If it is a concrete type, then it was
+		// unable to be resolved as a primitive
+		return bad;
 	}
+
 	default:
 		break;
 	}
 
-	log::abort(__module__, fmt::format("unhandle case in instruction_type: {}", atom));
-	return bad;
-}
-
-// TODO: cache this while emitting
-PrimitiveType primitive_type_of(const std::vector <Atom> &atoms, index_t i)
-{
-	index_t t = instruction_type(atoms, i);
-
-	auto &atom = atoms[t];
-	JVL_ASSERT(atom.is <TypeInformation> (),
-		"result of instruction_type(...) is not a typefield: {}",
-		atom);
-
-	TypeInformation tf = atom.as <TypeInformation> ();
-
-	return (tf.down == -1 && tf.next == -1) ? tf.item : bad;
+	JVL_ABORT("unhandled case in primitive_type_of: {}", qt);
 }
 
 void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
@@ -79,8 +48,8 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 	auto &em = ire::Emitter::active;
 
 	// Reset and activate the scratch
-	mapped.transformed.clear();
-	em.push(mapped.transformed, false);
+	mapped.clear();
+	em.push(mapped, false);
 
 	fmt::println("legalizing operation {} for overload ({}, {})",
 		tbl_operation_code[code],
@@ -182,8 +151,8 @@ void legalize_for_cc_vector_constructor(mapped_instruction_t &mapped,
 	auto &em = ire::Emitter::active;
 	
 	// Reset and activate the scratch
-	mapped.transformed.clear();
-	em.push(mapped.transformed, false);
+	mapped.clear();
+	em.push(mapped, false);
 
 	PrimitiveType type_a = types[0];
 	if (type_a == type_to_construct) {
@@ -233,18 +202,20 @@ void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 
 	// Special cases are handled explicitly
 	if (opn == dot) {
-		JVL_INFO("legalizing dot product");
-
 		PrimitiveType type_a = types[0];
 		PrimitiveType type_b = types[1];
+
+		JVL_INFO("legalizing dot product between {} and {}",
+			tbl_primitive_types[type_a],
+			tbl_primitive_types[type_b]);
 
 		JVL_ASSERT_PLAIN(vector_type(type_a) && vector_type(type_b));
 		JVL_ASSERT_PLAIN(swizzle_type_of(type_a, SwizzleCode::x) == swizzle_type_of(type_b, SwizzleCode::x));
 		JVL_ASSERT_PLAIN(vector_component_count(type_a) == vector_component_count(type_b));
 
 		// Reset and activate the scratch
-		mapped.transformed.clear();
-		em.push(mapped.transformed, false);
+		mapped.clear();
+		em.push(mapped, false);
 
 		size_t ccount = vector_component_count(type_a);
 		PrimitiveType ctype = swizzle_type_of(type_a, SwizzleCode::x);
@@ -283,6 +254,8 @@ void legalize_for_cc(Buffer &buffer)
 {
 	JVL_STAGE();
 
+	buffer.dump();
+
 	auto &em = ire::Emitter::active;
 	auto &atoms = buffer.atoms;
 
@@ -292,7 +265,7 @@ void legalize_for_cc(Buffer &buffer)
 		auto &atom = atoms[i];
 
 		// Default population of scratches is preservation
-		em.push(mapped[i].transformed, false);
+		em.push(mapped[i], false);
 		em.emit(atom);
 		em.pop();
 	}
@@ -316,7 +289,7 @@ void legalize_for_cc(Buffer &buffer)
 
 			std::vector <PrimitiveType> types;
 			for (auto i : args) {
-				auto ptype = primitive_type_of(atoms, i);
+				auto ptype = primitive_type_of(buffer, i);
 				// fmt::println("  {} -> {}", i, tbl_primitive_types[ptype]);
 				types.push_back(ptype);
 			}
@@ -335,7 +308,7 @@ void legalize_for_cc(Buffer &buffer)
 		// the fields are not mapped one-to-one
 		// with the arguments provided
 		if (auto constructor = atom.get <Construct> ()) {
-			auto ptype = primitive_type_of(atoms, constructor->type);
+			auto ptype = primitive_type_of(buffer, constructor->type);
 			if (!constructor->transient && vector_type(ptype)) {
 				fmt::println("legalizing constructor: {}", atom);
 				fmt::println("constructor for vector type: {}", tbl_primitive_types[ptype]);
@@ -343,7 +316,7 @@ void legalize_for_cc(Buffer &buffer)
 				auto args = buffer.expand_list(constructor->args);
 				std::vector <PrimitiveType> types;
 				for (auto i : args) {
-					auto ptype = primitive_type_of(atoms, i);
+					auto ptype = primitive_type_of(buffer, i);
 					types.push_back(ptype);
 				}
 
@@ -357,7 +330,7 @@ void legalize_for_cc(Buffer &buffer)
 			auto args = buffer.expand_list(intrinsic->args);
 			std::vector <PrimitiveType> types;
 			for (auto i : args) {
-				auto ptype = primitive_type_of(atoms, i);
+				auto ptype = primitive_type_of(buffer, i);
 				types.push_back(ptype);
 			}
 

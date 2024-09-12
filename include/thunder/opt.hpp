@@ -15,13 +15,8 @@ struct ref_index_t {
 	int8_t mask = 0b11;
 };
 
-struct mapped_instruction_t {
-	Buffer transformed;
+struct mapped_instruction_t : Buffer {
 	std::vector <ref_index_t> refs;
-
-	Atom &operator[](size_t index) {
-		return transformed.atoms[index];
-	}
 
 	void track(index_t index, int8_t mask = 0b11) {
 		refs.push_back(ref_index_t(index, mask));

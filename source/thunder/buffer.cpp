@@ -93,7 +93,7 @@ void Buffer::clear()
 void Buffer::dump() const
 {
 	for (size_t i = 0; i < pointer; i++)
-		fmt::println("   [{:4d}]: {:40} :: {}", i, atoms[i], types[i]);
+		fmt::println("   [{:4d}] {:40} :: {}", i, atoms[i], types[i]);
 }
 
 // Utility methods

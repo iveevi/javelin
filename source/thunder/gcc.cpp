@@ -75,9 +75,7 @@ struct jit_instruction {
 	}
 };
 
-struct jit_context {
-	const std::vector <Atom> &atoms;
-
+struct jit_context : Buffer {
 	gcc_jit_context *const gcc;
 	gcc_jit_function *function;
 	gcc_jit_block *block;
@@ -86,6 +84,9 @@ struct jit_context {
 	std::vector <jit_instruction> cached;
 
 	wrapped::hash_table <PrimitiveType, jit_struct *> primitive_types;
+
+	jit_context(const Buffer &buffer_, gcc_jit_context *const gcc_)
+		: Buffer(buffer_), gcc(gcc_) {}
 };
 
 jit_struct *generate_type_field_primitive_scalar(jit_context &context, PrimitiveType item)
@@ -659,6 +660,11 @@ jit_instruction generate_instruction(jit_context &context, index_t i)
 	case Atom::type_index <Construct> ():
 	{
 		auto &constructor = atom.as <Construct> ();
+		
+		// If it is transient, then defer to its type (should be a qualifier)
+		if (constructor.transient)
+			return generate_instruction(context, constructor.type);
+
 		auto args = load_rvalue_arguments(context, constructor.args);
 		jit_struct *struct_type = context.cached[constructor.type].type_info;
 
@@ -716,10 +722,7 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 {
 	fmt::println("generating block");
 
-	jit_context context {
-		.atoms = block.atoms,
-		.gcc = gcc,
-	};
+	jit_context context(block, gcc);
 
 	// JIT the parameters
 	std::vector <gcc_jit_param *> gcc_parameters;

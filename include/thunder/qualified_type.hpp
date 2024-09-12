@@ -12,10 +12,10 @@ struct NilType {
 };
 
 // Either a primitive type or a user-defined structure
-using plain_data_type = wrapped::variant <PrimitiveType, index_t>;
+using plain_data_type_base = wrapped::variant <PrimitiveType, index_t>;
 
-struct PlainDataType : public plain_data_type {
-	using plain_data_type::plain_data_type;
+struct PlainDataType : public plain_data_type_base {
+	using plain_data_type_base::plain_data_type_base;
 
 	bool operator==(const PlainDataType &) const;
 	std::string to_string() const;

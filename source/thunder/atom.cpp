@@ -4,6 +4,8 @@
 
 namespace jvl::thunder {
 
+// TODO: top level formatter...
+
 // Qualifier
 bool Qualifier::operator==(const Qualifier &other) const
 {
@@ -91,7 +93,7 @@ std::string Primitive::to_string() const
                 result += fmt::format("{}", udata);
                 break;
         case f32:
-                result += fmt::format("{:.2f}", fdata);
+                result += fmt::format("{:.6f}", fdata);
                 break;
         default:
                 result += fmt::format("?");
@@ -155,9 +157,8 @@ Addresses Intrinsic::addresses()
         
 std::string Intrinsic::to_string() const
 {
-        return fmt::format("intr ${} %{} -> %{}",
-                tbl_intrinsic_operation[opn],
-                args, type);
+        return fmt::format("{:10} $({}) args: %{}",
+                "intrinsic", tbl_intrinsic_operation[opn], args);
 }
 
 // List
