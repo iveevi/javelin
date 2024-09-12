@@ -1,4 +1,5 @@
 #include "ire/core.hpp"
+#include "thunder/opt.hpp"
 
 // TODO: immutability for shader inputs types
 // TODO: warnings for the unused sections
@@ -88,7 +89,7 @@ auto ftn = callable_info("shuffle") >> [](ivec3 in, shuffle_info info)
 
 int main()
 {
-	// thunder::opt_transform(ftn);
+	thunder::opt_transform(ftn);
 	ftn.dump();
 
 	// fmt::println("{}", ftn.export_to_kernel().compile(profiles::cplusplus_11));

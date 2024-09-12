@@ -287,7 +287,7 @@ bool ArrayAccess::operator==(const ArrayAccess &other) const
 
 Addresses ArrayAccess::addresses()
 {
-        return { src, Addresses::null() };
+        return { src, loc };
 }
 
 std::string ArrayAccess::to_string() const

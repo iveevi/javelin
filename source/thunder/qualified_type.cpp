@@ -81,25 +81,22 @@ QualifiedType::operator bool() const
         return !is <NilType> ();
 }
 
+template <typename A, typename B>
+static constexpr bool compare(const A &a, const B &b)
+{
+	return false;
+}
+
+template <typename A>
+static bool compare(const A &a, const A &b)
+{
+	return a == b;
+}
+
 bool QualifiedType::operator==(const QualifiedType &other) const
 {
-        if (index() != other.index())
-                return true;
-
-        switch (index()) {
-        case type_index <NilType> ():
-                return as <NilType> () == other.as <NilType> ();
-        case type_index <PlainDataType> ():
-                return as <PlainDataType> () == other.as <PlainDataType> ();
-        case type_index <StructFieldType> ():
-                return as <StructFieldType> () == other.as <StructFieldType> ();
-        case type_index <ArrayType> ():
-                return as <ArrayType> () == other.as <ArrayType> ();
-        default:
-                break;
-        }
-
-        JVL_ABORT("unhandled case in qualified type: {}", to_string());
+	auto ftn = [](auto a, auto b) { return compare(a, b); };
+	return std::visit(ftn, *this, other);
 }
 
 std::string QualifiedType::to_string() const
