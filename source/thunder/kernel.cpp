@@ -51,7 +51,7 @@ Linkage Kernel::linkage() const
 	linkage.sorted = { -1 };
 
 	// Generate struct information for linkage
-	auto synthesized = detail::synthesize_list(pool);
+	auto synthesized = detail::synthesize_list(*this);
 
 	// Generate block information
 	auto &block = linkage.blocks[-1];

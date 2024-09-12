@@ -3,11 +3,12 @@
 #include <type_traits>
 
 #include "../thunder/atom.hpp"
-#include "../thunder/kernel.hpp"
 #include "../thunder/buffer.hpp"
+#include "../thunder/kernel.hpp"
+#include "control_flow.hpp"
 #include "ire/tagged.hpp"
-#include "uniform_layout.hpp"
 #include "type_synthesis.hpp"
+#include "uniform_layout.hpp"
 
 namespace jvl::ire {
 

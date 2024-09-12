@@ -1,6 +1,7 @@
+#include "logging.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/linkage.hpp"
-#include "logging.hpp"
+#include "thunder/qualified_type.hpp"
 
 namespace jvl::thunder::detail {
 
@@ -22,13 +23,14 @@ index_t reference_of(const std::vector <Atom> &atoms, index_t i)
 	}
 }
 
-std::unordered_set <index_t> synthesize_list(const std::vector <Atom> &atoms)
+// TODO: tracking for buffers
+std::unordered_set <index_t> synthesize_list(const Buffer &buffer)
 {
 	std::unordered_set <index_t> synthesized;
 
 	// Find all the critical instructions
-	for (index_t i = 0; i < atoms.size(); i++) {
-		auto &atom = atoms[i];
+	for (index_t i = 0; i < buffer.pointer; i++) {
+		auto &atom = buffer[i];
 
 		switch (atom.index()) {
 
@@ -36,7 +38,7 @@ std::unordered_set <index_t> synthesize_list(const std::vector <Atom> &atoms)
 		{
 			index_t dst = atom.as <Store> ().dst;
 			synthesized.insert(i);
-			synthesized.insert(reference_of(atoms, dst));
+			synthesized.insert(reference_of(buffer.pool, dst));
 			break;
 		}
 
@@ -68,6 +70,10 @@ std::unordered_set <index_t> synthesize_list(const std::vector <Atom> &atoms)
 		{
 			auto &constructor = atom.as <Construct> ();
 			if (constructor.transient)
+				synthesized.insert(i);
+
+			QualifiedType qt = buffer.types[constructor.type];
+			if (qt.is <ArrayType> ())
 				synthesized.insert(i);
 		} break;
 

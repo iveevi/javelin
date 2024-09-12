@@ -52,8 +52,12 @@ QualifiedType Buffer::classify(index_t i) const
 		auto &qualifier = atom.as <Qualifier> ();
 		
 		QualifiedType decl = classify(qualifier.underlying);
-		if (qualifier.kind == arrays)
+		if (qualifier.kind == arrays) {
+			if (decl.is <StructFieldType> ())
+				decl = QualifiedType::concrete(qualifier.underlying);
+
 			return QualifiedType::array(decl, qualifier.numerical);
+		}
 		
 		if (auto pd = decl.get <PlainDataType> ()) {
 			if (pd->is <PrimitiveType> ())
@@ -64,7 +68,15 @@ QualifiedType Buffer::classify(index_t i) const
 	}
 
 	case Atom::type_index <Construct> ():
-		return classify(atom.as <Construct> ().type);
+	{
+		index_t t = atom.as <Construct> ().type;
+
+		QualifiedType qt = classify(t);
+		if (qt.is <PlainDataType> ())
+			return qt;
+
+		return QualifiedType::concrete(t);
+	}
 
 	case Atom::type_index <Call> ():
 		return classify(atom.as <Call> ().type);
@@ -131,12 +143,7 @@ QualifiedType Buffer::classify(index_t i) const
 					break;
 			}
 
-			QualifiedType qt_field = types[concrete].remove_qualifiers();
-			
-			fmt::println("field index: {}", concrete);
-			fmt::println("qualified field type: {}", qt_field);
-
-			return qt_field;
+			return types[concrete].remove_qualifiers();
 		}
 
 		}
@@ -149,6 +156,11 @@ QualifiedType Buffer::classify(index_t i) const
 	{
 		auto &access = atom.as <ArrayAccess> ();
 		QualifiedType qt = classify(access.src);
+		
+		auto pd = qt.get <PlainDataType> ();
+		if (pd && pd->is <index_t> ())
+			qt = classify(pd->as <index_t> ());
+
 		JVL_ASSERT(qt.is <ArrayType> (),
 			"array accesses must operate on array "
 			"types, but source is of type {}", qt);

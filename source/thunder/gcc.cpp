@@ -772,7 +772,7 @@ void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
 	context.block = gcc_jit_function_new_block(context.function, "primary");
 
 	// TODO: cache block synthesized status
-	auto synthesized = detail::synthesize_list(block.pool);
+	auto synthesized = detail::synthesize_list(block);
 
 	// Do some extra processing to get the list of required instructions
 	auto used = decltype(synthesized)();

@@ -1,6 +1,9 @@
 #pragma once
 
 #include "aliases.hpp"
+#include "ire/tagged.hpp"
+#include "ire/uniform_layout.hpp"
+#include "logging.hpp"
 #include "thunder/enumerations.hpp"
 #include "type_synthesis.hpp"
 
@@ -60,11 +63,22 @@ inline void returns(const T &value)
 		type_field_from_args <T> ().id);
 }
 
-template <non_trivial_generic T>
+template <synthesizable T>
 inline void returns(const T &value)
 {
 	Emitter::active.emit_return(value.synthesize().id,
 		type_field_from_args <T> ().id);
+}
+
+template <uniform_compatible T>
+inline void returns(const T &value)
+{
+	auto &em = Emitter::active;
+	auto layout = value.layout();
+	cache_index_t args = layout.list();
+	thunder::index_t type = type_field_from_args(layout).id;
+	thunder::index_t rv = em.emit_construct(type, args.id, false);
+	em.emit_return(rv, type);
 }
 
 } // namespace jvl::ire

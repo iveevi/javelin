@@ -7,8 +7,9 @@
 namespace jvl::thunder::detail {
 
 // TODO: type alias for synthesis list
+// TODO: buffer tracking
 // Determine the set of instructions to concretely synthesized
-std::unordered_set <index_t> synthesize_list(const std::vector <Atom> &);
+std::unordered_set <index_t> synthesize_list(const Buffer &);
 
 struct body_t : Buffer {
 	const wrapped::hash_table <int, std::string> &struct_names;
@@ -16,7 +17,7 @@ struct body_t : Buffer {
 
 	body_t(const Buffer &buffer, const auto &names)
 			: Buffer(buffer), struct_names(names) {
-		synthesized = synthesize_list(pool);
+		synthesized = synthesize_list(*this);
 	}
 };
 

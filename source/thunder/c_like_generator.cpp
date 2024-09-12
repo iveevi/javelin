@@ -405,6 +405,9 @@ void c_like_generator_t::generate <Construct> (const Construct &construct, index
 		return;
 
 	auto &qt = types[index];
+	auto pd = qt.get <PlainDataType> ();
+	if (pd && pd->is <index_t> ())
+		qt = types[pd->as <index_t> ()];
 	
 	index_t elements = -1;
 	if (qt.is <ArrayType> ())
