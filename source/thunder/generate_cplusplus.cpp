@@ -1,7 +1,7 @@
 #include "ire/callable.hpp"
 #include "logging.hpp"
+#include "thunder/c_like_generator.hpp"
 #include "thunder/enumerations.hpp"
-#include "thunder/generators.hpp"
 #include "thunder/linkage.hpp"
 
 namespace jvl::thunder {
@@ -258,8 +258,8 @@ std::string Linkage::generate_cplusplus()
 		for (auto [binding, t] : louts)
 			source += fmt::format("    {} _lout{};\n", translate_type(t), binding);
 
-		detail::body_t body(b, local_struct_names);
-		detail::c_like_generator_t generator(body);
+		detail::auxiliary_block_t aux(b, local_struct_names);
+		detail::c_like_generator_t generator(aux);
 
 		source += generator.generate();
 

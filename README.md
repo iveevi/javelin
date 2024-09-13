@@ -48,6 +48,8 @@ The IRE supports compiling to multiple targets, with more to come in the future:
 * SPIRV assembly (planned) and binary (planned)
 * CUDA kernels through NVRTX (planned)
 
+All IRE features are provided in the `include/ire/core.hpp` header file. The corresponding library is built into `javelin-ire` using CMake. See the [Building](#building) section for more details.
+
 **Asides:**
 
 [Why bother with JIT shader compilation?](docs/aside/jit_shader_compilation.md)

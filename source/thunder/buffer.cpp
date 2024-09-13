@@ -26,6 +26,8 @@ index_t Buffer::emit(const Atom &atom, bool enable_classification)
 	atoms[pointer] = atom;
 	if (enable_classification)
 		types[pointer] = classify(pointer);
+
+	include(pointer);
 	
 	return pointer++;
 }

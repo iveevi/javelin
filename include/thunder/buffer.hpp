@@ -11,9 +11,14 @@ struct Kernel;
 struct QualifiedType;
 
 // Arbitrary pools of atoms
-struct Buffer {
-	// TODO: mirror table with vector <index_t> as list
-	// TODO: synthesize list
+class Buffer {
+	// Determine the qualified type of an instruction
+	QualifiedType classify(index_t) const;
+
+	// Populate the synthesized set
+	void include(index_t);
+public:
+	std::unordered_set <index_t> synthesized;
 	std::vector <QualifiedType> types;
 	std::vector <Atom> atoms;
 	size_t pointer;
@@ -21,7 +26,6 @@ struct Buffer {
 	Buffer();
 
 	index_t emit(const Atom &, bool = true);
-	QualifiedType classify(index_t) const;
 	Kernel export_to_kernel() const;
 	void validate() const;
 	void clear();

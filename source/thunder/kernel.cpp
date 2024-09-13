@@ -1,6 +1,5 @@
 #include "logging.hpp"
 #include "thunder/atom.hpp"
-#include "thunder/generators.hpp"
 #include "thunder/kernel.hpp"
 #include "thunder/linkage.hpp"
 
@@ -49,9 +48,6 @@ Linkage Kernel::linkage() const
 	// TODO: preserve the cid if present
 	linkage.blocks[-1] = Linkage::block_t(*this, name);
 	linkage.sorted = { -1 };
-
-	// Generate struct information for linkage
-	auto synthesized = detail::synthesize_list(*this);
 
 	// Generate block information
 	auto &block = linkage.blocks[-1];

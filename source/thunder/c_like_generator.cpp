@@ -1,7 +1,7 @@
-#include "thunder/atom.hpp"
-#include "thunder/enumerations.hpp"
-#include "thunder/generators.hpp"
 #include "ire/callable.hpp"
+#include "thunder/atom.hpp"
+#include "thunder/c_like_generator.hpp"
+#include "thunder/enumerations.hpp"
 #include "thunder/qualified_type.hpp"
 
 namespace jvl::thunder::detail {
@@ -99,8 +99,8 @@ std::string generate_operation(OperationCode code, const std::string &a, const s
 	return fmt::format("({} {} {})", a, op, b);
 }
 
-c_like_generator_t::c_like_generator_t(const body_t &body)
-	: body_t(body), indentation(1) {}
+c_like_generator_t::c_like_generator_t(const auxiliary_block_t &body)
+	: auxiliary_block_t(body), indentation(1) {}
 
 void c_like_generator_t::finish(const std::string &s, bool semicolon)
 {
@@ -325,14 +325,14 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 
 // Generators for each kind of instruction
 template <>
-void c_like_generator_t::generate <Qualifier> (const Qualifier &, index_t)
+void c_like_generator_t::generate(const Qualifier &, index_t)
 {
 	// Same idea here; all globals should be
 	// instatiated from the linker side
 }
 
 template <>
-void c_like_generator_t::generate <TypeInformation> (const TypeInformation &, index_t)
+void c_like_generator_t::generate(const TypeInformation &, index_t)
 {
 	// Nothing to do here, linkage should have taken
 	// care of generating the necessary structs; their
@@ -340,25 +340,25 @@ void c_like_generator_t::generate <TypeInformation> (const TypeInformation &, in
 }
 
 template <>
-void c_like_generator_t::generate <Primitive> (const Primitive &primitive, index_t index)
+void c_like_generator_t::generate(const Primitive &primitive, index_t index)
 {
 	define(index, generate_primitive(primitive));
 }
 
 template <>
-void c_like_generator_t::generate <Swizzle> (const Swizzle &swizzle, index_t index)
+void c_like_generator_t::generate(const Swizzle &swizzle, index_t index)
 {
 	define(index, inlined(index));
 }
 
 template <>
-void c_like_generator_t::generate <Operation> (const Operation &operation, index_t index)
+void c_like_generator_t::generate(const Operation &operation, index_t index)
 {
 	define(index, inlined(index));
 }
 
 template <>
-void c_like_generator_t::generate <Intrinsic> (const Intrinsic &intrinsic, index_t index)
+void c_like_generator_t::generate(const Intrinsic &intrinsic, index_t index)
 {
 	// Keyword intrinsic
 	if (intrinsic.type == -1)
@@ -382,7 +382,7 @@ void c_like_generator_t::generate <Intrinsic> (const Intrinsic &intrinsic, index
 }
 
 template <>
-void c_like_generator_t::generate <Construct> (const Construct &construct, index_t index)
+void c_like_generator_t::generate(const Construct &construct, index_t index)
 {
 	if (construct.transient)
 		return;
@@ -399,7 +399,7 @@ void c_like_generator_t::generate <Construct> (const Construct &construct, index
 }
 
 template <>
-void c_like_generator_t::generate <Call> (const Call &call, index_t index)
+void c_like_generator_t::generate(const Call &call, index_t index)
 {
 	ire::Callable *cbl = ire::Callable::search_tracked(call.cid);
 	std::string args = "()";
@@ -410,25 +410,25 @@ void c_like_generator_t::generate <Call> (const Call &call, index_t index)
 }
 
 template <>
-void c_like_generator_t::generate <Store> (const Store &store, index_t)
+void c_like_generator_t::generate(const Store &store, index_t)
 {
 	assign(store.dst, inlined(store.src));
 }
 
 template <>
-void c_like_generator_t::generate <Load> (const Load &load, index_t index)
+void c_like_generator_t::generate(const Load &load, index_t index)
 {
 	define(index, inlined(index));
 }
 
 template <>
-void c_like_generator_t::generate <ArrayAccess> (const ArrayAccess &access, index_t index)
+void c_like_generator_t::generate(const ArrayAccess &access, index_t index)
 {
 	define(index, inlined(index));
 }
 
 template <>
-void c_like_generator_t::generate <Branch> (const Branch &branch, index_t)
+void c_like_generator_t::generate(const Branch &branch, index_t)
 {
 	switch (branch.kind) {
 
@@ -467,7 +467,7 @@ void c_like_generator_t::generate <Branch> (const Branch &branch, index_t)
 }
 
 template <>
-void c_like_generator_t::generate <Returns> (const Returns &returns, index_t)
+void c_like_generator_t::generate(const Returns &returns, index_t)
 {
 	finish("return " + inlined(returns.value));
 }
