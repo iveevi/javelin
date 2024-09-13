@@ -45,6 +45,17 @@ void DeviceResourceCollection::configure_device(const std::vector <const char *>
 	swapchain = combined().swapchain(surface, queue_family);
 }
 
+DeviceResourceCollection DeviceResourceCollection::from(const DeviceResourceCollectionInfo &info)
+{
+	DeviceResourceCollection drc;
+
+	drc.phdev = info.phdev;
+	std::tie(drc.surface, drc.window) = littlevk::surface_handles(info.extent, info.title.c_str());
+	drc.configure_device(info.extensions);
+
+	return drc;
+}
+
 namespace imgui {
 
 // ImGui utilities

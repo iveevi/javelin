@@ -13,7 +13,16 @@ struct InteractiveWindow : littlevk::Window {
 	bool key_pressed(int) const;
 };
 
-struct DeviceResourceCollection {
+struct DeviceResourceCollectionInfo {
+	vk::PhysicalDevice phdev;
+	std::string title;
+	vk::Extent2D extent;
+	std::vector <const char *> extensions;
+};
+
+class DeviceResourceCollection {
+	void configure_device(const std::vector <const char *> &);
+public:
 	vk::PhysicalDevice phdev;
 	vk::SurfaceKHR surface;
 	vk::Device device;
@@ -32,14 +41,14 @@ struct DeviceResourceCollection {
 	littlevk::LinkedDevices combined();
 	littlevk::LinkedCommandQueue commander();
 
-	void configure_device(const std::vector <const char *> &);
+	static DeviceResourceCollection from(const DeviceResourceCollectionInfo &);
 
-	template <typename ... Args>
-	void configure_display(const Args &... args) {
-		littlevk::Window win;
-		std::tie(surface, win) = littlevk::surface_handles(args...);
-		window = win;
-	}
+	// template <typename ... Args>
+	// void configure_display(const Args &... args) {
+	// 	littlevk::Window win;
+	// 	std::tie(surface, win) = littlevk::surface_handles(args...);
+	// 	window = win;
+	// }
 };
 
 namespace imgui {
