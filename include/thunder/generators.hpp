@@ -11,6 +11,14 @@ namespace jvl::thunder::detail {
 // Determine the set of instructions to concretely synthesized
 std::unordered_set <index_t> synthesize_list(const Buffer &);
 
+struct unnamed_body_t : Buffer {
+	std::unordered_set <index_t> synthesized;
+
+	unnamed_body_t(const Buffer &buffer) : Buffer(buffer) {
+		synthesized = synthesize_list(*this);
+	}
+};
+
 struct body_t : Buffer {
 	const wrapped::hash_table <int, std::string> &struct_names;
 	std::unordered_set <index_t> synthesized;

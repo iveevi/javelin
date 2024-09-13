@@ -218,32 +218,24 @@ void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 		em.push(mapped, false);
 
 		size_t ccount = vector_component_count(type_a);
-		PrimitiveType ctype = swizzle_type_of(type_a, SwizzleCode::x);
 
 		index_t a = args[0];
 		index_t b = args[1];
 		
 		std::vector <index_t> products(ccount);
 		for (size_t i = 0; i < ccount; i++) {
-			index_t ca = em.emit(Swizzle(a, (SwizzleCode) i));
+			index_t ca = em.emit_swizzle(a, (SwizzleCode) i);
 			mapped.track(ca, 0b01);
 
-			index_t cb = em.emit(Swizzle(b, (SwizzleCode) i));
+			index_t cb = em.emit_swizzle(b, (SwizzleCode) i);
 			mapped.track(cb, 0b01);
 
-			index_t l = em.emit(List(cb, -1));
-			l = em.emit(List(ca, l));
-
-			index_t t = em.emit(TypeInformation(-1, -1, ctype));
-			products[i] = em.emit(Operation(l, multiplication));
+			products[i] = em.emit_operation(ca, cb, multiplication);
 		}
 
 		index_t top = products[0];
-		for (size_t i = 0; i < ccount - 1; i++) {
-			index_t l = em.emit_list_chain(top, products[i + 1]);
-			index_t t = em.emit(TypeInformation(-1, -1, ctype));
-			top = em.emit(Operation(l, addition));
-		}
+		for (size_t i = 0; i < ccount - 1; i++)
+			top = em.emit_operation(top, products[i + 1], addition);
 
 		em.pop();
 	}
@@ -253,8 +245,6 @@ void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 void legalize_for_cc(Buffer &buffer)
 {
 	JVL_STAGE();
-
-	buffer.dump();
 
 	auto &em = ire::Emitter::active;
 	auto &atoms = buffer.atoms;

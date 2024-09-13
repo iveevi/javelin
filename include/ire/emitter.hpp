@@ -63,8 +63,8 @@ struct Emitter {
 		return emit(thunder::Swizzle(src, code));
 	}
 
-	index_t emit_operation(index_t args, thunder::OperationCode code) {
-		return emit(thunder::Operation(args, code));
+	index_t emit_operation(index_t a, index_t b, thunder::OperationCode code) {
+		return emit(thunder::Operation(a, b, code));
 	}
 
 	index_t emit_intrinsic(index_t args, index_t type, thunder::IntrinsicOperation opn) {

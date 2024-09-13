@@ -492,10 +492,4 @@ std::string c_like_generator_t::generate()
 	return source;
 }
 
-std::string generate_c_like(const body_t &body)
-{
-	c_like_generator_t generator(body);
-	return generator.generate();
-}
-
 } // namespace jvl::thunder::detail

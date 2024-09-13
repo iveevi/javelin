@@ -9,8 +9,8 @@
 #include "thunder/enumerations.hpp"
 #include "thunder/generators.hpp"
 #include "thunder/linkage.hpp"
+#include "thunder/qualified_type.hpp"
 #include "thunder/properties.hpp"
-#include "wrapped_types.hpp"
 
 extern "C" float clamp(float x, float low, float high)
 {
@@ -23,102 +23,30 @@ MODULE(gcc-jit);
 
 #define LOCATION(context) gcc_jit_context_new_location(context, __FILE__, __LINE__, 0)
 
-struct jit_struct {
-	// TODO: header with eightcc and hash for cleanup
-	gcc_jit_type *type;
-	std::optional <size_t> alignment;
-	// TODO: not needed
-	std::vector <gcc_jit_field *> fields;
-	std::vector <jit_struct *> field_types;
-
-	jit_struct &materialize(gcc_jit_context *context,
-				const std::string &name) {
-		gcc_jit_struct *struct_type = gcc_jit_context_new_struct_type(context,
-			LOCATION(context),
-			name.c_str(),
-			fields.size(),
-			fields.data());
-
-		type = gcc_jit_struct_as_type(struct_type);
-
-		return *this;
-	}
-
-	gcc_jit_rvalue *construct(gcc_jit_context *context, std::vector <gcc_jit_rvalue *> &args) {
-		JVL_ASSERT(fields.size(), "attempting to construct jit_struct with no fields");
-		JVL_ASSERT(fields.size() >= args.size(), "too many arguments in jit_struct "
-			"constructor (got {}, expected at most {})", args.size(), fields.size());
-
-		fmt::println("constructing @{} (type = @{}) with {} arguments:",
-			(void *) this, (void *) type, args.size());
-
-		for (auto arg : args)
-			fmt::println("  > @{}", (void *) arg);
-
-		gcc_jit_rvalue *value = gcc_jit_context_new_struct_constructor(context,
-			LOCATION(context),
-			gcc_jit_type_unqualified(type),
-			args.size(),
-			fields.data(),
-			args.data());
-
-		return value;
-	}
-};
-
-struct jit_instruction {
-	gcc_jit_object *value;
-	jit_struct *type_info;
-
-	static auto null() {
-		return jit_instruction(nullptr, nullptr);
-	}
-};
-
-struct jit_context : Buffer {
-	gcc_jit_context *const gcc;
-	gcc_jit_function *function;
-	gcc_jit_block *block;
-
-	std::vector <jit_instruction> parameters;
-	std::vector <jit_instruction> cached;
-
-	wrapped::hash_table <PrimitiveType, jit_struct *> primitive_types;
-
-	jit_context(const Buffer &buffer_, gcc_jit_context *const gcc_)
-		: Buffer(buffer_), gcc(gcc_) {}
-};
-
-jit_struct *generate_type_field_primitive_scalar(jit_context &context, PrimitiveType item)
+gcc_jit_type *generate_primitive_scalar_type(gcc_jit_context *const context, PrimitiveType item)
 {
-	jit_struct *s = new jit_struct;
-
 	switch (item) {
 	case boolean:
-		s->type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_BOOL);
-		break;
+		return gcc_jit_context_get_type(context, GCC_JIT_TYPE_BOOL);
 	case i32:
-		s->type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_INT32_T);
-		break;
+		return gcc_jit_context_get_type(context, GCC_JIT_TYPE_INT32_T);
 	case u32:
-		s->type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_UINT32_T);
-		break;
+		return gcc_jit_context_get_type(context, GCC_JIT_TYPE_UINT32_T);
 	case f32:
-		s->type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
-		break;
+		return gcc_jit_context_get_type(context, GCC_JIT_TYPE_FLOAT);
 	default:
-		JVL_ABORT("unsupported primitive type {} encountered in {}",
-			tbl_primitive_types[item], __FUNCTION__);
+		break;
 	}
 
-	return s;
+	JVL_ABORT("unsupported primitive type {} encountered in {}",
+		tbl_primitive_types[item], __FUNCTION__);
 }
 
-jit_struct *generate_type_field_primitive_vector(jit_context &context,
-						 const char *name,
-						 PrimitiveType item,
-						 size_t components,
-						 const std::optional <size_t> &alignment = std::nullopt)
+gcc_jit_type *generate_primitive_vector_type(gcc_jit_context *context,
+					const char *name,
+					PrimitiveType item,
+					size_t components,
+					bool align)
 {
 	static constexpr const char *component_names[] = { "x", "y", "z", "w" };
 
@@ -127,46 +55,38 @@ jit_struct *generate_type_field_primitive_vector(jit_context &context,
 		"construction, got {} instead",
 		tbl_primitive_types[item]);
 
-	// Skip generation if its already cached
-	if (auto sptr = context.primitive_types.get(item))
-		return sptr.value();
+	auto element = generate_primitive_scalar_type(context, item);
 
-	jit_struct *s = new jit_struct;
-
-	jit_struct *element = generate_type_field_primitive_scalar(context, item);
-
-	s->fields.resize(components);
+	std::vector <gcc_jit_field *> fields(components);
 	for (size_t i = 0; i < components; i++) {
-		s->fields[i] = gcc_jit_context_new_field(context.gcc, nullptr,
-			element->type, component_names[i]);
+		fields[i] = gcc_jit_context_new_field(context,
+			nullptr, element, component_names[i]);
 	}
 
-	s->field_types.resize(components);
-	for (size_t i = 0; i < components; i++)
-		s->field_types[i] = element;
-		
-	if (alignment) {
+	if (align) {
 		fmt::println("requires alignment, padding with an extra element");
-		s->fields.push_back(gcc_jit_context_new_field(context.gcc,
-			LOCATION(context.gcc),
-			element->type, "_align"));
 
-		s->field_types.push_back(element);
+		gcc_jit_field *extra = gcc_jit_context_new_field(context,
+			LOCATION(context), element, "_align");
+
+		fields.push_back(extra);
 	}
 
-	s->materialize(context.gcc, name);
+	gcc_jit_struct *vector = gcc_jit_context_new_struct_type(context,
+		LOCATION(context),
+		name,
+		fields.size(),
+		fields.data());
 
 	JVL_INFO("created struct for vector "
-		"primitive type {}x{} (alignment={})",
+		"primitive type {}x{} (align={})",
 		tbl_primitive_types[item], components,
-		alignment.value_or(0));
+		align);
 
-	context.primitive_types[item] = s;
-
-	return s;
+	return gcc_jit_struct_as_type(vector);
 }
 
-jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType item)
+gcc_jit_type *generate_primitive_type(gcc_jit_context *const context, PrimitiveType item)
 {
 	switch (item) {
 
@@ -175,31 +95,31 @@ jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType it
 	case i32:
 	case u32:
 	case f32:
-		return generate_type_field_primitive_scalar(context, item);
+		return generate_primitive_scalar_type(context, item);
 
 	// Integer vector types
 	case ivec2:
-		return generate_type_field_primitive_vector(context, "ivec2", i32, 2);
+		return generate_primitive_vector_type(context, "ivec2", i32, 2, false);
 	case ivec3:
-		return generate_type_field_primitive_vector(context, "ivec3", i32, 3, 16);
+		return generate_primitive_vector_type(context, "ivec3", i32, 3, true);
 	case ivec4:
-		return generate_type_field_primitive_vector(context, "ivec4", i32, 4);
+		return generate_primitive_vector_type(context, "ivec4", i32, 4, false);
 
 	// Unsigned integer vector types
 	case uvec2:
-		return generate_type_field_primitive_vector(context, "uvec2", u32, 2);
+		return generate_primitive_vector_type(context, "uvec2", u32, 2, false);
 	case uvec3:
-		return generate_type_field_primitive_vector(context, "uvec3", u32, 3, 16);
+		return generate_primitive_vector_type(context, "uvec3", u32, 3, true);
 	case uvec4:
-		return generate_type_field_primitive_vector(context, "uvec4", u32, 4);
+		return generate_primitive_vector_type(context, "uvec4", u32, 4, false);
 
 	// Floating-point vector types
 	case vec2:
-		return generate_type_field_primitive_vector(context, "vec2", f32, 2);
+		return generate_primitive_vector_type(context, "vec2", f32, 2, false);
 	case vec3:
-		return generate_type_field_primitive_vector(context, "vec3", f32, 3, 16);
+		return generate_primitive_vector_type(context, "vec3", f32, 3, true);
 	case vec4:
-		return generate_type_field_primitive_vector(context, "vec4", f32, 4);
+		return generate_primitive_vector_type(context, "vec4", f32, 4, false);
 
 	default:
 		break;
@@ -209,121 +129,42 @@ jit_struct *generate_type_field_primitive(jit_context &context, PrimitiveType it
 		tbl_primitive_types[item], __FUNCTION__);
 }
 
-jit_struct *generate_type_field(jit_context &context, index_t index)
+gcc_jit_object *generate_primitive(gcc_jit_context *const context, const Primitive &primitive)
 {
-	auto &atom = context.atoms[index];
-	JVL_ASSERT_PLAIN(atom.is <TypeInformation> ());
+	auto scalar_type = generate_primitive_scalar_type(context, primitive.type);
 
-	TypeInformation tf = atom.as <TypeInformation> ();
-	if (tf.next == -1 && tf.down == -1) {
-		fmt::println("got primitive type {}", tbl_primitive_types[tf.item]);
-		return generate_type_field_primitive(context, tf.item);
-	}
-
-	// Assume to be a struct aggregrate type
-	jit_struct *s = new jit_struct;
-
-	fmt::println("new struct type: {}", (void *) s);
-	fmt::println("  for type field: {}", atom);
-
-	index_t i = index;
-	while (i != -1) {
-		auto &atom = context.atoms[i];
-		JVL_ASSERT_PLAIN(atom.is <TypeInformation> ());
-
-		TypeInformation tf = atom.as <TypeInformation> ();
-
-		gcc_jit_type *field_type = nullptr;
-
-		if (tf.down == -1) {
-			fmt::println("  field for primitive: {}", tbl_primitive_types[tf.item]);
-			jit_struct *sf = generate_type_field_primitive(context, tf.item);
-			s->field_types.push_back(sf);
-			field_type = sf->type;
-		} else {
-			JVL_ABORT("nested aggregates are currently unsupported");
-		}
-
-		size_t fn = s->fields.size();
-		std::string fname = fmt::format("f{}", fn);
-		gcc_jit_field *field = gcc_jit_context_new_field(context.gcc, nullptr,
-			field_type, fname.c_str());
-
-		s->fields.push_back(field);
-
-		i = tf.next;
-	}
-
-	s->materialize(context.gcc, fmt::format("s_"));
-	JVL_INFO("created struct for type field @{} "
-		"with {} fields", index, s->fields.size());
-
-	return s;
-}
-
-std::vector <gcc_jit_rvalue *> load_rvalue_arguments(jit_context &context, index_t argsi)
-{
-	std::vector <gcc_jit_rvalue *> args;
-
-	index_t next = argsi;
-	while (next != -1) {
-		auto &g = context.atoms[next];
-		JVL_ASSERT_PLAIN(g.is <List> ());
-
-		auto &list = g.as <List> ();
-
-		// TODO: Some instructions will emit an l-value, so need to watch out
-		args.push_back((gcc_jit_rvalue *) context.cached[list.item].value);
-
-		next = list.next;
-	}
-
-	return args;
-}
-
-jit_instruction generate_instruction_primitive(jit_context &context, const Primitive &primitive)
-{
 	switch (primitive.type) {
 
 	case i32:
 	{
-		jit_instruction ji;
-		ji.type_info = generate_type_field_primitive(context, i32);
-		ji.value = (gcc_jit_object *) gcc_jit_context_new_rvalue_from_int(context.gcc,
-				ji.type_info->type, primitive.idata);
-		return ji;
+		auto rv = gcc_jit_context_new_rvalue_from_int(context, scalar_type, primitive.idata);
+		return gcc_jit_rvalue_as_object(rv);
 	}
 
 	case u32:
 	{
-		jit_instruction ji;
-		ji.type_info = generate_type_field_primitive(context, u32);
-		ji.value = (gcc_jit_object *) gcc_jit_context_new_rvalue_from_int(context.gcc,
-				ji.type_info->type, primitive.udata);
-		return ji;
+		auto rv = gcc_jit_context_new_rvalue_from_int(context, scalar_type, primitive.udata);
+		return gcc_jit_rvalue_as_object(rv);
 	}
 
 	case f32:
 	{
-		jit_instruction ji;
-		ji.type_info = generate_type_field_primitive(context, f32);
-		ji.value = (gcc_jit_object *) gcc_jit_context_new_rvalue_from_double(context.gcc,
-				ji.type_info->type, primitive.fdata);
-		return ji;
+		auto rv = gcc_jit_context_new_rvalue_from_double(context, scalar_type, primitive.fdata);
+		return gcc_jit_rvalue_as_object(rv);
 	}
 
 	default:
 		break;
 	}
 
-	fmt::println("GCC JIT unexpected primitive: {}", primitive);
-	abort();
+	JVL_ABORT("unsupported primitive: {}", primitive);
 }
 
-jit_instruction generate_instruction_binary_operation(jit_context &context,
-						      OperationCode code,
-						      jit_struct *return_type,
-						      const std::vector <gcc_jit_rvalue *> &args)
+gcc_jit_object *generate_operation(gcc_jit_context *const context,
+				   OperationCode code,
+				   gcc_jit_type *value_type,
+				   gcc_jit_rvalue *one,
+				   gcc_jit_rvalue *two)
 {
 	static const wrapped::hash_table <OperationCode, gcc_jit_binary_op> table {
 		{ addition,		GCC_JIT_BINARY_OP_PLUS		},
@@ -338,32 +179,63 @@ jit_instruction generate_instruction_binary_operation(jit_context &context,
 	};
 
 	if (auto gcc_code = table.get(code)) {
-		gcc_jit_rvalue *expr = gcc_jit_context_new_binary_op(context.gcc,
-			nullptr, gcc_code.value(),
-			return_type->type, args[0], args[1]);
+		gcc_jit_rvalue *expr = gcc_jit_context_new_binary_op(context,
+			nullptr, gcc_code.value(), value_type, one, two);
 
 		JVL_ASSERT_PLAIN(expr);
 
-		jit_instruction ji;
-		ji.value = (gcc_jit_object *) expr;
-		ji.type_info = return_type;
-		return ji;
+		return gcc_jit_rvalue_as_object(expr);
 	}
 
-	fmt::println("GCC JIT unsupported operation {}", tbl_operation_code[code]);
-	abort();
+	JVL_ABORT("unsupported operation: {}", tbl_operation_code[code]);
 }
 
-jit_instruction generate_instruction_intrinsic(jit_context &context,
-					       IntrinsicOperation opn,
-					       jit_struct *return_type,
-					       std::vector <gcc_jit_rvalue *> &args)
-{
-	// TODO: map to one-time constructors...
-	switch (opn) {
+struct intrinsic_lookup_info {
+	IntrinsicOperation opn;
+	std::vector <PrimitiveType> types;
+	gcc_jit_type *returns;
 
-	// TODO: type cast operation, then legalize these kinds of intrinsics
-	// Unary builtin intrinsics
+	bool match(const std::vector <PrimitiveType> &other) const {
+		if (types.size() != other.size())
+			return false;
+
+		for (size_t i = 0; i < types.size(); i++) {
+			if (types[i] != other[i])
+				return false;
+		}
+
+		return true;
+	}
+};
+
+template <typename ... Args>
+auto overload(const Args &... args)
+{
+	return std::vector <PrimitiveType> { args... };
+}
+
+gcc_jit_function *intrinsic_lookup(gcc_jit_context *const context, const intrinsic_lookup_info &info)
+{
+	switch (info.opn) {
+
+	case clamp:
+	{
+		static const auto float_overload = overload(f32, f32, f32);
+
+		if (info.match(float_overload)) {
+			gcc_jit_type *float_type = gcc_jit_context_get_type(context, GCC_JIT_TYPE_FLOAT);
+			
+			gcc_jit_param *parameters[3];
+			parameters[0] = gcc_jit_context_new_param(context, LOCATION(context), float_type, "x");
+			parameters[1] = gcc_jit_context_new_param(context, LOCATION(context), float_type, "low");
+			parameters[2] = gcc_jit_context_new_param(context, LOCATION(context), float_type, "high");
+
+			return gcc_jit_context_new_function(context,
+				LOCATION(context), GCC_JIT_FUNCTION_IMPORTED, float_type,
+				"clamp", 3, parameters, 0);
+		}
+	}
+
 	case sin:
 	case cos:
 	case tan:
@@ -371,453 +243,361 @@ jit_instruction generate_instruction_intrinsic(jit_context &context,
 	case acos:
 	case atan:
 	{
-		JVL_ASSERT_PLAIN(args.size() == 1);
-
-		static const wrapped::hash_table <IntrinsicOperation, const char *> builtin {
-			{ sin, "sin" },
-			{ cos, "cos" },
-			{ tan, "tan" },
-			{ asin, "asin" },
-			{ acos, "acos" },
-			{ atan, "atan" },
+		static const auto float_overload = overload(f32);
+			
+		static const wrapped::hash_table <IntrinsicOperation, const char *const> float_names {
+			{ sin, "sinf" },
+			{ cos, "cosf" },
+			{ tan, "tanf" },
+			{ acos, "acosf" },
 		};
 
-		JVL_ASSERT(builtin.contains(opn),
-			"intrinsic operation ${} not recorded amonst builtins",
-			tbl_intrinsic_operation[opn]);
-
-		gcc_jit_function *intr_ftn = gcc_jit_context_get_builtin_function(context.gcc, builtin.at(opn));
-		JVL_ASSERT_PLAIN(intr_ftn);
-
-		// Casting the arguments
-		gcc_jit_type *double_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_DOUBLE);
-		gcc_jit_type *float_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
-		JVL_ASSERT_PLAIN(double_type);
-		JVL_ASSERT_PLAIN(float_type);
-
-		gcc_jit_rvalue *arg = gcc_jit_context_new_cast(context.gcc, LOCATION(context.gcc), args[0], double_type);
-		JVL_ASSERT_PLAIN(arg);
-
-		gcc_jit_rvalue *expr;
-		expr = gcc_jit_context_new_call(context.gcc, LOCATION(context.gcc), intr_ftn, 1, &arg);
-		expr = gcc_jit_context_new_cast(context.gcc, LOCATION(context.gcc), expr, float_type);
-
-		jit_instruction ji;
-		ji.value = (gcc_jit_object *) expr;
-		ji.type_info = return_type;
-		return ji;
-	}
-
-	case clamp:
-	{
-		JVL_ASSERT_PLAIN(args.size() == 3);
-		
-		gcc_jit_type *float_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
-		
-		gcc_jit_param *parameters[3];
-		parameters[0] = gcc_jit_context_new_param(context.gcc, LOCATION(context.gcc), float_type, "x");
-		parameters[1] = gcc_jit_context_new_param(context.gcc, LOCATION(context.gcc), float_type, "low");
-		parameters[2] = gcc_jit_context_new_param(context.gcc, LOCATION(context.gcc), float_type, "high");
-
-		gcc_jit_function *intr_ftn = gcc_jit_context_new_function(context.gcc,
-			LOCATION(context.gcc),
-			GCC_JIT_FUNCTION_IMPORTED,
-			float_type, "clamp",
-			3, parameters, 0);
-
-		void *handle = dlopen(nullptr, RTLD_LAZY);
-		JVL_ASSERT(handle, "could not load current binary as a shared library");
-		fmt::println("current handle: {}", handle);
-		void *clamp_ftn = dlsym(handle, "clamp");
-		JVL_ASSERT(clamp_ftn, "could not load clamp");
-		fmt::println("clamp handle: {}", clamp_ftn);
-
-		fmt::println("intrinsic function: {}", (void *) intr_ftn);
-		
-		gcc_jit_rvalue *expr;
-		expr = gcc_jit_context_new_call(context.gcc, LOCATION(context.gcc), intr_ftn, args.size(), args.data());
-
-		fmt::println("  > expression: {}", (void *) expr);
-		
-		jit_instruction ji;
-		ji.value = (gcc_jit_object *) expr;
-		ji.type_info = generate_type_field_primitive(context, f32);
-		return ji;
+		if (info.match(float_overload)) {
+			JVL_ASSERT_PLAIN(float_names.contains(info.opn));
+			return gcc_jit_context_get_builtin_function(context, float_names.at(info.opn));
+		}
 	}
 
 	case pow:
 	{
-		JVL_ASSERT_PLAIN(args.size() == 2);
-		
-		gcc_jit_type *float_type = gcc_jit_context_get_type(context.gcc, GCC_JIT_TYPE_FLOAT);
-		
-		gcc_jit_param *parameters[2];
-		parameters[0] = gcc_jit_context_new_param(context.gcc, LOCATION(context.gcc), float_type, "x");
-		parameters[1] = gcc_jit_context_new_param(context.gcc, LOCATION(context.gcc), float_type, "y");
+		static const auto float_overload = overload(f32, f32);
 
-		gcc_jit_function *intr_ftn = gcc_jit_context_get_builtin_function(context.gcc, "powf");
-
-		fmt::println("intrinsic function: {}", (void *) intr_ftn);
-		
-		gcc_jit_rvalue *expr;
-		expr = gcc_jit_context_new_call(context.gcc, LOCATION(context.gcc), intr_ftn, args.size(), args.data());
-
-		fmt::println("  > expression: {}", (void *) expr);
-		
-		jit_instruction ji;
-		ji.value = (gcc_jit_object *) expr;
-		ji.type_info = generate_type_field_primitive(context, f32);
-		return ji;
+		if (info.match(float_overload))
+			return gcc_jit_context_get_builtin_function(context, "powf");
 	}
 
 	// Intrinsics which could be supported if they had been lowered properly
 	case dot:
-		JVL_ABORT("intrinsic instruction ${} must be lowered", tbl_intrinsic_operation[opn]);
-		return jit_instruction::null();
+		JVL_ABORT("intrinsic instruction ${} must be lowered", tbl_intrinsic_operation[info.opn]);
 
 	default:
 		break;
 	}
 
-	JVL_ABORT("unsupported intrinsic instruction ${}", tbl_intrinsic_operation[opn]);
-	return jit_instruction::null();
+	JVL_ABORT("unhandled case in intrinsic lookup: {}", tbl_intrinsic_operation[info.opn]);
 }
 
-jit_instruction generate_instruction_access_field(jit_context &context, index_t src, index_t idx)
-{
-	auto &atom = context.atoms[src];
+namespace detail {
 
-	jit_instruction source_instruction = context.cached[src];
-	jit_struct *type_info = source_instruction.type_info;
+struct gcc_jit_function_generator_t : unnamed_body_t {
+	gcc_jit_context *const context;
+	gcc_jit_function *function;
+	gcc_jit_block *block;
 
-	JVL_ASSERT(idx < type_info->field_types.size(),
-		"index {} is out of bounds of jit_struct ({} fields, @{})",
-		idx, type_info->field_types.size(), (void *) type_info);
+	std::vector <gcc_jit_param *> parameters;
 
-	gcc_jit_field *field = type_info->fields[idx];
+	wrapped::hash_table <index_t, gcc_jit_object *> values;
+	wrapped::hash_table <QualifiedType, gcc_jit_type *> mapped_types;
 
-	// Handle special cases of loading
-	gcc_jit_rvalue *source = nullptr;
+	gcc_jit_function_generator_t(gcc_jit_context *const context_, const unnamed_body_t &body_)
+		: context(context_), unnamed_body_t(body_) {}
 
-	switch (atom.index()) {
+	// Generating types
+	gcc_jit_type *jitify_type(QualifiedType qt) {
+		auto original = qt;
 
-	// TODO: currently assuming its a parameter
-	// Convert the cached instruction value to an r-value
-	case Atom::type_index <Qualifier> ():
-	{
-		fmt::println("loading from a global/parameter");
-		gcc_jit_param *parameter = (gcc_jit_param *) source_instruction.value;
-		source = gcc_jit_param_as_rvalue(parameter);
-	} break;
+		// libgccjit is sensitive to type addresses,
+		// so we need to cache types we have already generated
+		if (mapped_types.contains(original))
+			return mapped_types[original];
 
-	default:
-		source = (gcc_jit_rvalue *) source_instruction.value;
-		break;
-	}
+		switch (qt.index()) {
 
-	gcc_jit_rvalue *expr = gcc_jit_rvalue_access_field(source, LOCATION(context.gcc), field);
+		variant_case(QualifiedType, PlainDataType):
+		{
+			auto &pd = qt.as <PlainDataType> ();
+			if (pd.is <PrimitiveType> ()) {
+				auto item = pd.as <PrimitiveType> ();
+				auto t = generate_primitive_type(context, item);
+				return (mapped_types[qt] = t);
+			}
 
-	// TOOD: verbose logging option
-	JVL_INFO("loading field #{} from source @{}", idx, (void *) source);
+			index_t concrete = pd.as <index_t> ();
+			return jitify_type(types[concrete]);
+		} break;
 
-	jit_instruction ji;
-	ji.type_info = type_info->field_types[idx];
-	ji.value = (gcc_jit_object *) expr;
-	return ji;
-}
+		variant_case(QualifiedType, StructFieldType):
+		{
+			fmt::println("struct field type:");
+			std::vector <gcc_jit_field *> fields;
 
-[[gnu::always_inline]]
-inline jit_instruction generate_instruction_access_field(jit_context &context, const Load &load)
-{
-	return generate_instruction_access_field(context, load.src, load.idx);
-}
+			index_t f = 0;
+			while (!qt.is <NilType> ()) {
+				fmt::println("  current {}", qt);
 
-[[gnu::always_inline]]
-inline jit_instruction generate_instruction_access_field(jit_context &context, const Swizzle &swizzle)
-{
-	// TODO: split up if necessary
-	return generate_instruction_access_field(context, swizzle.src, swizzle.code);
-}
+				gcc_jit_type *type = nullptr;
+				if (qt.is <StructFieldType> ()) {
+					auto &sft = qt.as <StructFieldType> ();
+					type = jitify_type(sft.base());
 
-jit_instruction generate_instruction_store(jit_context &context, const Store &store)
-{
-	// Determine the access chain used to reach the lvalue
-	std::queue <index_t> access_chain_indices;
-	std::queue <gcc_jit_field *> access_chain_fields;
+					index_t next = qt.as <StructFieldType> ().next;
+					qt = types[next];
+				} else {
+					type = jitify_type(qt);
 
-	fmt::println("finding access chain for store");
+					qt = QualifiedType::nil();
+				}
 
-	index_t idx = store.dst;
-	index_t dst = -1;
-	while (dst == -1) {
-		auto &atom = context.atoms[idx];
+				std::string name = fmt::format("f{}", f++);
+				auto field = gcc_jit_context_new_field(context,
+					LOCATION(context), type, name.c_str());
 
-		fmt::println("  {}", atom);
+				fields.push_back(field);
+			}
 
-		// Valid paths can only include loads and swizzles
-		if (auto load = atom.get <Load> ()) {
-			auto &source_type = context.cached[load->src].type_info;
-			auto &loaded_field = source_type->fields[load->idx];
+			std::string name = fmt::format("aggr{}", mapped_types.size());
+			auto aggregate_struct = gcc_jit_context_new_struct_type(context,
+				LOCATION(context), name.c_str(), fields.size(), fields.data());
 
-			fmt::println("  through load");
-			access_chain_indices.push(load->idx);
-			access_chain_fields.push(loaded_field);
-			idx = load->src;
-		} else if (auto swizzle = atom.get <Swizzle> ()) {
-			auto &source_type = context.cached[swizzle->src].type_info;
-			auto &loaded_field = source_type->fields[swizzle->code];
+			auto aggregate_type = gcc_jit_struct_as_type(aggregate_struct);
+			mapped_types[original] = aggregate_type;
+			return aggregate_type;
+		}
 
-			fmt::println("  through swizzle");
-			access_chain_indices.push(swizzle->code);
-			access_chain_fields.push(loaded_field);
-			idx = swizzle->src;
-		} else {
-			// Otherwise we have found the final location
-			fmt::println("final destination of access chain");
-			dst = idx;
+		default:
 			break;
 		}
-	}
 
-	JVL_ASSERT_PLAIN(dst != -1);
-
-	auto copy = access_chain_indices;
-	fmt::print("final access chain: ");
-	while (copy.size()) {
-		fmt::print(" {}", copy.front());
-		copy.pop();
-	}
-	fmt::print("\n");
-	fmt::println("with destination: {}", context.atoms[dst]);
-
-	// Value side
-	gcc_jit_rvalue *rvalue = (gcc_jit_rvalue *) context.cached[store.src].value;
-
-	// TODO: handling for lvalues
-	gcc_jit_object *object = context.cached[dst].value;
-	gcc_jit_lvalue *lvalue = nullptr;
-
-	auto &destination = context.atoms[dst];
-	switch (destination.index()) {
-	case Atom::type_index <Qualifier> ():
-		lvalue = gcc_jit_param_as_lvalue((gcc_jit_param *) object);
-		break;
-	default:
-		break;
-	}
-
-	if (!lvalue) {
-		fmt::println("GCC JIT failed to extract l-value from instruction: {}", destination);
-		abort();
-	}
-
-	fmt::println("got l-value: {}", (void *) lvalue);
-	while (access_chain_fields.size()) {
-		gcc_jit_field *field = access_chain_fields.front();
-		access_chain_fields.pop();
-		lvalue = gcc_jit_lvalue_access_field(lvalue, LOCATION(context.gcc), field);
-		fmt::println("  next l-value: {}", (void *) lvalue);
-	}
-
-	fmt::println("final l-value: {}", (void *) lvalue);
-	gcc_jit_block_add_assignment(context.block, LOCATION(context.gcc), lvalue, rvalue);
-
-	// Stores should never be used directly
-	return { nullptr, nullptr };
-}
-
-jit_instruction generate_instruction(jit_context &context, index_t i)
-{
-	auto &atom = context.atoms[i];
-
-	switch (atom.index()) {
-
-	case Atom::type_index <Qualifier> ():
-	{
-		auto &global = atom.as <Qualifier> ();
-		JVL_ASSERT_PLAIN(global.kind == parameter);
-		return context.parameters[global.numerical];
-	}
-
-	case Atom::type_index <TypeInformation> ():
-	{
-		// Skip if already generated by the parameters or etc.
-		if (context.cached[i].type_info)
-			return context.cached[i];
-
-		jit_instruction ji;
-		ji.value = nullptr;
-		ji.type_info = generate_type_field(context, i);
-		return ji;
-	}
-
-	case Atom::type_index <Primitive> ():
-	{
-		auto &primitive = atom.as <Primitive> ();
-		return generate_instruction_primitive(context, primitive);
-	}
-
-	case Atom::type_index <Construct> ():
-	{
-		auto &constructor = atom.as <Construct> ();
-		
-		// If it is transient, then defer to its type (should be a qualifier)
-		if (constructor.transient)
-			return generate_instruction(context, constructor.type);
-
-		auto args = load_rvalue_arguments(context, constructor.args);
-		jit_struct *struct_type = context.cached[constructor.type].type_info;
-
-		jit_instruction ji;
-		ji.type_info = struct_type;
-		ji.value = (gcc_jit_object *) struct_type->construct(context.gcc, args);
-		return ji;
-	}
-
-	case Atom::type_index <Operation> ():
-	{
-		auto &opn = atom.as <Operation> ();
-		// auto args = load_rvalue_arguments(context, opn.args);
-		JVL_ABORT("unfinished implementation of operation generation");
-		// // TODO: separate type info and values...
-		// auto return_type = context.cached[0].type_info;
-		// // auto return_type = context.cached[opn.type].type_info;
-		// return generate_instruction_binary_operation(context, opn.code, return_type, args);
-	}
-
-	case Atom::type_index <Load> ():
-		return generate_instruction_access_field(context, atom.as <Load> ());
-
-	case Atom::type_index <Swizzle> ():
-		return generate_instruction_access_field(context, atom.as <Swizzle> ());
-
-	case Atom::type_index <Store> ():
-		return generate_instruction_store(context, atom.as <Store> ());
-
-	case Atom::type_index <List> ():
-		// Skip lists, they are only for the Thunder IR
-		return jit_instruction::null();
-
-	case Atom::type_index <Returns> ():
-	{
-		auto &returns = atom.as <Returns> ();
-		auto value = (gcc_jit_rvalue *) context.cached[returns.value].value;
-		gcc_jit_block_end_with_return(context.block, LOCATION(context.gcc), value);
-	} return jit_instruction::null();
-
-	case Atom::type_index <Intrinsic> ():
-	{
-		auto &intr = atom.as <Intrinsic> ();
-		auto args = load_rvalue_arguments(context, intr.args);
-		auto return_type = context.cached[intr.type].type_info;
-		return generate_instruction_intrinsic(context, intr.opn, return_type, args);
-	}
-
-	default:
-		break;
-	}
-
-	fmt::println("GCC JIT unsupported instruction: {}", atom.to_string());
-	abort();
-}
-
-void generate_block(gcc_jit_context *const gcc, Linkage::block_t &block)
-{
-	fmt::println("generating block");
-
-	jit_context context(block, gcc);
-
-	// JIT the parameters
-	std::vector <gcc_jit_param *> gcc_parameters;
-
-	gcc_parameters.resize(block.parameters.size());
-	context.parameters.resize(block.parameters.size());
-	context.cached.resize(block.atoms.size(), jit_instruction::null());
-
-	for (auto &[i, t] : block.parameters) {
-		fmt::println("\nGENERATING PARAMETER ARG{} (type {})", i, t);
-		
-		std::string name = fmt::format("_arg{}", i);
-
-		jit_struct *type_info = generate_type_field(context, t);
-		gcc_jit_param *parameter = gcc_jit_context_new_param(context.gcc, nullptr, type_info->type, name.c_str());
-
-		jit_instruction ji;
-		ji.type_info = type_info;
-		ji.value = (gcc_jit_object *) parameter;
-
-		gcc_parameters[i] = parameter;
-		context.parameters[i] = ji;
-
-		// Save the generated type into the cache
-		ji.value = nullptr;
-		context.cached[t] = ji;
+		JVL_ABORT("failed to JIT (gcc-jit) the following type: {}", original);
 	}
 	
-	// Determine the return type
-	gcc_jit_type *return_type = nullptr;
-
-	if (auto ptr = context.cached[block.returns].type_info) {
-		return_type = ptr->type;
-	} else {
-		fmt::println("block returns value: {} (ret: {})", block.atoms[block.returns], block.returns);
-		return_type = generate_type_field(context, block.returns)->type;
-		fmt::println("return type: @{}", (void *) return_type);
+	// Per-atom generator
+	void generate(index_t i) {
+		auto ftn = [&](auto atom) { return generate(atom, i); };
+		auto rv = std::visit(ftn, atoms[i]);
+		if (rv)
+			values[i] = rv;
 	}
 
-	// Begin the function context
-	// TODO: embed the scope name in the block
+	template <atom_instruction T>
+	gcc_jit_object *generate(const T &atom, index_t i) {
+		JVL_ABORT("failed to JIT (gcc-jit) compile atom: {} (@{})", atom, i);
+	}
+	
+	template <>
+	gcc_jit_object *generate(const Qualifier &, index_t) {
+		// Nothing to do here...
+		return nullptr;
+	}
 
-	context.function = gcc_jit_context_new_function(context.gcc,
-		LOCATION(context.gcc),
-		GCC_JIT_FUNCTION_EXPORTED, return_type, "function",
-		context.parameters.size(), gcc_parameters.data(), 0);
+	template <>
+	gcc_jit_object *generate(const TypeInformation &, index_t index) {
+		auto &qt = types[index];
 
-	// TODO: distinguish between function_t and block_t
+		// All we need to do it generate the type so it is ready
+		auto t = jitify_type(qt);
+		return nullptr;
+	}
+	
+	template <>
+	gcc_jit_object *generate(const Primitive &primivite, index_t index) {
+		return generate_primitive(context, primivite);
+	}
+	
+	template <>
+	gcc_jit_object *generate(const Construct &constructor, index_t index) {
+		if (constructor.transient) {
+			auto &atom = atoms[constructor.type];
+			JVL_ASSERT(atom.is <Qualifier> (), "transient constructors must be typed to qualifiers");
 
-	context.block = gcc_jit_function_new_block(context.function, "primary");
+			auto &qualifier = atom.as <Qualifier> ();
+			if (qualifier.kind == parameter) {
+				index_t loc = qualifier.numerical;
+				auto rv = gcc_jit_param_as_rvalue(parameters[loc]);
+				return gcc_jit_rvalue_as_object(rv);
+			}
 
-	// TODO: cache block synthesized status
-	auto synthesized = detail::synthesize_list(block);
-
-	// Do some extra processing to get the list of required instructions
-	auto used = decltype(synthesized)();
-
-	std::queue <index_t> work;
-	for (auto i : synthesized)
-		work.push(i);
-
-	while (work.size()) {
-		index_t next = work.front();
-		work.pop();
-
-		if (next == -1)
-			continue;
-
-		auto &atom = block.atoms[next];	
-		if (atom.is <TypeInformation> () && !synthesized.contains(next)) {
-			// Unless explicitly requires from the
-			// synthesized list of atoms, we
-			// should not be generating more types
-			continue;
+			JVL_ABORT("unhandled case for transient constructors: {}", qualifier);
 		}
 
-		used.insert(next);
-
-		auto &&addrs = atom.addresses();
-		work.push(addrs.a0);
-		work.push(addrs.a1);
+		JVL_ABORT("unfinished implementation for JIT-ing constructor: {}", constructor);
 	}
 
-	// Finally, generate the instructions in JIT
-	for (index_t i = 0; i < block.atoms.size(); i++) {
-		if (used.contains(i))
-			context.cached[i] = generate_instruction(context, i);
+	gcc_jit_object *load_field(index_t src, index_t index, bool lvalue) {
+		JVL_ASSERT(!lvalue, "lvalue loading is not implemented");
 
-		// fmt::println("   $ cached @{} -> {}, {}\n", i,
-		// 	(void *) context.cached[i].value,
-		// 	(void *) context.cached[i].type_info);
+		// Find the original type
+		QualifiedType original = types[src];
+		// TODO: is_aggregate method()
+		// TODO: double check that it is indeed a struct
+
+		auto type = jitify_type(original);
+		auto struct_type = reinterpret_cast <gcc_jit_struct*> (type);
+		auto field = gcc_jit_struct_get_field(struct_type, index);
+
+		auto v = values.at(src);
+		auto rv = reinterpret_cast <gcc_jit_rvalue *> (v);
+		rv = gcc_jit_rvalue_access_field(rv, LOCATION(context), field);
+
+		return gcc_jit_rvalue_as_object(rv);
 	}
+	
+	template <>
+	gcc_jit_object *generate(const Swizzle &swizzle, index_t index) {
+		return load_field(swizzle.src, swizzle.code, false);
+	}
+	
+	template <>
+	gcc_jit_object *generate(const Load &load, index_t index) {
+		auto v = values.at(load.src);
+		if (load.idx == -1)
+			return v;
+		
+		return load_field(load.src, load.idx, false);
+	}
+
+	template <>
+	gcc_jit_object *generate(const Operation &operation, index_t index) {
+		JVL_ASSERT(operation.b != -1, "unary operations are not implemented");
+
+		auto type = jitify_type(types[index]);
+		auto one = reinterpret_cast <gcc_jit_rvalue *> (values.at(operation.a));
+		auto two = reinterpret_cast <gcc_jit_rvalue *> (values.at(operation.b));
+
+		return generate_operation(context, operation.code, type, one, two);
+	}
+	
+	template <>
+	gcc_jit_object *generate(const Intrinsic &intrinsic, index_t index) {
+		auto type = jitify_type(types[index]);
+
+		std::vector <PrimitiveType> argument_types;
+		std::vector <gcc_jit_rvalue *> argument_rvalues;
+
+		index_t next = intrinsic.args;
+		while (next != -1) {
+			auto &atom = atoms[next];
+			JVL_ASSERT(atom.is <List> (),
+				"intrinsic arguments must be in "
+				"the form of list chains, instead got: {}",
+				atom);
+
+			auto &list = atom.as <List> ();
+
+			auto rv = reinterpret_cast <gcc_jit_rvalue *> (values.at(list.item));
+			auto qt = types[list.item];
+
+			JVL_ASSERT(qt.is_primitive(), "intrinsic arguments must be primitives");
+
+			auto primitive = qt.as <PlainDataType> ().as <PrimitiveType> ();
+
+			argument_types.push_back(primitive);
+			argument_rvalues.push_back(rv);
+
+			next = list.next;
+		}
+
+		auto info = intrinsic_lookup_info {
+			.opn = intrinsic.opn,
+			.types = argument_types,
+			.returns = type
+		};
+
+		auto ftn = intrinsic_lookup(context, info);
+		auto expr = gcc_jit_context_new_call(context, LOCATION(context), ftn,
+			argument_rvalues.size(), argument_rvalues.data());
+
+		return gcc_jit_rvalue_as_object(expr);
+	}
+	
+	template <>
+	gcc_jit_object *generate(const List &, index_t) {
+		// Nothing to do here...
+		return nullptr;
+	}
+	
+	template <>
+	gcc_jit_object *generate(const Returns &returns, index_t index) {
+		auto v = values.at(returns.value);
+		auto rv = reinterpret_cast <gcc_jit_rvalue *> (v);
+		gcc_jit_block_end_with_return(block, LOCATION(context), rv);
+		return nullptr;
+	}
+
+	// Expand generation list
+	auto work_list() {
+		auto used = std::unordered_set <index_t> ();
+
+		std::queue <index_t> work;
+		for (auto i : synthesized)
+			work.push(i);
+
+		while (work.size()) {
+			index_t next = work.front();
+			work.pop();
+
+			if (next == -1)
+				continue;
+
+			auto &atom = atoms[next];	
+			if (atom.is <TypeInformation> () && !synthesized.contains(next)) {
+				// Unless explicitly requires from the
+				// synthesized list of atoms, we
+				// should not be generating more types
+				continue;
+			}
+
+			used.insert(next);
+
+			auto &&addrs = atom.addresses();
+			work.push(addrs.a0);
+			work.push(addrs.a1);
+		}
+
+		return used;
+	}
+
+	// Configure the function
+	void begin_function() {
+		// Pre-processing; get parameters and return type
+		parameters.clear();
+
+		gcc_jit_type *return_type = nullptr;
+
+		for (int i = 0; i < pointer; i++) {
+			if (!synthesized.count(i))
+				continue;
+
+			auto &atom = atoms[i];
+			if (auto qualifier = atom.get <Qualifier> ()) {
+				if (qualifier->kind == parameter) {
+					index_t underlying = qualifier->underlying;
+					gcc_jit_type *type = jitify_type(types[underlying]);
+
+					size_t loc = qualifier->numerical;
+					size_t size = std::max(parameters.size(), loc + 1);
+					parameters.resize(size);
+
+					std::string name = fmt::format("_arg{}", loc);
+
+					parameters[loc] = gcc_jit_context_new_param(context,
+						LOCATION(context), type, name.c_str());
+				}
+			}
+
+			if (auto returns = atom.get <Returns> ())
+				return_type = jitify_type(types[i]);
+		}
+
+		function = gcc_jit_context_new_function(context,
+			LOCATION(context), GCC_JIT_FUNCTION_EXPORTED,
+			return_type, "function",
+			parameters.size(), parameters.data(), 0);
+
+		block = gcc_jit_function_new_block(function, "primary");
+	}
+
+	void generate() {
+		begin_function();
+
+		auto used = work_list();
+		for (int i = 0; i < pointer; i++) {
+			if (used.count(i))
+				generate(i);
+		}
+	}
+};
+
 }
 
 Linkage::jit_result_t Linkage::generate_jit_gcc()
@@ -835,8 +615,14 @@ Linkage::jit_result_t Linkage::generate_jit_gcc()
 	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_SUMMARY, true);
 	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
 
-	for (auto &[_, block] : blocks)
-		generate_block(context, block);
+	// for (auto &[_, block] : blocks)
+	// 	generate_block(context, block);
+
+	for (auto &[_, block] : blocks) {
+		detail::unnamed_body_t body(block);
+		detail::gcc_jit_function_generator_t generator(context, body);
+		generator.generate();
+	}
 
 	gcc_jit_context_dump_to_file(context, "gcc_jit_result.c", true);
 

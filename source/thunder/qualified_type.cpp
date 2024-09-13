@@ -1,4 +1,5 @@
 #include "thunder/qualified_type.hpp"
+#include "thunder/enumerations.hpp"
 
 namespace jvl::thunder {
 
@@ -13,6 +14,11 @@ bool NilType::operator==(const NilType &) const
 std::string NilType::to_string() const
 {
         return "nil";
+}
+
+std::size_t NilType::hash() const
+{
+        return 0;
 }
 
 // Primitives and user-defined structures
@@ -35,6 +41,14 @@ std::string PlainDataType::to_string() const
         return fmt::format("concrete(%{})", as <index_t> ());
 }
 
+std::size_t PlainDataType::hash() const
+{
+        if (is <PrimitiveType> ())
+                return as <PrimitiveType> ();
+
+        return std::size_t(as <index_t> ()) << 32;
+}
+
 // Struct fields
 StructFieldType::StructFieldType(PlainDataType ut_, index_t next_)
         : PlainDataType(ut_), next(next_) {}
@@ -55,6 +69,11 @@ PlainDataType StructFieldType::base() const
         return PlainDataType(*this);
 }
 
+std::size_t StructFieldType::hash() const
+{
+        return PlainDataType::hash() ^ (std::size_t(next) << 16);
+}
+
 // Array of unqualified types
 ArrayType::ArrayType(PlainDataType ut_, index_t size_)
         : PlainDataType(ut_), size(size_) {}
@@ -73,6 +92,11 @@ std::string ArrayType::to_string() const
 PlainDataType ArrayType::base() const
 {
         return PlainDataType(*this);
+}
+
+std::size_t ArrayType::hash() const
+{
+        return PlainDataType::hash() ^ (std::size_t(size) << 16);
 }
 
 // Full qualified type

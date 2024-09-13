@@ -93,7 +93,8 @@ QualifiedType Buffer::classify(index_t i) const
 		// TODO: binary ops, no vector
 		auto result = lookup_operation_overload(operation.code, qts);
 		if (!result)
-			JVL_ABORT("failed to find overload for operation: {}", atom);
+			dump();
+		JVL_ASSERT(result, "failed to find overload for operation: {} (@{})", atom, i);
 		return result;
 	}
 
@@ -102,8 +103,7 @@ QualifiedType Buffer::classify(index_t i) const
 		auto &intrinsic = atom.as <Intrinsic> ();
 		auto args = expand_list_types(intrinsic.args);
 		auto result = lookup_intrinsic_overload(intrinsic.opn, args);
-		if (!result)
-			JVL_ABORT("failed to find overload for intrinsic: {}", atom);
+		JVL_ASSERT(result, "failed to find overload for intrinsic: {} (@{})", atom, i);
 		return result;
 	}
 

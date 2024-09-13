@@ -1,6 +1,7 @@
 # Road Map
 
-**IRE**
+## Intermediate Representation Emitter
+
 - [ ] Arrays of generic items without a statically specified size
 	- For CC targets, solidify into wide arrays
 - [ ] `inout` and `out` qualifiers for parameters
@@ -14,3 +15,10 @@
 - [ ] Reflection information for generating descriptor sets
 	- Layout types and locations
 	- Buffer, image, and sampler binding locations
+- [ ] Flat layout outputs
+
+## Examples
+
+- [ ] False coloring of triangle meshes using arrays
+- [ ] Specialized glyph rendering through runtime shader generation
+	- Parallelized version as well, compiling multiple shaders at the same time

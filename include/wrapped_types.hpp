@@ -56,6 +56,8 @@ struct variant : std::variant <Args...> {
 	}
 };
 
+#define variant_case(T, K) case T::type_index <K> ()
+
 // Merging optional variant types
 template <typename T>
 struct optional : std::optional <T> {

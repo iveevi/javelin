@@ -9,6 +9,7 @@ namespace jvl::thunder {
 struct NilType {
 	bool operator==(const NilType &) const;
 	std::string to_string() const;
+	std::size_t hash() const;
 };
 
 // Either a primitive type or a user-defined structure
@@ -19,6 +20,7 @@ struct PlainDataType : public plain_data_type_base {
 
 	bool operator==(const PlainDataType &) const;
 	std::string to_string() const;
+	std::size_t hash() const;
 };
 
 // Plain data type which is a struct field
@@ -28,9 +30,12 @@ struct StructFieldType : PlainDataType {
 	index_t next;
 
 	StructFieldType(PlainDataType, index_t);
+	
+	PlainDataType base() const;
+
 	bool operator==(const StructFieldType &) const;
 	std::string to_string() const;
-	PlainDataType base() const;
+	std::size_t hash() const;
 };
 
 // Array of unqualified types
@@ -38,9 +43,12 @@ struct ArrayType : public PlainDataType {
 	index_t size;
 
 	ArrayType(PlainDataType, index_t);
+
+	PlainDataType base() const;
+
 	bool operator==(const ArrayType &) const;
 	std::string to_string() const;
-	PlainDataType base() const;
+	std::size_t hash() const;
 };
 
 // TODO: inout
@@ -58,10 +66,16 @@ using qualified_type_base = wrapped::variant <
 struct QualifiedType : qualified_type_base {
 	using qualified_type_base::qualified_type_base;
 
+	bool is_primitive() const {
+		auto pd = get <PlainDataType> ();
+		return pd && pd->is <PrimitiveType> ();
+	}
+
+	PlainDataType remove_qualifiers() const;
+
 	operator bool() const;
 	bool operator==(const QualifiedType &) const;
 	std::string to_string() const;
-	PlainDataType remove_qualifiers() const;
 
 	static QualifiedType primitive(PrimitiveType);
 	static QualifiedType concrete(index_t);
@@ -76,3 +90,12 @@ inline auto format_as(const QualifiedType &qt)
 }
 
 } // namespace jvl::thunder
+
+// Hashing
+template <>
+struct std::hash <jvl::thunder::QualifiedType> {
+	std::size_t operator()(const jvl::thunder::QualifiedType &qt) const {
+		auto ftn = [](auto x) { return x.hash(); };
+		return std::visit(ftn, qt);
+	}
+};
