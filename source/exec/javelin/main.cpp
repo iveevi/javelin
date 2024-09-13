@@ -72,6 +72,9 @@ using imgui_callback_list = std::vector <imgui_callback>;
 
 void render_imgui(const RenderingInfo &info, const ImGuiRenderGroup &irg, const imgui_callback_list &callbacks)
 {
+	// Configure the rendering extent
+	littlevk::viewport_and_scissor(info.cmd, littlevk::RenderArea(info.window));
+
 	// Start the rendering pass
 	auto rpbi = irg.render_pass_begin_info(info);
 	info.cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);
@@ -202,6 +205,8 @@ struct ViewportBundle {
 	Viewport info;
 	ViewportFramebuffers fb;
 
+	// TODO: generate the callback from here...
+
 	static ViewportBundle from(DeviceResourceCollection &drc, const vk::RenderPass &render_pass) {
 		ViewportBundle vb;
 		vb.fb = ViewportFramebuffers::from(drc, render_pass);
@@ -293,7 +298,7 @@ public:
 	auto render_pass_begin_info(const RenderingInfo &info, const ViewportFramebuffers &fbs) const {
 		return littlevk::default_rp_begin_info <2> (render_pass,
 			fbs.framebuffers[info.operation.index],
-			info.window);
+			fbs.extent);
 	}
 
 	static ViewportRenderGroup from(DeviceResourceCollection &drc) {
@@ -309,6 +314,9 @@ void render_viewport_scene(const RenderingInfo &info,
 			   ViewportBundle &viewport,
 			   const vulkan::Scene &scene)
 {
+	// Configure the rendering extent
+	littlevk::viewport_and_scissor(info.cmd, littlevk::RenderArea(viewport.fb.extent));
+
 	viewport.info.handle_input(info.window);
 
 	auto rpbi = vrg.render_pass_begin_info(info, viewport.fb);
@@ -343,15 +351,145 @@ void render_viewport_scene(const RenderingInfo &info,
 		vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
+class WindowEventSystem {
+	double last_x = 0.0;
+	double last_y = 0.0;
+	int64_t uuid_counter = 0;
+public:
+	struct button_event {
+		double x;
+		double y;
+		int button;
+		int action;
+		int mods;
+	};
+
+	struct cursor_event {
+		double x;
+		double y;
+		double dx;
+		double dy;
+		bool drag;
+	};
+
+	using cursor_event_callback = std::function <void (const cursor_event &)>;
+
+	class event_region {
+		float2 min;
+		float2 max;
+		bool drag = false;
+
+		std::optional <cursor_event_callback> cursor_callback;
+	public:
+		void set_cursor_callback(const cursor_event_callback &cbl) {
+			cursor_callback = cbl;
+		}
+
+		void set_bounds(const ImVec2 &min_, const ImVec2 &max_) {
+			min = { min_.x, min_.y };
+			max = { max_.x, max_.y };
+		}
+
+		bool contains(double x, double y) const {
+			return (x > min.x && x < max.x)
+				&& (y > min.y && y < max.y);
+		}
+
+		friend class WindowEventSystem;
+	};
+
+	wrapped::hash_table <int64_t, event_region> regions;
+
+	int64_t new_uuid() {
+		int64_t ret = uuid_counter++;
+		regions[ret] = event_region();
+		return ret;
+	}
+
+	void button_callback(GLFWwindow *window, int button, int action, int mods) {
+		button_event event {
+			.button = button,
+			.action = action,
+			.mods = mods,
+		};
+
+		glfwGetCursorPos(window, &event.x, &event.y);
+
+		bool held = false;
+		for (auto &[uuid, region] : regions) {
+			if (region.contains(event.x, event.y)) {
+				if (action == GLFW_PRESS)
+					region.drag = true;
+				else if (action == GLFW_RELEASE)
+					region.drag = false;
+
+				held = true;
+			} else {
+				region.drag = false;
+			}
+		}
+
+		if (held)
+			return;
+		
+		ImGuiIO &io = ImGui::GetIO();
+		io.AddMouseButtonEvent(button, action);
+	}
+
+	void cursor_callback(GLFWwindow *window, double x, double y) {
+		cursor_event event {
+			.x = x,
+			.y = y,
+			.dx = x - last_x,
+			.dy = y - last_y,
+		};
+
+		last_x = x;
+		last_y = y;
+
+		for (auto &[uuid, region] : regions) {
+			if (region.contains(event.x, event.y)) {
+				auto re = event;
+				re.drag = region.drag;
+
+				if (region.cursor_callback)
+					region.cursor_callback.value()(re);
+			}
+		}
+		
+		ImGuiIO &io = ImGui::GetIO();
+		io.MousePos = ImVec2(x, y);
+	}
+};
+
+void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)
+{
+	auto user = glfwGetWindowUserPointer(window);
+	auto event_system = reinterpret_cast <WindowEventSystem *> (user);
+	event_system->button_callback(window, button, action, mods);
+}
+
+void glfw_cursor_callback(GLFWwindow *window, double x, double y)
+{
+	auto user = glfwGetWindowUserPointer(window);
+	auto event_system = reinterpret_cast <WindowEventSystem *> (user);
+	event_system->cursor_callback(window, x, y);
+}
+
 struct Editor {
-	DeviceResourceCollection drc;
+	DeviceResourceCollection	drc;
 
 	// Unique render groups
-	ImGuiRenderGroup rg_imgui;
-	ViewportRenderGroup rg_viewport;
+	ImGuiRenderGroup		rg_imgui;
+	ViewportRenderGroup		rg_viewport;
+
+	// Scene management
+	core::Scene			scene;
+	cpu::Scene			host_scene;
+	vulkan::Scene			vk_scene;
 
 	// Supporting multiple viewports
-	std::vector <ViewportBundle> viewports;
+	std::vector <ViewportBundle>	viewports;
 };
 
 int main(int argc, char *argv[])
@@ -396,6 +534,13 @@ int main(int argc, char *argv[])
 	// Prepare host and device scenes
 	auto cpu_scene = cpu::Scene::from(scene);
 	auto vk_scene = vulkan::Scene::from(drc.allocator(), cpu_scene);
+
+	// Event system(s)
+	WindowEventSystem event_system;
+
+	glfwSetWindowUserPointer(drc.window.handle, &event_system);
+	glfwSetMouseButtonCallback(drc.window.handle, glfw_button_callback);
+	glfwSetCursorPosCallback(drc.window.handle, glfw_cursor_callback);
 	
 	// Synchronization information
 	auto sync = littlevk::present_syncronization(drc.device, 2).unwrap(drc.dal);
@@ -427,6 +572,28 @@ int main(int argc, char *argv[])
 		ImGui::EndMainMenuBar();
 	};
 
+	int64_t viewport_uuid = event_system.new_uuid();
+
+	auto viewport_cursor_callback = [&](const WindowEventSystem::cursor_event &event) {
+		if (!event.drag)
+			return;
+
+		static constexpr float sensitivity = 0.0025f;
+		static float pitch = 0;
+		static float yaw = 0;
+		
+		pitch -= event.dx * sensitivity;
+		yaw += event.dy * sensitivity;
+		
+		float pi_e = pi <float> / 2.0f - 1e-3f;
+		yaw = std::min(pi_e, std::max(-pi_e, yaw));
+
+		auto &transform = viewport.info.transform;
+		transform.rotation = fquat::euler_angles(yaw, pitch, 0);
+	};
+
+	event_system.regions[viewport_uuid].set_cursor_callback(viewport_cursor_callback);
+
 	auto display_viewport = [&]() {
 		bool preview_open = true;
 		ImGui::Begin("Viewport", &preview_open, ImGuiWindowFlags_MenuBar);
@@ -445,6 +612,14 @@ int main(int argc, char *argv[])
 
 		size = ImGui::GetItemRectSize();
 		viewport.info.aperature.aspect = size.x/size.y;
+
+		ImVec2 min = ImGui::GetItemRectMin();
+		ImVec2 max = ImGui::GetItemRectMax();
+
+		auto &region = event_system.regions[viewport_uuid];
+		region.set_bounds(min, max);
+
+		ImGui::GetForegroundDrawList()->AddRect(min, max, IM_COL32(255, 0, 0, 255));
 
 		ImGui::End();
 	};
@@ -472,8 +647,6 @@ int main(int argc, char *argv[])
 
 		vk::CommandBufferBeginInfo cbbi;
 		cmd.begin(cbbi);
-
-		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(drc.window));
 
 		RenderingInfo info {
 			.cmd = cmd,
