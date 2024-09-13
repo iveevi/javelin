@@ -4,8 +4,8 @@ using namespace jvl;
 using namespace jvl::core;
 
 // Construction
-AttachmentInspectors::AttachmentInspectors(const std::unique_ptr <GlobalContext> &global_context)
-		: scene(global_context->scene) {}
+AttachmentInspectors::AttachmentInspectors(GlobalContext &global_context)
+		: scene(global_context.scene) {}
 
 // ImGui rendering
 void scene_hierarchy_object(Scene::Object::ref_t &selected, const Scene::Object &obj)

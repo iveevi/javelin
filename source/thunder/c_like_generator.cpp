@@ -316,7 +316,7 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 		return { .pre = struct_names.at(concrete), .post = "" };
 	}
 
-	defuault:
+	default:
 		break;
 	}
 

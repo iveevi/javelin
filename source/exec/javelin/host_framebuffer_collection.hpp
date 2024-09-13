@@ -48,7 +48,7 @@ struct HostFramebufferCollection {
 			__copy(cmd);
 		});
 
-		descriptor = imgui_add_vk_texture(sampler, display.view, vk::ImageLayout::eShaderReadOnlyOptimal);
+		descriptor = imgui::add_vk_texture(sampler, display.view, vk::ImageLayout::eShaderReadOnlyOptimal);
 	}
 
 	void resize(size_t width, size_t height) {

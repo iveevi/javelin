@@ -54,20 +54,30 @@ void fragment()
 // TODO: linking two kernels together from complementary stages...
 
 // Construction
-AttachmentViewport::AttachmentViewport(const std::unique_ptr <GlobalContext> &global_context)
-		: gctx(*global_context)
+AttachmentViewport::AttachmentViewport(GlobalContext *const global_context)
+		: gctx(global_context)
 {
+	fmt::println("new viewport attachment: {}", (void *) this);
+	fmt::println("\tglobal context: {}", (void *) global_context);
+	fmt::println("\tglobal context (member): {}", (void *) gctx);
 	configure_render_pass();
 	configure_framebuffers();
 	configure_pipelines();
 }
+
+AttachmentViewport::AttachmentViewport(const std::unique_ptr <GlobalContext> &global_context)
+		: AttachmentViewport(global_context.get()) {}
 
 void AttachmentViewport::handle_input()
 {
 	static constexpr float speed = 50.0f;
 	static float last_time = 0.0f;
 
-	auto &window = gctx.drc.window;
+	auto &window = gctx->drc.window;
+	
+	fmt::println("handle input: {}", (void *) this);
+	fmt::println("\twith global: {} ({})", (void *) gctx, (void *) &gctx);
+	fmt::println("\twindow handle: {}", (void *) &window);
 
 	float delta = speed * float(glfwGetTime() - last_time);
 	last_time = glfwGetTime();
@@ -93,7 +103,7 @@ void AttachmentViewport::handle_input()
 
 void AttachmentViewport::configure_render_pass()
 {
-	auto &drc = gctx.drc;
+	auto &drc = gctx->drc;
 	render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
 	.add_attachment(littlevk::default_color_attachment(drc.swapchain.format))
 	.add_attachment(littlevk::default_depth_attachment())
@@ -107,7 +117,7 @@ void AttachmentViewport::configre_normal_pipeline()
 {
 	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
 
-	auto &drc = gctx.drc;
+	auto &drc = gctx->drc;
 
 	std::string vertex_shader = kernel_from_args(vertex).compile(profiles::glsl_450);
 	std::string fragment_shader = kernel_from_args(fragment).compile(profiles::glsl_450);
@@ -131,8 +141,7 @@ void AttachmentViewport::configure_pipelines()
 
 void AttachmentViewport::configure_framebuffers()
 {
-	auto &drc = gctx.drc;
-	auto &swapchain = drc.swapchain;
+	auto &drc = gctx->drc;
 
 	targets.clear();
 	framebuffers.clear();
@@ -167,8 +176,8 @@ void AttachmentViewport::configure_framebuffers()
 
 	vk::Sampler sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
 	for (const littlevk::Image &image : targets) {
-		vk::DescriptorSet dset = imgui_add_vk_texture(sampler, image.view,
-				vk::ImageLayout::eShaderReadOnlyOptimal);
+		vk::DescriptorSet dset = imgui::add_vk_texture(sampler, image.view,
+			vk::ImageLayout::eShaderReadOnlyOptimal);
 
 		imgui_descriptors.push_back(dset);
 	}
@@ -184,9 +193,12 @@ void AttachmentViewport::configure_framebuffers()
 // Rendering
 void AttachmentViewport::render(const RenderState &rs)
 {
+	fmt::println("in render: {}", (void *) this);
+	fmt::println("\twith global: {} ({})", (void *) gctx, (void *) &gctx);
+
 	handle_input();
 
-	const auto &rpbi = littlevk::default_rp_begin_info <2> (render_pass, framebuffers[rs.sop.index], gctx.drc.window);
+	const auto &rpbi = littlevk::default_rp_begin_info <2> (render_pass, framebuffers[rs.sop.index], gctx->drc.window);
 
 	rs.cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);
 
@@ -225,7 +237,7 @@ void AttachmentViewport::render_imgui()
 
 	if (ImGui::BeginMenuBar()) {
 		if (ImGui::Button("Render")) {
-			auto rtx = gctx.attachment_user <AttachmentRaytracingCPU> ();
+			auto rtx = gctx->attachment_user <AttachmentRaytracingCPU> ();
 			rtx->trigger(transform);
 		}
 
@@ -235,7 +247,7 @@ void AttachmentViewport::render_imgui()
 	viewport_region.active = ImGui::IsWindowFocused();
 
 	ImVec2 size = ImGui::GetContentRegionAvail();
-	ImGui::Image(imgui_descriptors[gctx.frame.index], size);
+	ImGui::Image(imgui_descriptors[gctx->frame.index], size);
 
 	ImVec2 viewport = ImGui::GetItemRectSize();
 	aperature.aspect = viewport.x/viewport.y;
@@ -252,6 +264,8 @@ void AttachmentViewport::render_imgui()
 
 Attachment AttachmentViewport::attachment()
 {
+	fmt::println("attaching: {}", (void *) this);
+	fmt::println("\twith global: {} ({})", (void *) gctx, (void *) &gctx);
 	return Attachment {
 		.renderer = std::bind(&AttachmentViewport::render, this, std::placeholders::_1),
 		.resizer = std::bind(&AttachmentViewport::configure_framebuffers, this),

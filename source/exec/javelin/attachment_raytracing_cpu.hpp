@@ -49,7 +49,7 @@ struct AttachmentRaytracingCPU {
 	std::atomic <int> sample_total = 0;
 
 	// Construction
-	AttachmentRaytracingCPU(const std::unique_ptr <GlobalContext> &);
+	AttachmentRaytracingCPU(GlobalContext &);
 
 	// User interface drawing methods
 	void render_imgui_synthesized();

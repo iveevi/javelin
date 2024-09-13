@@ -5,7 +5,7 @@
 // User interface information
 struct AttachmentUI {
 	// Reference to 'parent'
-	GlobalContext &gctx;
+	GlobalContext *const gctx;
 
 	// Vulkan structures
 	vk::RenderPass render_pass;

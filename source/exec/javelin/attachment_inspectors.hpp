@@ -10,7 +10,7 @@ struct AttachmentInspectors {
 	jvl::core::Scene::Object::ref_t selected = nullptr;
 
 	// Construction
-	AttachmentInspectors(const std::unique_ptr <GlobalContext> &);
+	AttachmentInspectors(GlobalContext &);
 
 	// ImGui rendering
 	void scene_hierarchy();

@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 	GlobalContextPrelude prelude;
 	prelude.phdev = littlevk::pick_physical_device(predicate);
 	prelude.extent = vk::Extent2D(1920, 1080);
-	prelude.title = "Javelin Engine";
+	prelude.title = "Javelin Editor";
 	prelude.extensions = EXTENSIONS;
 
 	auto global_context = std::make_unique <GlobalContext> (prelude);
@@ -60,8 +60,8 @@ int main(int argc, char *argv[])
 	// Engine editor attachments
 	auto attatchment_ui = std::make_unique <AttachmentUI> (global_context);
 	auto attachment_viewport = std::make_unique <AttachmentViewport> (global_context);
-	auto attachment_inspectors = std::make_unique <AttachmentInspectors> (global_context);
-	auto attachment_rtx_cpu = std::make_unique <AttachmentRaytracingCPU> (global_context);
+	auto attachment_inspectors = std::make_unique <AttachmentInspectors> (*global_context);
+	auto attachment_rtx_cpu = std::make_unique <AttachmentRaytracingCPU> (*global_context);
 
 	for (auto &obj : global_context->scene.objects) {
 		if (obj.geometry) {

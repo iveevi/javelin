@@ -63,6 +63,10 @@ void Buffer::include(index_t i)
 		if (constructor.transient)
 			synthesized.insert(i);
 
+		JVL_ASSERT(constructor.type < pointer,
+			"construct type is out of bounds: {} (pointer = {})",
+			atom, pointer);
+
 		QualifiedType qt = types[constructor.type];
 		if (qt.is <ArrayType> ())
 			synthesized.insert(i);

@@ -61,6 +61,7 @@ add_executable(javelin
 	source/exec/javelin/attachment_viewport.cpp
 	source/exec/javelin/device_resource_collection.cpp
 	source/exec/javelin/glio.cpp
+	source/exec/javelin/global_context.cpp
 	source/exec/javelin/main.cpp
 	source/gfx/cpu/bvh.cpp
 	source/gfx/cpu/intersection.cpp
@@ -84,10 +85,14 @@ add_executable(test
 	source/test/math_matrix.cpp
 	thirdparty/glad/src/gl.c)
 
+# TODO: only on debug
 target_compile_options(lang-features PRIVATE
 	-Wall
 	-fno-rtti
 	-fsanitize=address)
+
+target_compile_options(javelin-ire PRIVATE -Wall -fno-rtti)
+target_compile_options(javelin PRIVATE -Wall -fno-rtti)
 
 include_directories(.
 	include

@@ -355,6 +355,23 @@ static QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, co
                         overload::from(vec3, uvec3),
                         overload::from(vec4, uvec4),
                 } },
+
+		// GLSL specific intrinsics,
+		{ glsl_dFdx, {
+			overload::from(vec3, vec3),
+		} },
+		
+		{ glsl_dFdy, {
+			overload::from(vec3, vec3),
+		} },
+		
+		{ glsl_dFdxFine, {
+			overload::from(vec3, vec3),
+		} },
+		
+		{ glsl_dFdyFine, {
+			overload::from(vec3, vec3),
+		} },
         };
 
         return table.lookup(key, args);

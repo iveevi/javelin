@@ -59,9 +59,6 @@ void cursor_callback(GLFWwindow *window, double xpos, double ypos)
 	static float yaw = 0;
 
 	if (mouse.left_drag) {
-		float3 horizontal { 0, 1, 0 };
-		float3 vertical = transform->right();
-
 		pitch -= xoffset;
 		yaw += yoffset;
 

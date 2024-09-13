@@ -21,14 +21,14 @@ static float2 random_uniform_float2()
 	};
 }
 
-static float3 random_uniform_float3()
-{
-	return float3 {
-		random_uniform_float(),
-		random_uniform_float(),
-		random_uniform_float(),
-	};
-}
+// static float3 random_uniform_float3()
+// {
+// 	return float3 {
+// 		random_uniform_float(),
+// 		random_uniform_float(),
+// 		random_uniform_float(),
+// 	};
+// }
 
 inline float3 reflect(const float3 &v, const float3 &n)
 {
@@ -147,11 +147,11 @@ inline wrapped::optional <float3> emission(const core::Material &material)
 }
 
 // Construction
-AttachmentRaytracingCPU::AttachmentRaytracingCPU(const std::unique_ptr <GlobalContext> &global_context)
+AttachmentRaytracingCPU::AttachmentRaytracingCPU(GlobalContext &global_context)
 {
-	auto &drc = global_context->drc;
+	auto &drc = global_context.drc;
 
-	scene = gfx::cpu::Scene::from(global_context->scene);
+	scene = gfx::cpu::Scene::from(global_context.scene);
 	random = std::mt19937(std::random_device()());
 	distribution = std::uniform_real_distribution <float> (0, 1);
 

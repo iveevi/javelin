@@ -17,7 +17,7 @@ struct AttachmentViewport {
 	static constexpr const char *key = "ViewportContext";
 
 	// Reference to 'parent'
-	GlobalContext &gctx;
+	GlobalContext *const gctx;
 
 	// Viewing information
 	jvl::core::Aperature aperature;
@@ -47,6 +47,7 @@ struct AttachmentViewport {
 	std::vector <jvl::gfx::vulkan::TriangleMesh> meshes;
 	
 	// Construction
+	AttachmentViewport(GlobalContext *const);
 	AttachmentViewport(const std::unique_ptr <GlobalContext> &);
 
 	void configre_normal_pipeline();

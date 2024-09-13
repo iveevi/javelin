@@ -4,8 +4,6 @@
 
 namespace jvl::thunder {
 
-MODULE(linkage);
-
 bool compare_declaration(const Linkage::struct_declaration &A,
 			 const Linkage::struct_declaration &B)
 {

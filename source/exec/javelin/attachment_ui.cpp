@@ -1,18 +1,18 @@
 #include "attachment_ui.hpp"
-#include "source/exec/javelin/global_context.hpp"
+#include "attachment_viewport.hpp"
 
 // Construction
 AttachmentUI::AttachmentUI(const std::unique_ptr <GlobalContext> &global_context)
-		: gctx(*global_context)
+		: gctx(global_context.get())
 {
 	configure_render_pass();
 	configure_framebuffers();
-	imgui_initialize_vulkan(gctx.drc, render_pass);
+	imgui::configure_vulkan(gctx->drc, render_pass);
 }
 
 void AttachmentUI::configure_render_pass()
 {
-	auto &drc = gctx.drc;
+	auto &drc = gctx->drc;
 	render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
 		.add_attachment(littlevk::default_color_attachment(drc.swapchain.format))
 		.add_subpass(vk::PipelineBindPoint::eGraphics)
@@ -22,7 +22,7 @@ void AttachmentUI::configure_render_pass()
 
 void AttachmentUI::configure_framebuffers()
 {
-	auto &drc = gctx.drc;
+	auto &drc = gctx->drc;
 	auto &swapchain = drc.swapchain;
 	
 	littlevk::FramebufferGenerator generator {
@@ -39,7 +39,7 @@ void AttachmentUI::configure_framebuffers()
 // Rendering
 void AttachmentUI::render(const RenderState &rs)
 {
-	const auto &rpbi = littlevk::default_rp_begin_info <1> (render_pass, framebuffers[rs.sop.index], gctx.drc.window);
+	const auto &rpbi = littlevk::default_rp_begin_info <1> (render_pass, framebuffers[rs.sop.index], gctx->drc.window);
 	
 	rs.cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);
 
@@ -49,6 +49,27 @@ void AttachmentUI::render(const RenderState &rs)
 
 	ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 
+	// Main menu bar
+	ImGui::BeginMainMenuBar();
+
+	if (ImGui::BeginMenu("Attachments")) {
+		if (ImGui::MenuItem("Viewport")) {
+			fmt::println("creating a new viewport");
+			fmt::println("  current global: {}", (void *) &gctx);
+			auto viewport = std::make_unique <AttachmentViewport> (gctx);
+			gctx->attach("xviewport", viewport->attachment());
+		}
+		
+		if (ImGui::MenuItem("Raytracer (CPU)")) {
+
+		}
+
+		ImGui::EndMenu();
+	}
+
+	ImGui::EndMainMenuBar();
+
+	// Callbacks to other attachments
 	for (auto &ftn : callbacks)
 		ftn();
 	

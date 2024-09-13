@@ -10,7 +10,7 @@ namespace jvl::thunder {
 
 MODULE(buffer);
 
-Buffer::Buffer() : pointer(0), atoms(4), types(4) {}
+Buffer::Buffer() : types(4), atoms(4), pointer(0) {}
 
 index_t Buffer::emit(const Atom &atom, bool enable_classification)
 {
@@ -24,10 +24,10 @@ index_t Buffer::emit(const Atom &atom, bool enable_classification)
 		pointer, atoms.size());
 
 	atoms[pointer] = atom;
-	if (enable_classification)
+	if (enable_classification) {
 		types[pointer] = classify(pointer);
-
-	include(pointer);
+		include(pointer);
+	}
 	
 	return pointer++;
 }
