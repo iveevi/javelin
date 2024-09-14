@@ -634,13 +634,13 @@ struct MVP {
 void vertex()
 {
 	layout_in <vec3> position(0);
-	layout_out <vec3> color(0);
+	layout_out <vec3> out_position(0);
 
 	push_constant <MVP> mvp;
 
 	gl_Position = mvp.project(position);
 	gl_Position.y = -gl_Position.y;
-	color = position;
+	out_position = position;
 }
 
 void fragment()

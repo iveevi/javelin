@@ -23,11 +23,13 @@ struct __gl_Position_t;
 // TODO: move to a separate header at this point
 template <native T, typename Up, thunder::SwizzleCode swz>
 class swizzle_element {
-	Up *upper;
+	Up *upper = nullptr;
 
 	swizzle_element(Up *upper_) : upper(upper_) {}
 public:
-	using base_type = primitive_t <T>;
+	using arithmetic_type = primitive_t <T>;
+
+	swizzle_element() = default;
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
@@ -41,7 +43,7 @@ public:
 		return ci;
 	}
 
-	swizzle_element &operator=(const base_type &v) {
+	swizzle_element &operator=(const arithmetic_type &v) {
 		thunder::Store store;
 		store.src = v.synthesize().id;
 		store.dst = synthesize().id;
@@ -49,36 +51,36 @@ public:
 		return *this;
 	}
 
-	operator base_type() const {
-		return base_type(synthesize());
+	operator arithmetic_type() const {
+		return arithmetic_type(synthesize());
 	}
 
 	// Unary minus
-	base_type operator-() const {
-		return -base_type(synthesize());
+	arithmetic_type operator-() const {
+		return -arithmetic_type(synthesize());
 	}
 
 	// In place arithmetic operators
-	swizzle_element &operator+=(const base_type &a) {
-		base_type tmp = *this;
+	swizzle_element &operator+=(const arithmetic_type &a) {
+		arithmetic_type tmp = *this;
 		tmp += a;
 		return *this;
 	}
 
-	swizzle_element &operator-=(const base_type &a) {
-		base_type tmp = *this;
+	swizzle_element &operator-=(const arithmetic_type &a) {
+		arithmetic_type tmp = *this;
 		tmp -= a;
 		return *this;
 	}
 
-	swizzle_element &operator*=(const base_type &a) {
-		base_type tmp = *this;
+	swizzle_element &operator*=(const arithmetic_type &a) {
+		arithmetic_type tmp = *this;
 		tmp *= a;
 		return *this;
 	}
 
-	swizzle_element &operator/=(const base_type &a) {
-		base_type tmp = *this;
+	swizzle_element &operator/=(const arithmetic_type &a) {
+		arithmetic_type tmp = *this;
 		tmp /= a;
 		return *this;
 	}
@@ -88,7 +90,7 @@ public:
 	swizzle_element &operator>>=(const primitive_t <U> &a)
 	requires integral_native <T> {
 		thunder::Store store;
-		store.src = (base_type(*this) >> a).synthesize().id;
+		store.src = (arithmetic_type(*this) >> a).synthesize().id;
 		store.dst = synthesize().id;
 		Emitter::active.emit(store);
 		return *this;
@@ -104,7 +106,7 @@ public:
 	swizzle_element &operator<<=(const primitive_t <U> &a)
 	requires integral_native <T> {
 		thunder::Store store;
-		store.src = (base_type(*this) << a).synthesize().id;
+		store.src = (arithmetic_type(*this) << a).synthesize().id;
 		store.dst = synthesize().id;
 		Emitter::active.emit(store);
 		return *this;
@@ -117,16 +119,16 @@ public:
 	}
 	
 	// Bitwise operators
-	swizzle_element &operator|=(const base_type &a)
+	swizzle_element &operator|=(const arithmetic_type &a)
 	requires integral_native <T> {
-		base_type tmp = *this;
+		arithmetic_type tmp = *this;
 		tmp |= a;
 		return *this;
 	}
 	
-	swizzle_element &operator&=(const base_type &a)
+	swizzle_element &operator&=(const arithmetic_type &a)
 	requires integral_native <T> {
-		base_type tmp = *this;
+		arithmetic_type tmp = *this;
 		tmp &= a;
 		return *this;
 	}

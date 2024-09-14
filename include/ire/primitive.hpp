@@ -8,7 +8,7 @@
 
 namespace jvl::ire {
 
-// Way to upcast C++ primitives into a workable type
+// Methods to upcast C++ primitives into a workable type
 inline thunder::index_t translate_primitive(bool b)
 {
 	auto &em = Emitter::active;
@@ -61,11 +61,14 @@ concept native = requires(const T &t) {
 };
 
 template <typename T>
-concept integral_native = std::is_integral_v <T> && native <T>;
+concept integral_native = native <T> && std::is_integral_v <T>;
 
+// TODO: refactor primitive_t to arithmetic_t
 template <native T>
 struct primitive_t : tagged {
 	using tagged::tagged;
+
+	using arithmetic_type = primitive_t;
 
 	T value;
 
@@ -119,7 +122,10 @@ struct primitive_t : tagged {
 		ref = ci;
 	}
 
-	// In place arithmetic operators
+	///////////////////////////////////
+	// In place arithmetic operators //
+	///////////////////////////////////
+	
 	primitive_t &operator+=(const primitive_t &a) {
 		// TODO: store instruction!
 		*this = operation_from_args <primitive_t> (thunder::addition, (*this), a);
@@ -141,7 +147,10 @@ struct primitive_t : tagged {
 		return *this;
 	}
 
-	// In place bitwise operators
+	////////////////////////////////
+	// In place bitwise operators //
+	////////////////////////////////
+
 	template <integral_native U>
 	primitive_t &operator>>=(const primitive_t <U> &a)
 	requires integral_native <T> {
@@ -155,7 +164,7 @@ struct primitive_t : tagged {
 		*this = operation_from_args <primitive_t> (thunder::bit_shift_left, (*this), a);
 		return *this;
 	}
-	
+
 	primitive_t &operator|=(const primitive_t &a)
 	requires integral_native <T> {
 		*this = operation_from_args <primitive_t> (thunder::bit_or, (*this), a);
@@ -168,17 +177,86 @@ struct primitive_t : tagged {
 		return *this;
 	}
 
-	// Logical operators
-	// TODO: only for bool types
-	friend primitive_t operator||(const primitive_t &a, const primitive_t &b) {
+	//////////////////////////
+	// Arithmetic operators //
+	//////////////////////////
+
+	friend primitive_t operator+(const primitive_t &a, const primitive_t &b)
+	{
+		return operation_from_args <primitive_t> (thunder::addition, a, b);
+	}
+	
+	friend primitive_t operator-(const primitive_t &a, const primitive_t &b)
+	{
+		return operation_from_args <primitive_t> (thunder::subtraction, a, b);
+	}
+	
+	friend primitive_t operator*(const primitive_t &a, const primitive_t &b)
+	{
+		return operation_from_args <primitive_t> (thunder::multiplication, a, b);
+	}
+	
+	friend primitive_t operator/(const primitive_t &a, const primitive_t &b)
+	{
+		return operation_from_args <primitive_t> (thunder::division, a, b);
+	}
+	
+	// TODO: different implementations for floating point (fmod)
+	friend primitive_t operator%(const primitive_t &a, const primitive_t &b)
+	{
+		return operation_from_args <primitive_t> (thunder::modulus, a, b);
+	}
+	
+	///////////////////////
+	// Bitwise operators //
+	///////////////////////
+
+	// Only for integral types
+	friend primitive_t operator|(const primitive_t &a, const primitive_t &b)
+	requires integral_native <T> {
+		return operation_from_args <primitive_t> (thunder::bit_or, a, b);
+	}
+	
+	friend primitive_t operator&(const primitive_t &a, const primitive_t &b)
+	requires integral_native <T> {
+		return operation_from_args <primitive_t> (thunder::bit_and, a, b);
+	}
+	
+	friend primitive_t operator^(const primitive_t &a, const primitive_t &b)
+	requires integral_native <T> {
+		return operation_from_args <primitive_t> (thunder::bit_xor, a, b);
+	}
+
+	template <integral_native U>
+	friend primitive_t operator>>(const primitive_t &a, const primitive_t <U> &b)
+	requires integral_native <T> {
+		return operation_from_args <primitive_t> (thunder::bit_shift_right, a, b);
+	}
+
+	template <integral_native U>
+	friend primitive_t operator<<(const primitive_t &a, const primitive_t <U> &b)
+	requires integral_native <T> {
+		return operation_from_args <primitive_t> (thunder::bit_shift_left, a, b);
+	}
+
+	///////////////////////
+	// Logical operators //
+	///////////////////////
+
+	friend primitive_t operator||(const primitive_t &a, const primitive_t &b)
+	requires std::same_as <T, bool> {
 		return operation_from_args <primitive_t> (thunder::bool_or, a, b);
 	}
 
-	friend primitive_t operator&&(const primitive_t &a, const primitive_t &b) {
+	friend primitive_t operator&&(const primitive_t &a, const primitive_t &b)
+	requires std::same_as <T, bool> {
 		return operation_from_args <primitive_t> (thunder::bool_and, a, b);
 	}
 
-	// Comparison operators
+	//////////////////////////
+	// Comparison operators //
+	//////////////////////////
+
 	using bool_t = primitive_t <bool>;
 
 	friend bool_t operator==(const primitive_t &a, const primitive_t &b) {

@@ -3,6 +3,7 @@
 #include "../vector.hpp"
 #include "../util.hpp"
 #include "ire/tagged.hpp"
+#include "ire/type_synthesis.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
 
@@ -47,9 +48,11 @@ struct __gl_Position_t {
 } static gl_Position;
 
 struct __gl_VertexID {
+	using arithmetic_type = primitive_t <int32_t>;
+
 	__gl_VertexID() {}
 
-	operator primitive_t <int32_t> () const {
+	operator arithmetic_type() const {
 		return synthesize();
 	}
 
@@ -58,7 +61,7 @@ struct __gl_VertexID {
 
 		thunder::Qualifier qualifier;
 		
-		qualifier.underlying = type_field_from_args <vec <float, 4>> ().id;
+		qualifier.underlying = type_field_from_args <int32_t> ().id;
 		qualifier.kind = thunder::glsl_vertex_intrinsic_gl_VertexID;
 
 		return cache_index_t::from(em.emit(qualifier));

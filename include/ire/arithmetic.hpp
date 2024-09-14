@@ -6,176 +6,109 @@
 
 namespace jvl::ire {
 
+///////////////////////////////////////////////
+// Type system infrastructure for arithmetic //
+///////////////////////////////////////////////
+
+template <typename T>
+concept builtin_arithmetic = builtin <T>
+		&& builtin <typename T::arithmetic_type>
+		&& requires(const T &t) {
+	{ typename T::arithmetic_type(t) };
+};
+
+template <typename T>
+concept arithmetic = native <T> || builtin_arithmetic <T>;
+
+template <builtin_arithmetic A>
+inline auto underlying(const A &a)
+{
+	return typename A::arithmetic_type(a);
+}
+
+template <native A>
+inline auto underlying(const A &a)
+{
+	return primitive_t <A> (a);
+}
+
+template <arithmetic T>
+using arithmetic_base = decltype(underlying(T()));
+
+// Preventing unwanted overloads
+template <typename T, typename U>
+concept overload_compatible = true
+	&& arithmetic <T>
+	&& arithmetic <U>
+	&& std::same_as <arithmetic_base <T>, arithmetic_base <U>>
+	&& !(native <T> && native <U>);
+
 /////////////////////////
 // Primitive operators //
 /////////////////////////
 
 // Addition
-// TODO: macros to avoid the headers
-template <native T, typename U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator+(const primitive_t <T> &a, const U &b)
+template <arithmetic A, arithmetic B>
+requires overload_compatible <A, B>
+arithmetic_base <A> operator+(const A &a, const B &b)
 {
-	return operation_from_args <primitive_t <T>> (thunder::addition, a, primitive_t <T> (b));
-}
-
-template <native T, non_trivial_generic U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator+(const T &a, const U &b)
-{
-	return primitive_t <T> (a) + b;
-}
-
-template <native T, typename Up, thunder::SwizzleCode swz, typename U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator+(const swizzle_element <T, Up, swz> &a, const U &b)
-{
-	return primitive_t <T> (a) + b;
+	return underlying(a) + underlying(b);
 }
 
 // Subtraction
-template <native T, typename U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator-(const primitive_t <T> &a, const U &b)
+template <arithmetic A, arithmetic B>
+requires overload_compatible <A, B>
+arithmetic_base <A> operator-(const A &a, const B &b)
 {
-	return operation_from_args <primitive_t <T>> (thunder::subtraction, a, primitive_t <T> (b));
-}
-
-template <native T, non_trivial_generic U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator-(const T &a, const U &b)
-{
-	return primitive_t <T> (a) - b;
-}
-
-template <native T, typename Up, thunder::SwizzleCode swz, typename U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator-(const swizzle_element <T, Up, swz> &a, const U &b)
-{
-	return primitive_t <T> (a) - b;
+	return underlying(a) - underlying(b);
 }
 
 // Multiplication
-template <native T, typename U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator*(const primitive_t <T> &a, const U &b)
+template <arithmetic A, arithmetic B>
+requires overload_compatible <A, B>
+arithmetic_base <A> operator*(const A &a, const B &b)
 {
-	return operation_from_args <primitive_t <T>> (thunder::multiplication, a, primitive_t <T> (b));
-}
-
-template <native T, non_trivial_generic U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator*(const T &a, const U &b)
-{
-	return primitive_t <T> (a) * b;
-}
-
-template <native T, typename Up, thunder::SwizzleCode swz, typename U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator*(const swizzle_element <T, Up, swz> &a, const U &b)
-{
-	return primitive_t <T> (a) * b;
+	return underlying(a) * underlying(b);
 }
 
 // Division
-template <native T, typename U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator/(const primitive_t <T> &a, const U &b)
+template <arithmetic A, arithmetic B>
+requires overload_compatible <A, B>
+arithmetic_base <A> operator/(const A &a, const B &b)
 {
-	return operation_from_args <primitive_t <T>> (thunder::division, a, primitive_t <T> (b));
-}
-
-template <native T, non_trivial_generic U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator/(const T &a, const U &b)
-{
-	return primitive_t <T> (a) / b;
-}
-
-template <native T, typename Up, thunder::SwizzleCode swz, typename U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator/(const swizzle_element <T, Up, swz> &a, const U &b)
-{
-	return primitive_t <T> (a) / b;
+	return underlying(a) / underlying(b);
 }
 
 // Modulus
-template <native T, typename U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator%(const primitive_t <T> &a, const U &b)
+template <arithmetic A, arithmetic B>
+requires overload_compatible <A, B>
+arithmetic_base <A> operator%(const A &a, const B &b)
 {
-	return operation_from_args <primitive_t <T>> (thunder::modulus, a, primitive_t <T> (b));
+	return underlying(a) % underlying(b);
 }
 
-template <native T, non_trivial_generic U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator%(const T &a, const U &b)
+// Bit OR
+template <arithmetic A, arithmetic B>
+requires overload_compatible <A, B>
+arithmetic_base <A> operator|(const A &a, const B &b)
 {
-	return primitive_t <T> (a) % b;
+	return underlying(a) | underlying(b);
 }
 
-template <native T, typename Up, thunder::SwizzleCode swz, typename U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator%(const swizzle_element <T, Up, swz> &a, const U &b)
+// Bit AND
+template <arithmetic A, arithmetic B>
+requires overload_compatible <A, B>
+arithmetic_base <A> operator&(const A &a, const B &b)
 {
-	return primitive_t <T> (a) % b;
+	return underlying(a) & underlying(b);
 }
 
-// Binary OR
-template <native T, typename U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator|(const primitive_t <T> &a, const U &b)
+// Bit XOR
+template <arithmetic A, arithmetic B>
+requires overload_compatible <A, B>
+arithmetic_base <A> operator^(const A &a, const B &b)
 {
-	return operation_from_args <primitive_t <T>> (thunder::bit_or, a, primitive_t <T> (b));
-}
-
-template <native T, typename Up, thunder::SwizzleCode swz, typename U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator|(const swizzle_element <T, Up, swz> &a, const U &b)
-{
-	return primitive_t <T> (a) | b;
-}
-
-template <native T, typename U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator&(const primitive_t <T> &a, const U &b)
-{
-	return operation_from_args <primitive_t <T>> (thunder::bit_and, a, primitive_t <T> (b));
-}
-
-template <native T, typename Up, thunder::SwizzleCode swz, typename U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator&(const swizzle_element <T, Up, swz> &a, const U &b)
-{
-	return primitive_t <T> (a) & b;
-}
-
-// Binary XOR
-template <native T, typename U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator^(const primitive_t <T> &a, const U &b)
-{
-	return operation_from_args <primitive_t <T>> (thunder::bit_xor, a, b);
-}
-
-template <native T, typename Up, thunder::SwizzleCode swz, typename U>
-requires std::is_convertible_v <U, primitive_t <T>>
-primitive_t <T> operator^(const swizzle_element <T, Up, swz> &a, const U &b)
-{
-	return primitive_t <T> (a) ^ b;
-}
-
-// Bit shift operators
-template <integral_native T, integral_native U>
-primitive_t <T> operator>>(const primitive_t <T> &a, const primitive_t <U> &b)
-{
-	return operation_from_args <primitive_t <T>> (thunder::bit_shift_right, a, b);
-}
-
-template <integral_native T, integral_native U>
-primitive_t <T> operator<<(const primitive_t <T> &a, const primitive_t <U> &b)
-{
-	return operation_from_args <primitive_t <T>> (thunder::bit_shift_left, a, b);
+	return underlying(a) ^ underlying(b);
 }
 
 } // namespace jvl::ire
