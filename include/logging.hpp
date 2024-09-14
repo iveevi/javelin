@@ -182,7 +182,7 @@ struct stage_bracket {
 #define JVL_NOTE(...)		jvl::log::note(fmt::format(__VA_ARGS__))
 
 #define JVL_STAGE()		jvl::log::stage_bracket __stage(__module__)
-#define JVL_STAGE_SECTION(s)	jvl::log::stage_bracket __stage(s)
+#define JVL_STAGE_SECTION(s)	jvl::log::stage_bracket __stage(#s)
 
 // TODO: info_verbose (logging in cmd line)
 

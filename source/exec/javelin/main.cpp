@@ -1,6 +1,7 @@
 #include <cassert>
 #include <csignal>
 #include <cstdlib>
+#include <random>
 
 #include <fmt/format.h>
 #include <fmt/printf.h>
@@ -13,6 +14,8 @@
 #include "gfx/vk/scene.hpp"
 #include "imgui.h"
 #include "ire/core.hpp"
+#include "gfx/cpu/framebuffer.hpp"
+#include "gfx/cpu/thread_pool.hpp"
 
 // Local project headers
 #include "device_resource_collection.hpp"
@@ -213,7 +216,7 @@ struct Viewport {
 	}
 
 	void cursor_handle(const WindowEventSystem::cursor_event &event) {
-		std::string title = fmt::format("Viewport##{}", uuid);
+		std::string title = fmt::format("Viewport ({})##{}", uuid, uuid);
 		ImGui::SetWindowFocus(title.c_str());
 
 		if (!event.drag)
@@ -232,7 +235,7 @@ struct Viewport {
 
 	void display_handle(const RenderingInfo &info) {
 		bool open = true;
-		std::string title = fmt::format("Viewport##{}", uuid);
+		std::string title = fmt::format("Viewport ({})##{}", uuid, uuid);
 		ImGui::Begin(title.c_str(), &open, ImGuiWindowFlags_MenuBar);
 
 		active = ImGui::IsWindowFocused();
@@ -269,6 +272,340 @@ struct Viewport {
 
 	auto imgui_callback() {
 		return std::bind(&Viewport::display_handle, this, std::placeholders::_1);
+	}
+};
+
+// Raytracing functions
+static float random_uniform_float()
+{
+	static thread_local std::random_device dev;
+	static thread_local std::mt19937 random(dev());
+	static thread_local std::uniform_real_distribution <float> distribution;
+	return distribution(random);
+}
+
+static float2 random_uniform_float2()
+{
+	return float2 {
+		random_uniform_float(),
+		random_uniform_float(),
+	};
+}
+
+inline float3 reflect(const float3 &v, const float3 &n)
+{
+    return normalize(v - 2 * dot(v, n) * n);
+}
+
+template <typename T>
+struct RandomSample {
+	T data;
+	float pdf;
+};
+
+inline RandomSample <float3> sample_hemisphere(float u, float v)
+{
+	assert(u >= 0 && u < 1);
+	assert(v >= 0 && v < 1);
+
+	float phi = 2 * M_PI * u;
+	float z = sqrt(1 - v);
+
+	return RandomSample {
+		.data = float3 {
+			std::cos(phi) * std::sqrt(v),
+			std::sin(phi) * std::sqrt(v),
+			z
+		},
+		.pdf = z/pi <float>
+	};
+}
+
+struct OrthonormalBasis {
+	float3 u;
+	float3 v;
+	float3 w;
+
+	float3 local(const float3 &a) const {
+		return a.x * u + a.y * v + a.z * w;
+	}
+
+	RandomSample <float3> random_hemisphere(float2 rnd) const {
+		auto t = sample_hemisphere(rnd.x, rnd.y);
+		return RandomSample <float3> {
+			.data = local(t.data),
+			.pdf = t.pdf
+		};
+	}
+
+	static OrthonormalBasis from(const float3 &n) {
+		OrthonormalBasis onb;
+		onb.w = normalize(n);
+
+		float3 a = (fabs(onb.w.x) > 0.9)
+			? float3 { 0, 1, 0 }
+			: float3 { 1, 0, 0 };
+		onb.v = normalize(cross(onb.w, a));
+		onb.u = cross(onb.w, onb.v);
+
+		return onb;
+	}
+};
+
+struct ScatteringEvent {
+	float3 brdf;
+	float3 wo;
+	float pdf;
+};
+
+struct SurfaceScattering {
+	const cpu::Intersection &sh;
+
+	OrthonormalBasis onb;
+
+	SurfaceScattering(const cpu::Intersection &sh_)
+			: sh(sh_), onb(OrthonormalBasis::from(sh.normal)) {}
+};
+
+struct Diffuse : SurfaceScattering {
+	using SurfaceScattering::SurfaceScattering;
+
+	float3 kd;
+
+	Diffuse &load(const core::Material &material) {
+		if (auto diffuse = material.values.get("diffuse"))
+			kd = diffuse->as <float3> ();
+
+		return *this;
+	}
+
+	float3 brdf(const float3 &wi, const float3 &wo) const {
+		float lambertian = std::max(dot(wo, sh.normal), 0.0f);
+		return lambertian * (kd/pi <float>);
+	}
+
+	float pdf(const float3 &wi, const float3 &wo) const {
+		return std::max(dot(wo, sh.normal), 0.0f)/pi <float>;
+	}
+
+	ScatteringEvent sample(const float3 &wi) const {
+		float2 rnd = random_uniform_float2();
+		auto sample = onb.random_hemisphere(rnd);
+
+		return ScatteringEvent {
+			.brdf = brdf(wi, sample.data),
+			.wo = sample.data,
+			.pdf = sample.pdf,
+		};
+	}
+};
+
+inline wrapped::optional <float3> emission(const core::Material &material)
+{
+	if (auto emission = material.values.get("emission"))
+		return emission.as <float3> ();
+
+	return std::nullopt;
+}
+
+// TODO: two numbers, type specific uuid and global uuid
+int64_t new_uuid()
+{
+	static int64_t uuid;
+	return uuid++;
+}
+
+// Host raytracing context for a fixed resolution, aperature, transform, etc.
+struct RaytracerCPU {
+	int64_t uuid;
+
+	// Types
+	struct Extra {
+		int accumulated;
+		int expected;
+	};
+
+	using Tile = cpu::Tile <Extra>;
+	using ThreadPool = cpu::fixed_function_thread_pool <Tile>;
+
+	// Vulkan resources
+	littlevk::Buffer staging;
+	littlevk::Image display;
+	vk::DescriptorSet descriptor;
+	vk::Sampler sampler;
+	vk::Extent2D extent;
+
+	// Host resources
+	cpu::Framebuffer <float4> host;
+	cpu::Framebuffer <float3> contributions;
+
+	// Render configuration data
+	core::Rayframe rayframe;
+	int32_t samples = 1;
+
+	// Rendering structures
+	ThreadPool thread_pool;
+
+	cpu::Scene scene;
+	
+	std::mt19937 random;
+	std::uniform_real_distribution <float> distribution;
+
+	// Tracking progress
+	std::atomic <int32_t> current_samples = 0;
+	int32_t max_samples = 0;
+
+	// Constructors
+	RaytracerCPU(DeviceResourceCollection &drc,
+		     const Viewport &viewport,
+		     const core::Scene &scene_,
+		     const vk::Extent2D &extent_,
+		     int32_t samples_ = 1) : uuid(new_uuid()), extent(extent_), samples(samples_), thread_pool(8, kernel_callback()) {
+		// Initialization
+		scene = cpu::Scene::from(scene_);
+		random = std::mt19937(std::random_device()());
+		distribution = std::uniform_real_distribution <float> (0, 1);
+
+		// Allocate images and buffers
+		host.resize(extent.width, extent.height);
+		contributions.resize(extent.width, extent.height);
+		
+		std::tie(staging, display) = drc.allocator()
+			.buffer(host.data, vk::BufferUsageFlagBits::eTransferSrc)
+			.image(vk::Extent2D {
+					uint32_t(host.width),
+					uint32_t(host.height)
+				},
+				vk::Format::eR32G32B32A32Sfloat,
+				vk::ImageUsageFlagBits::eSampled
+					| vk::ImageUsageFlagBits::eTransferDst,
+				vk::ImageAspectFlagBits::eColor);
+
+		drc.commander().submit_and_wait([&](const vk::CommandBuffer &cmd) {
+			copy(cmd);
+		});
+
+		sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
+
+		descriptor = imgui::add_vk_texture(sampler, display.view, vk::ImageLayout::eShaderReadOnlyOptimal);
+
+		// Preprocessing
+		scene.build_bvh();
+	
+		rayframe = core::rayframe(viewport.aperature, viewport.transform);
+
+		current_samples = 0;
+		max_samples = samples * extent.width * extent.height;
+
+		auto tiles = host.tiles <Extra> (int2(32, 32), Extra(0, samples));
+
+		thread_pool.reset();
+		thread_pool.enque(tiles);
+		thread_pool.begin();
+	}
+
+	~RaytracerCPU() {
+		thread_pool.drop();
+	}
+
+	// Rendering methods
+	Ray ray_from_pixel(float2 uv) {
+		Ray ray;
+		ray.origin = rayframe.origin;
+		ray.direction = normalize(rayframe.lower_left
+				+ uv.x * rayframe.horizontal
+				+ (1 - uv.y) * rayframe.vertical
+				- rayframe.origin);
+
+		return ray;
+	}
+
+	float3 radiance(const Ray &ray, int depth)
+	{
+		if (depth <= 0)
+			return float3(0.0f);
+
+		// TODO: trace with min/max time for shadows...
+		auto sh = scene.trace(ray);
+
+		// TODO: get environment map lighting from scene...
+		if (sh.time <= 0.0) {
+			float y = 0.2 * ray.direction.y;
+			return float3(exp(y/0.1), exp(y/0.3), exp(y/0.6));
+		}
+
+		assert(sh.material < scene.materials.size());
+		Material &material = scene.materials[sh.material];
+
+		if (auto em = emission(material))
+			return em.value();
+
+		auto diffuse = Diffuse(sh).load(material);
+		auto scattering = diffuse.sample(-ray.direction);
+
+		core::Ray next = ray;
+		next.origin = sh.offset();
+		next.direction = scattering.wo;
+
+		return radiance(next, depth - 1) * scattering.brdf/scattering.pdf;
+	}
+
+	float4 raytrace(int2 ij, float2 uv, const Extra &extra) {
+		core::Ray ray = ray_from_pixel(uv);
+		float3 color = radiance(ray, 10);
+
+		float3 &prior = contributions[ij];
+		prior = prior * float(extra.accumulated);
+		prior += color;
+		prior = prior / float(extra.accumulated + 1);
+
+		current_samples++;
+
+		return float4(clamp(prior, 0, 1), 1);
+	}
+
+	// Rendering kernel
+	bool kernel(Tile &tile) {
+		auto processor = std::bind(&RaytracerCPU::raytrace, this,
+			std::placeholders::_1,
+			std::placeholders::_2,
+			std::placeholders::_3);
+
+		host.process_tile(processor, tile);
+
+		return (++tile.data.accumulated) < tile.data.expected;
+	}
+
+	std::function <bool (Tile &)> kernel_callback() {
+		return std::bind(&RaytracerCPU::kernel, this, std::placeholders::_1);
+	}
+
+	// Refresh the display
+	void copy(const vk::CommandBuffer &cmd) {
+		display.transition(cmd, vk::ImageLayout::eTransferDstOptimal);
+
+		littlevk::copy_buffer_to_image(cmd,
+			display, staging,
+			vk::ImageLayout::eTransferDstOptimal);
+
+		display.transition(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
+	}
+
+	void refresh(const DeviceResourceCollection &drc, const vk::CommandBuffer &cmd) {
+		littlevk::upload(drc.device, staging, host.data);
+		copy(cmd);
+	}
+
+	// Displaying
+	void display_handle(const RenderingInfo &info) {
+		std::string title = fmt::format("Raytracer (CPU: {})##{}", uuid, uuid);
+		ImGui::Begin(title.c_str());
+		ImGui::Image(descriptor, ImVec2(extent.width, extent.height));
+		ImGui::End();
+	}
+
+	auto imgui_callback() {
+		return std::bind(&RaytracerCPU::display_handle, this, std::placeholders::_1);
 	}
 };
 
@@ -502,8 +839,11 @@ struct Editor {
 	// ImGui rendering callbacks
 	imgui_callback_list		imgui_callbacks;
 
-	// Supporting multiple viewports
+	// Viewports
 	std::list <Viewport>		viewports;
+	
+	// Host raytracers
+	std::list <RaytracerCPU>	host_raytracers;
 
 	// Miscellaneous
 	SceneInspector			inspector;
@@ -586,6 +926,10 @@ struct Editor {
 		for (auto &viewport : viewports)
 			rg_viewport.render(info, viewport);
 
+		// Refresh any host raytracers
+		for (auto &raytracer : host_raytracers)
+			raytracer.refresh(drc, cmd);
+
 		// Finally, render the user interface
 		auto current_callbacks = imgui_callbacks;
 		rg_imgui.render(info, current_callbacks);
@@ -619,7 +963,11 @@ struct Editor {
 			}
 			
 			if (ImGui::MenuItem("Raytracer (CPU)")) {
+				// TODO: open a diaglogue
+				host_raytracers.emplace_back(drc, viewports.back(), scene, vk::Extent2D(800, 800));
 
+				auto &back = host_raytracers.back();
+				imgui_callbacks.emplace_back(back.imgui_callback());
 			}
 
 			ImGui::EndMenu();
@@ -656,6 +1004,10 @@ struct Editor {
 			render(command_buffers[frame], sync[frame], frame);
 			frame = 1 - frame;
 		}
+
+		// Cleanup
+		viewports.clear();
+		host_raytracers.clear();
 	}
 };
 

@@ -82,7 +82,6 @@ index_t ad_fwd_binary_operation_dual_value(mapped_instruction_t &mapped,
 
 	case multiplication:
 	{
-		index_t base_type = em.emit(TypeInformation(-1, -1, f32));
 		index_t df_g = em.emit_list_chain(arg0[1], arg1[0]);
 		index_t f_dg = em.emit_list_chain(arg0[0], arg1[1]);
 		auto products = em.emit_sequence(Operation(df_g, multiplication),
@@ -94,7 +93,6 @@ index_t ad_fwd_binary_operation_dual_value(mapped_instruction_t &mapped,
 
 	case division:
 	{
-		index_t base_type = em.emit(TypeInformation(-1, -1, f32));
 		index_t df_g = em.emit_list_chain(arg0[1], arg1[0]);
 		index_t f_dg = em.emit_list_chain(arg0[0], arg1[1]);
 		auto products = em.emit_sequence(Operation(df_g, multiplication),
@@ -185,7 +183,6 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 	auto &atom = context.atoms[i];
 	auto &diffed = context.diffed;
 	auto &queue = context.queue;
-	auto &refs = mapped.refs;
 
 	// Clear the currently present scratch and add it for recording
 	mapped.clear();

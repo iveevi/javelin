@@ -373,7 +373,8 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const TypeInformation &, 
 	auto &qt = types[index];
 
 	// All we need to do it generate the type so it is ready
-	auto t = jitify_type(qt);
+	jitify_type(qt);
+
 	return nullptr;
 }
 

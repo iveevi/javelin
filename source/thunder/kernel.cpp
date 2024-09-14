@@ -41,7 +41,7 @@ index_t generate_type_declaration(Linkage &linkage, const std::vector <Atom> &at
 // Linkage model from the kernel
 Linkage Kernel::linkage() const
 {
-	JVL_STAGE_SECTION("kernel-linkage");
+	JVL_STAGE_SECTION(kernel-linkage);
 
 	Linkage linkage;
 

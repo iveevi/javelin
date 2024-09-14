@@ -75,7 +75,6 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 			index_t l = em.emit(List(cb, -1));
 			l = em.emit(List(ca, l));
 
-			index_t t = em.emit(TypeInformation(-1, -1, ctype));
 			components[i] = em.emit(Operation(l, code));
 		}
 
@@ -100,7 +99,6 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 			mapped.track(l, 0b01);
 			l = em.emit(List(c, l));
 
-			index_t t = em.emit(TypeInformation(-1, -1, type_b));
 			components[i] = em.emit(Operation(l, code));
 		}
 
@@ -121,7 +119,6 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 			l = em.emit(List(a, l));
 			mapped.track(l, 0b01);
 
-			index_t t = em.emit(TypeInformation(-1, -1, type_a));
 			components[i] = em.emit(Operation(l, code));
 		}
 

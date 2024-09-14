@@ -2,8 +2,6 @@
 
 namespace jvl::thunder {
 
-MODULE(atom-comparison);
-
 template <atom_instruction A, atom_instruction B>
 static constexpr bool compare(const A &a, const B &b)
 {

@@ -1,6 +1,7 @@
 #include <stack>
 
 #include "gfx/cpu/scene.hpp"
+#include "logging.hpp"
 
 namespace jvl::gfx::cpu {
 
@@ -32,6 +33,8 @@ Scene Scene::from(const core::Scene &scene)
 
 void Scene::build_bvh()
 {
+	JVL_STAGE_SECTION(scene-build-bvh);
+
 	std::vector <BVHNode> nodes;
 	core::AABB combined;
 	for (size_t i = 0; i < meshes.size(); i++) {
