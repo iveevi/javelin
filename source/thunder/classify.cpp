@@ -301,6 +301,7 @@ static QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, co
                 { sqrt, { overload::from(f32, f32) } },
                 { exp, { overload::from(f32, f32) } },
                 { pow, { overload::from(f32, f32, f32) } },
+                { log, { overload::from(f32, f32) } },
 
 		// Limiting functions
                 { clamp, {

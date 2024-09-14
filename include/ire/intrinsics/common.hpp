@@ -79,6 +79,18 @@ native_t <T> atan(const native_t <T> &x)
 	return platform_intrinsic_from_args <native_t <T>> (thunder::atan, x);
 }
 
+template <native T>
+native_t <T> log(const native_t <T> &x)
+{
+	return platform_intrinsic_from_args <native_t <T>> (thunder::log, x);
+}
+
+template <native T>
+native_t <T> exp(const native_t <T> &x)
+{
+	return platform_intrinsic_from_args <native_t <T>> (thunder::exp, x);
+}
+
 template <native T, typename U>
 requires std::is_convertible_v <U, native_t <T>>
 native_t <T> pow(const native_t <T> &x, const U &exp)

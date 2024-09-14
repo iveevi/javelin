@@ -779,6 +779,19 @@ void fragment(ViewportMode mode)
 		fragment = vec4(palette[id % palette.size()], 1);
 	} break;
 
+	case eDepth:
+	{
+		float near = 0.1f;
+		float far = 10000.0f;
+		
+		f32 d = gl_FragCoord.z;
+		f32 linearized = (near * far) / (far + d * (near - far));
+
+		linearized = ire::log(linearized/250.0f + 1);
+
+		fragment = vec4(vec3(linearized), 1);
+	} break;
+
 	default:
 		fragment = vec4(1, 0, 1, 1);
 		break;
@@ -1175,9 +1188,14 @@ int main(int argc, char *argv[])
 {
 	assert(argc >= 2);
 
-	auto &config = littlevk::config();
-	config.enable_logging = false;
-	config.abort_on_validation_error = true;
+	// littlevk configuration
+	{
+		auto &config = littlevk::config();
+		config.enable_logging = false;
+		config.abort_on_validation_error = true;
+	}
+
+	// TODO: javelin configuration
 
 	Editor editor;
 

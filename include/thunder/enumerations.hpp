@@ -88,9 +88,12 @@ enum QualifierKind : int8_t {
 
 	push_constant,
 
-	glsl_intrinsic_gl_Position,
+	glsl_intrinsic_gl_FragCoord,
+	glsl_intrinsic_gl_FragDepth,
 	glsl_intrinsic_gl_VertexID,
 	glsl_intrinsic_gl_VertexIndex,
+	
+	glsl_intrinsic_gl_Position,
 
 	__gq_end
 };
@@ -109,9 +112,12 @@ static constexpr const char *tbl_qualifier_kind[] = {
 
 	"push_constant",
 
-	"glsl:gl_Position",
+	"glsl:gl_FragCoord",
+	"glsl:gl_FragDepth",
 	"glsl:gl_VertexID",
 	"glsl:gl_VertexIndex",
+	
+	"glsl:gl_Position",
 
 	"__end"
 };
@@ -245,6 +251,7 @@ enum IntrinsicOperation : uint16_t {
 	sqrt,
 	exp,
 	pow,
+	log,
 
 	// Limiting functions
 	clamp,
@@ -289,6 +296,7 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"sqrt",
 	"exp",
 	"pow",
+	"log",
 
 	"clamp",
 	"min",

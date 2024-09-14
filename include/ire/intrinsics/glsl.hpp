@@ -9,71 +9,86 @@
 
 namespace jvl::ire {
 
-// Shader intrinsic types
-struct __gl_Position_t {
-	using self = __gl_Position_t;
+// Immutable instrinsic types
+template <generic, thunder::QualifierKind>
+struct __glsl_intrinsic_variable_t {};
 
-	swizzle_element <float, self, thunder::SwizzleCode::x> x;
-	swizzle_element <float, self, thunder::SwizzleCode::y> y;
-	swizzle_element <float, self, thunder::SwizzleCode::z> z;
-	swizzle_element <float, self, thunder::SwizzleCode::w> w;
+// Implementation for native types
+template <native T, thunder::QualifierKind code>
+struct __glsl_intrinsic_variable_t <T, code> {
+	using arithmetic_type = native_t <T>;
 
-	__gl_Position_t() : x(this), y(this), z(this), w(this) {}
-
-	const __gl_Position_t &operator=(const vec <float, 4> &other) {
-		auto &em = Emitter::active;
-
-		thunder::Qualifier global;
-		global.underlying = type_field_from_args <vec <float, 4>> ().id;
-		global.kind = thunder::glsl_intrinsic_gl_Position;
-
-		thunder::Store store;
-		store.dst = em.emit(global);
-		store.src = other.synthesize().id;
-
-		em.emit(store);
-
-		return *this;
-	}
+	__glsl_intrinsic_variable_t() = default;
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-
-		thunder::Qualifier qualifier;
-		qualifier.underlying = type_field_from_args <vec <float, 4>> ().id;
-		qualifier.kind = thunder::glsl_intrinsic_gl_Position;
-
-		return cache_index_t::from(em.emit(qualifier));
+		thunder::index_t type = type_field_from_args <T> ().id;
+		thunder::index_t intr = em.emit_qualifier(type, -1, code);
+		return cache_index_t::from(intr);
 	}
-} static gl_Position;
-
-struct __gl_int32_intrinsic {
-	using arithmetic_type = native_t <int32_t>;
-
-	thunder::QualifierKind code;
-
-	__gl_int32_intrinsic() = default;
-	__gl_int32_intrinsic(thunder::QualifierKind code_) : code(code_) {}
 
 	operator arithmetic_type() const {
 		return synthesize();
 	}
+};
+
+// Implementation for vector types
+template <native T, thunder::QualifierKind code>
+struct __glsl_intrinsic_variable_t <vec <T, 4>, code> {
+	using arithmetic_type = vec <T, 4>;
+	
+	using self = __glsl_intrinsic_variable_t;
+	
+	swizzle_element <T, self, thunder::SwizzleCode::x> x;
+	swizzle_element <T, self, thunder::SwizzleCode::y> y;
+	swizzle_element <T, self, thunder::SwizzleCode::z> z;
+	swizzle_element <T, self, thunder::SwizzleCode::w> w;
+
+	__glsl_intrinsic_variable_t() = default;
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-
-		thunder::Qualifier qualifier;
-		
-		qualifier.underlying = type_field_from_args <int32_t> ().id;
-		qualifier.kind = code;
-
-		return cache_index_t::from(em.emit(qualifier));
+		thunder::index_t type = type_field_from_args <vec <T, 4>> ().id;
+		thunder::index_t intr = em.emit_qualifier(type, -1, code);
+		return cache_index_t::from(intr);
 	}
-} static // Integral GLSL shader inrinsic variables...
-	gl_VertexID(thunder::glsl_intrinsic_gl_VertexID),
-	gl_VertexIndex(thunder::glsl_intrinsic_gl_VertexIndex);
 
-// Shader intrinsic functions
+	operator arithmetic_type() const {
+		return synthesize();
+	}
+	
+	// Assignment only for non-const intrinsics (assignable)
+	const self &operator=(const vec <T, 4> &other) {
+		auto &em = Emitter::active;
+		em.emit_store(synthesize().id, other.synthesize().id, false);
+		return *this;
+	}
+};
+
+template <thunder::QualifierKind code>
+using __glsl_int = __glsl_intrinsic_variable_t <int32_t, code>;
+
+template <thunder::QualifierKind code>
+using __glsl_float = __glsl_intrinsic_variable_t <float, code>;
+
+template <thunder::QualifierKind code>
+using __glsl_vec4 = __glsl_intrinsic_variable_t <vec <float, 4>, code>;
+
+////////////////////////////////////////////////
+// GLSL shader intrinsic variable definitions //
+////////////////////////////////////////////////
+
+static const __glsl_vec4  <thunder::glsl_intrinsic_gl_FragCoord>   gl_FragCoord;
+static const __glsl_float <thunder::glsl_intrinsic_gl_FragDepth>   gl_FragDepth;
+static const __glsl_int   <thunder::glsl_intrinsic_gl_VertexID>    gl_VertexID;
+static const __glsl_int   <thunder::glsl_intrinsic_gl_VertexIndex> gl_VertexIndex;
+
+static       __glsl_vec4 <thunder::glsl_intrinsic_gl_Position>     gl_Position;
+
+/////////////////////////////////////
+// GLSL shader intrinsic functions //
+/////////////////////////////////////
+
 template <typename T, size_t N>
 vec <T, N> dFdx(const vec <T, N> &v)
 {
