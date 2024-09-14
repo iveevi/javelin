@@ -1,71 +1,62 @@
 #pragma once
 
+#include "../thunder/enumerations.hpp"
 #include "emitter.hpp"
+#include "primitive.hpp"
+#include "tagged.hpp"
 #include "type_synthesis.hpp"
 #include "uniform_layout.hpp"
-#include "primitive.hpp"
-#include "upcast.hpp"
 
 namespace jvl::ire {
 
-template <typename T>
-using push_constant_base = std::conditional_t <builtin <T> || aggregate <T>, T, tagged>;
+template <generic>
+struct push_constant {};
 
-template <generic T>
-struct push_constant : push_constant_base <T> {
-	using upcast_t = decltype(upcast(T()));
+// Implementation for native types
+template <native T>
+struct push_constant <T> {
+	using arithmetic_type = native_t <T>;
 
-	// TODO: handle operator= disabling
-	push_constant()
-	requires native <T> = default;
+	push_constant() = default;
 
-	push_constant()
-	requires builtin <T> {
+	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-
-		thunder::Qualifier global;
-		global.underlying = type_field_from_args <T> ().id;
-		global.kind = thunder::push_constant;
-
-		this->ref = em.emit(global);
+		thunder::index_t type = type_field_from_args <native_t <T>> ().id;
+		thunder::index_t lin = em.emit_qualifier(type, -1, thunder::push_constant);
+		thunder::index_t value = em.emit_load(lin, -1);
+		return cache_index_t::from(value);
 	}
 
+	operator arithmetic_type() const {
+		return arithmetic_type(synthesize());
+	}
+};
+
+// Implementation built-ins
+template <builtin T>
+struct push_constant <T> : T {
+	push_constant() {
+		auto &em = Emitter::active;
+		thunder::index_t type = type_field_from_args <T> ().id;
+		thunder::index_t lin = em.emit_qualifier(type, -1, thunder::push_constant);
+		this->ref = lin;
+	}
+	
+	operator typename T::arithmetic_type() const {
+		return arithmetic_type(T::synthesize());
+	}
+};
+
+// Implementation for aggregate types
+template <aggregate T>
+struct push_constant <T> : T {
 	template <typename ... Args>
-	push_constant(const Args &... args)
-	requires aggregate <T> : T(args...) {
+	push_constant(const Args &... args) : T(args...) {
 		auto &em = Emitter::active;
-
 		auto layout = this->layout().remove_const();
-
-		thunder::Qualifier global;
-		global.underlying = type_field_from_args(layout).id;
-		global.kind = thunder::push_constant;
-
-		cache_index_t ref;
-		ref = em.emit(global);
-		layout.ref_with(ref);
-	}
-
-	cache_index_t synthesize() const
-	requires native <T> {
-		if (this->cached())
-			return this->ref;
-
-		auto &em = Emitter::active;
-
-		thunder::Qualifier global;
-		global.underlying = type_field_from_args <T> ().id;
-		global.kind = thunder::push_constant;
-
-		thunder::Load load;
-		load.src = em.emit(global);
-
-		return (this->ref = em.emit(load));
-	}
-
-	operator upcast_t ()
-	requires native <T> {
-		return upcast_t(synthesize());
+		thunder::index_t type = type_field_from_args(layout).id;
+		thunder::index_t lin = em.emit_qualifier(type, -1, thunder::push_constant);
+		layout.ref_with(cache_index_t::from(lin));
 	}
 };
 

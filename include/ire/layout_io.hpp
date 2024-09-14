@@ -1,21 +1,18 @@
 #pragma once
 
 #include "../thunder/enumerations.hpp"
-#include "../thunder/qualified_type.hpp"
 #include "emitter.hpp"
 #include "primitive.hpp"
 #include "tagged.hpp"
 #include "type_synthesis.hpp"
 #include "uniform_layout.hpp"
-#include "upcast.hpp"
 
 namespace jvl::ire {
 
-// Dummy structure
-// TODO: remove
-struct __empty {};
+//////////////////////////////
+// Interpolation qualifiers //
+//////////////////////////////
 
-// Interpolation qualifiers for layout outputs
 enum InterpolationKind {
 	flat,
 	noperspective,
@@ -46,154 +43,106 @@ constexpr thunder::QualifierKind layout_out_as(InterpolationKind kind)
 	}
 }
 
-// Base type for each layout
-template <typename T>
-using layout_in_base = std::conditional_t <builtin <T> || aggregate <T>, T, tagged>;
+///////////////////
+// Layout inputs //
+///////////////////
 
-template <typename T>
-using layout_out_base = std::conditional_t <builtin <T> || aggregate <T>, T, __empty>;
+template <generic, InterpolationKind = smooth>
+struct layout_in {};
 
-template <generic T, InterpolationKind kind = smooth>
-struct layout_in : layout_in_base <T> {
-	using arithmetic_type = decltype(upcast(T()));
+// Implementation for native types
+template <native T, InterpolationKind kind>
+struct layout_in <T, kind> {
+	using arithmetic_type = native_t <T>;
 
 	const size_t binding;
 
-	layout_in(size_t binding_ = 0)
-	requires native <T> : binding(binding_) {}
+	layout_in(size_t binding_ = 0) : binding(binding_) {}
 
-	layout_in(size_t binding_ = 0)
-	requires builtin <T> : binding(binding_) {
+	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-
-		thunder::Qualifier global;
-		global.underlying = type_field_from_args <T> ().id;
-		global.numerical = binding;
-		global.kind = layout_in_as(kind);
-
-		this->ref = em.emit(global);
+		thunder::index_t type = type_field_from_args <native_t <T>> ().id;
+		thunder::index_t lin = em.emit_qualifier(type, binding, layout_in_as(kind));
+		thunder::index_t value = em.emit_load(lin, -1);
+		return cache_index_t::from(value);
 	}
 
-	template <typename ... Args>
-	layout_in(size_t binding_, const Args &... args)
-	requires native <T> : T(args...), binding(binding_) {
-		auto &em = Emitter::active;
-
-		auto layout = this->layout().remove_const();
-
-		thunder::Qualifier global;
-		global.underlying = type_field_from_args(layout).id;
-		global.numerical = binding;
-		global.kind = layout_in_as(kind);
-
-		cache_index_t ref;
-		ref = em.emit(global);
-		layout.ref_with(ref);
-	}
-
-	cache_index_t synthesize() const
-	requires native <T> {
-		if (this->cached())
-			return this->ref;
-
-		auto &em = Emitter::active;
-
-		thunder::Qualifier global;
-		global.underlying = type_field_from_args <T> ().id;
-		global.numerical = binding;
-		global.kind = layout_in_as(kind);
-
-		thunder::Load load;
-		load.src = em.emit(global);
-
-		return (this->ref = em.emit(load));
-	}
-
-	void refresh(const cache_index_t::value_type &) {
-		// Do nothing for now...
-	}
-
-	operator arithmetic_type() const
-	requires builtin <T> {
-		return arithmetic_type(synthesize());
-	}
-
-	operator arithmetic_type() const
-	requires native <T> {
+	operator arithmetic_type() const {
 		return arithmetic_type(synthesize());
 	}
 };
 
-template <generic T, InterpolationKind kind = smooth>
-struct layout_out : layout_out_base <T> {
-	using upcast_t = decltype(upcast(T()));
+// Implementation for built-ins
+template <builtin T, InterpolationKind kind>
+struct layout_in <T, kind> : T {
+	const size_t binding;
 
-	size_t binding;
-
-	layout_out(size_t binding_)
-	requires native <T> : binding(binding_) {}
-
-	layout_out(size_t binding_)
-	requires builtin <T> : binding(binding_) {
+	layout_in(size_t binding_ = 0) : binding(binding_) {
 		auto &em = Emitter::active;
-
-		thunder::Qualifier global;
-		global.underlying = type_field_from_args <T> ().id;
-		global.numerical = binding;
-		global.kind = layout_out_as(kind);
-
-		this->ref = em.emit(global);
+		thunder::index_t type = type_field_from_args <T> ().id;
+		thunder::index_t lin = em.emit_qualifier(type, binding, layout_in_as(kind));
+		this->ref = lin;
 	}
+	
+	operator typename T::arithmetic_type() const {
+		return arithmetic_type(T::synthesize());
+	}
+};
+
+// Implementation for aggregate types
+template <aggregate T, InterpolationKind kind>
+struct layout_in <T, kind> : T {
+	const size_t binding;
 
 	template <typename ... Args>
-	layout_out(size_t binding_, const Args &... args)
-	requires native <T> : T(args...), binding(binding_) {
+	layout_in(size_t binding_, const Args &... args) : T(args...), binding(binding_) {
 		auto &em = Emitter::active;
-
 		auto layout = this->layout().remove_const();
-
-		thunder::Qualifier global;
-		global.underlying = type_field_from_args(layout).id;
-		global.numerical = binding;
-		global.kind = layout_out_as(kind);
-
-		cache_index_t ref;
-		ref = em.emit(global);
-		layout.ref_with(ref);
+		thunder::index_t type = type_field_from_args(layout).id;
+		thunder::index_t lin = em.emit_qualifier(type, binding, layout_in_as(kind));
+		layout.ref_with(cache_index_t::from(lin));
 	}
+};
 
-	layout_out &operator=(const T &t)
-	requires native <T> {
+////////////////////
+// Layout outputs //
+////////////////////
+
+template <generic, InterpolationKind = smooth>
+struct layout_out {
+	static_assert(false, "aggregate layout outputs are not yet supported");
+};
+
+// Implementation for native types
+template <native T, InterpolationKind kind>
+struct layout_out <T, kind> {
+	const size_t binding;
+
+	layout_out(size_t binding_) : binding(binding_) {}
+
+	layout_out &operator=(const native_t <T> &value) {
 		auto &em = Emitter::active;
-
-		thunder::Qualifier global;
-		global.underlying = type_field_from_args <T> ().id;
-		global.numerical = binding;
-		global.kind = layout_out_as(kind);
-
-		thunder::Store store;
-		store.dst = em.emit(global);
-		store.src = translate_primitive(t);
-
-		em.emit(store);
-
+		thunder::index_t type = type_field_from_args <native_t <T>> ().id;
+		thunder::index_t lout = em.emit_qualifier(type, binding, layout_out_as(kind));
+		em.emit_store(lout, value.synthesize().id, false);
 		return *this;
 	}
+};
 
-	layout_out &operator=(const upcast_t &t) {
+// Implementation for built-ins
+template <builtin T, InterpolationKind kind>
+struct layout_out <T, kind> : T {
+	size_t binding;
+
+	layout_out(size_t binding_) : binding(binding_) {
 		auto &em = Emitter::active;
+		thunder::index_t type = type_field_from_args <T> ().id;
+		thunder::index_t lout = em.emit_qualifier(type, binding, layout_out_as(kind));
+		this->ref = lout;
+	}
 
-		thunder::Qualifier global;
-		global.underlying = type_field_from_args <T> ().id;
-		global.numerical = binding;
-		global.kind = layout_out_as(kind);
-
-		thunder::Store store;
-		store.dst = em.emit(global);
-		store.src = t.synthesize().id;
-
-		em.emit(store);
-
+	layout_out &operator=(const T &value) {
+		T::operator=(value);
 		return *this;
 	}
 };

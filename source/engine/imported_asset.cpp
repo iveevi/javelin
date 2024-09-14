@@ -68,7 +68,6 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 
 		const tinyobj::shape_t &shape = shapes[s];
 		
-		fmt::println("shape: {}", shape.name);
 		imported_asset.names.push_back(shape.name);
 
 		// Loop over faces (polygon)
@@ -134,9 +133,7 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 			index_offset += fv;
 		}
 
-		fmt::println("  size: {} vertices, {} normals, {} uvs", positions.size(), normals.size(), uvs.size());
-		fmt::println("  size: {} tris, {} quads {} materials", triangles.size(), quadrilaterals.size(), materials.size());
-
+		// Compose the final mesh
 		Mesh mesh;
 
 		mesh.vertex_count = positions.size();

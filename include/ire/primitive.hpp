@@ -117,10 +117,6 @@ struct native_t : tagged {
 		return (ref = translate_primitive(value));
 	}
 
-	void refresh(const cache_index_t::value_type &ci) {
-		ref = ci;
-	}
-
 	///////////////////////////////////
 	// In place arithmetic operators //
 	///////////////////////////////////
