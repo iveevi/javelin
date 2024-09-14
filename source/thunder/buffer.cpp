@@ -61,28 +61,28 @@ void Buffer::validate() const
 	wrapped::hash_table <index_t, index_t> inputs;
 	wrapped::hash_table <index_t, index_t> outputs;
 
-	for (int i = 0; i < pointer; i++) {
-		Atom g = atoms[i];
-		if (!g.is <Qualifier>())
-			continue;
+	// for (int i = 0; i < pointer; i++) {
+	// 	Atom g = atoms[i];
+	// 	if (!g.is <Qualifier>())
+	// 		continue;
 
-		Qualifier global = g.as <Qualifier> ();
-		if (global.kind == layout_in) {
-			int type = global.underlying;
-			int binding = global.numerical;
-			if (inputs.count(binding) && inputs[binding] != type)
-				fmt::println("JVL (error): layout in type conflict with binding #{}", binding);
-			else
-				inputs[binding] = type;
-		} else if (global.kind == layout_out) {
-			int type = global.underlying;
-			int binding = global.numerical;
-			if (outputs.count(binding) && outputs[binding] != type)
-				fmt::println("JVL (error): layout out type conflict with binding #{}", binding);
-			else
-				outputs[binding] = type;
-		}
-	}
+	// 	Qualifier global = g.as <Qualifier> ();
+	// 	if (global.kind == layout_in) {
+	// 		int type = global.underlying;
+	// 		int binding = global.numerical;
+	// 		if (inputs.count(binding) && inputs[binding] != type)
+	// 			fmt::println("JVL (error): layout in type conflict with binding #{}", binding);
+	// 		else
+	// 			inputs[binding] = type;
+	// 	} else if (global.kind == layout_out) {
+	// 		int type = global.underlying;
+	// 		int binding = global.numerical;
+	// 		if (outputs.count(binding) && outputs[binding] != type)
+	// 			fmt::println("JVL (error): layout out type conflict with binding #{}", binding);
+	// 		else
+	// 			outputs[binding] = type;
+	// 	}
+	// }
 }
 
 void Buffer::clear()

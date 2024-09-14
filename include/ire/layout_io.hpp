@@ -1,24 +1,59 @@
 #pragma once
 
+#include "../thunder/enumerations.hpp"
+#include "../thunder/qualified_type.hpp"
 #include "emitter.hpp"
 #include "primitive.hpp"
 #include "tagged.hpp"
-#include "uniform_layout.hpp"
 #include "type_synthesis.hpp"
+#include "uniform_layout.hpp"
 #include "upcast.hpp"
-#include <cstddef>
 
 namespace jvl::ire {
 
+// Dummy structure
+// TODO: remove
 struct __empty {};
 
+// Interpolation qualifiers for layout outputs
+enum InterpolationKind {
+	flat,
+	noperspective,
+	smooth,
+};
+
+constexpr thunder::QualifierKind layout_in_as(InterpolationKind kind)
+{
+	switch (kind) {
+	case flat:
+		return thunder::layout_in_flat;
+	case noperspective:
+		return thunder::layout_in_noperspective;
+	case smooth:
+		return thunder::layout_in_smooth;
+	}
+}
+
+constexpr thunder::QualifierKind layout_out_as(InterpolationKind kind)
+{
+	switch (kind) {
+	case flat:
+		return thunder::layout_out_flat;
+	case noperspective:
+		return thunder::layout_out_noperspective;
+	case smooth:
+		return thunder::layout_out_smooth;
+	}
+}
+
+// Base type for each layout
 template <typename T>
 using layout_in_base = std::conditional_t <builtin <T> || aggregate <T>, T, tagged>;
 
 template <typename T>
 using layout_out_base = std::conditional_t <builtin <T> || aggregate <T>, T, __empty>;
 
-template <generic T>
+template <generic T, InterpolationKind kind = smooth>
 struct layout_in : layout_in_base <T> {
 	using upcast_t = decltype(upcast(T()));
 
@@ -34,7 +69,7 @@ struct layout_in : layout_in_base <T> {
 		thunder::Qualifier global;
 		global.underlying = type_field_from_args <T> ().id;
 		global.numerical = binding;
-		global.kind = thunder::QualifierKind::layout_in;
+		global.kind = layout_in_as(kind);
 
 		this->ref = em.emit(global);
 	}
@@ -49,7 +84,7 @@ struct layout_in : layout_in_base <T> {
 		thunder::Qualifier global;
 		global.underlying = type_field_from_args(layout).id;
 		global.numerical = binding;
-		global.kind = thunder::QualifierKind::layout_in;
+		global.kind = layout_in_as(kind);
 
 		cache_index_t ref;
 		ref = em.emit(global);
@@ -66,7 +101,7 @@ struct layout_in : layout_in_base <T> {
 		thunder::Qualifier global;
 		global.underlying = type_field_from_args <T> ().id;
 		global.numerical = binding;
-		global.kind = thunder::QualifierKind::layout_in;
+		global.kind = layout_in_as(kind);
 
 		thunder::Load load;
 		load.src = em.emit(global);
@@ -89,7 +124,7 @@ struct layout_in : layout_in_base <T> {
 	}
 };
 
-template <generic T>
+template <generic T, InterpolationKind kind = smooth>
 struct layout_out : layout_out_base <T> {
 	using upcast_t = decltype(upcast(T()));
 
@@ -105,7 +140,7 @@ struct layout_out : layout_out_base <T> {
 		thunder::Qualifier global;
 		global.underlying = type_field_from_args <T> ().id;
 		global.numerical = binding;
-		global.kind = thunder::QualifierKind::layout_out;
+		global.kind = layout_out_as(kind);
 
 		this->ref = em.emit(global);
 	}
@@ -120,7 +155,7 @@ struct layout_out : layout_out_base <T> {
 		thunder::Qualifier global;
 		global.underlying = type_field_from_args(layout).id;
 		global.numerical = binding;
-		global.kind = thunder::QualifierKind::layout_out;
+		global.kind = layout_out_as(kind);
 
 		cache_index_t ref;
 		ref = em.emit(global);
@@ -134,7 +169,7 @@ struct layout_out : layout_out_base <T> {
 		thunder::Qualifier global;
 		global.underlying = type_field_from_args <T> ().id;
 		global.numerical = binding;
-		global.kind = thunder::QualifierKind::layout_out;
+		global.kind = layout_out_as(kind);
 
 		thunder::Store store;
 		store.dst = em.emit(global);
@@ -151,7 +186,7 @@ struct layout_out : layout_out_base <T> {
 		thunder::Qualifier global;
 		global.underlying = type_field_from_args <T> ().id;
 		global.numerical = binding;
-		global.kind = thunder::QualifierKind::layout_out;
+		global.kind = layout_out_as(kind);
 
 		thunder::Store store;
 		store.dst = em.emit(global);

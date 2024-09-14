@@ -107,12 +107,12 @@ void Linkage::dump() const
 	}
 
 	fmt::println("Layout inputs: {}", lins.size());
-	for (auto &[i, t] : lins)
-		fmt::println("  @{} -> %{}", i, t);
+	for (auto &[i, linfo] : lins)
+		fmt::println("  @{} -> %{} ({})", i, linfo.type, tbl_qualifier_kind[linfo.kind]);
 
 	fmt::println("Layout outputs: {}", louts.size());
-	for (auto &[i, t] : louts)
-		fmt::println("  @{} -> %{}", i, t);
+	for (auto &[i, linfo] : louts)
+		fmt::println("  @{} -> %{} ({})", i, linfo.type, tbl_qualifier_kind[linfo.kind]);
 
 	fmt::print("Push constant: ");
 	if (push_constant >= 0)

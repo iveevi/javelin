@@ -215,11 +215,11 @@ std::string Linkage::generate_cplusplus()
 			returns = "void";
 		} else if (louts.size() == 1) {
 			auto it = louts.begin();
-			returns = translate_type(it->second);
+			returns = translate_type(it->second.type);
 		} else {
 			size_t count = 0;
-			for (auto [_, t] : louts) {
-				returns += translate_type(t);
+			for (auto [_, linfo] : louts) {
+				returns += translate_type(linfo.type);
 				if (count + 1 < louts.size()) {
 					returns += ", ";
 				}
@@ -234,8 +234,8 @@ std::string Linkage::generate_cplusplus()
 		std::vector <std::string> args;
 
 		// For now, layout inputs are passed by const reference
-		for (const auto &[binding, t] : lins)
-			args.emplace_back(fmt::format("{} _lin{}", translate_type(t), binding));
+		for (const auto &[binding, linfo] : lins)
+			args.emplace_back(fmt::format("{} _lin{}", translate_type(linfo.type), binding));
 
 		for (index_t i = 0; i < b.parameters.size(); i++) {
 			index_t t = b.parameters.at(i);
@@ -255,8 +255,8 @@ std::string Linkage::generate_cplusplus()
 		source += "{\n";
 
 		// Declare storage for each layout outputs (return value)
-		for (auto [binding, t] : louts)
-			source += fmt::format("    {} _lout{};\n", translate_type(t), binding);
+		for (auto [binding, linfo] : louts)
+			source += fmt::format("    {} _lout{};\n", translate_type(linfo.type), binding);
 
 		detail::auxiliary_block_t aux(b, local_struct_names);
 		detail::c_like_generator_t generator(aux);

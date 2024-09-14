@@ -300,7 +300,7 @@ void legalize_for_cc(Buffer &buffer)
 			if (!constructor->transient && vector_type(ptype)) {
 				fmt::println("legalizing constructor: {}", atom);
 				fmt::println("constructor for vector type: {}", tbl_primitive_types[ptype]);
-				size_t components = vector_component_count(ptype);
+				
 				auto args = buffer.expand_list(constructor->args);
 				std::vector <PrimitiveType> types;
 				for (auto i : args) {

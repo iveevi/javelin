@@ -100,6 +100,8 @@ struct array : public array_base <T, N> {
 	template <integral_native U>
 	element operator[](const primitive_t <U> &index) const
 	requires builtin <T> || native <T> {
+		MODULE(array);
+
 		JVL_ASSERT(this->cached(), "arrays must be cached by the time of use");
 		auto &em = Emitter::active;
 		thunder::index_t l = index.synthesize().id;
@@ -110,6 +112,8 @@ struct array : public array_base <T, N> {
 	template <integral_native U>
 	element operator[](const primitive_t <U> &index) const
 	requires aggregate <T> {
+		MODULE(array);
+
 		JVL_ASSERT(this->cached(), "arrays must be cached by the time of use");
 		auto &em = Emitter::active;
 		thunder::index_t l = index.synthesize().id;

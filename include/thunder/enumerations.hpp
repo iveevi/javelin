@@ -77,8 +77,15 @@ static_assert(__pt_end + 1 == sizeof(tbl_primitive_types)/sizeof(const char *));
 enum QualifierKind : int8_t {
 	parameter,
 	arrays,
-	layout_in,
-	layout_out,
+	
+	layout_in_flat,
+	layout_in_noperspective,
+	layout_in_smooth,
+
+	layout_out_flat,
+	layout_out_noperspective,
+	layout_out_smooth,
+
 	push_constant,
 	glsl_vertex_intrinsic_gl_Position,
 	__gq_end
@@ -87,8 +94,15 @@ enum QualifierKind : int8_t {
 static constexpr const char *tbl_qualifier_kind[] = {
 	"parameter",
 	"arrays",
-	"layout_input",
-	"layout_output",
+
+	"layout_input_flat",
+	"layout_input_noperspective",
+	"layout_input_smooth",
+
+	"layout_output_flat",
+	"layout_output_noperspective",
+	"layout_output_smooth",
+
 	"push_constant",
 	"glsl:vertex:gl_Position",
 	"__end"

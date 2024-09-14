@@ -5,6 +5,7 @@
 
 #include "atom.hpp"
 #include "buffer.hpp"
+#include "thunder/enumerations.hpp"
 
 namespace jvl::thunder {
 
@@ -24,8 +25,13 @@ struct Linkage {
 	std::unordered_set <index_t> callables;
 
 	// Types for global variables
-	wrapped::hash_table <index_t, index_t> lins;
-	wrapped::hash_table <index_t, index_t> louts;
+	struct layout_info {
+		index_t type;
+		QualifierKind kind;
+	};
+
+	wrapped::hash_table <index_t, layout_info> lins;
+	wrapped::hash_table <index_t, layout_info> louts;
 
 	// By default assume no push constants
 	index_t push_constant = -1;

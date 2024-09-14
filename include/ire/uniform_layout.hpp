@@ -11,8 +11,6 @@
 
 namespace jvl::ire {
 
-MODULE(uniform-layout);
-
 // Field classifications
 enum {
 	eField,
@@ -36,6 +34,8 @@ struct uniform_layout_t {
 
 	// TODO: move down...
 	void ref_with(cache_index_t up) {
+		MODULE(uniform-layout-ref-with);
+
 		// If there is only one element then transfer it only
 		if constexpr (sizeof...(Args) == 1) {
 			layout_field f = fields[0];

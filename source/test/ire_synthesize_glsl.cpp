@@ -15,6 +15,7 @@ bool init_context()
 	if (initialized)
 		return true;
 
+	glfwInit();
 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 	GLFWwindow *window = glfwCreateWindow(800, 800, "JVL:TEST", NULL, NULL);
 	if (window == NULL) {

@@ -12,9 +12,13 @@ MODULE(c-like-generator);
 static std::optional <std::string> generate_global_reference(const Qualifier &global)
 {
 	switch (global.kind) {
-	case QualifierKind::layout_in:
+	case QualifierKind::layout_in_flat:
+	case QualifierKind::layout_in_noperspective:
+	case QualifierKind::layout_in_smooth:
 		return fmt::format("_lin{}", global.numerical);
-	case QualifierKind::layout_out:
+	case QualifierKind::layout_out_flat:
+	case QualifierKind::layout_out_noperspective:
+	case QualifierKind::layout_out_smooth:
 		return fmt::format("_lout{}", global.numerical);
 	case QualifierKind::parameter:
 		return fmt::format("_arg{}", global.numerical);

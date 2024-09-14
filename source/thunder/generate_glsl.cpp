@@ -60,17 +60,58 @@ std::string Linkage::generate_glsl(const std::string &version)
 	}
 
 	// Global shader variables
-	for (const auto &[binding, t] : lins) {
+	// TODO: use layout qualifiers
+	for (const auto &[binding, linfo] : lins) {
+		std::string interpolation = "<interp:?>";
+		switch (linfo.kind) {
+		case layout_in_flat:
+			interpolation = "flat";
+			break;
+		case layout_in_noperspective:
+			interpolation = "noperspective";
+			break;
+		case layout_in_smooth:
+			interpolation = "";
+			break;
+		default:
+			break;
+		}
+
+		if (!interpolation.empty())
+			interpolation += " ";
+		
+		interpolation += translate_type(linfo.type);
+
 		source += fmt::format("layout (location = {}) in {} _lin{};\n",
-				binding, translate_type(t), binding);
+				binding, interpolation, binding);
 	}
 
 	if (lins.size())
 		source += "\n";
 
-	for (const auto &[binding, t] : louts) {
+	for (const auto &[binding, linfo] : louts) {
+		std::string interpolation = "<interp:?>";
+		switch (linfo.kind) {
+		case layout_out_flat:
+			interpolation = "flat";
+			break;
+		case layout_out_noperspective:
+			interpolation = "noperspective";
+			break;
+		case layout_out_smooth:
+			interpolation = "";
+			break;
+		default:
+			break;
+		}
+		
+		if (!interpolation.empty())
+			interpolation += " ";
+		
+		interpolation += translate_type(linfo.type);
+
 		source += fmt::format("layout (location = {}) out {} _lout{};\n",
-				binding, translate_type(t), binding);
+				binding, interpolation, binding);
 	}
 
 	if (louts.size())

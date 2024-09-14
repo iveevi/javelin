@@ -1,11 +1,10 @@
 #include "logging.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/kernel.hpp"
+#include "thunder/enumerations.hpp"
 #include "thunder/linkage.hpp"
 
 namespace jvl::thunder {
-
-MODULE(kernel);
 
 index_t generate_type_declaration(Linkage &linkage, const std::vector <Atom> &atoms, index_t index)
 {
@@ -67,11 +66,15 @@ Linkage Kernel::linkage() const
 			index_t binding = qualifier->numerical;
 
 			switch (qualifier->kind) {
-			case layout_in:
-				linkage.lins[binding] = generated_type;
+			case layout_in_flat:
+			case layout_in_noperspective:
+			case layout_in_smooth:
+				linkage.lins[binding] = { generated_type, qualifier->kind };
 				break;
-			case layout_out:
-				linkage.louts[binding] = generated_type;
+			case layout_out_flat:
+			case layout_out_noperspective:
+			case layout_out_smooth:
+				linkage.louts[binding] = { generated_type, qualifier->kind };
 				break;
 			case parameter:
 				block.parameters[binding] = type;
