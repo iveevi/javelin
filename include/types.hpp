@@ -25,4 +25,10 @@ using typed_buffer = jvl::wrapped::variant <
 	buffer <int>
 >;
 
+inline size_t typed_buffer_size(const typed_buffer &buffer)
+{
+	auto ftn = [](auto b) { return b.size(); };
+	return std::visit(ftn, buffer);
+}
+
 } // namespace jvl

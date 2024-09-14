@@ -24,20 +24,36 @@ using namespace jvl::ire;
 using namespace jvl::gfx;
 
 struct RenderingInfo {
+	// Primary rendering structures
 	const vk::CommandBuffer &cmd;
 	const littlevk::SurfaceOperation &operation;
 	InteractiveWindow &window;
 	int32_t frame;
+
+	// Scenes
+	core::Scene &scene;
+	vulkan::Scene &device_scene;
 };
+
+using imgui_callback = std::function <void (const RenderingInfo &)>;
+using imgui_callback_list = std::vector <imgui_callback>;
 
 // Renders to the swapchain images
 struct ImGuiRenderGroup {
 	vk::RenderPass render_pass;
 	std::vector <vk::Framebuffer> framebuffers;
 
-	auto render_pass_begin_info(const RenderingInfo &info) const {
-		return littlevk::default_rp_begin_info <1> (render_pass,
-			framebuffers[info.operation.index], info.window);
+	// Constructors
+	ImGuiRenderGroup() = default;
+
+	ImGuiRenderGroup(DeviceResourceCollection &drc) {
+		render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
+			.add_attachment(littlevk::default_color_attachment(drc.swapchain.format))
+			.add_subpass(vk::PipelineBindPoint::eGraphics)
+				.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
+				.done();
+
+		resize(drc);	
 	}
 
 	void resize(DeviceResourceCollection &drc) {
@@ -54,50 +70,34 @@ struct ImGuiRenderGroup {
 		framebuffers = generator.unpack();
 	}
 
-	static ImGuiRenderGroup from(DeviceResourceCollection &drc) {
-		ImGuiRenderGroup prg;
+	void render(const RenderingInfo &info, const imgui_callback_list &callbacks) {
+		// Configure the rendering extent
+		littlevk::viewport_and_scissor(info.cmd, littlevk::RenderArea(info.window));
 
-		prg.render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
-			.add_attachment(littlevk::default_color_attachment(drc.swapchain.format))
-			.add_subpass(vk::PipelineBindPoint::eGraphics)
-				.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
-				.done();
+		// Start the rendering pass
+		auto rpbi = littlevk::default_rp_begin_info <1> (render_pass,
+			framebuffers[info.operation.index], info.window);
 
-		prg.resize(drc);	
+		info.cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);
+		
+		ImGui_ImplVulkan_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
 
-		return prg;
+		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
+		
+		for (auto &callback : callbacks)
+			callback(info);
+
+		// Complete the rendering	
+		ImGui::Render();
+
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), info.cmd);
+		
+		// Finish the rendering pass
+		info.cmd.endRenderPass();
 	}
 };
-
-using imgui_callback = std::function <void (const RenderingInfo &)>;
-using imgui_callback_list = std::vector <imgui_callback>;
-
-void render_imgui(const RenderingInfo &info, const ImGuiRenderGroup &irg, const imgui_callback_list &callbacks)
-{
-	// Configure the rendering extent
-	littlevk::viewport_and_scissor(info.cmd, littlevk::RenderArea(info.window));
-
-	// Start the rendering pass
-	auto rpbi = irg.render_pass_begin_info(info);
-	info.cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);
-	
-	ImGui_ImplVulkan_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
-
-	ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
-	
-	for (auto &callback : callbacks)
-		callback(info);
-
-	// Complete the rendering	
-	ImGui::Render();
-
-	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), info.cmd);
-	
-	// Finish the rendering pass
-	info.cmd.endRenderPass();
-}
 
 enum ViewportMode : int32_t {
 	eAlbedo,
@@ -353,61 +353,134 @@ public:
 	// Pipeline kinds
 	std::array <littlevk::Pipeline, eCount> pipelines;
 
+	// Constructors
+	ViewportRenderGroup() = default;
+
+	ViewportRenderGroup(DeviceResourceCollection &drc) {
+		configure_render_pass(drc);
+		configure_pipelines(drc);
+	}
+
 	auto render_pass_begin_info(const RenderingInfo &info, const Viewport &viewport) const {
 		return littlevk::default_rp_begin_info <2> (render_pass,
 			viewport.framebuffers[info.operation.index],
 			viewport.extent);
 	}
 
-	static ViewportRenderGroup from(DeviceResourceCollection &drc) {
-		ViewportRenderGroup vrg;
-		vrg.configure_render_pass(drc);
-		vrg.configure_pipelines(drc);
-		return vrg;
+	void render(const RenderingInfo &info, Viewport &viewport) {
+		// Configure the rendering extent
+		littlevk::viewport_and_scissor(info.cmd, littlevk::RenderArea(viewport.extent));
+
+		viewport.handle_input(info.window);
+
+		auto rpbi = littlevk::default_rp_begin_info <2> (render_pass,
+			viewport.framebuffers[info.operation.index],
+			viewport.extent);
+
+		info.cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);
+
+		auto &ppl = pipelines[viewport.mode];
+
+		info.cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
+
+		solid_t <MVP> mvp;
+
+		auto m_model = uniform_field(MVP, model);
+		auto m_view = uniform_field(MVP, view);
+		auto m_proj = uniform_field(MVP, proj);
+
+		mvp[m_model] = jvl::float4x4::identity();
+		mvp[m_proj] = jvl::core::perspective(viewport.aperature);
+		mvp[m_view] = viewport.transform.to_view_matrix();
+
+		info.cmd.pushConstants <solid_t <MVP>> (ppl.layout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
+
+		for (const auto &vmesh : info.device_scene.meshes) {
+			info.cmd.bindVertexBuffers(0, vmesh.vertices.buffer, { 0 });
+			info.cmd.bindIndexBuffer(vmesh.triangles.buffer, 0, vk::IndexType::eUint32);
+			info.cmd.drawIndexed(vmesh.count, 1, 0, 0, 0);
+		}
+
+		info.cmd.endRenderPass();
+
+		littlevk::transition(info.cmd, viewport.targets[info.operation.index],
+			vk::ImageLayout::ePresentSrcKHR,
+			vk::ImageLayout::eShaderReadOnlyOptimal);
 	}
 };
 
-void render_viewport_scene(const RenderingInfo &info,
-			   const ViewportRenderGroup &vrg,
-			   Viewport &viewport,
-			   const vulkan::Scene &scene)
-{
-	// Configure the rendering extent
-	littlevk::viewport_and_scissor(info.cmd, littlevk::RenderArea(viewport.extent));
+struct SceneInspector {
+	// TODO: uuid lookup
+	const Scene::Object *selected = nullptr;
 
-	viewport.handle_input(info.window);
+	void scene_hierarchy_object(const Scene::Object &obj) {
+		if (obj.children.empty()) {
+			if (ImGui::Selectable(obj.name.c_str(), selected == &obj))
+				selected = &obj;
+		} else {
+			ImGuiTreeNodeFlags flags;
+			flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+			if (selected == &obj)
+				flags |= ImGuiTreeNodeFlags_Selected;
 
-	auto rpbi = vrg.render_pass_begin_info(info, viewport);
-	info.cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);
+			bool opened = ImGui::TreeNodeEx(obj.name.c_str(), flags);
+			if (ImGui::IsItemClicked())
+				selected = &obj;
 
-	auto &ppl = vrg.pipelines[viewport.mode];
+			if (opened) {
+				for (const auto &ref : obj.children)
+					scene_hierarchy_object(*ref);
 
-	info.cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
-
-	solid_t <MVP> mvp;
-
-	auto m_model = uniform_field(MVP, model);
-	auto m_view = uniform_field(MVP, view);
-	auto m_proj = uniform_field(MVP, proj);
-
-	mvp[m_model] = jvl::float4x4::identity();
-	mvp[m_proj] = jvl::core::perspective(viewport.aperature);
-	mvp[m_view] = viewport.transform.to_view_matrix();
-
-	info.cmd.pushConstants <solid_t <MVP>> (ppl.layout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
-
-	for (const auto &vmesh : scene.meshes) {
-		info.cmd.bindVertexBuffers(0, vmesh.vertices.buffer, { 0 });
-		info.cmd.bindIndexBuffer(vmesh.triangles.buffer, 0, vk::IndexType::eUint32);
-		info.cmd.drawIndexed(vmesh.count, 1, 0, 0, 0);
+				ImGui::TreePop();
+			}
+		}
 	}
 
-	info.cmd.endRenderPass();
+	void scene_hierarchy(const RenderingInfo &info) {
+		ImGui::Begin("Scene");
 
-	littlevk::transition(info.cmd, viewport.targets[info.operation.index],
-		vk::ImageLayout::ePresentSrcKHR,
-		vk::ImageLayout::eShaderReadOnlyOptimal);
-}
+		for (auto &root_ptr: info.scene.root) {
+			auto &obj = *root_ptr;
+			scene_hierarchy_object(obj);
+		}
+
+		ImGui::End();
+	}
+
+	void object_inspector(const RenderingInfo &info) {
+		ImGui::Begin("Inspector");
+
+		if (selected) {
+			auto &obj = *selected;
+			ImGui::Text("%s", obj.name.c_str());
+
+			if (ImGui::CollapsingHeader("Mesh")) {
+				if (obj.geometry) {
+					auto &g = obj.geometry.value();
+					// TODO: separate method to list all properties
+					ImGui::Text("# of vertices: %lu", g.vertex_count);
+
+					auto &triangles = g.face_properties.at(Mesh::triangle_key);
+					ImGui::Text("# of triangles: %lu", typed_buffer_size(triangles));
+				}
+			}
+			
+			if (ImGui::CollapsingHeader("Materials")) {
+				ImGui::Text("Count: %lu", obj.materials.size());
+			}
+		}
+
+		ImGui::End();
+	}
+
+	auto scene_hierarchy_callback() {
+		return std::bind(&SceneInspector::scene_hierarchy, this, std::placeholders::_1);
+	}
+
+	auto object_inspector_callback() {
+		return std::bind(&SceneInspector::object_inspector, this, std::placeholders::_1);
+	}
+};
 
 // Device extensions
 static const std::vector <const char *> EXTENSIONS {
@@ -424,7 +497,6 @@ struct Editor {
 
 	// Scene management
 	core::Scene			scene;
-	cpu::Scene			host_scene;
 	vulkan::Scene			vk_scene;
 
 	// ImGui rendering callbacks
@@ -432,6 +504,41 @@ struct Editor {
 
 	// Supporting multiple viewports
 	std::list <Viewport>		viewports;
+
+	// Miscellaneous
+	SceneInspector			inspector;
+
+	// Constructor
+	// TODO: pass command line options later...
+	Editor() {
+		// Load physical device
+		auto predicate = [](vk::PhysicalDevice phdev) {
+			return littlevk::physical_device_able(phdev, EXTENSIONS);
+		};
+
+		// Configure the resource collection
+		DeviceResourceCollectionInfo info {
+			.phdev = littlevk::pick_physical_device(predicate),
+			.title = "Editor",
+			.extent = vk::Extent2D(1920, 1080),
+			.extensions = EXTENSIONS,
+		};
+		
+		drc = DeviceResourceCollection::from(info);
+
+		// ImGui configuration
+		rg_imgui = ImGuiRenderGroup(drc);
+
+		imgui::configure_vulkan(drc, rg_imgui.render_pass);
+
+		// Other render groups		
+		rg_viewport = ViewportRenderGroup(drc);
+
+		// Configure event system(s)
+		glfwSetWindowUserPointer(drc.window.handle, &drc.window.event_system);
+		glfwSetMouseButtonCallback(drc.window.handle, glfw_button_callback);
+		glfwSetCursorPosCallback(drc.window.handle, glfw_cursor_callback);
+	}
 
 	// Adding a new viewport
 	void add_viewport() {
@@ -464,20 +571,24 @@ struct Editor {
 		cmd.begin(cbbi);
 
 		RenderingInfo info {
+			// Rendering structures
 			.cmd = cmd,
 			.operation = sop,
 			.window = drc.window,
 			.frame = frame,
+
+			// Device scenes
+			.scene = scene,
+			.device_scene = vk_scene
 		};
 
 		// Render all the viewports
 		for (auto &viewport : viewports)
-			render_viewport_scene(info, rg_viewport, viewport, vk_scene);
+			rg_viewport.render(info, viewport);
 
 		// Finally, render the user interface
 		auto current_callbacks = imgui_callbacks;
-
-		render_imgui(info, rg_imgui, current_callbacks);
+		rg_imgui.render(info, current_callbacks);
 
 		cmd.end();
 	
@@ -517,6 +628,10 @@ struct Editor {
 		ImGui::EndMainMenuBar();
 	}
 
+	auto main_menu_bar_callback() {
+		return std::bind(&Editor::imgui_main_menu_bar, this, std::placeholders::_1);
+	}
+
 	// Rendering loop
 	void loop() {
 		// Synchronization information
@@ -528,9 +643,10 @@ struct Editor {
 			vk::CommandBufferLevel::ePrimary, 2u);
 
 		// Configure for startup
-		imgui_callbacks.emplace_back(std::bind(&Editor::imgui_main_menu_bar,
-			this, std::placeholders::_1));
-
+		imgui_callbacks.emplace_back(main_menu_bar_callback());
+		imgui_callbacks.emplace_back(inspector.scene_hierarchy_callback());
+		imgui_callbacks.emplace_back(inspector.object_inspector_callback());
+		
 		add_viewport();
 
 		// Rendering loop
@@ -541,63 +657,28 @@ struct Editor {
 			frame = 1 - frame;
 		}
 	}
-
-	// TODO: pass command line options later...
-	static Editor from() {
-		Editor editor;
-	
-		// Load physical device
-		auto predicate = [](vk::PhysicalDevice phdev) {
-			return littlevk::physical_device_able(phdev, EXTENSIONS);
-		};
-
-		// Configure the resource collection
-		DeviceResourceCollectionInfo info {
-			.phdev = littlevk::pick_physical_device(predicate),
-			.title = "Editor",
-			.extent = vk::Extent2D(1920, 1080),
-			.extensions = EXTENSIONS,
-		};
-		
-		editor.drc = DeviceResourceCollection::from(info);
-
-		// ImGui configuration
-		editor.rg_imgui = ImGuiRenderGroup::from(editor.drc);
-
-		imgui::configure_vulkan(editor.drc, editor.rg_imgui.render_pass);
-
-		// Other render groups		
-		editor.rg_viewport = ViewportRenderGroup::from(editor.drc);
-
-		return editor;
-	}
 };
 
 int main(int argc, char *argv[])
 {
+	assert(argc >= 2);
+
 	auto &config = littlevk::config();
 	config.enable_logging = false;
 	config.abort_on_validation_error = true;
 
-	assert(argc >= 2);
+	Editor editor;
 
 	// Load the asset and scene
 	std::filesystem::path path = argv[1];
-
-	auto editor = Editor::from();
 
 	auto asset = engine::ImportedAsset::from(path).value();
 	editor.scene = core::Scene();
 	editor.scene.add(asset);
 
 	// Prepare host and device scenes
-	editor.host_scene = cpu::Scene::from(editor.scene);
-	editor.vk_scene = vulkan::Scene::from(editor.drc.allocator(), editor.host_scene);
-
-	// Event system(s)
-	glfwSetWindowUserPointer(editor.drc.window.handle, &editor.drc.window.event_system);
-	glfwSetMouseButtonCallback(editor.drc.window.handle, glfw_button_callback);
-	glfwSetCursorPosCallback(editor.drc.window.handle, glfw_cursor_callback);
+	auto host_scene = cpu::Scene::from(editor.scene);
+	editor.vk_scene = vulkan::Scene::from(editor.drc.allocator(), host_scene);
 
 	// Main loop
 	editor.loop();
