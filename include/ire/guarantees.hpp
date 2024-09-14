@@ -7,9 +7,9 @@
 
 namespace jvl::ire {
 
-static_assert(builtin <primitive_t <bool>>);
-static_assert(builtin <primitive_t <int>>);
-static_assert(builtin <primitive_t <float>>);
+static_assert(builtin <native_t <bool>>);
+static_assert(builtin <native_t <int>>);
+static_assert(builtin <native_t <float>>);
 
 static_assert(builtin <vec <bool, 2>>);
 static_assert(builtin <vec <bool, 3>>);

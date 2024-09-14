@@ -29,7 +29,7 @@ inline auto underlying(const A &a)
 template <native A>
 inline auto underlying(const A &a)
 {
-	return primitive_t <A> (a);
+	return native_t <A> (a);
 }
 
 template <arithmetic T>

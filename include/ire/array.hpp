@@ -12,7 +12,7 @@ struct array_base {
 
 template <native T, thunder::index_t N>
 struct array_base <T, N> : public tagged {
-	using element = primitive_t <T>;
+	using element = native_t <T>;
 
 	array_base() {
 		auto &em = Emitter::active;
@@ -91,14 +91,14 @@ struct array : public array_base <T, N> {
 			JVL_WARNING("index (={}) is out of bounds (size={})", index, N);
 
 		auto &em = Emitter::active;
-		primitive_t <int32_t> location(index);
+		native_t <int32_t> location(index);
 		thunder::index_t l = location.synthesize().id;
 		thunder::index_t c = em.emit_array_access(this->ref.id, l);
 		return cache_index_t::from(c);
 	}
 
 	template <integral_native U>
-	element operator[](const primitive_t <U> &index) const
+	element operator[](const native_t <U> &index) const
 	requires builtin <T> || native <T> {
 		MODULE(array);
 
@@ -110,7 +110,7 @@ struct array : public array_base <T, N> {
 	}
 
 	template <integral_native U>
-	element operator[](const primitive_t <U> &index) const
+	element operator[](const native_t <U> &index) const
 	requires aggregate <T> {
 		MODULE(array);
 

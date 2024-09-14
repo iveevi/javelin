@@ -59,7 +59,7 @@ template <native T>
 inline void returns(const T &value)
 {
 	Emitter::active.emit_return(
-		primitive_t <T> (value).synthesize().id,
+		native_t <T> (value).synthesize().id,
 		type_field_from_args <T> ().id);
 }
 

@@ -8,10 +8,10 @@
 namespace jvl::ire {
 
 // Aliases for common primitive types
-using i32 = primitive_t <int32_t>;
-using u32 = primitive_t <uint32_t>;
-using f32 = primitive_t <float>;
-using boolean = primitive_t <bool>;
+using i32 = native_t <int32_t>;
+using u32 = native_t <uint32_t>;
+using f32 = native_t <float>;
+using boolean = native_t <bool>;
 
 using ivec2 = vec <int32_t, 2>;
 using ivec3 = vec <int32_t, 3>;
@@ -42,13 +42,13 @@ constexpr thunder::PrimitiveType synthesize_primitive_type()
 	if constexpr (std::is_same_v <T, float>)
 		return thunder::f32;
 
-	if constexpr (std::is_same_v <T, primitive_t <bool>>)
+	if constexpr (std::is_same_v <T, native_t <bool>>)
 		return thunder::boolean;
-	if constexpr (std::is_same_v <T, primitive_t <int32_t>>)
+	if constexpr (std::is_same_v <T, native_t <int32_t>>)
 		return thunder::i32;
-	if constexpr (std::is_same_v <T, primitive_t <uint32_t>>)
+	if constexpr (std::is_same_v <T, native_t <uint32_t>>)
 		return thunder::u32;
-	if constexpr (std::is_same_v <T, primitive_t <float>>)
+	if constexpr (std::is_same_v <T, native_t <float>>)
 		return thunder::f32;
 
 	if constexpr (std::is_same_v <T, vec2>)

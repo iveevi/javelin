@@ -48,7 +48,7 @@ struct __gl_Position_t {
 } static gl_Position;
 
 struct __gl_VertexID {
-	using arithmetic_type = primitive_t <int32_t>;
+	using arithmetic_type = native_t <int32_t>;
 
 	__gl_VertexID() {}
 

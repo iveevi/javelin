@@ -27,7 +27,7 @@ class swizzle_element {
 
 	swizzle_element(Up *upper_) : upper(upper_) {}
 public:
-	using arithmetic_type = primitive_t <T>;
+	using arithmetic_type = native_t <T>;
 
 	swizzle_element() = default;
 
@@ -87,7 +87,7 @@ public:
 
 	// Bit shift operators
 	template <integral_native U>
-	swizzle_element &operator>>=(const primitive_t <U> &a)
+	swizzle_element &operator>>=(const native_t <U> &a)
 	requires integral_native <T> {
 		thunder::Store store;
 		store.src = (arithmetic_type(*this) >> a).synthesize().id;
@@ -99,11 +99,11 @@ public:
 	template <integral_native U, typename Up_, thunder::SwizzleCode swz_>
 	swizzle_element &operator>>=(const swizzle_element <U, Up_, swz_> &a)
 	requires integral_native <T> {
-		return operator>>=(primitive_t <U> (a));
+		return operator>>=(native_t <U> (a));
 	}
 	
 	template <integral_native U>
-	swizzle_element &operator<<=(const primitive_t <U> &a)
+	swizzle_element &operator<<=(const native_t <U> &a)
 	requires integral_native <T> {
 		thunder::Store store;
 		store.src = (arithmetic_type(*this) << a).synthesize().id;
@@ -115,7 +115,7 @@ public:
 	template <integral_native U, typename Up_, thunder::SwizzleCode swz_>
 	swizzle_element &operator<<=(const swizzle_element <U, Up_, swz_> &a)
 	requires integral_native <T> {
-		return operator<<=(primitive_t <U> (a));
+		return operator<<=(native_t <U> (a));
 	}
 	
 	// Bitwise operators
@@ -189,7 +189,7 @@ public:
 		initial[2] = z;
 	}
 
-	swizzle_base(const primitive_t <T> &x, const primitive_t <T> &y, const primitive_t <T> &z)
+	swizzle_base(const native_t <T> &x, const native_t <T> &y, const native_t <T> &z)
 			: swizzle_base() {
 		auto &em = Emitter::active;
 
@@ -234,7 +234,7 @@ public:
 		initial[3] = w;
 	}
 
-	swizzle_base(const swizzle_base <T, 3> &v, const primitive_t <T> &x)
+	swizzle_base(const swizzle_base <T, 3> &v, const native_t <T> &x)
 			: swizzle_base() {
 		auto &em = Emitter::active;
 
@@ -326,11 +326,11 @@ struct vec : swizzle_base <T, N> {
 	}
 
 	// Mixed arithmetic operators
-	#define MIXED_OP(sym, code)								\
-		friend vec operator sym(const vec &a, const primitive_t <T> &b) {		\
+	#define MIXED_OP(sym, code)							\
+		friend vec operator sym(const vec &a, const native_t <T> &b) {		\
 			return operation_from_args <vec> (thunder::code, a, b);		\
-		}										\
-		friend vec operator sym(const primitive_t <T> &a, const vec &b) {		\
+		}									\
+		friend vec operator sym(const native_t <T> &a, const vec &b) {		\
 			return operation_from_args <vec> (thunder::code, a, b);		\
 		}
 
@@ -340,12 +340,12 @@ struct vec : swizzle_base <T, N> {
 	MIXED_OP(/, division);
 
 	// Mixed arithmetic operators with C++ primitives
-	#define MIXED_PRIMITIVE_OP(sym, code)							\
-		friend vec operator sym(const vec &a, const T &b) {				\
-			return a sym primitive_t <T> (b);					\
-		}										\
-		friend vec operator sym(const T &a, vec &b) {					\
-			return primitive_t <T> (a) sym b;					\
+	#define MIXED_PRIMITIVE_OP(sym, code)						\
+		friend vec operator sym(const vec &a, const T &b) {			\
+			return a sym native_t <T> (b);					\
+		}									\
+		friend vec operator sym(const T &a, vec &b) {				\
+			return native_t <T> (a) sym b;					\
 		}
 
 	MIXED_PRIMITIVE_OP(+, addition);
@@ -392,13 +392,13 @@ vec <T, N> operator&(const vec <T, N>  &a, const U &b)
 template <integral_native T, integral_native U, size_t N>
 vec <T, N> operator>>(const vec <T, N> &a, const U &b)
 {
-	return operation_from_args <vec <T, N>> (thunder::bit_shift_right, a, primitive_t <U> (b));
+	return operation_from_args <vec <T, N>> (thunder::bit_shift_right, a, native_t <U> (b));
 }
 
 template <integral_native T, integral_native U, size_t N>
 vec <T, N> operator<<(const vec <T, N> &a, const U &b)
 {
-	return operation_from_args <vec <T, N>> (thunder::bit_shift_left, a, primitive_t <U> (b));
+	return operation_from_args <vec <T, N>> (thunder::bit_shift_left, a, native_t <U> (b));
 }
 
 } // namespace jvl::ire

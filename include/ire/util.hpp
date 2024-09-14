@@ -15,7 +15,7 @@ int list_from_args(const T &t, const Args &... args)
 	auto &em = Emitter::active;
 
 	thunder::List l;
-	l.item = primitive_t <T> (t).synthesize().id;
+	l.item = native_t <T> (t).synthesize().id;
 
 	if constexpr (sizeof...(args))
 		l.next = list_from_args(args...);
