@@ -48,7 +48,7 @@ void vertex()
 	layout_out <int, flat> id(0);
 
 	gl_Position = vec4(position, 1);
-	id = 0;
+	id = gl_VertexID;
 }
 
 void fragment()

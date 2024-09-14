@@ -2,6 +2,7 @@
 
 #include "../vector.hpp"
 #include "../util.hpp"
+#include "ire/tagged.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
 
@@ -37,14 +38,32 @@ struct __gl_Position_t {
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
 
-		thunder::Qualifier global;
-		global.underlying = type_field_from_args <vec <float, 4>> ().id;
-		global.kind = thunder::glsl_vertex_intrinsic_gl_Position;
+		thunder::Qualifier qualifier;
+		qualifier.underlying = type_field_from_args <vec <float, 4>> ().id;
+		qualifier.kind = thunder::glsl_vertex_intrinsic_gl_Position;
 
-		cache_index_t cit;
-		return (cit = em.emit(global));
+		return cache_index_t::from(em.emit(qualifier));
 	}
 } static gl_Position;
+
+struct __gl_VertexID {
+	__gl_VertexID() {}
+
+	operator primitive_t <int32_t> () const {
+		return synthesize();
+	}
+
+	cache_index_t synthesize() const {
+		auto &em = Emitter::active;
+
+		thunder::Qualifier qualifier;
+		
+		qualifier.underlying = type_field_from_args <vec <float, 4>> ().id;
+		qualifier.kind = thunder::glsl_vertex_intrinsic_gl_VertexID;
+
+		return cache_index_t::from(em.emit(qualifier));
+	}
+} static gl_VertexID;
 
 // Shader intrinsic functions
 template <typename T, size_t N>

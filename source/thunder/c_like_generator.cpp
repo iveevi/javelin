@@ -12,6 +12,10 @@ MODULE(c-like-generator);
 static std::optional <std::string> generate_global_reference(const Qualifier &global)
 {
 	switch (global.kind) {
+	case QualifierKind::parameter:
+		return fmt::format("_arg{}", global.numerical);
+
+	// GLSL input/output etc. qualifiers
 	case QualifierKind::layout_in_flat:
 	case QualifierKind::layout_in_noperspective:
 	case QualifierKind::layout_in_smooth:
@@ -20,12 +24,15 @@ static std::optional <std::string> generate_global_reference(const Qualifier &gl
 	case QualifierKind::layout_out_noperspective:
 	case QualifierKind::layout_out_smooth:
 		return fmt::format("_lout{}", global.numerical);
-	case QualifierKind::parameter:
-		return fmt::format("_arg{}", global.numerical);
 	case QualifierKind::push_constant:
 		return "_pc";
+
+	// GLSL shader stage intrinsics
 	case QualifierKind::glsl_vertex_intrinsic_gl_Position:
 		return "gl_Position";
+	case QualifierKind::glsl_vertex_intrinsic_gl_VertexID:
+		return "gl_VertexID";
+
 	default:
 		break;
 	}

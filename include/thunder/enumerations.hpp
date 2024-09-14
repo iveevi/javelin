@@ -87,7 +87,10 @@ enum QualifierKind : int8_t {
 	layout_out_smooth,
 
 	push_constant,
+
 	glsl_vertex_intrinsic_gl_Position,
+	glsl_vertex_intrinsic_gl_VertexID,
+
 	__gq_end
 };
 
@@ -104,7 +107,10 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"layout_output_smooth",
 
 	"push_constant",
+
 	"glsl:vertex:gl_Position",
+	"glsl:vertex:gl_VertexID",
+
 	"__end"
 };
 
