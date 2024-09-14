@@ -4,20 +4,11 @@
 
 namespace jvl::core {
 
-// Set of values that can parameterize a material
-using material_property_value = jvl::wrapped::variant <
-	int, float,
-	int2, float2,
-	int3, float3,
-	int4, float4,
-	std::string
->;
-
 template <typename T>
 using potentially_texture = jvl::wrapped::variant <std::string, T>;
 
 template <typename T>
-concept material = requires(const property <material_property_value> &values) {
+concept material = requires(const property <property_value> &values) {
 	{
 		T::from(values)
 	} -> std::same_as <wrapped::optional <T>>;
@@ -32,7 +23,7 @@ struct Material {
 	static constexpr const char *emission_key = "emission";
 	static constexpr const char *roughness_key = "roughness";
 
-	property <material_property_value> values;
+	property <property_value> values;
 
 	template <material T>
 	std::optional <T> specialize() const {

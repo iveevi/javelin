@@ -55,14 +55,14 @@ using layout_out_base = std::conditional_t <builtin <T> || aggregate <T>, T, __e
 
 template <generic T, InterpolationKind kind = smooth>
 struct layout_in : layout_in_base <T> {
-	using upcast_t = decltype(upcast(T()));
+	using arithmetic_type = decltype(upcast(T()));
 
 	const size_t binding;
 
-	layout_in(size_t binding_)
+	layout_in(size_t binding_ = 0)
 	requires native <T> : binding(binding_) {}
 
-	layout_in(size_t binding_)
+	layout_in(size_t binding_ = 0)
 	requires builtin <T> : binding(binding_) {
 		auto &em = Emitter::active;
 
@@ -113,14 +113,14 @@ struct layout_in : layout_in_base <T> {
 		// Do nothing for now...
 	}
 
-	operator upcast_t() const
+	operator arithmetic_type() const
 	requires builtin <T> {
-		return upcast_t(synthesize());
+		return arithmetic_type(synthesize());
 	}
 
-	operator upcast_t () const
+	operator arithmetic_type() const
 	requires native <T> {
-		return upcast_t(synthesize());
+		return arithmetic_type(synthesize());
 	}
 };
 

@@ -9,8 +9,26 @@
 
 namespace jvl::ire {
 
+template <builtin T, size_t N>
+thunder::index_t list_from_array(const std::array <T, N> &args)
+{
+	auto &em = Emitter::active;
+
+	thunder::List list;
+
+	thunder::index_t next = -1;
+	for (int32_t i = N - 1; i >= 0; i--) {
+		list.item = args[i].synthesize().id;
+		list.next = next;
+
+		next = em.emit(list);
+	}
+
+	return next;
+}
+
 template <native T, typename ... Args>
-int list_from_args(const T &t, const Args &... args)
+thunder::index_t list_from_args(const T &t, const Args &... args)
 {
 	auto &em = Emitter::active;
 
@@ -24,7 +42,7 @@ int list_from_args(const T &t, const Args &... args)
 }
 
 template <builtin T, typename ... Args>
-int list_from_args(const T &t, const Args &... args)
+thunder::index_t list_from_args(const T &t, const Args &... args)
 {
 	auto &em = Emitter::active;
 
@@ -38,7 +56,7 @@ int list_from_args(const T &t, const Args &... args)
 }
 
 template <aggregate T, typename ... Args>
-int list_from_args(const T &t, const Args &... args)
+thunder::index_t list_from_args(const T &t, const Args &... args)
 {
 	auto &em = Emitter::active;
 

@@ -20,6 +20,7 @@
 
 // Local project headers
 #include "device_resource_collection.hpp"
+#include "ire/intrinsics/glsl.hpp"
 #include "littlevk/littlevk.hpp"
 
 using namespace jvl;
@@ -103,24 +104,55 @@ struct ImGuiRenderGroup {
 	}
 };
 
-// TODO: two numbers, type specific uuid and global uuid
-int64_t new_uuid()
+struct UUID {
+	int64_t typed;
+	int64_t global;
+};
+
+int64_t new_global_uuid()
 {
-	static int64_t uuid;
+	static int64_t uuid = 0;
 	return uuid++;
+}
+
+template <typename T>
+int64_t new_typed_uuid()
+{
+	static int64_t uuid = 0;
+	return uuid++;
+}
+
+template <typename T>
+UUID new_uuid()
+{
+	return UUID {
+		.typed = new_typed_uuid <T> (),
+		.global = new_global_uuid()
+	};
 }
 
 enum ViewportMode : int32_t {
 	eAlbedo,
 	eNormal,
+	eTriangles,
 	eDepth,
 	eCount,
 };
 
+static constexpr const char *tbl_viewport_mode[] = {
+	"Albedo",
+	"Normal",
+	"Triangles",
+	"Depth",
+	"__end",
+};
+
+static_assert(eCount + 1 == sizeof(tbl_viewport_mode)/sizeof(const char *));
+
 // Separated from ViewportRenderGroup because we can have
 // multiple viewports using the exact same render pass and pipelines
 struct Viewport {
-	int64_t uuid;
+	UUID uuid;
 
 	// Viewing information
 	jvl::core::Aperature aperature;
@@ -142,7 +174,8 @@ struct Viewport {
 	std::vector <vk::DescriptorSet> imgui_descriptors;
 	vk::Extent2D extent;
 
-	Viewport(DeviceResourceCollection &drc, const vk::RenderPass &render_pass) : uuid(new_uuid()) {
+	Viewport(DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
+			: uuid(new_uuid <Viewport> ()) {
 		extent = drc.window.extent;
 		resize(drc, render_pass);
 	}
@@ -226,12 +259,19 @@ struct Viewport {
 
 	void display_handle(const RenderingInfo &info) {
 		bool open = true;
-		std::string title = fmt::format("Viewport ({})##{}", uuid, uuid);
+		std::string title = fmt::format("Viewport ({})##{}", uuid.typed, uuid.global);
 		ImGui::Begin(title.c_str(), &open, ImGuiWindowFlags_MenuBar);
 
 		active = ImGui::IsWindowFocused();
 
 		if (ImGui::BeginMenuBar()) {
+			ImGui::Combo("Display", (int *) &mode, tbl_viewport_mode, eCount);
+			// if (ImGui::Combo("Display")) {
+			// 	for (int32_t i = 0; i < eCount; i++) {
+			// 		ImGui::Text("%s", tbl_viewport_mode[i]);
+			// 	}
+			// }
+
 			if (ImGui::MenuItem("Render")) {
 				fmt::println("triggering cpu raytracer...");
 			}
@@ -419,7 +459,7 @@ inline wrapped::optional <float3> emission(const core::Material &material)
 
 // Host raytracing context for a fixed resolution, aperature, transform, etc.
 struct RaytracerCPU {
-	int64_t uuid;
+	UUID uuid;
 
 	// Types
 	struct Extra {
@@ -462,7 +502,11 @@ struct RaytracerCPU {
 		     const Viewport &viewport,
 		     const core::Scene &scene_,
 		     const vk::Extent2D &extent_,
-		     int32_t samples_ = 1) : uuid(new_uuid()), extent(extent_), samples(samples_), thread_pool(8, kernel_callback()) {
+		     int32_t samples_ = 1)
+		     	: uuid(new_uuid <RaytracerCPU> ()),
+			extent(extent_),
+			samples(samples_),
+			thread_pool(8, kernel_callback()) {
 		// Initialization
 		scene = cpu::Scene::from(scene_);
 		random = std::mt19937(std::random_device()());
@@ -600,7 +644,7 @@ struct RaytracerCPU {
 
 	// Displaying
 	void display_handle(const RenderingInfo &info) {
-		std::string title = fmt::format("Raytracer (CPU: {})##{}", uuid, uuid);
+		std::string title = fmt::format("Raytracer (CPU: {})##{}", uuid.typed, uuid.global);
 		ImGui::Begin(title.c_str());
 		ImGui::Image(descriptor, ImVec2(extent.width, extent.height));
 		ImGui::End();
@@ -610,6 +654,65 @@ struct RaytracerCPU {
 		return std::bind(&RaytracerCPU::display_handle, this, std::placeholders::_1);
 	}
 };
+
+// HSV palette generation
+vec3 hsv_to_rgb(const float3 &hsv)
+{
+	float h = hsv.x;
+	float s = hsv.y;
+	float v = hsv.z;
+
+	float c = v * s;
+	float x = c * (1.0f - fabs(fmod(h / 60.0f, 2.0f) - 1.0f));
+	float m = v - c;
+
+	float r;
+	float g;
+	float b;
+	if (0 <= h && h < 60) {
+		r = c;
+		g = x;
+		b = 0;
+	} else if (60 <= h && h < 120) {
+		r = x;
+		g = c;
+		b = 0;
+	} else if (120 <= h && h < 180) {
+		r = 0;
+		g = c;
+		b = x;
+	} else if (180 <= h && h < 240) {
+		r = 0;
+		g = x;
+		b = c;
+	} else if (240 <= h && h < 300) {
+		r = x;
+		g = 0;
+		b = c;
+	} else {
+		r = c;
+		g = 0;
+		b = x;
+	}
+
+	return vec3((r + m), (g + m), (b + m));
+}
+
+// Function to generate an HSV color palette
+template <thunder::index_t N>
+array <vec3, N> hsv_palette(float saturation, float lightness)
+{
+	std::array <vec3, N> palette;
+
+	float step = 360.0f / float(N);
+	for (int32_t i = 0; i < N; i++) {
+		float3 hsv = float3(i * step, saturation, lightness);
+		vec3 rgb = hsv_to_rgb(hsv);
+		palette[i] = rgb;
+	}
+
+	return palette;
+}
 
 // Shader sources
 struct MVP {
@@ -631,27 +734,55 @@ struct MVP {
 	}
 };
 
-void vertex()
+void vertex(ViewportMode mode)
 {
 	layout_in <vec3> position(0);
 	layout_out <vec3> out_position(0);
-
+	layout_out <int, flat> out_id(0);
+	
 	push_constant <MVP> mvp;
-
 	gl_Position = mvp.project(position);
 	gl_Position.y = -gl_Position.y;
-	out_position = position;
+
+	switch (mode) {
+	case eNormal:
+		out_position = position;
+		break;
+	case eTriangles:
+		out_id = (gl_VertexIndex / 3);
+		break;
+	default:
+		break;
+	}
 }
 
-void fragment()
+void fragment(ViewportMode mode)
 {
 	layout_in <vec3> position(0);
+	layout_in <int, flat> id(0);
 	layout_out <vec4> fragment(0);
 
-	vec3 dU = dFdxFine(position);
-	vec3 dV = dFdyFine(position);
-	vec3 N = normalize(cross(dV, dU));
-	fragment = vec4(0.5f + 0.5f * N, 1.0f);
+	switch (mode) {
+	
+	case eNormal:
+	{
+		vec3 dU = dFdxFine(position);
+		vec3 dV = dFdyFine(position);
+		vec3 N = normalize(cross(dV, dU));
+		fragment = vec4(0.5f + 0.5f * N, 1.0f);
+	} break;
+
+	case eTriangles:
+	{
+		auto palette = hsv_palette <16> (0.5, 1);
+
+		fragment = vec4(palette[id % palette.size()], 1);
+	} break;
+
+	default:
+		fragment = vec4(1, 0, 1, 1);
+		break;
+	}
 }
 
 class ViewportRenderGroup {
@@ -665,17 +796,20 @@ class ViewportRenderGroup {
 			.done();
 	}
 
-	void configure_normal_pipeline(DeviceResourceCollection &drc) {
+	void configure_pipeline_mode(DeviceResourceCollection &drc, ViewportMode mode) {
 		auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
 
-		std::string vertex_shader = kernel_from_args(vertex).compile(profiles::glsl_450);
-		std::string fragment_shader = kernel_from_args(fragment).compile(profiles::glsl_450);
+		std::string vertex_shader = kernel_from_args(vertex, mode)
+			.compile(profiles::glsl_450);
+
+		std::string fragment_shader = kernel_from_args(fragment, mode)
+			.compile(profiles::glsl_450);
 
 		auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
 			.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
 			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 
-		pipelines[eNormal] = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
+		pipelines[mode] = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
 			.with_render_pass(render_pass, 0)
 			.with_vertex_layout(vertex_layout)
 			.with_shader_bundle(bundle)
@@ -684,7 +818,8 @@ class ViewportRenderGroup {
 	}
 
 	void configure_pipelines(DeviceResourceCollection &drc) {
-		configure_normal_pipeline(drc);
+		for (int32_t i = 0; i < eCount; i++)
+			configure_pipeline_mode(drc, (ViewportMode) i);
 	}
 public:
 	vk::RenderPass render_pass;

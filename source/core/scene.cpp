@@ -122,7 +122,7 @@ void write_mesh(std::ofstream &fout, const Mesh &mesh)
 	}
 }
 
-void write_material_property_value(std::ofstream &fout, const material_property_value &value)
+void write_material_property_value(std::ofstream &fout, const property_value &value)
 {
 	write_int(fout, value.index());
 	if (auto opt_f = value.get <float> ()) {

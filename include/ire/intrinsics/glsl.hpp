@@ -25,7 +25,7 @@ struct __gl_Position_t {
 
 		thunder::Qualifier global;
 		global.underlying = type_field_from_args <vec <float, 4>> ().id;
-		global.kind = thunder::glsl_vertex_intrinsic_gl_Position;
+		global.kind = thunder::glsl_intrinsic_gl_Position;
 
 		thunder::Store store;
 		store.dst = em.emit(global);
@@ -41,16 +41,19 @@ struct __gl_Position_t {
 
 		thunder::Qualifier qualifier;
 		qualifier.underlying = type_field_from_args <vec <float, 4>> ().id;
-		qualifier.kind = thunder::glsl_vertex_intrinsic_gl_Position;
+		qualifier.kind = thunder::glsl_intrinsic_gl_Position;
 
 		return cache_index_t::from(em.emit(qualifier));
 	}
 } static gl_Position;
 
-struct __gl_VertexID {
+struct __gl_int32_intrinsic {
 	using arithmetic_type = native_t <int32_t>;
 
-	__gl_VertexID() {}
+	thunder::QualifierKind code;
+
+	__gl_int32_intrinsic() = default;
+	__gl_int32_intrinsic(thunder::QualifierKind code_) : code(code_) {}
 
 	operator arithmetic_type() const {
 		return synthesize();
@@ -62,11 +65,13 @@ struct __gl_VertexID {
 		thunder::Qualifier qualifier;
 		
 		qualifier.underlying = type_field_from_args <int32_t> ().id;
-		qualifier.kind = thunder::glsl_vertex_intrinsic_gl_VertexID;
+		qualifier.kind = code;
 
 		return cache_index_t::from(em.emit(qualifier));
 	}
-} static gl_VertexID;
+} static // Integral GLSL shader inrinsic variables...
+	gl_VertexID(thunder::glsl_intrinsic_gl_VertexID),
+	gl_VertexIndex(thunder::glsl_intrinsic_gl_VertexIndex);
 
 // Shader intrinsic functions
 template <typename T, size_t N>

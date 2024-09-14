@@ -88,8 +88,9 @@ enum QualifierKind : int8_t {
 
 	push_constant,
 
-	glsl_vertex_intrinsic_gl_Position,
-	glsl_vertex_intrinsic_gl_VertexID,
+	glsl_intrinsic_gl_Position,
+	glsl_intrinsic_gl_VertexID,
+	glsl_intrinsic_gl_VertexIndex,
 
 	__gq_end
 };
@@ -108,8 +109,9 @@ static constexpr const char *tbl_qualifier_kind[] = {
 
 	"push_constant",
 
-	"glsl:vertex:gl_Position",
-	"glsl:vertex:gl_VertexID",
+	"glsl:gl_Position",
+	"glsl:gl_VertexID",
+	"glsl:gl_VertexIndex",
 
 	"__end"
 };

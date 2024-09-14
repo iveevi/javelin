@@ -28,10 +28,12 @@ static std::optional <std::string> generate_global_reference(const Qualifier &gl
 		return "_pc";
 
 	// GLSL shader stage intrinsics
-	case QualifierKind::glsl_vertex_intrinsic_gl_Position:
+	case QualifierKind::glsl_intrinsic_gl_Position:
 		return "gl_Position";
-	case QualifierKind::glsl_vertex_intrinsic_gl_VertexID:
+	case QualifierKind::glsl_intrinsic_gl_VertexID:
 		return "gl_VertexID";
+	case QualifierKind::glsl_intrinsic_gl_VertexIndex:
+		return "gl_VertexIndex";
 
 	default:
 		break;

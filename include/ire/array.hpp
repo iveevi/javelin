@@ -52,6 +52,18 @@ struct array_base <T, N> : public tagged {
 		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
 		this->ref = em.emit_construct(qualifier, l, false);
 	}
+
+	array_base(const std::array <T, N> &args) {
+		auto &em = Emitter::active;
+		thunder::index_t l = list_from_array(args);
+		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
+		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
+		this->ref = em.emit_construct(qualifier, l, false);
+	}
+
+	constexpr int32_t size() {
+		return N;
+	}
 };
 
 template <aggregate T, thunder::index_t N>
@@ -75,6 +87,10 @@ struct array_base <T, N> : public tagged {
 		thunder::index_t underlying = type_field_from_args(layout).id;
 		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
 		this->ref = em.emit_construct(qualifier, l, false);
+	}
+
+	constexpr int32_t size() {
+		return N;
 	}
 };
 
@@ -122,6 +138,10 @@ struct array : public array_base <T, N> {
 		auto layout = returned.layout().remove_const();
 		layout.ref_with(cache_index_t::from(c));
 		return returned;
+	}
+
+	constexpr int32_t size() {
+		return N;
 	}
 };
 
