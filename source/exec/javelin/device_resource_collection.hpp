@@ -1,5 +1,6 @@
 #pragma once
 
+#include "source/exec/javelin/window_event_system.hpp"
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_vulkan.h>
 #include <imgui/backends/imgui_impl_glfw.h>
@@ -7,6 +8,8 @@
 #include <littlevk/littlevk.hpp>
 
 struct InteractiveWindow : littlevk::Window {
+	WindowEventSystem event_system;
+
 	InteractiveWindow() = default;
 	InteractiveWindow(const littlevk::Window &);
 
@@ -42,13 +45,6 @@ public:
 	littlevk::LinkedCommandQueue commander();
 
 	static DeviceResourceCollection from(const DeviceResourceCollectionInfo &);
-
-	// template <typename ... Args>
-	// void configure_display(const Args &... args) {
-	// 	littlevk::Window win;
-	// 	std::tie(surface, win) = littlevk::surface_handles(args...);
-	// 	window = win;
-	// }
 };
 
 namespace imgui {

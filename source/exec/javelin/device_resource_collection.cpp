@@ -93,10 +93,10 @@ void configure_vulkan(DeviceResourceCollection &drc, const vk::RenderPass &rende
 	ImGuiIO &io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-	static constexpr const char location[] = "resources/fonts/NotoSans-Regular.ttf";
+	static constexpr const char location[] = "resources/fonts/IosevkaTermNerdFont-Regular.ttf";
 
 	// Load a different font
-	io.Fonts->AddFontFromFileTTF(location, 22.0f, nullptr, io.Fonts->GetGlyphRangesDefault());
+	io.Fonts->AddFontFromFileTTF(location, 24.0f, nullptr, io.Fonts->GetGlyphRangesDefault());
 
 	ImGui_ImplVulkan_CreateFontsTexture();
 	ImGui_ImplVulkan_DestroyFontsTexture();

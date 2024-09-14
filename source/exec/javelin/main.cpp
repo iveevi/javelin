@@ -15,6 +15,7 @@
 
 // Local project headers
 #include "device_resource_collection.hpp"
+#include "littlevk/littlevk.hpp"
 
 using namespace jvl;
 using namespace jvl::core;
@@ -24,7 +25,7 @@ using namespace jvl::gfx;
 struct RenderingInfo {
 	const vk::CommandBuffer &cmd;
 	const littlevk::SurfaceOperation &operation;
-	const InteractiveWindow &window;
+	InteractiveWindow &window;
 	int32_t frame;
 };
 
@@ -67,7 +68,7 @@ struct ImGuiRenderGroup {
 	}
 };
 
-using imgui_callback = std::function <void ()>;
+using imgui_callback = std::function <void (const RenderingInfo &)>;
 using imgui_callback_list = std::vector <imgui_callback>;
 
 void render_imgui(const RenderingInfo &info, const ImGuiRenderGroup &irg, const imgui_callback_list &callbacks)
@@ -86,7 +87,7 @@ void render_imgui(const RenderingInfo &info, const ImGuiRenderGroup &irg, const 
 	ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 	
 	for (auto &callback : callbacks)
-		callback();
+		callback(info);
 
 	// Complete the rendering	
 	ImGui::Render();
@@ -202,15 +203,73 @@ struct ViewportFramebuffers {
 };
 
 struct ViewportBundle {
-	Viewport info;
+	int64_t uuid;
+	Viewport data;
 	ViewportFramebuffers fb;
 
-	// TODO: generate the callback from here...
+	// TODO: merge...
 
-	static ViewportBundle from(DeviceResourceCollection &drc, const vk::RenderPass &render_pass) {
-		ViewportBundle vb;
-		vb.fb = ViewportFramebuffers::from(drc, render_pass);
-		return vb;
+	ViewportBundle(DeviceResourceCollection &drc,
+		       const vk::RenderPass &render_pass,
+		       int64_t uuid_) : uuid(uuid_) {
+		fb = ViewportFramebuffers::from(drc, render_pass);
+	}
+
+	void cursor_handle(const WindowEventSystem::cursor_event &event) {
+		if (!event.drag)
+			return;
+
+		static constexpr float sensitivity = 0.0025f;
+		static float pitch = 0;
+		static float yaw = 0;
+		
+		pitch -= event.dx * sensitivity;
+		yaw += event.dy * sensitivity;
+		
+		float pi_e = pi <float> / 2.0f - 1e-3f;
+		yaw = std::min(pi_e, std::max(-pi_e, yaw));
+
+		auto &transform = data.transform;
+		transform.rotation = fquat::euler_angles(yaw, pitch, 0);
+	}
+
+	void display(const RenderingInfo &info) {
+		bool open = true;
+		std::string title = fmt::format("Viewport##{}", uuid);
+		ImGui::Begin(title.c_str(), &open, ImGuiWindowFlags_MenuBar);
+
+		if (ImGui::BeginMenuBar()) {
+			if (ImGui::MenuItem("Render")) {
+				fmt::println("triggering cpu raytracer...");
+			}
+
+			ImGui::EndMenuBar();
+		}
+
+		ImVec2 size;
+		size = ImGui::GetContentRegionAvail();
+		ImGui::Image(fb.imgui_descriptors[info.frame], size);
+
+		size = ImGui::GetItemRectSize();
+		data.aperature.aspect = size.x/size.y;
+
+		ImVec2 min = ImGui::GetItemRectMin();
+		ImVec2 max = ImGui::GetItemRectMax();
+
+		auto &region = info.window.event_system.regions[uuid];
+		region.set_bounds(min, max);
+
+		ImGui::GetForegroundDrawList()->AddRect(min, max, IM_COL32(255, 0, 0, 255));
+
+		ImGui::End();
+	}
+
+	auto cursor_callback() {
+		return std::bind(&ViewportBundle::cursor_handle, this, std::placeholders::_1);
+	}
+
+	auto imgui_callback() {
+		return std::bind(&ViewportBundle::display, this, std::placeholders::_1);
 	}
 };
 
@@ -317,12 +376,12 @@ void render_viewport_scene(const RenderingInfo &info,
 	// Configure the rendering extent
 	littlevk::viewport_and_scissor(info.cmd, littlevk::RenderArea(viewport.fb.extent));
 
-	viewport.info.handle_input(info.window);
+	viewport.data.handle_input(info.window);
 
 	auto rpbi = vrg.render_pass_begin_info(info, viewport.fb);
 	info.cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);
 
-	auto &ppl = vrg.pipelines[viewport.info.mode];
+	auto &ppl = vrg.pipelines[viewport.data.mode];
 
 	info.cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
 
@@ -333,8 +392,8 @@ void render_viewport_scene(const RenderingInfo &info,
 	auto m_proj = uniform_field(MVP, proj);
 
 	mvp[m_model] = jvl::float4x4::identity();
-	mvp[m_proj] = jvl::core::perspective(viewport.info.aperature);
-	mvp[m_view] = viewport.info.transform.to_view_matrix();
+	mvp[m_proj] = jvl::core::perspective(viewport.data.aperature);
+	mvp[m_view] = viewport.data.transform.to_view_matrix();
 
 	info.cmd.pushConstants <solid_t <MVP>> (ppl.layout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
 
@@ -351,132 +410,13 @@ void render_viewport_scene(const RenderingInfo &info,
 		vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
-class WindowEventSystem {
-	double last_x = 0.0;
-	double last_y = 0.0;
-	int64_t uuid_counter = 0;
-public:
-	struct button_event {
-		double x;
-		double y;
-		int button;
-		int action;
-		int mods;
-	};
-
-	struct cursor_event {
-		double x;
-		double y;
-		double dx;
-		double dy;
-		bool drag;
-	};
-
-	using cursor_event_callback = std::function <void (const cursor_event &)>;
-
-	class event_region {
-		float2 min;
-		float2 max;
-		bool drag = false;
-
-		std::optional <cursor_event_callback> cursor_callback;
-	public:
-		void set_cursor_callback(const cursor_event_callback &cbl) {
-			cursor_callback = cbl;
-		}
-
-		void set_bounds(const ImVec2 &min_, const ImVec2 &max_) {
-			min = { min_.x, min_.y };
-			max = { max_.x, max_.y };
-		}
-
-		bool contains(double x, double y) const {
-			return (x > min.x && x < max.x)
-				&& (y > min.y && y < max.y);
-		}
-
-		friend class WindowEventSystem;
-	};
-
-	wrapped::hash_table <int64_t, event_region> regions;
-
-	int64_t new_uuid() {
-		int64_t ret = uuid_counter++;
-		regions[ret] = event_region();
-		return ret;
-	}
-
-	void button_callback(GLFWwindow *window, int button, int action, int mods) {
-		button_event event {
-			.button = button,
-			.action = action,
-			.mods = mods,
-		};
-
-		glfwGetCursorPos(window, &event.x, &event.y);
-
-		bool held = false;
-		for (auto &[uuid, region] : regions) {
-			if (region.contains(event.x, event.y)) {
-				if (action == GLFW_PRESS)
-					region.drag = true;
-				else if (action == GLFW_RELEASE)
-					region.drag = false;
-
-				held = true;
-			} else {
-				region.drag = false;
-			}
-		}
-
-		if (held)
-			return;
-		
-		ImGuiIO &io = ImGui::GetIO();
-		io.AddMouseButtonEvent(button, action);
-	}
-
-	void cursor_callback(GLFWwindow *window, double x, double y) {
-		cursor_event event {
-			.x = x,
-			.y = y,
-			.dx = x - last_x,
-			.dy = y - last_y,
-		};
-
-		last_x = x;
-		last_y = y;
-
-		for (auto &[uuid, region] : regions) {
-			if (region.contains(event.x, event.y)) {
-				auto re = event;
-				re.drag = region.drag;
-
-				if (region.cursor_callback)
-					region.cursor_callback.value()(re);
-			}
-		}
-		
-		ImGuiIO &io = ImGui::GetIO();
-		io.MousePos = ImVec2(x, y);
-	}
+// Device extensions
+static const std::vector <const char *> EXTENSIONS {
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
 
-void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)
-{
-	auto user = glfwGetWindowUserPointer(window);
-	auto event_system = reinterpret_cast <WindowEventSystem *> (user);
-	event_system->button_callback(window, button, action, mods);
-}
-
-void glfw_cursor_callback(GLFWwindow *window, double x, double y)
-{
-	auto user = glfwGetWindowUserPointer(window);
-	auto event_system = reinterpret_cast <WindowEventSystem *> (user);
-	event_system->cursor_callback(window, x, y);
-}
-
 struct Editor {
+	// Fundamental Vulkan resources
 	DeviceResourceCollection	drc;
 
 	// Unique render groups
@@ -488,8 +428,149 @@ struct Editor {
 	cpu::Scene			host_scene;
 	vulkan::Scene			vk_scene;
 
+	// ImGui rendering callbacks
+	imgui_callback_list		imgui_callbacks;
+
 	// Supporting multiple viewports
-	std::vector <ViewportBundle>	viewports;
+	std::list <ViewportBundle>	viewports;
+
+	// Adding a new viewport
+	void add_viewport() {
+		int64_t viewport_uuid = drc.window.event_system.new_uuid();
+		viewports.emplace_back(drc, rg_viewport.render_pass, viewport_uuid);
+
+		auto &viewport = viewports.back();
+		drc.window.event_system.regions[viewport_uuid]
+			.set_cursor_callback(viewport.cursor_callback());
+		
+		imgui_callbacks.emplace_back(viewport.imgui_callback());
+
+		fmt::println("viewports:");
+		for (auto &viewport : viewports) {
+			fmt::println("\taddress: {}", (void *) &viewport);
+		}
+	}
+
+	// Render loop iteration
+	void render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncronization::Frame &sync_frame, int32_t frame) {
+		// Grab the next image
+		littlevk::SurfaceOperation sop;
+		sop = littlevk::acquire_image(drc.device, drc.swapchain.swapchain, sync_frame);
+		if (sop.status == littlevk::SurfaceOperation::eResize) {
+			drc.combined().resize(drc.surface, drc.window, drc.swapchain);
+			rg_imgui.resize(drc);
+			return;
+		}
+	
+		// Start the render pass
+		vk::CommandBufferBeginInfo cbbi;
+		cmd.begin(cbbi);
+
+		RenderingInfo info {
+			.cmd = cmd,
+			.operation = sop,
+			.window = drc.window,
+			.frame = frame,
+		};
+
+		// Render all the viewports
+		for (auto &viewport : viewports)
+			render_viewport_scene(info, rg_viewport, viewport, vk_scene);
+
+		// Finally, render the user interface
+		render_imgui(info, rg_imgui, imgui_callbacks);
+
+		cmd.end();
+	
+		// Submit command buffer while signaling the semaphore
+		constexpr vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+
+		vk::SubmitInfo submit_info {
+			sync_frame.image_available,
+			wait_stage, cmd,
+			sync_frame.render_finished
+		};
+
+		drc.graphics_queue.submit(submit_info, sync_frame.in_flight);
+
+		// Present to the window
+		sop = littlevk::present_image(drc.present_queue, drc.swapchain.swapchain, sync_frame, sop.index);
+		if (sop.status == littlevk::SurfaceOperation::eResize) {
+			drc.combined().resize(drc.surface, drc.window, drc.swapchain);
+			rg_imgui.resize(drc);
+		}
+	}
+
+	// Main menu bar
+	void imgui_main_menu_bar(const RenderingInfo &) {
+		ImGui::BeginMainMenuBar();
+
+		if (ImGui::BeginMenu("Attachments")) {
+			if (ImGui::MenuItem("Viewport")) {
+				add_viewport();
+			}
+			
+			if (ImGui::MenuItem("Raytracer (CPU)")) {
+
+			}
+
+			ImGui::EndMenu();
+		}
+
+		ImGui::EndMainMenuBar();
+	}
+
+	// Rendering loop
+	void loop() {
+		// Synchronization information
+		auto sync = littlevk::present_syncronization(drc.device, 2).unwrap(drc.dal);
+
+		// Command buffers for the rendering loop
+		auto command_buffers = littlevk::command_buffers(drc.device,
+			drc.command_pool,
+			vk::CommandBufferLevel::ePrimary, 2u);
+
+		// Add necessary callbacks for startup
+		imgui_callbacks.emplace_back(std::bind(&Editor::imgui_main_menu_bar, this, std::placeholders::_1));
+
+		// Rendering loop
+		int32_t frame = 0;
+		while (!glfwWindowShouldClose(drc.window.handle)) {
+			glfwPollEvents();
+			render(command_buffers[frame], sync[frame], frame);
+			frame = 1 - frame;
+		}
+	}
+
+	// TODO: pass command line options later...
+	static Editor from() {
+		Editor editor;
+	
+		// Load physical device
+		auto predicate = [](vk::PhysicalDevice phdev) {
+			return littlevk::physical_device_able(phdev, EXTENSIONS);
+		};
+
+		// Configure the resource collection
+		DeviceResourceCollectionInfo info {
+			.phdev = littlevk::pick_physical_device(predicate),
+			.title = "Editor",
+			.extent = vk::Extent2D(1920, 1080),
+			.extensions = EXTENSIONS,
+		};
+		
+		editor.drc = DeviceResourceCollection::from(info);
+
+		// ImGui configuration
+		editor.rg_imgui = ImGuiRenderGroup::from(editor.drc);
+
+		imgui::configure_vulkan(editor.drc, editor.rg_imgui.render_pass);
+
+		// Other render groups		
+		editor.rg_viewport = ViewportRenderGroup::from(editor.drc);
+
+		return editor;
+	}
 };
 
 int main(int argc, char *argv[])
@@ -502,183 +583,21 @@ int main(int argc, char *argv[])
 	// Load the asset and scene
 	std::filesystem::path path = argv[1];
 
+	auto editor = Editor::from();
+
 	auto asset = engine::ImportedAsset::from(path).value();
-	auto scene = core::Scene();
-	scene.add(asset);
-
-	// Device extensions
-	static const std::vector <const char *> EXTENSIONS {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	};
-
-	// Load physical device
-	auto predicate = [](vk::PhysicalDevice phdev) {
-		return littlevk::physical_device_able(phdev, EXTENSIONS);
-	};
-
-	DeviceResourceCollectionInfo info {
-		.phdev = littlevk::pick_physical_device(predicate),
-		.title = "Editor",
-		.extent = vk::Extent2D(1920, 1080),
-		.extensions = EXTENSIONS,
-	};
-	
-	auto drc = DeviceResourceCollection::from(info);
-	auto rg_imgui = ImGuiRenderGroup::from(drc);
-
-	imgui::configure_vulkan(drc, rg_imgui.render_pass);
-	
-	auto rg_viewport = ViewportRenderGroup::from(drc);
-	auto viewport = ViewportBundle::from(drc, rg_viewport.render_pass);
+	editor.scene = core::Scene();
+	editor.scene.add(asset);
 
 	// Prepare host and device scenes
-	auto cpu_scene = cpu::Scene::from(scene);
-	auto vk_scene = vulkan::Scene::from(drc.allocator(), cpu_scene);
+	editor.host_scene = cpu::Scene::from(editor.scene);
+	editor.vk_scene = vulkan::Scene::from(editor.drc.allocator(), editor.host_scene);
 
 	// Event system(s)
-	WindowEventSystem event_system;
-
-	glfwSetWindowUserPointer(drc.window.handle, &event_system);
-	glfwSetMouseButtonCallback(drc.window.handle, glfw_button_callback);
-	glfwSetCursorPosCallback(drc.window.handle, glfw_cursor_callback);
-	
-	// Synchronization information
-	auto sync = littlevk::present_syncronization(drc.device, 2).unwrap(drc.dal);
-
-	// Command buffers for the rendering loop
-	auto command_buffers = littlevk::command_buffers(drc.device,
-		drc.command_pool,
-		vk::CommandBufferLevel::ePrimary, 2u);
+	glfwSetWindowUserPointer(editor.drc.window.handle, &editor.drc.window.event_system);
+	glfwSetMouseButtonCallback(editor.drc.window.handle, glfw_button_callback);
+	glfwSetCursorPosCallback(editor.drc.window.handle, glfw_cursor_callback);
 
 	// Main loop
-	struct {
-		int index = 0;
-	} frame;
-
-	auto main_menu_bar = []() {
-		ImGui::BeginMainMenuBar();
-
-		if (ImGui::BeginMenu("Attachments")) {
-			if (ImGui::MenuItem("Viewport")) {
-			}
-			
-			if (ImGui::MenuItem("Raytracer (CPU)")) {
-
-			}
-
-			ImGui::EndMenu();
-		}
-
-		ImGui::EndMainMenuBar();
-	};
-
-	int64_t viewport_uuid = event_system.new_uuid();
-
-	auto viewport_cursor_callback = [&](const WindowEventSystem::cursor_event &event) {
-		if (!event.drag)
-			return;
-
-		static constexpr float sensitivity = 0.0025f;
-		static float pitch = 0;
-		static float yaw = 0;
-		
-		pitch -= event.dx * sensitivity;
-		yaw += event.dy * sensitivity;
-		
-		float pi_e = pi <float> / 2.0f - 1e-3f;
-		yaw = std::min(pi_e, std::max(-pi_e, yaw));
-
-		auto &transform = viewport.info.transform;
-		transform.rotation = fquat::euler_angles(yaw, pitch, 0);
-	};
-
-	event_system.regions[viewport_uuid].set_cursor_callback(viewport_cursor_callback);
-
-	auto display_viewport = [&]() {
-		bool preview_open = true;
-		ImGui::Begin("Viewport", &preview_open, ImGuiWindowFlags_MenuBar);
-
-		if (ImGui::BeginMenuBar()) {
-			if (ImGui::MenuItem("Render")) {
-				fmt::println("triggering cpu raytracer...");
-			}
-
-			ImGui::EndMenuBar();
-		}
-
-		ImVec2 size;
-		size = ImGui::GetContentRegionAvail();
-		ImGui::Image(viewport.fb.imgui_descriptors[frame.index], size);
-
-		size = ImGui::GetItemRectSize();
-		viewport.info.aperature.aspect = size.x/size.y;
-
-		ImVec2 min = ImGui::GetItemRectMin();
-		ImVec2 max = ImGui::GetItemRectMax();
-
-		auto &region = event_system.regions[viewport_uuid];
-		region.set_bounds(min, max);
-
-		ImGui::GetForegroundDrawList()->AddRect(min, max, IM_COL32(255, 0, 0, 255));
-
-		ImGui::End();
-	};
-
-	imgui_callback_list callbacks {
-		main_menu_bar,
-		display_viewport,
-	};
-	
-	while (!glfwWindowShouldClose(drc.window.handle)) {
-		// Refresh event list
-		glfwPollEvents();
-	
-		// Grab the next image
-		littlevk::SurfaceOperation sop;
-		sop = littlevk::acquire_image(drc.device, drc.swapchain.swapchain, sync[frame.index]);
-		if (sop.status == littlevk::SurfaceOperation::eResize) {
-			drc.combined().resize(drc.surface, drc.window, drc.swapchain);
-			rg_imgui.resize(drc);
-			continue;
-		}
-	
-		// Start the render pass
-		const auto &cmd = command_buffers[frame.index];
-
-		vk::CommandBufferBeginInfo cbbi;
-		cmd.begin(cbbi);
-
-		RenderingInfo info {
-			.cmd = cmd,
-			.operation = sop,
-			.window = drc.window,
-			.frame = frame.index,
-		};
-
-		render_viewport_scene(info, rg_viewport, viewport, vk_scene);
-		render_imgui(info, rg_imgui, callbacks);
-
-		cmd.end();
-	
-		// Submit command buffer while signaling the semaphore
-		constexpr vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-
-		vk::SubmitInfo submit_info {
-			sync.image_available[frame.index],
-			wait_stage, cmd,
-			sync.render_finished[frame.index]
-		};
-
-		drc.graphics_queue.submit(submit_info, sync.in_flight[frame.index]);
-
-		// Present to the window
-		sop = littlevk::present_image(drc.present_queue, drc.swapchain.swapchain, sync[frame.index], sop.index);
-		if (sop.status == littlevk::SurfaceOperation::eResize) {
-			drc.combined().resize(drc.surface, drc.window, drc.swapchain);
-			rg_imgui.resize(drc);
-		}
-			
-		// Toggle frame counter
-		frame.index = 1 - frame.index;
-	}
+	editor.loop();
 }
