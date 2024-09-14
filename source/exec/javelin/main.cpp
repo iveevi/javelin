@@ -11,6 +11,7 @@
 #include "core/transform.hpp"
 #include "core/aperature.hpp"
 #include "gfx/vk/scene.hpp"
+#include "imgui.h"
 #include "ire/core.hpp"
 
 // Local project headers
@@ -105,15 +106,41 @@ enum ViewportMode : int32_t {
 	eCount,
 };
 
+// Separated from ViewportRenderGroup because we can have
+// multiple viewports using the exact same render pass and pipelines
 struct Viewport {
+	int64_t uuid;
+
 	// Viewing information
 	jvl::core::Aperature aperature;
 	jvl::core::Transform transform;
+
 	ViewportMode mode = eNormal;
 
+	// Input handling information
+	float pitch = 0;
+	float yaw = 0;
+	bool active = false;
+
+	// Images and framebuffers
+	std::vector <littlevk::Image> targets;
+	std::vector <vk::Framebuffer> framebuffers;
+	std::vector <vk::DescriptorSet> imgui_descriptors;
+	vk::Extent2D extent;
+
+	Viewport(DeviceResourceCollection &drc,
+		       const vk::RenderPass &render_pass,
+		       int64_t uuid_) : uuid(uuid_) {
+		extent = drc.window.extent;
+		resize(drc, render_pass);
+	}
+	
 	void handle_input(const InteractiveWindow &window) {
-		static constexpr float speed = 50.0f;
+		static constexpr float speed = 100.0f;
 		static float last_time = 0.0f;
+
+		if (!active)
+			return;
 		
 		float delta = speed * float(glfwGetTime() - last_time);
 		last_time = glfwGetTime();
@@ -136,15 +163,6 @@ struct Viewport {
 
 		transform.translate += transform.rotation.rotate(velocity);
 	}
-};
-
-// Separated from ViewportRenderGroup because we can have
-// multiple viewports using the exact same render pass and pipelines
-struct ViewportFramebuffers {
-	std::vector <littlevk::Image> targets;
-	std::vector <vk::Framebuffer> framebuffers;
-	std::vector <vk::DescriptorSet> imgui_descriptors;
-	vk::Extent2D extent;
 
 	void resize(DeviceResourceCollection &drc, const vk::RenderPass &render_pass) {
 		targets.clear();
@@ -194,34 +212,14 @@ struct ViewportFramebuffers {
 		drc.commander().submit_and_wait(transition);
 	}
 
-	static ViewportFramebuffers from(DeviceResourceCollection &drc, const vk::RenderPass &render_pass) {
-		ViewportFramebuffers vf;
-		vf.extent = drc.window.extent;
-		vf.resize(drc, render_pass);
-		return vf;
-	}
-};
-
-struct ViewportBundle {
-	int64_t uuid;
-	Viewport data;
-	ViewportFramebuffers fb;
-
-	// TODO: merge...
-
-	ViewportBundle(DeviceResourceCollection &drc,
-		       const vk::RenderPass &render_pass,
-		       int64_t uuid_) : uuid(uuid_) {
-		fb = ViewportFramebuffers::from(drc, render_pass);
-	}
-
 	void cursor_handle(const WindowEventSystem::cursor_event &event) {
+		std::string title = fmt::format("Viewport##{}", uuid);
+		ImGui::SetWindowFocus(title.c_str());
+
 		if (!event.drag)
 			return;
 
 		static constexpr float sensitivity = 0.0025f;
-		static float pitch = 0;
-		static float yaw = 0;
 		
 		pitch -= event.dx * sensitivity;
 		yaw += event.dy * sensitivity;
@@ -229,14 +227,15 @@ struct ViewportBundle {
 		float pi_e = pi <float> / 2.0f - 1e-3f;
 		yaw = std::min(pi_e, std::max(-pi_e, yaw));
 
-		auto &transform = data.transform;
 		transform.rotation = fquat::euler_angles(yaw, pitch, 0);
 	}
 
-	void display(const RenderingInfo &info) {
+	void display_handle(const RenderingInfo &info) {
 		bool open = true;
 		std::string title = fmt::format("Viewport##{}", uuid);
 		ImGui::Begin(title.c_str(), &open, ImGuiWindowFlags_MenuBar);
+
+		active = ImGui::IsWindowFocused();
 
 		if (ImGui::BeginMenuBar()) {
 			if (ImGui::MenuItem("Render")) {
@@ -248,10 +247,10 @@ struct ViewportBundle {
 
 		ImVec2 size;
 		size = ImGui::GetContentRegionAvail();
-		ImGui::Image(fb.imgui_descriptors[info.frame], size);
+		ImGui::Image(imgui_descriptors[info.frame], size);
 
 		size = ImGui::GetItemRectSize();
-		data.aperature.aspect = size.x/size.y;
+		aperature.aspect = size.x/size.y;
 
 		ImVec2 min = ImGui::GetItemRectMin();
 		ImVec2 max = ImGui::GetItemRectMax();
@@ -265,11 +264,11 @@ struct ViewportBundle {
 	}
 
 	auto cursor_callback() {
-		return std::bind(&ViewportBundle::cursor_handle, this, std::placeholders::_1);
+		return std::bind(&Viewport::cursor_handle, this, std::placeholders::_1);
 	}
 
 	auto imgui_callback() {
-		return std::bind(&ViewportBundle::display, this, std::placeholders::_1);
+		return std::bind(&Viewport::display_handle, this, std::placeholders::_1);
 	}
 };
 
@@ -354,10 +353,10 @@ public:
 	// Pipeline kinds
 	std::array <littlevk::Pipeline, eCount> pipelines;
 
-	auto render_pass_begin_info(const RenderingInfo &info, const ViewportFramebuffers &fbs) const {
+	auto render_pass_begin_info(const RenderingInfo &info, const Viewport &viewport) const {
 		return littlevk::default_rp_begin_info <2> (render_pass,
-			fbs.framebuffers[info.operation.index],
-			fbs.extent);
+			viewport.framebuffers[info.operation.index],
+			viewport.extent);
 	}
 
 	static ViewportRenderGroup from(DeviceResourceCollection &drc) {
@@ -370,18 +369,18 @@ public:
 
 void render_viewport_scene(const RenderingInfo &info,
 			   const ViewportRenderGroup &vrg,
-			   ViewportBundle &viewport,
+			   Viewport &viewport,
 			   const vulkan::Scene &scene)
 {
 	// Configure the rendering extent
-	littlevk::viewport_and_scissor(info.cmd, littlevk::RenderArea(viewport.fb.extent));
+	littlevk::viewport_and_scissor(info.cmd, littlevk::RenderArea(viewport.extent));
 
-	viewport.data.handle_input(info.window);
+	viewport.handle_input(info.window);
 
-	auto rpbi = vrg.render_pass_begin_info(info, viewport.fb);
+	auto rpbi = vrg.render_pass_begin_info(info, viewport);
 	info.cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);
 
-	auto &ppl = vrg.pipelines[viewport.data.mode];
+	auto &ppl = vrg.pipelines[viewport.mode];
 
 	info.cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
 
@@ -392,8 +391,8 @@ void render_viewport_scene(const RenderingInfo &info,
 	auto m_proj = uniform_field(MVP, proj);
 
 	mvp[m_model] = jvl::float4x4::identity();
-	mvp[m_proj] = jvl::core::perspective(viewport.data.aperature);
-	mvp[m_view] = viewport.data.transform.to_view_matrix();
+	mvp[m_proj] = jvl::core::perspective(viewport.aperature);
+	mvp[m_view] = viewport.transform.to_view_matrix();
 
 	info.cmd.pushConstants <solid_t <MVP>> (ppl.layout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
 
@@ -405,7 +404,7 @@ void render_viewport_scene(const RenderingInfo &info,
 
 	info.cmd.endRenderPass();
 
-	littlevk::transition(info.cmd, viewport.fb.targets[info.frame],
+	littlevk::transition(info.cmd, viewport.targets[info.operation.index],
 		vk::ImageLayout::ePresentSrcKHR,
 		vk::ImageLayout::eShaderReadOnlyOptimal);
 }
@@ -432,7 +431,7 @@ struct Editor {
 	imgui_callback_list		imgui_callbacks;
 
 	// Supporting multiple viewports
-	std::list <ViewportBundle>	viewports;
+	std::list <Viewport>		viewports;
 
 	// Adding a new viewport
 	void add_viewport() {
@@ -443,12 +442,13 @@ struct Editor {
 		drc.window.event_system.regions[viewport_uuid]
 			.set_cursor_callback(viewport.cursor_callback());
 		
-		imgui_callbacks.emplace_back(viewport.imgui_callback());
+		imgui_callbacks.push_back(viewport.imgui_callback());
+	}
 
-		fmt::println("viewports:");
-		for (auto &viewport : viewports) {
-			fmt::println("\taddress: {}", (void *) &viewport);
-		}
+	// Resizing the swapchain and related items
+	void resize() {
+		drc.combined().resize(drc.surface, drc.window, drc.swapchain);
+		rg_imgui.resize(drc);
 	}
 
 	// Render loop iteration
@@ -456,11 +456,8 @@ struct Editor {
 		// Grab the next image
 		littlevk::SurfaceOperation sop;
 		sop = littlevk::acquire_image(drc.device, drc.swapchain.swapchain, sync_frame);
-		if (sop.status == littlevk::SurfaceOperation::eResize) {
-			drc.combined().resize(drc.surface, drc.window, drc.swapchain);
-			rg_imgui.resize(drc);
-			return;
-		}
+		if (sop.status == littlevk::SurfaceOperation::eResize)
+			return resize();
 	
 		// Start the render pass
 		vk::CommandBufferBeginInfo cbbi;
@@ -478,7 +475,9 @@ struct Editor {
 			render_viewport_scene(info, rg_viewport, viewport, vk_scene);
 
 		// Finally, render the user interface
-		render_imgui(info, rg_imgui, imgui_callbacks);
+		auto current_callbacks = imgui_callbacks;
+
+		render_imgui(info, rg_imgui, current_callbacks);
 
 		cmd.end();
 	
@@ -495,17 +494,15 @@ struct Editor {
 
 		// Present to the window
 		sop = littlevk::present_image(drc.present_queue, drc.swapchain.swapchain, sync_frame, sop.index);
-		if (sop.status == littlevk::SurfaceOperation::eResize) {
-			drc.combined().resize(drc.surface, drc.window, drc.swapchain);
-			rg_imgui.resize(drc);
-		}
+		if (sop.status == littlevk::SurfaceOperation::eResize)
+			resize();
 	}
 
 	// Main menu bar
 	void imgui_main_menu_bar(const RenderingInfo &) {
 		ImGui::BeginMainMenuBar();
 
-		if (ImGui::BeginMenu("Attachments")) {
+		if (ImGui::BeginMenu("View")) {
 			if (ImGui::MenuItem("Viewport")) {
 				add_viewport();
 			}
@@ -530,8 +527,11 @@ struct Editor {
 			drc.command_pool,
 			vk::CommandBufferLevel::ePrimary, 2u);
 
-		// Add necessary callbacks for startup
-		imgui_callbacks.emplace_back(std::bind(&Editor::imgui_main_menu_bar, this, std::placeholders::_1));
+		// Configure for startup
+		imgui_callbacks.emplace_back(std::bind(&Editor::imgui_main_menu_bar,
+			this, std::placeholders::_1));
+
+		add_viewport();
 
 		// Rendering loop
 		int32_t frame = 0;
@@ -575,8 +575,9 @@ struct Editor {
 
 int main(int argc, char *argv[])
 {
-	littlevk::config().enable_logging = false;
-	littlevk::config().abort_on_validation_error = true;
+	auto &config = littlevk::config();
+	config.enable_logging = false;
+	config.abort_on_validation_error = true;
 
 	assert(argc >= 2);
 
