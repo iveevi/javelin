@@ -13,6 +13,7 @@
 #include "core/aperature.hpp"
 #include "gfx/vk/scene.hpp"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "ire/core.hpp"
 #include "gfx/cpu/framebuffer.hpp"
 #include "gfx/cpu/thread_pool.hpp"
@@ -102,6 +103,13 @@ struct ImGuiRenderGroup {
 	}
 };
 
+// TODO: two numbers, type specific uuid and global uuid
+int64_t new_uuid()
+{
+	static int64_t uuid;
+	return uuid++;
+}
+
 enum ViewportMode : int32_t {
 	eAlbedo,
 	eNormal,
@@ -123,6 +131,9 @@ struct Viewport {
 	// Input handling information
 	float pitch = 0;
 	float yaw = 0;
+	double last_x = 0;
+	double last_y = 0;
+	bool voided = true;
 	bool active = false;
 
 	// Images and framebuffers
@@ -131,9 +142,7 @@ struct Viewport {
 	std::vector <vk::DescriptorSet> imgui_descriptors;
 	vk::Extent2D extent;
 
-	Viewport(DeviceResourceCollection &drc,
-		       const vk::RenderPass &render_pass,
-		       int64_t uuid_) : uuid(uuid_) {
+	Viewport(DeviceResourceCollection &drc, const vk::RenderPass &render_pass) : uuid(new_uuid()) {
 		extent = drc.window.extent;
 		resize(drc, render_pass);
 	}
@@ -215,24 +224,6 @@ struct Viewport {
 		drc.commander().submit_and_wait(transition);
 	}
 
-	void cursor_handle(const WindowEventSystem::cursor_event &event) {
-		std::string title = fmt::format("Viewport ({})##{}", uuid, uuid);
-		ImGui::SetWindowFocus(title.c_str());
-
-		if (!event.drag)
-			return;
-
-		static constexpr float sensitivity = 0.0025f;
-		
-		pitch -= event.dx * sensitivity;
-		yaw += event.dy * sensitivity;
-		
-		float pi_e = pi <float> / 2.0f - 1e-3f;
-		yaw = std::min(pi_e, std::max(-pi_e, yaw));
-
-		transform.rotation = fquat::euler_angles(yaw, pitch, 0);
-	}
-
 	void display_handle(const RenderingInfo &info) {
 		bool open = true;
 		std::string title = fmt::format("Viewport ({})##{}", uuid, uuid);
@@ -250,24 +241,42 @@ struct Viewport {
 
 		ImVec2 size;
 		size = ImGui::GetContentRegionAvail();
-		ImGui::Image(imgui_descriptors[info.frame], size);
+		ImGui::ImageButton(imgui_descriptors[info.frame], size, ImVec2(0, 0), ImVec2(1, 1), 0);
 
 		size = ImGui::GetItemRectSize();
 		aperature.aspect = size.x/size.y;
 
-		ImVec2 min = ImGui::GetItemRectMin();
-		ImVec2 max = ImGui::GetItemRectMax();
+		// Input handling
+		if (ImGui::IsWindowFocused() && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+			ImVec2 mouse = ImGui::GetMousePos();
 
-		auto &region = info.window.event_system.regions[uuid];
-		region.set_bounds(min, max);
+			static constexpr float sensitivity = 0.0025f;
 
-		ImGui::GetForegroundDrawList()->AddRect(min, max, IM_COL32(255, 0, 0, 255));
+			if (voided) {
+				last_x = mouse.x;
+				last_y = mouse.y;
+				voided = false;
+			}
+
+			double dx = mouse.x - last_x;
+			double dy = mouse.y - last_y;
+
+			// Dragging state
+			pitch -= dx * sensitivity;
+			yaw += dy * sensitivity;
+
+			float pi_e = pi <float> / 2.0f - 1e-3f;
+			yaw = std::min(pi_e, std::max(-pi_e, yaw));
+
+			transform.rotation = fquat::euler_angles(yaw, pitch, 0);
+
+			last_x = mouse.x;
+			last_y = mouse.y;
+		} else {
+			voided = true;
+		}
 
 		ImGui::End();
-	}
-
-	auto cursor_callback() {
-		return std::bind(&Viewport::cursor_handle, this, std::placeholders::_1);
 	}
 
 	auto imgui_callback() {
@@ -406,13 +415,6 @@ inline wrapped::optional <float3> emission(const core::Material &material)
 		return emission.as <float3> ();
 
 	return std::nullopt;
-}
-
-// TODO: two numbers, type specific uuid and global uuid
-int64_t new_uuid()
-{
-	static int64_t uuid;
-	return uuid++;
 }
 
 // Host raytracing context for a fixed resolution, aperature, transform, etc.
@@ -819,6 +821,19 @@ struct SceneInspector {
 	}
 };
 
+// Mouse and button handlers; forwarded to ImGui
+void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)
+{
+	ImGuiIO &io = ImGui::GetIO();
+	io.AddMouseButtonEvent(button, action);
+}
+
+void glfw_cursor_callback(GLFWwindow *window, double x, double y)
+{
+	ImGuiIO &io = ImGui::GetIO();
+	io.MousePos = ImVec2(x, y);
+}
+
 // Device extensions
 static const std::vector <const char *> EXTENSIONS {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -875,20 +890,15 @@ struct Editor {
 		rg_viewport = ViewportRenderGroup(drc);
 
 		// Configure event system(s)
-		glfwSetWindowUserPointer(drc.window.handle, &drc.window.event_system);
 		glfwSetMouseButtonCallback(drc.window.handle, glfw_button_callback);
 		glfwSetCursorPosCallback(drc.window.handle, glfw_cursor_callback);
 	}
 
 	// Adding a new viewport
 	void add_viewport() {
-		int64_t viewport_uuid = drc.window.event_system.new_uuid();
-		viewports.emplace_back(drc, rg_viewport.render_pass, viewport_uuid);
+		viewports.emplace_back(drc, rg_viewport.render_pass);
 
 		auto &viewport = viewports.back();
-		drc.window.event_system.regions[viewport_uuid]
-			.set_cursor_callback(viewport.cursor_callback());
-		
 		imgui_callbacks.push_back(viewport.imgui_callback());
 	}
 
@@ -955,6 +965,8 @@ struct Editor {
 
 	// Main menu bar
 	void imgui_main_menu_bar(const RenderingInfo &) {
+		bool popup = false;
+
 		ImGui::BeginMainMenuBar();
 
 		if (ImGui::BeginMenu("View")) {
@@ -963,17 +975,30 @@ struct Editor {
 			}
 			
 			if (ImGui::MenuItem("Raytracer (CPU)")) {
-				// TODO: open a diaglogue
-				host_raytracers.emplace_back(drc, viewports.back(), scene, vk::Extent2D(800, 800));
-
-				auto &back = host_raytracers.back();
-				imgui_callbacks.emplace_back(back.imgui_callback());
+				popup = true;
 			}
 
 			ImGui::EndMenu();
 		}
 
 		ImGui::EndMainMenuBar();
+
+		if (popup)
+			ImGui::OpenPopup("Raytracer");
+			
+		if (ImGui::BeginPopup("Raytracer")) {
+			ImGui::Text("Viewport");
+			ImGui::Text("Samples");
+
+			if (ImGui::Button("Confirm")) {
+				host_raytracers.emplace_back(drc, viewports.back(), scene, vk::Extent2D(800, 800));
+				auto &back = host_raytracers.back();
+				imgui_callbacks.emplace_back(back.imgui_callback());
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
 	}
 
 	auto main_menu_bar_callback() {

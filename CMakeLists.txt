@@ -56,7 +56,6 @@ add_executable(javelin
 	source/core/scene.cpp
 	source/engine/imported_asset.cpp
 	source/exec/javelin/device_resource_collection.cpp
-	source/exec/javelin/window_event_system.cpp
 	source/exec/javelin/main.cpp
 	source/gfx/cpu/bvh.cpp
 	source/gfx/cpu/intersection.cpp
