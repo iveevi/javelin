@@ -56,7 +56,13 @@ add_executable(javelin
 	source/core/scene.cpp
 	source/engine/imported_asset.cpp
 	source/exec/javelin/device_resource_collection.cpp
+	source/exec/javelin/editor.cpp
+	source/exec/javelin/imgui_render_group.cpp
 	source/exec/javelin/main.cpp
+	source/exec/javelin/raytracer_cpu.cpp
+	source/exec/javelin/scene_inspector.cpp
+	source/exec/javelin/viewport.cpp
+	source/exec/javelin/viewport_render_group.cpp
 	source/gfx/cpu/bvh.cpp
 	source/gfx/cpu/intersection.cpp
 	source/gfx/cpu/scene.cpp)
