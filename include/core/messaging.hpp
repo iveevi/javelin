@@ -3,9 +3,9 @@
 #include <cstdint>
 #include <queue>
 
-#include <wrapped_types.hpp>
+#include "wrapped_types.hpp"
 
-using namespace jvl;
+namespace jvl::core {
 
 struct UUID {
 	int64_t global;
@@ -85,3 +85,5 @@ public:
 		return queues[-1];
 	}
 };
+
+} // namespace jvl::core

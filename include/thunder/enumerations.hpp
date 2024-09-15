@@ -88,6 +88,12 @@ enum QualifierKind : int8_t {
 
 	push_constant,
 
+	sampler_1d,
+	sampler_2d,
+	
+	isampler_1d,
+	isampler_2d,
+
 	glsl_intrinsic_gl_FragCoord,
 	glsl_intrinsic_gl_FragDepth,
 	glsl_intrinsic_gl_VertexID,
@@ -111,6 +117,12 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"layout_output_smooth",
 
 	"push_constant",
+
+	"sampler1D",
+	"sampler2D",
+
+	"isampler1D",
+	"isampler2D",
 
 	"glsl:gl_FragCoord",
 	"glsl:gl_FragDepth",

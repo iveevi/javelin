@@ -1,6 +1,4 @@
 #include "viewport.hpp"
-#include "source/exec/javelin/imgui_render_group.hpp"
-#include "source/exec/javelin/messaging.hpp"
 
 Viewport::Viewport(DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
 		: uuid(new_uuid <Viewport> ())

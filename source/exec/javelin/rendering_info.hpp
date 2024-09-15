@@ -1,12 +1,13 @@
 #pragma once
 
 #include <core/scene.hpp>
+#include <core/messaging.hpp>
 #include <gfx/vulkan/scene.hpp>
 
 #include "device_resource_collection.hpp"
-#include "source/exec/javelin/messaging.hpp"
 
 using namespace jvl;
+using namespace jvl::core;
 using namespace jvl::gfx;
 
 struct RenderingInfo {
@@ -19,7 +20,7 @@ struct RenderingInfo {
 	int32_t frame;
 
 	// Scenes
-	core::Scene &scene;
+	Scene &scene;
 
 	vulkan::Scene &device_scene;
 

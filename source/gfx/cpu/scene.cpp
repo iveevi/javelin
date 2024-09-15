@@ -9,7 +9,7 @@ namespace jvl::gfx::cpu {
 Scene Scene::from(const core::Scene &scene)
 {
 	Scene result;
-	for (auto &obj : scene.objects) {
+	for (auto &[_, obj] : scene.objects) {
 		if (obj.geometry) {
 			auto g = obj.geometry.value();
 			auto &mids = g.face_properties

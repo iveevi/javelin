@@ -14,9 +14,8 @@
 #include <littlevk/littlevk.hpp>
 
 #include "device_resource_collection.hpp"
-#include "source/exec/javelin/imgui_render_group.hpp"
+#include "imgui_render_group.hpp"
 #include "viewport.hpp"
-#include "messaging.hpp"
 
 using namespace jvl;
 using namespace jvl::core;

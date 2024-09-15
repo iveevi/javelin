@@ -10,7 +10,6 @@
 #include "device_resource_collection.hpp"
 #include "imgui_render_group.hpp"
 #include "rendering_info.hpp"
-#include "messaging.hpp"
 
 using namespace jvl;
 using namespace jvl::core;

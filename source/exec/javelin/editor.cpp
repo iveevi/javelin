@@ -1,8 +1,4 @@
 #include "editor.hpp"
-#include "imgui.h"
-#include "source/exec/javelin/imgui_render_group.hpp"
-#include "source/exec/javelin/messaging.hpp"
-#include "source/exec/javelin/raytracer_cpu.hpp"
 
 // Mouse and button handlers; forwarded to ImGui
 void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)

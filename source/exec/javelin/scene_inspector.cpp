@@ -1,24 +1,23 @@
 #include "scene_inspector.hpp"
-#include "source/exec/javelin/imgui_render_group.hpp"
 
-void SceneInspector::scene_hierarchy_object(const Scene::Object &obj)
+void SceneInspector::scene_hierarchy_object(const Scene &scene, const Scene::Object &obj)
 {
 	if (obj.children.empty()) {
-		if (ImGui::Selectable(obj.name.c_str(), selected == &obj))
-			selected = &obj;
+		if (ImGui::Selectable(obj.name.c_str(), selected == obj.id()))
+			selected = obj.id();
 	} else {
 		ImGuiTreeNodeFlags flags;
 		flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
-		if (selected == &obj)
+		if (selected == obj.id())
 			flags |= ImGuiTreeNodeFlags_Selected;
 
 		bool opened = ImGui::TreeNodeEx(obj.name.c_str(), flags);
 		if (ImGui::IsItemClicked())
-			selected = &obj;
+			selected = obj.id();
 
 		if (opened) {
-			for (const auto &ref : obj.children)
-				scene_hierarchy_object(*ref);
+			for (const auto &uuid : obj.children)
+				scene_hierarchy_object(scene, scene[uuid]);
 
 			ImGui::TreePop();
 		}
@@ -29,9 +28,9 @@ void SceneInspector::scene_hierarchy(const RenderingInfo &info)
 {
 	ImGui::Begin("Scene");
 
-	for (auto &root_ptr: info.scene.root) {
-		auto &obj = *root_ptr;
-		scene_hierarchy_object(obj);
+	for (auto &uuid : info.scene.root) {
+		auto &obj = info.scene[uuid];
+		scene_hierarchy_object(info.scene, obj);
 	}
 
 	ImGui::End();
@@ -41,8 +40,8 @@ void SceneInspector::object_inspector(const RenderingInfo &info)
 {
 	ImGui::Begin("Inspector");
 
-	if (selected) {
-		auto &obj = *selected;
+	if (selected != -1) {
+		auto &obj = info.scene[selected];
 		ImGui::Text("%s", obj.name.c_str());
 
 		if (ImGui::CollapsingHeader("Mesh")) {

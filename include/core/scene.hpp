@@ -1,12 +1,13 @@
 #pragma once
 
 #include <filesystem>
-#include <list>
 #include <vector>
+#include <set>
+#include <map>
 
-#include "core/mesh.hpp"
-#include "core/material.hpp"
-#include "engine/imported_asset.hpp"
+#include "mesh.hpp"
+#include "material.hpp"
+#include "messaging.hpp"
 
 // Forward declarations
 namespace jvl::engine {
@@ -21,7 +22,8 @@ namespace jvl::core {
 struct Scene {
 	// Element of a scene
 	struct Object {
-		using ref_t = const Object *;
+		// Global ID
+		UUID uuid;
 
 		// Identifier for the object
 		std::string name;
@@ -34,13 +36,23 @@ struct Scene {
 		std::vector <Material> materials;
 
 		// Children
-		std::vector <ref_t> children;
+		std::set <int64_t> children;
+
+		// Global ID
+		int64_t id() const {
+			return uuid.global;
+		}
 	};
 
-	std::vector <Object::ref_t> root;
-	std::list <Object> objects;
+	std::set <int64_t> root;
+	std::map <int64_t, Object> objects;
 
+	void add_root(const Object &);
+	void add(const Object &);
 	void add(const engine::ImportedAsset &);
+
+	Object &operator[](int64_t);
+	const Object &operator[](int64_t) const;
 
 	void write(const std::filesystem::path &);
 };

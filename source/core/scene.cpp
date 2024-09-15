@@ -8,14 +8,28 @@
 
 #include "core/scene.hpp"
 #include "core/material.hpp"
+#include "core/messaging.hpp"
 #include "engine/imported_asset.hpp"
 #include "math_types.hpp"
 
 namespace jvl::core {
 
+void Scene::add(const Object &obj)
+{
+	objects[obj.id()] = obj;
+}
+
+void Scene::add_root(const Object &obj)
+{
+	int64_t global = obj.id();
+	objects[global] = obj;
+	root.insert(global);
+}
+
 void Scene::add(const engine::ImportedAsset &asset)
 {
 	Object top;
+	top.uuid = new_uuid <Object> ();
 	top.name = asset.path.stem();
 
 	// Each geometry is its own object
@@ -45,18 +59,30 @@ void Scene::add(const engine::ImportedAsset &asset)
 			i = reindex[i];
 
 		// Add the object
+		UUID uuid = new_uuid <Object> ();
+
 		Object obj;
+		obj.uuid = uuid;
 		obj.name = name;
 		obj.geometry = geometry;
 		obj.materials = materials;
 
-		objects.push_back(obj);
+		add(obj);
 
-		top.children.push_back(&objects.back());
+		top.children.insert(uuid.global);
 	}
 
-	objects.push_back(top);
-	root.push_back(&objects.back());
+	add_root(top);
+}
+
+Scene::Object &Scene::operator[](int64_t id)
+{
+	return objects[id];
+}
+
+const Scene::Object &Scene::operator[](int64_t id) const
+{
+	return objects.at(id);
 }
 
 // Serializing to a file
@@ -161,16 +187,16 @@ void Scene::write(const std::filesystem::path &path)
 	// TODO: add version as well...
 	fout.write(JVL_SCENE_FOURCC.data(), JVL_SCENE_FOURCC.size());
 
-	write_int(fout, objects.size());
-	for (auto &obj : objects) {
-		write_int(fout, obj.geometry.has_value());
-		if (obj.geometry)
-			write_mesh(fout, obj.geometry.value());
+	// write_int(fout, objects.size());
+	// for (auto &obj : objects) {
+	// 	write_int(fout, obj.geometry.has_value());
+	// 	if (obj.geometry)
+	// 		write_mesh(fout, obj.geometry.value());
 
-		write_int(fout, obj.materials.size());
-		for (auto &material : obj.materials)
-			write_material(fout, material);
-	}
+	// 	write_int(fout, obj.materials.size());
+	// 	for (auto &material : obj.materials)
+	// 		write_material(fout, material);
+	// }
 
 	fout.close();
 }

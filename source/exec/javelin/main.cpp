@@ -1,5 +1,7 @@
 #include <littlevk/littlevk.hpp>
 
+#include <engine/imported_asset.hpp>
+
 // Local project headers
 #include "editor.hpp"
 
