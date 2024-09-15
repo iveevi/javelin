@@ -2,10 +2,12 @@
 
 #include "device_resource_collection.hpp"
 #include "imgui_render_group.hpp"
-#include "viewport_render_group.hpp"
-#include "viewport.hpp"
+#include "messaging.hpp"
 #include "raytracer_cpu.hpp"
+#include "rendering_info.hpp"
 #include "scene_inspector.hpp"
+#include "viewport.hpp"
+#include "viewport_render_group.hpp"
 
 struct Editor {
 	// Fundamental Vulkan resources
@@ -31,6 +33,9 @@ struct Editor {
 	// Miscellaneous
 	SceneInspector			inspector;
 
+	// Systems
+	MessageSystem			message_system;
+
 	// Constructor
 	// TODO: pass command line options later...
 	Editor();
@@ -44,9 +49,12 @@ struct Editor {
 	// Render loop iteration
 	void render(const vk::CommandBuffer &, const littlevk::PresentSyncronization::Frame &, int32_t);
 
-	// Main menu bar
+	// User interface methods
 	void imgui_main_menu_bar(const RenderingInfo &);
-	imgui_callback main_menu_bar_callback();
+	void imgui_raytracer_popup(const RenderingInfo &);
+
+	imgui_callback callback_main_menu_bar();
+	imgui_callback callback_raytracer_popup();
 
 	// Rendering loop
 	void loop();

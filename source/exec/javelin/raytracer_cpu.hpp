@@ -54,9 +54,6 @@ struct RaytracerCPU {
 	ThreadPool thread_pool;
 
 	cpu::Scene scene;
-	
-	std::mt19937 random;
-	std::uniform_real_distribution <float> distribution;
 
 	// Tracking progress
 	std::atomic <int32_t> current_samples = 0;

@@ -43,8 +43,8 @@ void ImGuiRenderGroup::render(const RenderingInfo &info, const imgui_callback_li
 
 	ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 	
-	for (auto &callback : callbacks)
-		callback(info);
+	for (auto &ic : callbacks)
+		ic.callback(info);
 
 	// Complete the rendering	
 	ImGui::Render();

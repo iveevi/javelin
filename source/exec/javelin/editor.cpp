@@ -1,5 +1,8 @@
 #include "editor.hpp"
+#include "imgui.h"
 #include "source/exec/javelin/imgui_render_group.hpp"
+#include "source/exec/javelin/messaging.hpp"
+#include "source/exec/javelin/raytracer_cpu.hpp"
 
 // Mouse and button handlers; forwarded to ImGui
 void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)
@@ -86,9 +89,12 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 		.window = drc.window,
 		.frame = frame,
 
-		// Device scenes
+		// Scenes
 		.scene = scene,
-		.device_scene = vk_scene
+		.device_scene = vk_scene,
+
+		// Systems
+		.message_system = message_system,
 	};
 
 	// Render all the viewports
@@ -125,7 +131,8 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 // Main menu bar
 void Editor::imgui_main_menu_bar(const RenderingInfo &)
 {
-	bool popup = false;
+	// Popup for configuring a raytracer
+	bool popup_raytracer = false;
 
 	ImGui::BeginMainMenuBar();
 
@@ -135,7 +142,7 @@ void Editor::imgui_main_menu_bar(const RenderingInfo &)
 		}
 		
 		if (ImGui::MenuItem("Raytracer (CPU)")) {
-			popup = true;
+			popup_raytracer = true;
 		}
 
 		ImGui::EndMenu();
@@ -143,27 +150,71 @@ void Editor::imgui_main_menu_bar(const RenderingInfo &)
 
 	ImGui::EndMainMenuBar();
 
-	if (popup)
+	// Handle the popups
+	if (popup_raytracer)
 		ImGui::OpenPopup("Raytracer");
-		
-	if (ImGui::BeginPopup("Raytracer")) {
-		ImGui::Text("Viewport");
-		ImGui::Text("Samples");
-
-		if (ImGui::Button("Confirm")) {
-			host_raytracers.emplace_back(drc, viewports.back(), scene, vk::Extent2D(800, 800));
-			auto &back = host_raytracers.back();
-			imgui_callbacks.emplace_back(back.imgui_callback());
-			ImGui::CloseCurrentPopup();
-		}
-
-		ImGui::EndPopup();
-	}
 }
 
-imgui_callback Editor::main_menu_bar_callback()
+void Editor::imgui_raytracer_popup(const RenderingInfo &)
 {
-	return std::bind(&Editor::imgui_main_menu_bar, this, std::placeholders::_1);
+	// TODO: make stateful..
+	static int samples = 1;
+	static std::string preview_viewport = "Viewport (?)";
+	static const Viewport *selected_viewport = nullptr;
+
+	if (!ImGui::BeginPopup("Raytracer"))
+		return;
+
+	ImGui::Text("Viewport");
+
+	if (ImGui::BeginCombo("##viewport", preview_viewport.c_str())) {
+		for (auto &viewport : viewports) {
+			std::string s = fmt::format("Viewport ({})", viewport.uuid.type_local);
+			if (ImGui::Selectable(s.c_str(), selected_viewport == &viewport)) {
+				preview_viewport = s;
+				selected_viewport = &viewport;
+			}
+		}
+
+		ImGui::EndCombo();
+	}
+
+	ImGui::Text("Samples");
+
+	ImGui::SliderInt("##samples", &samples, 1, 16);
+
+	ImGui::BeginDisabled(!selected_viewport);
+
+	if (ImGui::Button("Confirm")) {
+		// TODO: do on a separate thread, spawn a spinner...
+		host_raytracers.emplace_back(drc,
+			*selected_viewport, scene,
+			vk::Extent2D(800, 800), samples);
+
+		auto &back = host_raytracers.back();
+		imgui_callbacks.emplace_back(back.imgui_callback());
+		ImGui::CloseCurrentPopup();
+	}
+	
+	ImGui::EndDisabled();
+
+	ImGui::EndPopup();
+}
+
+imgui_callback Editor::callback_main_menu_bar()
+{
+	return {
+		-1,
+		std::bind(&Editor::imgui_main_menu_bar, this, std::placeholders::_1)
+	};
+}
+
+imgui_callback Editor::callback_raytracer_popup()
+{
+	return {
+		-1,
+		std::bind(&Editor::imgui_raytracer_popup, this, std::placeholders::_1)
+	};
 }
 
 // Rendering loop
@@ -178,7 +229,8 @@ void Editor::loop()
 		vk::CommandBufferLevel::ePrimary, 2u);
 
 	// Configure for startup
-	imgui_callbacks.emplace_back(main_menu_bar_callback());
+	imgui_callbacks.emplace_back(callback_main_menu_bar());
+	imgui_callbacks.emplace_back(callback_raytracer_popup());
 	imgui_callbacks.emplace_back(inspector.scene_hierarchy_callback());
 	imgui_callbacks.emplace_back(inspector.object_inspector_callback());
 	
@@ -188,7 +240,65 @@ void Editor::loop()
 	int32_t frame = 0;
 	while (!glfwWindowShouldClose(drc.window.handle)) {
 		glfwPollEvents();
+
+		// Render the frame
 		render(command_buffers[frame], sync[frame], frame);
+
+		// Handle incoming messages
+		auto &messages = message_system.get_origin();
+
+		std::unordered_set <int64_t> removal_set;
+		while (messages.size()) {
+			auto &msg = messages.front();
+			messages.pop();
+
+			if (msg.type_id == type_id_of <Viewport> ()) {
+				fmt::println("Viewport wants to be removed...");
+				removal_set.insert(msg.global);
+			} else if (msg.type_id == type_id_of <RaytracerCPU> ()) {
+				fmt::println("RaytracerCPU wants to be removed...");
+				removal_set.insert(msg.global);
+			}
+		}
+
+		// Removing items as requested
+		{
+			// Viewports
+			auto it = viewports.begin();
+			auto end = viewports.end();
+			while (it != end) {
+				if (removal_set.contains(it->uuid.global))
+					it = viewports.erase(it);
+				else
+					it++;
+			}
+		}
+		
+		{
+			// Raytracers
+			auto it = host_raytracers.begin();
+			auto end = host_raytracers.end();
+			while (it != end) {
+				if (removal_set.contains(it->uuid.global))
+					it = host_raytracers.erase(it);
+				else
+					it++;
+			}
+		}
+
+		{
+			// Callbacks
+			auto it = imgui_callbacks.begin();
+			auto end = imgui_callbacks.end();
+			while (it != end) {
+				if (removal_set.contains(it->global))
+					it = imgui_callbacks.erase(it);
+				else
+					it++;
+			}
+		}
+
+		// Next frame
 		frame = 1 - frame;
 	}
 

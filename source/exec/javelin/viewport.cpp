@@ -1,5 +1,6 @@
 #include "viewport.hpp"
 #include "source/exec/javelin/imgui_render_group.hpp"
+#include "source/exec/javelin/messaging.hpp"
 
 Viewport::Viewport(DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
 		: uuid(new_uuid <Viewport> ())
@@ -7,7 +8,7 @@ Viewport::Viewport(DeviceResourceCollection &drc, const vk::RenderPass &render_p
 	extent = drc.window.extent;
 	resize(drc, render_pass);
 
-	main_title = fmt::format("Viewport ({})##{}", uuid.typed, uuid.global);
+	main_title = fmt::format("Viewport ({})##{}", uuid.type_local, uuid.global);
 	popup_title = fmt::format("Mode##{}", uuid.global);
 }
 
@@ -93,7 +94,17 @@ void Viewport::resize(DeviceResourceCollection &drc, const vk::RenderPass &rende
 void Viewport::display_handle(const RenderingInfo &info)
 {
 	bool open = true;
+	
 	ImGui::Begin(main_title.c_str(), &open, ImGuiWindowFlags_MenuBar);
+	if (!open) {
+		Message message {
+			.type_id = uuid.type_id,
+			.global = uuid.global,
+			.kind = eRemoveSelf,
+		};
+
+		info.message_system.send_to_origin(message);
+	}
 
 	active = ImGui::IsWindowFocused();
 
@@ -172,5 +183,8 @@ void Viewport::display_handle(const RenderingInfo &info)
 
 imgui_callback Viewport::imgui_callback()
 {
-	return std::bind(&Viewport::display_handle, this, std::placeholders::_1);
+	return {
+		uuid.global,
+		std::bind(&Viewport::display_handle, this, std::placeholders::_1)
+	};
 }

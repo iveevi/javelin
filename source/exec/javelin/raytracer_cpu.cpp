@@ -1,5 +1,6 @@
 #include "raytracer_cpu.hpp"
 #include "core/ray.hpp"
+#include "imgui.h"
 #include "source/exec/javelin/imgui_render_group.hpp"
 
 // Raytracing functions
@@ -92,8 +93,7 @@ struct SurfaceScattering {
 
 	OrthonormalBasis onb;
 
-	SurfaceScattering(const cpu::Intersection &sh_)
-			: sh(sh_), onb(OrthonormalBasis::from(sh.normal)) {}
+	SurfaceScattering(const cpu::Intersection &sh_) : sh(sh_), onb(OrthonormalBasis::from(sh.normal)) {}
 };
 
 struct Diffuse : SurfaceScattering {
@@ -102,8 +102,12 @@ struct Diffuse : SurfaceScattering {
 	float3 kd;
 
 	Diffuse &load(const Material &material) {
-		if (auto diffuse = material.values.get("diffuse"))
-			kd = diffuse->as <float3> ();
+		if (auto diffuse = material.values.get("diffuse")) {
+			if (diffuse->is <float3> ())
+				kd = diffuse->as <float3> ();
+			else
+				kd = float3(0.6, 0.6, 0.6);
+		}
 
 		return *this;
 	}
@@ -150,8 +154,6 @@ RaytracerCPU::RaytracerCPU(DeviceResourceCollection &drc,
 {
 	// Initialization
 	scene = cpu::Scene::from(scene_);
-	random = std::mt19937(std::random_device()());
-	distribution = std::uniform_real_distribution <float> (0, 1);
 
 	// Allocate images and buffers
 	host.resize(extent.width, extent.height);
@@ -221,10 +223,8 @@ float3 RaytracerCPU::radiance(const Ray &ray, int depth)
 	auto sh = scene.trace(ray);
 
 	// TODO: get environment map lighting from scene...
-	if (sh.time <= 0.0) {
-		float y = 0.2 * ray.direction.y;
-		return float3(exp(y/0.1), exp(y/0.3), exp(y/0.6));
-	}
+	if (sh.time <= 0.0)
+		return float3(1, 1, 1);
 
 	assert(sh.material < scene.materials.size());
 	Material &material = scene.materials[sh.material];
@@ -239,7 +239,7 @@ float3 RaytracerCPU::radiance(const Ray &ray, int depth)
 	next.origin = sh.offset();
 	next.direction = scattering.wo;
 
-	return radiance(next, depth - 1) * scattering.brdf/scattering.pdf;
+	return radiance(next, depth - 1) * scattering.brdf / scattering.pdf;
 }
 
 float4 RaytracerCPU::raytrace(int2 ij, float2 uv, const Extra &extra)
@@ -296,13 +296,35 @@ void RaytracerCPU::refresh(const DeviceResourceCollection &drc, const vk::Comman
 // Displaying
 void RaytracerCPU::display_handle(const RenderingInfo &info)
 {
-	std::string title = fmt::format("Raytracer (CPU: {})##{}", uuid.typed, uuid.global);
-	ImGui::Begin(title.c_str());
+	std::string title = fmt::format("Raytracer (CPU: {})##{}", uuid.type_local, uuid.global);
+
+	bool open = true;
+	
+	ImGui::Begin(title.c_str(), &open, ImGuiWindowFlags_MenuBar);
+	if (!open) {
+		Message message {
+			.type_id = uuid.type_id,
+			.global = uuid.global,
+			.kind = eRemoveSelf,
+		};
+
+		info.message_system.send_to_origin(message);
+	}
+
+	if (ImGui::BeginMenuBar()) {
+		float progress = float(current_samples)/float(max_samples);
+		ImGui::ProgressBar(progress);
+		ImGui::EndMenuBar();
+	}
+
 	ImGui::Image(descriptor, ImVec2(extent.width, extent.height));
 	ImGui::End();
 }
 
 imgui_callback RaytracerCPU::imgui_callback()
 {
-	return std::bind(&RaytracerCPU::display_handle, this, std::placeholders::_1);
+	return {
+		uuid.global,
+		std::bind(&RaytracerCPU::display_handle, this, std::placeholders::_1)
+	};
 }

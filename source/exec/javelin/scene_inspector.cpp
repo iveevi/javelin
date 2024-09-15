@@ -64,12 +64,19 @@ void SceneInspector::object_inspector(const RenderingInfo &info)
 	ImGui::End();
 }
 
+// TODO: should be part of the editor...
 imgui_callback SceneInspector::scene_hierarchy_callback()
 {
-	return std::bind(&SceneInspector::scene_hierarchy, this, std::placeholders::_1);
+	return {
+		-1,
+		std::bind(&SceneInspector::scene_hierarchy, this, std::placeholders::_1)
+	};
 }
 
 imgui_callback SceneInspector::object_inspector_callback()
 {
-	return std::bind(&SceneInspector::object_inspector, this, std::placeholders::_1);
+	return {
+		-1,
+		std::bind(&SceneInspector::object_inspector, this, std::placeholders::_1)
+	};
 }

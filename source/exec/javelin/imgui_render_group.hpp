@@ -5,8 +5,12 @@
 
 #include "rendering_info.hpp"
 
-using imgui_callback = std::function <void (const RenderingInfo &)>;
-using imgui_callback_list = std::vector <imgui_callback>;
+struct imgui_callback {
+	int64_t global;
+	std::function <void (const RenderingInfo &)> callback;
+};
+
+using imgui_callback_list = std::list <imgui_callback>;
 
 // Renders to the swapchain images
 struct ImGuiRenderGroup {
