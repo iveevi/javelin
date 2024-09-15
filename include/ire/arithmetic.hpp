@@ -1,39 +1,8 @@
 #pragma once
 
-#include "primitive.hpp"
-#include "thunder/enumerations.hpp"
-#include "vector.hpp"
+#include "native.hpp"
 
 namespace jvl::ire {
-
-///////////////////////////////////////////////
-// Type system infrastructure for arithmetic //
-///////////////////////////////////////////////
-
-template <typename T>
-concept builtin_arithmetic = builtin <T>
-		&& builtin <typename T::arithmetic_type>
-		&& requires(const T &t) {
-	{ typename T::arithmetic_type(t) };
-};
-
-template <typename T>
-concept arithmetic = native <T> || builtin_arithmetic <T>;
-
-template <builtin_arithmetic A>
-inline auto underlying(const A &a)
-{
-	return typename A::arithmetic_type(a);
-}
-
-template <native A>
-inline auto underlying(const A &a)
-{
-	return native_t <A> (a);
-}
-
-template <arithmetic T>
-using arithmetic_base = decltype(underlying(T()));
 
 // Preventing unwanted overloads
 template <typename T, typename U>

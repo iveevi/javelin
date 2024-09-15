@@ -2,7 +2,7 @@
 
 #include "../thunder/enumerations.hpp"
 #include "emitter.hpp"
-#include "primitive.hpp"
+#include "native.hpp"
 #include "tagged.hpp"
 #include "type_synthesis.hpp"
 #include "uniform_layout.hpp"

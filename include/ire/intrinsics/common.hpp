@@ -1,10 +1,9 @@
 #pragma once
 
-#include "../vector.hpp"
+#include "../../thunder/enumerations.hpp"
+#include "../native.hpp"
 #include "../util.hpp"
-#include "../primitive.hpp"
-#include "thunder/enumerations.hpp"
-#include <type_traits>
+#include "../vector.hpp"
 
 namespace jvl::ire {
 

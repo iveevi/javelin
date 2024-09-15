@@ -1,7 +1,7 @@
 #pragma once
 
 #include "type_synthesis.hpp"
-#include "primitive.hpp"
+#include "native.hpp"
 #include "vector.hpp"
 #include "matrix.hpp"
 

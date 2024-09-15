@@ -66,8 +66,7 @@ void fragment()
 	};
 
 	// TODO: indexing with layout inputs...
-	i32 i = id;
-	fragment = vec4(colors[i], 1);
+	fragment = vec4(colors[id], 1);
 }
 
 GLuint compile_glsl_source(std::string &source, GLuint stage)

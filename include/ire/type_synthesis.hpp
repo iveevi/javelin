@@ -3,7 +3,7 @@
 #include "../thunder/atom.hpp"
 #include "emitter.hpp"
 #include "ire/string_literal.hpp"
-#include "primitive.hpp"
+#include "native.hpp"
 #include "tagged.hpp"
 #include "type_system.hpp"
 #include "uniform_layout.hpp"

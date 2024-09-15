@@ -1,9 +1,9 @@
 #pragma once
 
-#include "primitive.hpp"
 #include "layout_io.hpp"
-#include "vector.hpp"
 #include "matrix.hpp"
+#include "native.hpp"
+#include "vector.hpp"
 
 namespace jvl::ire {
 

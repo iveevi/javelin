@@ -67,6 +67,7 @@ template <native T>
 struct native_t : tagged {
 	using tagged::tagged;
 
+	using native_type = T;
 	using arithmetic_type = native_t;
 
 	T value;
@@ -278,5 +279,40 @@ struct native_t : tagged {
 		return operation_from_args <bool_t> (thunder::cmp_leq, a, b);
 	}
 };
+
+///////////////////////////////////////////////
+// Type system infrastructure for arithmetic //
+///////////////////////////////////////////////
+
+template <typename T>
+concept builtin_arithmetic = builtin <T>
+		&& builtin <typename T::arithmetic_type>
+		&& requires(const T &t) {
+	{ typename T::arithmetic_type(t) };
+};
+
+template <typename T>
+concept arithmetic = native <T> || builtin_arithmetic <T>;
+
+template <builtin_arithmetic A>
+inline auto underlying(const A &a)
+{
+	return typename A::arithmetic_type(a);
+}
+
+template <native A>
+inline auto underlying(const A &a)
+{
+	return native_t <A> (a);
+}
+
+template <arithmetic T>
+using arithmetic_base = decltype(underlying(T()));
+
+template <typename T>
+concept integral_arithmetic = arithmetic <T> && std::is_integral_v <typename arithmetic_base <T> ::native_type>;
+
+template <typename T>
+concept floating_arithmetic = arithmetic <T> && std::is_floating_point_v <typename arithmetic_base <T> ::native_type>;
 
 } // namespace jvl::ire

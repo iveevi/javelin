@@ -2,7 +2,7 @@
 
 #include "tagged.hpp"
 #include "uniform_layout.hpp"
-#include "primitive.hpp"
+#include "native.hpp"
 
 namespace jvl::ire {
 

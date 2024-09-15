@@ -60,10 +60,6 @@ struct array_base <T, N> : public tagged {
 		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
 		this->ref = em.emit_construct(qualifier, l, false);
 	}
-
-	constexpr int32_t size() {
-		return N;
-	}
 };
 
 template <aggregate T, thunder::index_t N>
@@ -88,10 +84,6 @@ struct array_base <T, N> : public tagged {
 		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
 		this->ref = em.emit_construct(qualifier, l, false);
 	}
-
-	constexpr int32_t size() {
-		return N;
-	}
 };
 
 template <generic T, thunder::index_t N>
@@ -113,8 +105,8 @@ struct array : public array_base <T, N> {
 		return cache_index_t::from(c);
 	}
 
-	template <integral_native U>
-	element operator[](const native_t <U> &index) const
+	template <integral_arithmetic U>
+	element operator[](const U &index) const
 	requires builtin <T> || native <T> {
 		MODULE(array);
 
@@ -125,8 +117,8 @@ struct array : public array_base <T, N> {
 		return cache_index_t::from(c);
 	}
 
-	template <integral_native U>
-	element operator[](const native_t <U> &index) const
+	template <integral_arithmetic U>
+	element operator[](const U &index) const
 	requires aggregate <T> {
 		MODULE(array);
 

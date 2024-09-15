@@ -1,9 +1,9 @@
 #pragma once
 
-#include "ire/type_synthesis.hpp"
-#include "primitive.hpp"
+#include "../thunder/enumerations.hpp"
+#include "native.hpp"
 #include "tagged.hpp"
-#include "thunder/enumerations.hpp"
+#include "type_synthesis.hpp"
 #include "util.hpp"
 
 namespace jvl::ire {

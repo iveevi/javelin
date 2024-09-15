@@ -1,11 +1,11 @@
 #pragma once
 
-#include "ire/tagged.hpp"
-#include "ire/type_synthesis.hpp"
-#include "ire/uniform_layout.hpp"
-#include "primitive.hpp"
-#include "thunder/atom.hpp"
-#include "thunder/enumerations.hpp"
+#include "../thunder/atom.hpp"
+#include "../thunder/enumerations.hpp"
+#include "native.hpp"
+#include "tagged.hpp"
+#include "type_synthesis.hpp"
+#include "uniform_layout.hpp"
 
 namespace jvl::ire {
 
