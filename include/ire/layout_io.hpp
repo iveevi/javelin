@@ -63,7 +63,7 @@ struct layout_in <T, kind> {
 		auto &em = Emitter::active;
 		thunder::index_t type = type_field_from_args <native_t <T>> ().id;
 		thunder::index_t lin = em.emit_qualifier(type, binding, layout_in_as(kind));
-		thunder::index_t value = em.emit_load(lin, -1);
+		thunder::index_t value = em.emit_construct(lin, -1, true);
 		return cache_index_t::from(value);
 	}
 
@@ -81,7 +81,8 @@ struct layout_in <T, kind> : T {
 		auto &em = Emitter::active;
 		thunder::index_t type = type_field_from_args <T> ().id;
 		thunder::index_t lin = em.emit_qualifier(type, binding, layout_in_as(kind));
-		this->ref = lin;
+		thunder::index_t value = em.emit_construct(lin, -1, true);
+		this->ref = value;
 	}
 	
 	operator typename T::arithmetic_type() const {
@@ -100,7 +101,8 @@ struct layout_in <T, kind> : T {
 		auto layout = this->layout().remove_const();
 		thunder::index_t type = type_field_from_args(layout).id;
 		thunder::index_t lin = em.emit_qualifier(type, binding, layout_in_as(kind));
-		layout.ref_with(cache_index_t::from(lin));
+		thunder::index_t value = em.emit_construct(lin, -1, true);
+		layout.ref_with(cache_index_t::from(value));
 	}
 };
 
@@ -124,7 +126,8 @@ struct layout_out <T, kind> {
 		auto &em = Emitter::active;
 		thunder::index_t type = type_field_from_args <native_t <T>> ().id;
 		thunder::index_t lout = em.emit_qualifier(type, binding, layout_out_as(kind));
-		em.emit_store(lout, value.synthesize().id, false);
+		thunder::index_t dst = em.emit_construct(lout, -1, true);
+		em.emit_store(dst, value.synthesize().id, false);
 		return *this;
 	}
 };
@@ -138,7 +141,8 @@ struct layout_out <T, kind> : T {
 		auto &em = Emitter::active;
 		thunder::index_t type = type_field_from_args <T> ().id;
 		thunder::index_t lout = em.emit_qualifier(type, binding, layout_out_as(kind));
-		this->ref = lout;
+		thunder::index_t dst = em.emit_construct(lout, -1, true);
+		this->ref = dst;
 	}
 
 	layout_out &operator=(const T &value) {

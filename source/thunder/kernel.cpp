@@ -76,6 +76,12 @@ Linkage Kernel::linkage() const
 			case layout_out_smooth:
 				linkage.louts[binding] = { generated_type, qualifier->kind };
 				break;
+			case isampler_1d:
+			case isampler_2d:
+			case sampler_1d:
+			case sampler_2d:
+				linkage.samplers[binding] = qualifier->kind;
+				break;
 			case parameter:
 				block.parameters[binding] = type;
 				break;

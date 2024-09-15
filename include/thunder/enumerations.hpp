@@ -279,6 +279,10 @@ enum IntrinsicOperation : uint16_t {
 	normalize,
 	reflect,
 
+	// GLSL image and sampler operations
+	glsl_texture,
+	glsl_texelFetch,
+
 	// GLSL image buffer operations
 	glsl_dFdx,
 	glsl_dFdy,
@@ -321,6 +325,9 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"cross",
 	"normalize",
 	"reflect",
+
+	"texture",
+	"texelFetch",
 
 	"dFdx",
 	"dFdy",

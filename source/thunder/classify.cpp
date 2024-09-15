@@ -52,11 +52,19 @@ QualifiedType Buffer::classify(index_t i) const
 		auto &qualifier = atom.as <Qualifier> ();
 		
 		QualifiedType decl = classify(qualifier.underlying);
+
+		// Handling arrays
 		if (qualifier.kind == arrays) {
 			if (decl.is <StructFieldType> ())
 				decl = QualifiedType::concrete(qualifier.underlying);
 
 			return QualifiedType::array(decl, qualifier.numerical);
+		}
+
+		// Handling samplers
+		if (sampler_kind(qualifier.kind)) {
+			return QualifiedType::sampler(sampler_result(qualifier.kind),
+				sampler_dimension(qualifier.kind));
 		}
 		
 		if (auto pd = decl.get <PlainDataType> ()) {
@@ -69,13 +77,13 @@ QualifiedType Buffer::classify(index_t i) const
 
 	case Atom::type_index <Construct> ():
 	{
-		index_t t = atom.as <Construct> ().type;
+		auto &constructor = atom.as <Construct> ();
 
-		QualifiedType qt = classify(t);
-		if (qt.is <PlainDataType> ())
+		QualifiedType qt = classify(constructor.type);
+		if (constructor.transient || qt.is <PlainDataType> ())
 			return qt;
 
-		return QualifiedType::concrete(t);
+		return QualifiedType::concrete(constructor.type);
 	}
 
 	case Atom::type_index <Call> ():
@@ -103,6 +111,8 @@ QualifiedType Buffer::classify(index_t i) const
 		auto &intrinsic = atom.as <Intrinsic> ();
 		auto args = expand_list_types(intrinsic.args);
 		auto result = lookup_intrinsic_overload(intrinsic.opn, args);
+		if (!result)
+			dump();
 		JVL_ASSERT(result, "failed to find overload for intrinsic: {} (@{})", atom, i);
 		return result;
 	}
@@ -199,6 +209,12 @@ struct overload {
 	static overload from(PrimitiveType result, const Args &...args) {
 		std::vector <QualifiedType> list { QualifiedType::primitive(args)... };
 		return overload(QualifiedType::primitive(result), list);
+	}
+
+	template <typename ... Args>
+	static overload from(const QualifiedType &result, const Args &...args) {
+		std::vector <QualifiedType> list { args... };
+		return overload(result, list);
 	}
 
 	static std::string type_decls_to_string(const std::vector <QualifiedType> &args) {
@@ -341,7 +357,13 @@ static QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, co
 		{ reflect, {
                         overload::from(vec3, vec3, vec3),
                 } },
-                
+
+		// GLSL image and sampler intrinsics
+		{ glsl_texture, {
+			overload::from(PlainDataType(ivec4), QualifiedType::sampler(ivec4, 2), PlainDataType(vec2)),
+			overload::from(PlainDataType(vec4), QualifiedType::sampler(vec4, 2), PlainDataType(vec2)),
+		} },
+		
 		// GLSL casting intrinsics
 		{ glsl_floatBitsToUint, {
                         overload::from(u32, f32),

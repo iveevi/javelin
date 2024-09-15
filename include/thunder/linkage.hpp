@@ -32,6 +32,7 @@ struct Linkage {
 
 	wrapped::hash_table <index_t, layout_info> lins;
 	wrapped::hash_table <index_t, layout_info> louts;
+	wrapped::hash_table <index_t, QualifierKind> samplers;
 
 	// By default assume no push constants
 	index_t push_constant = -1;

@@ -10,18 +10,67 @@
 // TODO: binary operations
 // TODO: external constant specialization
 
+#include "thunder/enumerations.hpp"
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
-#include "ire/core.hpp"
-#include "ire/intrinsics/glsl.hpp"
-#include "ire/layout_io.hpp"
-#include "profiles/targets.hpp"
+#include <ire/core.hpp>
+#include <profiles/targets.hpp>
 
 using namespace jvl;
 using namespace jvl::ire;
 	
 MODULE(ire-features);
+
+template <native T>
+struct sampler_qualifiers {};
+
+template <>
+struct sampler_qualifiers <int32_t> {
+	static constexpr thunder::QualifierKind table[] = {
+		thunder::isampler_1d, // Placeholder
+		thunder::isampler_1d,
+		thunder::isampler_2d,
+	};
+};
+
+template <>
+struct sampler_qualifiers <float> {
+	static constexpr thunder::QualifierKind table[] = {
+		thunder::sampler_1d, // Placeholder
+		thunder::sampler_1d,
+		thunder::sampler_2d,
+	};
+};
+
+template <native T, size_t D>
+requires (D >= 1 && D <= 3)
+struct sampler {
+	const size_t binding;
+
+	sampler(size_t binding_ = 0) : binding(binding_) {}
+
+	cache_index_t synthesize() const {
+		auto &em = Emitter::active;
+		thunder::index_t type = type_field_from_args <vec <T, 4>> ().id;
+		thunder::index_t sampler = em.emit_qualifier(type, binding, sampler_qualifiers <T> ::table[D]);
+		thunder::index_t value = em.emit_construct(sampler, -1, true);
+		return cache_index_t::from(value);
+	}
+};
+
+using isampler1D = sampler <int32_t, 1>;
+using isampler2D = sampler <int32_t, 2>;
+
+using sampler1D = sampler <float, 1>;
+using sampler2D = sampler <float, 2>;
+
+// TODO: vec <T, 1> -> T
+template <native T, size_t D>
+vec <T, 4> texture(const sampler <T, D> &handle, const vec <float, D> &loc)
+{
+	return platform_intrinsic_from_args <vec <T, 4>> (thunder::glsl_texture, handle, loc);
+}
 
 struct MVP {
 	mat4 model;
@@ -57,6 +106,8 @@ void fragment()
 
 	layout_out <vec4> fragment(0);
 
+	isampler2D s(0);
+
 	// TODO: color wheel
 	array <vec3, 4> colors {
 		vec3(1, 0, 0),
@@ -66,7 +117,8 @@ void fragment()
 	};
 
 	// TODO: indexing with layout inputs...
-	fragment = vec4(colors[id], 1);
+	// fragment = vec4(colors[id], 1);
+	fragment = vec4(colors[texture(s, vec2(1, 1)).x], 1);
 }
 
 GLuint compile_glsl_source(std::string &source, GLuint stage)

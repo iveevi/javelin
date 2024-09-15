@@ -114,6 +114,10 @@ void Linkage::dump() const
 	for (auto &[i, linfo] : louts)
 		fmt::println("  @{} -> %{} ({})", i, linfo.type, tbl_qualifier_kind[linfo.kind]);
 
+	fmt::println("Samplers: {}", samplers.size());
+	for (auto &[i, kind] : samplers)
+		fmt::println("  @{} -> {}", i, tbl_qualifier_kind[kind]);
+
 	fmt::print("Push constant: ");
 	if (push_constant >= 0)
 		fmt::println("%{}", push_constant);

@@ -83,7 +83,7 @@ std::string Linkage::generate_glsl(const std::string &version)
 		interpolation += translate_type(linfo.type);
 
 		source += fmt::format("layout (location = {}) in {} _lin{};\n",
-				binding, interpolation, binding);
+			binding, interpolation, binding);
 	}
 
 	if (lins.size())
@@ -111,10 +111,37 @@ std::string Linkage::generate_glsl(const std::string &version)
 		interpolation += translate_type(linfo.type);
 
 		source += fmt::format("layout (location = {}) out {} _lout{};\n",
-				binding, interpolation, binding);
+			binding, interpolation, binding);
 	}
 
 	if (louts.size())
+		source += "\n";
+
+	// Samplers
+	for (const auto &[binding, kind] : samplers) {
+		std::string type = "<sampler:?>";
+		switch (kind) {
+		case isampler_1d:
+			type = "isampler1D";
+			break;
+		case isampler_2d:
+			type = "isampler2D";
+			break;
+		case sampler_1d:
+			type = "sampler1D";
+			break;
+		case sampler_2d:
+			type = "sampler2D";
+			break;
+		default:
+			break;
+		}
+
+		source += fmt::format("layout (binding = {}) uniform {} _sampler{};\n",
+			binding, type, binding);
+	}
+
+	if (samplers.size())
 		source += "\n";
 
 	if (push_constant != -1) {

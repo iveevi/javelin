@@ -9,23 +9,30 @@ namespace jvl::thunder::detail {
 MODULE(c-like-generator);
 
 // TODO: pass options to the body_t type
-static std::optional <std::string> generate_global_reference(const Qualifier &global)
+static std::optional <std::string> generate_global_reference(const Qualifier &qualifier)
 {
-	switch (global.kind) {
+	switch (qualifier.kind) {
 	case QualifierKind::parameter:
-		return fmt::format("_arg{}", global.numerical);
+		return fmt::format("_arg{}", qualifier.numerical);
 
 	// GLSL input/output etc. qualifiers
 	case QualifierKind::layout_in_flat:
 	case QualifierKind::layout_in_noperspective:
 	case QualifierKind::layout_in_smooth:
-		return fmt::format("_lin{}", global.numerical);
+		return fmt::format("_lin{}", qualifier.numerical);
 	case QualifierKind::layout_out_flat:
 	case QualifierKind::layout_out_noperspective:
 	case QualifierKind::layout_out_smooth:
-		return fmt::format("_lout{}", global.numerical);
+		return fmt::format("_lout{}", qualifier.numerical);
 	case QualifierKind::push_constant:
 		return "_pc";
+
+	// GLSL images and samplers
+	case QualifierKind::isampler_1d:
+	case QualifierKind::isampler_2d:
+	case QualifierKind::sampler_1d:
+	case QualifierKind::sampler_2d:
+		return fmt::format("_sampler{}", qualifier.numerical);
 
 	// GLSL shader stage intrinsics
 	case QualifierKind::glsl_intrinsic_gl_FragCoord:
@@ -202,8 +209,9 @@ std::string c_like_generator_t::reference(index_t index) const
 	default:
 		break;
 	}
-
-	JVL_ABORT("failed to generate reference for: {} (@{})", atom, index);
+		
+	// TODO: Could be problematic, its not an actual storage location
+	return inlined(index);
 }
 
 std::string c_like_generator_t::inlined(index_t index) const

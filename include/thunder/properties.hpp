@@ -64,4 +64,45 @@ constexpr PrimitiveType swizzle_type_of(PrimitiveType primitive, SwizzleCode cod
 	}
 }
 
+constexpr bool sampler_kind(QualifierKind kind)
+{
+	switch (kind) {
+	case isampler_1d:
+	case isampler_2d:
+	case sampler_1d:
+	case sampler_2d:
+		return true;
+	default:
+		return false;
+	}
+}
+
+constexpr PrimitiveType sampler_result(QualifierKind kind)
+{
+	switch (kind) {
+	case isampler_1d:
+	case isampler_2d:
+		return ivec4;
+	case sampler_1d:
+	case sampler_2d:
+		return vec4;
+	default:
+		return bad;
+	}
+}
+
+constexpr int32_t sampler_dimension(QualifierKind kind)
+{
+	switch (kind) {
+	case isampler_1d:
+	case sampler_1d:
+		return 1;
+	case isampler_2d:
+	case sampler_2d:
+		return 2;
+	default:
+		return -1;
+	}
+}
+
 } // namespace jvl::thunder

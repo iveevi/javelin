@@ -51,7 +51,7 @@ std::size_t PlainDataType::hash() const
 
 // Struct fields
 StructFieldType::StructFieldType(PlainDataType ut_, index_t next_)
-        : PlainDataType(ut_), next(next_) {}
+                : PlainDataType(ut_), next(next_) {}
 
 bool StructFieldType::operator==(const StructFieldType &other) const
 {
@@ -76,7 +76,7 @@ std::size_t StructFieldType::hash() const
 
 // Array of unqualified types
 ArrayType::ArrayType(PlainDataType ut_, index_t size_)
-        : PlainDataType(ut_), size(size_) {}
+                : PlainDataType(ut_), size(size_) {}
 
 bool ArrayType::operator==(const ArrayType &other) const
 {
@@ -97,6 +97,27 @@ PlainDataType ArrayType::base() const
 std::size_t ArrayType::hash() const
 {
         return PlainDataType::hash() ^ (std::size_t(size) << 16);
+}
+
+// Sampler types
+SamplerType::SamplerType(PlainDataType result, index_t dimension_)
+                : PlainDataType(result), dimension(dimension_) {}
+
+bool SamplerType::operator==(const SamplerType &other) const
+{
+        return PlainDataType::operator==(other)
+                && (dimension == other.dimension);
+}
+
+std::string SamplerType::to_string() const
+{
+        // TODO: switch on type
+        return fmt::format("sampler{}D", dimension);
+}
+
+std::size_t SamplerType::hash() const
+{
+        return PlainDataType::hash() ^ (std::size_t(dimension) << 16);
 }
 
 // Full qualified type
@@ -161,6 +182,11 @@ QualifiedType QualifiedType::array(const QualifiedType &element, index_t size)
                 element.to_string());
 
         return ArrayType(element.as <PlainDataType> (), size);
+}
+
+QualifiedType QualifiedType::sampler(PrimitiveType result, index_t dimension)
+{
+        return SamplerType(result, dimension);
 }
 
 QualifiedType QualifiedType::nil()

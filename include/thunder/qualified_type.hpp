@@ -51,6 +51,17 @@ struct ArrayType : public PlainDataType {
 	std::size_t hash() const;
 };
 
+// Sampler type, parameterized by sampler type and dimension
+struct SamplerType : public PlainDataType {
+	index_t dimension;
+
+	SamplerType(PlainDataType, index_t);
+	
+	bool operator==(const SamplerType &) const;
+	std::string to_string() const;
+	std::size_t hash() const;
+};
+
 // TODO: inout
 // TODO: out
 // TODO: storage types
@@ -60,7 +71,8 @@ using qualified_type_base = wrapped::variant <
 	NilType,
 	PlainDataType,
 	StructFieldType,
-	ArrayType
+	ArrayType,
+	SamplerType
 >;
 
 struct QualifiedType : qualified_type_base {
@@ -80,6 +92,7 @@ struct QualifiedType : qualified_type_base {
 	static QualifiedType primitive(PrimitiveType);
 	static QualifiedType concrete(index_t);
 	static QualifiedType array(const QualifiedType &, index_t);
+	static QualifiedType sampler(PrimitiveType, index_t);
 	static QualifiedType nil();
 };
 
