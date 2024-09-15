@@ -127,11 +127,26 @@ std::string Linkage::generate_glsl(const std::string &version)
 		case isampler_2d:
 			type = "isampler2D";
 			break;
+		case isampler_3d:
+			type = "isampler3D";
+			break;
+		case usampler_1d:
+			type = "usampler1D";
+			break;
+		case usampler_2d:
+			type = "usampler2D";
+			break;
+		case usampler_3d:
+			type = "usampler3D";
+			break;
 		case sampler_1d:
 			type = "sampler1D";
 			break;
 		case sampler_2d:
 			type = "sampler2D";
+			break;
+		case sampler_3d:
+			type = "sampler3D";
 			break;
 		default:
 			break;

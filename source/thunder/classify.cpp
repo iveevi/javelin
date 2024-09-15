@@ -360,8 +360,17 @@ static QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, co
 
 		// GLSL image and sampler intrinsics
 		{ glsl_texture, {
+			overload::from(PlainDataType(ivec4), QualifiedType::sampler(ivec4, 1), PlainDataType(f32)),
+			overload::from(PlainDataType(ivec4), QualifiedType::sampler(uvec4, 1), PlainDataType(f32)),
+			overload::from(PlainDataType(vec4), QualifiedType::sampler(vec4, 1), PlainDataType(f32)),
+
 			overload::from(PlainDataType(ivec4), QualifiedType::sampler(ivec4, 2), PlainDataType(vec2)),
+			overload::from(PlainDataType(ivec4), QualifiedType::sampler(uvec4, 2), PlainDataType(vec2)),
 			overload::from(PlainDataType(vec4), QualifiedType::sampler(vec4, 2), PlainDataType(vec2)),
+
+			overload::from(PlainDataType(ivec4), QualifiedType::sampler(ivec4, 3), PlainDataType(vec3)),
+			overload::from(PlainDataType(ivec4), QualifiedType::sampler(uvec4, 3), PlainDataType(vec3)),
+			overload::from(PlainDataType(vec4), QualifiedType::sampler(vec4, 3), PlainDataType(vec3)),
 		} },
 		
 		// GLSL casting intrinsics

@@ -69,8 +69,13 @@ constexpr bool sampler_kind(QualifierKind kind)
 	switch (kind) {
 	case isampler_1d:
 	case isampler_2d:
+	case isampler_3d:
+	case usampler_1d:
+	case usampler_2d:
+	case usampler_3d:
 	case sampler_1d:
 	case sampler_2d:
+	case sampler_3d:
 		return true;
 	default:
 		return false;
@@ -82,9 +87,15 @@ constexpr PrimitiveType sampler_result(QualifierKind kind)
 	switch (kind) {
 	case isampler_1d:
 	case isampler_2d:
+	case isampler_3d:
 		return ivec4;
+	case usampler_1d:
+	case usampler_2d:
+	case usampler_3d:
+		return uvec4;
 	case sampler_1d:
 	case sampler_2d:
+	case sampler_3d:
 		return vec4;
 	default:
 		return bad;
@@ -95,11 +106,17 @@ constexpr int32_t sampler_dimension(QualifierKind kind)
 {
 	switch (kind) {
 	case isampler_1d:
+	case usampler_1d:
 	case sampler_1d:
 		return 1;
 	case isampler_2d:
+	case usampler_2d:
 	case sampler_2d:
 		return 2;
+	case isampler_3d:
+	case usampler_3d:
+	case sampler_3d:
+		return 3;
 	default:
 		return -1;
 	}

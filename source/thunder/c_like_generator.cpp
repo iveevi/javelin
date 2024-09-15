@@ -30,8 +30,13 @@ static std::optional <std::string> generate_global_reference(const Qualifier &qu
 	// GLSL images and samplers
 	case QualifierKind::isampler_1d:
 	case QualifierKind::isampler_2d:
+	case QualifierKind::isampler_3d:
+	case QualifierKind::usampler_1d:
+	case QualifierKind::usampler_2d:
+	case QualifierKind::usampler_3d:
 	case QualifierKind::sampler_1d:
 	case QualifierKind::sampler_2d:
+	case QualifierKind::sampler_3d:
 		return fmt::format("_sampler{}", qualifier.numerical);
 
 	// GLSL shader stage intrinsics

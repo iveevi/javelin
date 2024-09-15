@@ -10,6 +10,7 @@
 #include "layout_io.hpp"
 #include "matrix.hpp"
 #include "push_constant.hpp"
+#include "sampler.hpp"
 #include "solidify.hpp"
 #include "uniform_layout.hpp"
 #include "vector.hpp"

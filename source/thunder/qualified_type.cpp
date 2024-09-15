@@ -111,8 +111,18 @@ bool SamplerType::operator==(const SamplerType &other) const
 
 std::string SamplerType::to_string() const
 {
-        // TODO: switch on type
-        return fmt::format("sampler{}D", dimension);
+        switch (as <PrimitiveType> ()) {
+        case ivec4:
+                return fmt::format("isampler{}D", dimension);
+        case uvec4:
+                return fmt::format("usampler{}D", dimension);
+        case vec4:
+                return fmt::format("sampler{}D", dimension);
+        default:
+                break;
+        }
+
+        return fmt::format("<?>sampler{}D", dimension);
 }
 
 std::size_t SamplerType::hash() const

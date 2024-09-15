@@ -78,8 +78,13 @@ Linkage Kernel::linkage() const
 				break;
 			case isampler_1d:
 			case isampler_2d:
+			case isampler_3d:
+			case usampler_1d:
+			case usampler_2d:
+			case usampler_3d:
 			case sampler_1d:
 			case sampler_2d:
+			case sampler_3d:
 				linkage.samplers[binding] = qualifier->kind;
 				break;
 			case parameter:
