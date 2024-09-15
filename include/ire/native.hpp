@@ -72,7 +72,7 @@ struct native_t : tagged {
 
 	T value;
 
-	native_t(T v = T()) : tagged(), value(v) {}
+	native_t(T v = T()) : value(v) {}
 
 	native_t operator-() const {
 		auto &em = Emitter::active;

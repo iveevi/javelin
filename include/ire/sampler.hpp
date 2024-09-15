@@ -4,6 +4,7 @@
 
 namespace jvl::ire {
 
+// Table of corresponding sampler QualiferKinds for each scalar type
 template <native T>
 struct sampler_qualifiers {};
 
@@ -37,6 +38,7 @@ struct sampler_qualifiers <float> {
 	};
 };
 
+// Sampler objects
 template <native T, size_t D>
 requires (D >= 1 && D <= 3)
 struct sampler {
@@ -51,25 +53,23 @@ struct sampler {
 		thunder::index_t value = em.emit_construct(sampler, -1, true);
 		return cache_index_t::from(value);
 	}
+
+	vec <T, 4> sample(const vec <float, D> &loc) const
+	requires (D != 1) {
+		return platform_intrinsic_from_args <vec <T, 4>> (thunder::glsl_texture, *this, loc);
+	}
+
+	vec <T, 4> sample(const native_t <float> &loc) const
+	requires (D == 1) {
+		return platform_intrinsic_from_args <vec <T, 4>> (thunder::glsl_texture, *this, loc);
+	}
 };
 
-using isampler1D = sampler <int32_t, 1>;
-using isampler2D = sampler <int32_t, 2>;
-using isampler3D = sampler <int32_t, 3>;
-
-using usampler1D = sampler <uint32_t, 1>;
-using usampler2D = sampler <uint32_t, 2>;
-using usampler3D = sampler <uint32_t, 3>;
-
-using sampler1D = sampler <float, 1>;
-using sampler2D = sampler <float, 2>;
-using sampler3D = sampler <float, 3>;
-
-// TODO: vec <T, 1> -> T
-template <native T, size_t D>
-vec <T, 4> texture(const sampler <T, D> &handle, const vec <float, D> &loc)
+// Accessors
+template <native T, size_t D, generic U>
+vec <T, 4> texture(const sampler <T, D> &handle, const U &loc)
 {
-	return platform_intrinsic_from_args <vec <T, 4>> (thunder::glsl_texture, handle, loc);
+	return handle.sample(loc);
 }
 
 } // namespace jvl::ire

@@ -4,6 +4,7 @@
 #include "native.hpp"
 #include "vector.hpp"
 #include "matrix.hpp"
+#include "sampler.hpp"
 
 namespace jvl::ire {
 
@@ -28,6 +29,19 @@ using vec4 = vec <float, 4>;
 using mat2 = mat <float, 2, 2>;
 using mat3 = mat <float, 3, 3>;
 using mat4 = mat <float, 4, 4>;
+
+// Aliases for samplers
+using isampler1D = sampler <int32_t, 1>;
+using isampler2D = sampler <int32_t, 2>;
+using isampler3D = sampler <int32_t, 3>;
+
+using usampler1D = sampler <uint32_t, 1>;
+using usampler2D = sampler <uint32_t, 2>;
+using usampler3D = sampler <uint32_t, 3>;
+
+using sampler1D = sampler <float, 1>;
+using sampler2D = sampler <float, 2>;
+using sampler3D = sampler <float, 3>;
 
 // Type matching
 template <typename T>

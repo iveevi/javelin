@@ -14,7 +14,11 @@ struct vec;
 
 template <native T, std::size_t N>
 requires (N >= 1 && N <= 4)
-class swizzle_base : tagged {};
+class swizzle_base : public native_t <T> {
+public:
+	swizzle_base(const T &x) : native_t <T> (x) {}
+	swizzle_base(const native_t <T> &x) : native_t <T> (x) {}
+};
 
 // Other intrinsics
 struct __gl_Position_t;

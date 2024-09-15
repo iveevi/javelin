@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ire/native.hpp"
 #include "type_synthesis.hpp"
 
 namespace jvl::ire {
@@ -91,7 +92,8 @@ struct array : public array_base <T, N> {
 	using array_base <T, N> ::array_base;
 	using element = typename array_base <T, N> ::element;
 
-	element operator[](thunder::index_t index) const {
+	template <integral_native U>
+	element operator[](const U &index) const {
 		MODULE(array);
 
 		JVL_ASSERT(this->cached(), "arrays must be cached by the time of use");
@@ -107,7 +109,7 @@ struct array : public array_base <T, N> {
 
 	template <integral_arithmetic U>
 	element operator[](const U &index) const
-	requires builtin <T> || native <T> {
+	requires (builtin <T> || native <T>) && (!native <U>) {
 		MODULE(array);
 
 		JVL_ASSERT(this->cached(), "arrays must be cached by the time of use");

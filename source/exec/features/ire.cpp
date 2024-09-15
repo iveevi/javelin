@@ -56,6 +56,7 @@ void fragment()
 
 	layout_out <vec4> fragment(0);
 
+	isampler1D f(2);
 	usampler2D s(0);
 	sampler3D sr3(1);
 
@@ -68,8 +69,9 @@ void fragment()
 	};
 
 	// TODO: indexing with layout inputs...
-	fragment = texture(sr3, vec3(0.5, 0.3, 0.4));
-	fragment = vec4(colors[texture(s, vec2(1, 1)).x], 1);
+	fragment = vec4(colors[f.sample(1.5f).x], 1);
+	fragment = sr3.sample(vec3(0.5, 0.3, 0.4));
+	fragment = vec4(colors[s.sample(vec2(1, 1)).x], 1);
 }
 
 GLuint compile_glsl_source(std::string &source, GLuint stage)
