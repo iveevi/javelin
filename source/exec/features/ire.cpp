@@ -69,7 +69,8 @@ void fragment()
 	};
 
 	// TODO: indexing with layout inputs...
-	fragment = vec4(colors[f.sample(1.5f).x], 1);
+	u32 x = s.fetch(ivec2(1, 5), 0).x;
+	fragment = vec4(colors[x], 1);
 	fragment = sr3.sample(vec3(0.5, 0.3, 0.4));
 	fragment = vec4(colors[s.sample(vec2(1, 1)).x], 1);
 }

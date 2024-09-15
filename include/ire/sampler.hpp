@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ire/native.hpp"
+#include "thunder/enumerations.hpp"
 #include "vector.hpp"
 
 namespace jvl::ire {
@@ -54,6 +56,7 @@ struct sampler {
 		return cache_index_t::from(value);
 	}
 
+	// Sampling the associated texture (texture(sampler, uv))
 	vec <T, 4> sample(const vec <float, D> &loc) const
 	requires (D != 1) {
 		return platform_intrinsic_from_args <vec <T, 4>> (thunder::glsl_texture, *this, loc);
@@ -63,13 +66,30 @@ struct sampler {
 	requires (D == 1) {
 		return platform_intrinsic_from_args <vec <T, 4>> (thunder::glsl_texture, *this, loc);
 	}
+
+	// Fetching pixels from the associated image (texelFetch(sampler, pixel, lod))
+	vec <T, 4> fetch(const vec <int32_t, D> &loc, const native_t <int32_t> &lod) const
+	requires (D != 1) {
+		return platform_intrinsic_from_args <vec <T, 4>> (thunder::glsl_texelFetch, *this, loc, lod);
+	}
+	
+	vec <T, 4> fetch(const native_t <int32_t> &loc, const native_t <int32_t> &lod) const
+	requires (D == 1) {
+		return platform_intrinsic_from_args <vec <T, 4>> (thunder::glsl_texelFetch, *this, loc, lod);
+	}
 };
 
-// Accessors
+// Accessors functions from GLSL
 template <native T, size_t D, generic U>
 vec <T, 4> texture(const sampler <T, D> &handle, const U &loc)
 {
 	return handle.sample(loc);
+}
+
+template <native T, size_t D, generic A, generic B>
+vec <T, 4> texelFetch(const sampler <T, D> &handle, const A &loc, const B &lod)
+{
+	return handle.fetch(loc, lod);
 }
 
 } // namespace jvl::ire

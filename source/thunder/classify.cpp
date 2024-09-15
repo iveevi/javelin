@@ -373,6 +373,20 @@ static QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, co
 			overload::from(PlainDataType(vec4), QualifiedType::sampler(vec4, 3), PlainDataType(vec3)),
 		} },
 		
+		{ glsl_texelFetch, {
+			overload::from(PlainDataType(ivec4), QualifiedType::sampler(ivec4, 1), PlainDataType(i32), PlainDataType(i32)),
+			overload::from(PlainDataType(ivec4), QualifiedType::sampler(uvec4, 1), PlainDataType(i32), PlainDataType(i32)),
+			overload::from(PlainDataType(vec4), QualifiedType::sampler(vec4, 1), PlainDataType(i32), PlainDataType(i32)),
+
+			overload::from(PlainDataType(ivec4), QualifiedType::sampler(ivec4, 2), PlainDataType(ivec2), PlainDataType(i32)),
+			overload::from(PlainDataType(ivec4), QualifiedType::sampler(uvec4, 2), PlainDataType(ivec2), PlainDataType(i32)),
+			overload::from(PlainDataType(vec4), QualifiedType::sampler(vec4, 2), PlainDataType(ivec2), PlainDataType(i32)),
+
+			overload::from(PlainDataType(ivec4), QualifiedType::sampler(ivec4, 3), PlainDataType(ivec3), PlainDataType(i32)),
+			overload::from(PlainDataType(ivec4), QualifiedType::sampler(uvec4, 3), PlainDataType(ivec3), PlainDataType(i32)),
+			overload::from(PlainDataType(vec4), QualifiedType::sampler(vec4, 3), PlainDataType(ivec3), PlainDataType(i32)),
+		} },
+		
 		// GLSL casting intrinsics
 		{ glsl_floatBitsToUint, {
                         overload::from(u32, f32),
