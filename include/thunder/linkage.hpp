@@ -3,9 +3,10 @@
 #include <unordered_set>
 #include <vector>
 
+#include "../profiles/targets.hpp"
 #include "atom.hpp"
 #include "buffer.hpp"
-#include "thunder/enumerations.hpp"
+#include "enumerations.hpp"
 
 namespace jvl::thunder {
 
@@ -67,8 +68,7 @@ struct Linkage {
 	Linkage &resolve();
 
 	// Generate GLSL source code
-	// TODO: pass integer number... or enum
-	std::string generate_glsl(const std::string &);
+	std::string generate_glsl(const profiles::glsl_version &);
 
 	// Generate C++ source code
 	std::string generate_cplusplus();

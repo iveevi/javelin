@@ -1,4 +1,5 @@
 #include "logging.hpp"
+#include "profiles/targets.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/kernel.hpp"
 #include "thunder/enumerations.hpp"
@@ -117,13 +118,13 @@ void Kernel::dump() const
 	fmt::println("atoms: {}", atoms.size());
 	fmt::println("flags:");
 
-	if (is_compatible(eVertexShader))
+	if (compatible_with(eVertexShader))
 		fmt::println(".... vertex shader");
 
-	if (is_compatible(eFragmentShader))
+	if (compatible_with(eFragmentShader))
 		fmt::println(".... fragment shader");
 
-	if (is_compatible(eCallable))
+	if (compatible_with(eCallable))
 		fmt::println(".... callable");
 
 	fmt::println("------------------------------");
@@ -132,13 +133,13 @@ void Kernel::dump() const
 }
 
 // Generating GLSL source code
-std::string Kernel::generate_glsl(const std::string &version)
+std::string Kernel::compile(const profiles::glsl_version &version)
 {
 	return linkage().resolve().generate_glsl(version);
 }
 
 // Generating C++ source code
-std::string Kernel::generate_cplusplus()
+std::string Kernel::compile(const profiles::cpp_standard &)
 {
 	return linkage().resolve().generate_cplusplus();
 }

@@ -1,17 +1,56 @@
 #include <string>
 
 #include "ire/callable.hpp"
+#include "profiles/targets.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/c_like_generator.hpp"
 #include "thunder/enumerations.hpp"
 #include "thunder/linkage.hpp"
+#include "thunder/properties.hpp"
 #include "wrapped_types.hpp"
 
 namespace jvl::thunder {
 
 MODULE(generate-glsl);
 
-std::string Linkage::generate_glsl(const std::string &version)
+std::string layout_interpolation_string(QualifierKind kind)
+{
+	switch (kind) {
+	case layout_in_flat:
+	case layout_out_flat:
+		return "flat ";
+	case layout_in_noperspective:
+	case layout_out_noperspective:
+		return "noperspective ";
+	case layout_in_smooth:
+	case layout_out_smooth:
+		return "";
+	default:
+		break;
+	}
+
+	return "<interp:?>";
+}
+
+std::string sampler_string(QualifierKind kind)
+{
+	PrimitiveType result = sampler_result(kind);
+	int32_t dimensions = sampler_dimension(kind);
+	switch (result) {
+        case ivec4:
+                return fmt::format("isampler{}D", dimensions);
+        case uvec4:
+                return fmt::format("usampler{}D", dimensions);
+        case vec4:
+                return fmt::format("sampler{}D", dimensions);
+        default:
+                break;
+        }
+
+        return fmt::format("<?>sampler{}D", dimensions);
+}
+
+std::string Linkage::generate_glsl(const profiles::glsl_version &glsl_version)
 {
 	wrapped::hash_table <int, std::string> struct_names;
 
@@ -31,7 +70,7 @@ std::string Linkage::generate_glsl(const std::string &version)
 	};
 
 	// Final source code
-	std::string source = fmt::format("#version {}\n\n", version);
+	std::string source = fmt::format("#version {}\n\n", glsl_version.version);
 
 	// Structure declarations, should already be in order
 	for (size_t i = 0; i < structs.size(); i++) {
@@ -60,58 +99,31 @@ std::string Linkage::generate_glsl(const std::string &version)
 	}
 
 	// Global shader variables
-	// TODO: use layout qualifiers
 	for (const auto &[binding, linfo] : lins) {
-		std::string interpolation = "<interp:?>";
-		switch (linfo.kind) {
-		case layout_in_flat:
-			interpolation = "flat";
-			break;
-		case layout_in_noperspective:
-			interpolation = "noperspective";
-			break;
-		case layout_in_smooth:
-			interpolation = "";
-			break;
-		default:
-			break;
-		}
+		std::string location;
+		if (glsl_version.explicit_location)
+			location = fmt::format("layout (location = {}) ", binding);
 
-		if (!interpolation.empty())
-			interpolation += " ";
-		
-		interpolation += translate_type(linfo.type);
-
-		source += fmt::format("layout (location = {}) in {} _lin{};\n",
-			binding, interpolation, binding);
+		source += fmt::format("{}in {}{} _lin{};\n",
+			location,
+			layout_interpolation_string(linfo.kind),
+			translate_type(linfo.type),
+			binding);
 	}
 
 	if (lins.size())
 		source += "\n";
 
 	for (const auto &[binding, linfo] : louts) {
-		std::string interpolation = "<interp:?>";
-		switch (linfo.kind) {
-		case layout_out_flat:
-			interpolation = "flat";
-			break;
-		case layout_out_noperspective:
-			interpolation = "noperspective";
-			break;
-		case layout_out_smooth:
-			interpolation = "";
-			break;
-		default:
-			break;
-		}
+		std::string location;
+		if (glsl_version.explicit_location)
+			location = fmt::format("layout (location = {}) ", binding);
 		
-		if (!interpolation.empty())
-			interpolation += " ";
-		
-		interpolation += translate_type(linfo.type);
-
-		source += fmt::format("layout (location = {}) out {} _lout{};\n",
-			binding, interpolation, binding);
+		source += fmt::format("{}out {}{} _lout{};\n",
+			location,
+			layout_interpolation_string(linfo.kind),
+			translate_type(linfo.type),
+			binding);
 	}
 
 	if (louts.size())
@@ -119,41 +131,8 @@ std::string Linkage::generate_glsl(const std::string &version)
 
 	// Samplers
 	for (const auto &[binding, kind] : samplers) {
-		std::string type = "<sampler:?>";
-		switch (kind) {
-		case isampler_1d:
-			type = "isampler1D";
-			break;
-		case isampler_2d:
-			type = "isampler2D";
-			break;
-		case isampler_3d:
-			type = "isampler3D";
-			break;
-		case usampler_1d:
-			type = "usampler1D";
-			break;
-		case usampler_2d:
-			type = "usampler2D";
-			break;
-		case usampler_3d:
-			type = "usampler3D";
-			break;
-		case sampler_1d:
-			type = "sampler1D";
-			break;
-		case sampler_2d:
-			type = "sampler2D";
-			break;
-		case sampler_3d:
-			type = "sampler3D";
-			break;
-		default:
-			break;
-		}
-
 		source += fmt::format("layout (binding = {}) uniform {} _sampler{};\n",
-			binding, type, binding);
+			binding, sampler_string(kind), binding);
 	}
 
 	if (samplers.size())

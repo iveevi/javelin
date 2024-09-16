@@ -8,10 +8,6 @@ namespace jvl::thunder {
 struct Linkage;
 
 struct Kernel : Buffer {
-protected:
-	std::string generate_glsl(const std::string &);
-	std::string generate_cplusplus();
-public:
 	// Name of the kernel, usually not set by the user
 	std::string name;
 
@@ -31,17 +27,12 @@ public:
 	Linkage linkage() const;
 
 	// Synthesizing targets
-	std::string compile(const profiles::glsl_version version) {
-		return generate_glsl(version.str);
-	}
-
-	std::string compile(const profiles::cpp_standard standard) {
-		return generate_cplusplus();
-	}
+	std::string compile(const profiles::glsl_version &);
+	std::string compile(const profiles::cpp_standard &);
 
 	// Checking for capabilities
 	[[gnu::always_inline]]
-	inline bool is_compatible(Kind k) const {
+	inline bool compatible_with(Kind k) const {
 		return (k & kind) == k;
 	}
 
