@@ -1,4 +1,3 @@
-// TODO: immutability for shader inputs types
 // TODO: warnings for the unused sections
 // TODO: autodiff on inputs, for callables and shaders
 // TODO: generating code with correct names
@@ -6,11 +5,9 @@
 // TODO: passing layout inputs/outputs (should ignore them)
 // TODO: test nested structs again
 // TODO: partial evaluation of callables through substitution methods
-// TODO: parameter qualifiers (e.g. out/inout) as wrapped types
-// TODO: binary operations
+// TODO: out/inout parameter qualifiers
 // TODO: external constant specialization
 
-#include "thunder/enumerations.hpp"
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
@@ -44,35 +41,34 @@ struct MVP {
 void vertex()
 {
 	layout_in <vec3> position(0);
-	layout_out <int, flat> id(0);
+	layout_out <vec3> out_position(0);
 
 	gl_Position = vec4(position, 1);
-	id = gl_VertexID % 3;
+	out_position = position;
 }
 
 void fragment()
 {
-	layout_in <int, flat> id(0);
+	struct shading_state {
+		vec3 position;
+		vec3 normal;
+		array <vec3, 4> samples;
 
-	layout_out <vec4> fragment(0);
-
-	isampler1D f(2);
-	usampler2D s(0);
-	sampler3D sr3(1);
-
-	// TODO: color wheel
-	array <vec3, 4> colors {
-		vec3(1, 0, 0),
-		vec3(0, 1, 0),
-		vec3(0, 0, 1),
-		vec3(0.7, 0.7, 0.7),
+		vec3 sample_average() const {
+			vec3 sum;
+			for (uint32_t i = 0; i < samples.size(); i++)
+				sum += samples[i];
+			return sum / f32(samples.size());
+		}
 	};
 
-	// TODO: indexing with layout inputs...
-	u32 x = s.fetch(ivec2(1, 5), 0).x;
-	fragment = vec4(colors[x], 1);
-	fragment = sr3.sample(vec3(0.5, 0.3, 0.4));
-	fragment = vec4(colors[s.sample(vec2(1, 1)).x], 1);
+	layout_in <vec3> position(0);
+	layout_out <vec4> fragment(0);
+
+	shading_state state;
+	state.position = position;
+	
+	fragment = vec4(state.sample_average(), 1);
 }
 
 GLuint compile_glsl_source(std::string &source, GLuint stage)

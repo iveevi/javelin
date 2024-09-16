@@ -134,7 +134,7 @@ struct array : public array_base <T, N> {
 		return returned;
 	}
 
-	constexpr int32_t size() {
+	constexpr int32_t size() const {
 		return N;
 	}
 };

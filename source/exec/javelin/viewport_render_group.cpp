@@ -66,6 +66,8 @@ struct MVP {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
+	i32 id;
+	i32 selected;
 
 	vec4 project(vec3 position) {
 		return proj * (view * (model * vec4(position, 1.0)));
@@ -76,7 +78,9 @@ struct MVP {
 			"MVP",
 			named_field(model),
 			named_field(view),
-			named_field(proj)
+			named_field(proj),
+			named_field(id),
+			named_field(selected)
 		);
 	}
 };
@@ -86,6 +90,9 @@ void vertex(ViewportMode mode)
 	layout_in <vec3> position(0);
 	layout_out <vec3> out_position(0);
 	layout_out <int, flat> out_id(0);
+
+	layout_out <int, flat> out_uuid(1);
+	layout_out <int, flat> out_selected(2);
 	
 	push_constant <MVP> mvp;
 	gl_Position = mvp.project(position);
@@ -101,6 +108,9 @@ void vertex(ViewportMode mode)
 	default:
 		break;
 	}
+
+	out_uuid = mvp.id;
+	out_selected = mvp.selected;	
 }
 
 void fragment(ViewportMode mode)
@@ -108,6 +118,9 @@ void fragment(ViewportMode mode)
 	layout_in <vec3> position(0);
 	layout_in <int, flat> id(0);
 	layout_out <vec4> fragment(0);
+	
+	layout_in <int, flat> uuid(1);
+	layout_in <int, flat> selected(2);
 
 	switch (mode) {
 	
@@ -143,6 +156,11 @@ void fragment(ViewportMode mode)
 		fragment = vec4(1, 0, 1, 1);
 		break;
 	}
+
+	// Highlighting the selected object
+	cond(uuid == selected);
+		fragment = mix(fragment, vec4(1, 1, 0, 1), 0.8f);
+	end();
 }
 
 // Constructor	
@@ -195,8 +213,11 @@ void ViewportRenderGroup::configure_pipelines(DeviceResourceCollection &drc)
 // Rendering
 void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 {
+	auto &cmd = info.cmd;
+	auto &scene = info.device_scene;
+
 	// Configure the rendering extent
-	littlevk::viewport_and_scissor(info.cmd, littlevk::RenderArea(viewport.extent));
+	littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(viewport.extent));
 
 	viewport.handle_input(info.window);
 
@@ -204,31 +225,36 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 		viewport.framebuffers[info.operation.index],
 		viewport.extent);
 
-	info.cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);
+	cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);
 
 	auto &ppl = pipelines[viewport.mode];
 
-	info.cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
 
 	solid_t <MVP> mvp;
 
 	auto m_model = uniform_field(MVP, model);
 	auto m_view = uniform_field(MVP, view);
 	auto m_proj = uniform_field(MVP, proj);
+	auto m_id = uniform_field(MVP, id);
+	auto m_selected = uniform_field(MVP, selected);
 
 	mvp[m_model] = jvl::float4x4::identity();
 	mvp[m_proj] = jvl::core::perspective(viewport.aperature);
 	mvp[m_view] = viewport.transform.to_view_matrix();
+	mvp[m_selected] = viewport.selected;
 
-	info.cmd.pushConstants <solid_t <MVP>> (ppl.layout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
+	for (size_t i = 0; i < scene.uuids.size(); i++) {
+		auto &mesh = scene.meshes[i];
+		mvp[m_id] = scene.uuids[i];
 
-	for (const auto &vmesh : info.device_scene.meshes) {
-		info.cmd.bindVertexBuffers(0, vmesh.vertices.buffer, { 0 });
-		info.cmd.bindIndexBuffer(vmesh.triangles.buffer, 0, vk::IndexType::eUint32);
-		info.cmd.drawIndexed(vmesh.count, 1, 0, 0, 0);
+		cmd.pushConstants <solid_t <MVP>> (ppl.layout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
+		cmd.bindVertexBuffers(0, mesh.vertices.buffer, { 0 });
+		cmd.bindIndexBuffer(mesh.triangles.buffer, 0, vk::IndexType::eUint32);
+		cmd.drawIndexed(mesh.count, 1, 0, 0, 0);
 	}
 
-	info.cmd.endRenderPass();
+	cmd.endRenderPass();
 
 	littlevk::transition(info.cmd, viewport.targets[info.operation.index],
 		vk::ImageLayout::ePresentSrcKHR,

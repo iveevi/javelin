@@ -1,4 +1,7 @@
 #include "scene_inspector.hpp"
+#include "core/messaging.hpp"
+
+SceneInspector::SceneInspector() : uuid(new_uuid <SceneInspector> ()) {}
 
 void SceneInspector::scene_hierarchy_object(const Scene &scene, const Scene::Object &obj)
 {
@@ -34,6 +37,16 @@ void SceneInspector::scene_hierarchy(const RenderingInfo &info)
 	}
 
 	ImGui::End();
+
+	// Send the update
+	Message message {
+		.type_id = uuid.type_id,
+		.global = uuid.global,
+		.kind = editor_update_selected,
+		.value = selected,
+	};
+
+	info.message_system.send_to_origin(message);
 }
 
 void SceneInspector::object_inspector(const RenderingInfo &info)

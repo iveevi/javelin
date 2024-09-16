@@ -41,6 +41,7 @@ struct Viewport {
 	// Viewing information
 	Aperature aperature;
 	Transform transform;
+	int64_t selected;
 
 	ViewportMode mode = eNormal;
 

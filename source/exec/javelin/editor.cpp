@@ -1,4 +1,22 @@
 #include "editor.hpp"
+#include "core/messaging.hpp"
+#include "source/exec/javelin/scene_inspector.hpp"
+
+MODULE(editor);
+
+// Removing elements of a list by global ID
+template <typename T>
+void remove_items(std::list <T> &list, const std::set <int64_t> &removal)
+{
+	auto it = list.begin();
+	auto end = list.end();
+	while (it != end) {
+		if (removal.contains(it->uuid.global))
+			it = list.erase(it);
+		else
+			it++;
+	}
+}
 
 // Mouse and button handlers; forwarded to ImGui
 void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)
@@ -241,46 +259,47 @@ void Editor::loop()
 		render(command_buffers[frame], sync[frame], frame);
 
 		// Handle incoming messages
+		// TODO: separate function
 		auto &messages = message_system.get_origin();
 
-		std::unordered_set <int64_t> removal_set;
+		std::set <int64_t> removal_set;
 		while (messages.size()) {
 			auto &msg = messages.front();
 			messages.pop();
 
-			if (msg.type_id == type_id_of <Viewport> ()) {
-				fmt::println("Viewport wants to be removed...");
-				removal_set.insert(msg.global);
-			} else if (msg.type_id == type_id_of <RaytracerCPU> ()) {
-				fmt::println("RaytracerCPU wants to be removed...");
-				removal_set.insert(msg.global);
+			switch (msg.kind) {
+
+			case editor_remove_self:
+			{
+				if (msg.type_id == type_id_of <Viewport> ()) {
+					fmt::println("Viewport wants to be removed...");
+					removal_set.insert(msg.global);
+				} else if (msg.type_id == type_id_of <RaytracerCPU> ()) {
+					fmt::println("RaytracerCPU wants to be removed...");
+					removal_set.insert(msg.global);
+				}
+			} break;
+
+			case editor_update_selected:
+			{
+				JVL_ASSERT_PLAIN(msg.type_id == type_id_of <SceneInspector> ());
+
+				int64_t selected = msg.value.as <int64_t> ();
+
+				// Propogate to the viewports
+				for (auto &viewport : viewports)
+					viewport.selected = selected;
+			} break;
+
+			default:
+				break;
 			}
 		}
 
 		// Removing items as requested
-		{
-			// Viewports
-			auto it = viewports.begin();
-			auto end = viewports.end();
-			while (it != end) {
-				if (removal_set.contains(it->uuid.global))
-					it = viewports.erase(it);
-				else
-					it++;
-			}
-		}
-		
-		{
-			// Raytracers
-			auto it = host_raytracers.begin();
-			auto end = host_raytracers.end();
-			while (it != end) {
-				if (removal_set.contains(it->uuid.global))
-					it = host_raytracers.erase(it);
-				else
-					it++;
-			}
-		}
+		// TODO: separate function
+		remove_items(viewports, removal_set);
+		remove_items(host_raytracers, removal_set);
 
 		{
 			// Callbacks

@@ -358,6 +358,13 @@ static QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, co
                         overload::from(vec3, vec3, vec3),
                 } },
 
+		// Miscellaneous operations
+		{ mix, {
+			overload::from(vec2, vec2, vec2, f32),
+			overload::from(vec3, vec3, vec3, f32),
+			overload::from(vec4, vec4, vec4, f32),
+		} },
+
 		// GLSL image and sampler intrinsics
 		{ glsl_texture, {
 			overload::from(PlainDataType(ivec4), QualifiedType::sampler(ivec4, 1), PlainDataType(f32)),
@@ -443,6 +450,9 @@ static QualifiedType lookup_operation_overload(const OperationCode &key, const s
 		
 		overload::from(vec3, vec3, f32),
 		overload::from(vec3, f32, vec3),
+		
+		overload::from(vec4, vec4, f32),
+		overload::from(vec4, f32, vec4),
 	};
 
 	static const overload_list matrix_multiplication_overloads {

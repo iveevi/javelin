@@ -9,6 +9,7 @@ namespace jvl::gfx::cpu {
 Scene Scene::from(const core::Scene &scene)
 {
 	Scene result;
+
 	for (auto &[_, obj] : scene.objects) {
 		if (obj.geometry) {
 			auto g = obj.geometry.value();
@@ -22,6 +23,7 @@ Scene Scene::from(const core::Scene &scene)
 
 			auto tmesh = core::TriangleMesh::from(g).value();
 			result.meshes.push_back(tmesh);
+			result.uuids.push_back(obj.id());
 		}
 
 		for (auto &material : obj.materials)

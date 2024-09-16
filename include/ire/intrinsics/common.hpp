@@ -128,6 +128,13 @@ vec <T, N> normalize(const vec <T, N> &v)
 	return platform_intrinsic_from_args <vec <T, N>> (thunder::normalize, v);
 }
 
+template <native T, size_t N, arithmetic U>
+requires std::same_as <typename arithmetic_base <U> ::native_type, float>
+vec <T, N> mix(const vec <T, N> &x, const vec <T, N> &y, const U &a)
+{
+	return platform_intrinsic_from_args <vec <T, N>> (thunder::mix, x, y, underlying(a));
+}
+
 inline void discard()
 {
 	platform_intrinsic_keyword(thunder::discard);

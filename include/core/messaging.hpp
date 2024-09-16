@@ -4,6 +4,7 @@
 #include <queue>
 
 #include "wrapped_types.hpp"
+#include "math_types.hpp"
 
 namespace jvl::core {
 
@@ -59,13 +60,22 @@ inline UUID new_uuid()
 
 // UUID based messaging system
 enum MessageKind : int64_t {
-	eRemoveSelf,
+	editor_remove_self,
+	editor_viewport_selection,
+	editor_update_selected,
 };
 
 struct Message {
 	int64_t type_id;
 	int64_t global;
+
 	MessageKind kind;
+
+	wrapped::variant <
+		int64_t,
+		int32_t, int2,
+		float, float2
+	> value;
 };
 
 class MessageSystem {

@@ -305,7 +305,7 @@ void RaytracerCPU::display_handle(const RenderingInfo &info)
 		Message message {
 			.type_id = uuid.type_id,
 			.global = uuid.global,
-			.kind = eRemoveSelf,
+			.kind = editor_remove_self,
 		};
 
 		info.message_system.send_to_origin(message);

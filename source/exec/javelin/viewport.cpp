@@ -1,4 +1,5 @@
 #include "viewport.hpp"
+#include "imgui.h"
 
 Viewport::Viewport(DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
 		: uuid(new_uuid <Viewport> ())
@@ -98,7 +99,7 @@ void Viewport::display_handle(const RenderingInfo &info)
 		Message message {
 			.type_id = uuid.type_id,
 			.global = uuid.global,
-			.kind = eRemoveSelf,
+			.kind = editor_remove_self,
 		};
 
 		info.message_system.send_to_origin(message);
@@ -121,8 +122,28 @@ void Viewport::display_handle(const RenderingInfo &info)
 	}
 
 	ImVec2 size;
+
 	size = ImGui::GetContentRegionAvail();
 	ImGui::ImageButton(imgui_descriptors[info.frame], size, ImVec2(0, 0), ImVec2(1, 1), 0);
+
+	if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+		fmt::println("double click!");
+		ImVec2 mouse = ImGui::GetMousePos();
+		ImVec2 window = ImGui::GetItemRectMin();
+
+		int2 relative = int2(mouse.x - window.x, mouse.y - window.y);
+
+		fmt::println("  relative position: {}, {}", relative.x, relative.y);
+
+		Message message {
+			.type_id = uuid.type_id,
+			.global = uuid.global,
+			.kind = editor_viewport_selection,
+			.value = relative
+		};
+
+		info.message_system.send_to_origin(message);
+	}
 
 	size = ImGui::GetItemRectSize();
 	aperature.aspect = size.x/size.y;

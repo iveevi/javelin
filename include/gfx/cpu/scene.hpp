@@ -8,6 +8,7 @@
 namespace jvl::gfx::cpu {
 
 struct Scene {
+	std::vector <int64_t> uuids;
 	std::vector <core::TriangleMesh> meshes;
 	std::vector <core::Material> materials;
 	BVH bvh;

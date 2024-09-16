@@ -11,7 +11,11 @@ using namespace jvl;
 using namespace jvl::core;
 
 struct SceneInspector {
+	UUID uuid;
+
 	int64_t selected = -1;
+
+	SceneInspector();
 
 	void scene_hierarchy_object(const Scene &, const Scene::Object &);
 	void scene_hierarchy(const RenderingInfo &);
