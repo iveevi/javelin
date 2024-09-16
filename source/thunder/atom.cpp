@@ -21,11 +21,11 @@ Addresses Qualifier::addresses()
 
 std::string Qualifier::to_string() const
 {
-        return fmt::format("{:10} {}(%{})[{}]",
+        return fmt::format("{:10} {}[{}]: %{}",
                 "qualifier",
                 tbl_qualifier_kind[kind],
-                underlying,
-                numerical);
+                numerical,
+                underlying);
 }
 
 // TypeInformation
@@ -45,7 +45,7 @@ std::string TypeInformation::to_string() const
 {
         std::string result;
 
-        result += fmt::format("{:10} item: ", "type");
+        result += fmt::format("{:10} ", "type");
         if (item != bad)
                 result += fmt::format("{}", tbl_primitive_types[item]);
         else if (down != -1)
@@ -54,7 +54,7 @@ std::string TypeInformation::to_string() const
                 result += fmt::format("<?>");
 
         if (next != -1)
-                result += fmt::format(" next: %{}", next);
+                result += fmt::format(", going to %{}", next);
 
         return result;
 }
@@ -136,7 +136,7 @@ Addresses Operation::addresses()
         
 std::string Operation::to_string() const
 {
-        return fmt::format("{:10} $({}) a: %{} b: %{}",
+        return fmt::format("{:10} {}: (%{}, %{})",
                 "operation",
                 tbl_operation_code[code],
                 a, b);
@@ -203,12 +203,10 @@ std::string Construct::to_string() const
 {
         std::string result;
 
-        result += fmt::format("{:10} type: %{} ", "construct", type);
-
         if (transient)
-		return result + "[transient]";
+		return fmt::format("{:10} transient: %{}", "construct", type);
 
-	result += "args: ";
+        result += fmt::format("{:10} type: %{} args: ", "construct", type);
         if (args == -1)
 		result += "(nil)";
         else

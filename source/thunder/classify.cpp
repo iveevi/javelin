@@ -185,7 +185,10 @@ QualifiedType Buffer::classify(index_t i) const
 	}
 	
 	case Atom::type_index <Returns> ():
-		return classify(atom.as <Returns> ().type);
+	{
+		auto &returns = atom.as <Returns> ();
+		return types[returns.value];
+	}
 
 	case Atom::type_index <List> ():
 	case Atom::type_index <Store> ():

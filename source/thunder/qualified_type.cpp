@@ -61,7 +61,7 @@ bool StructFieldType::operator==(const StructFieldType &other) const
 
 std::string StructFieldType::to_string() const
 {
-        return fmt::format("{} ==> next: %{}", PlainDataType::to_string(), next);
+        return fmt::format("{}; %{}", PlainDataType::to_string(), next);
 }
 
 PlainDataType StructFieldType::base() const
