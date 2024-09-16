@@ -8,7 +8,7 @@ void stitch_mapped_instructions(Buffer &result, std::vector <mapped_instruction_
 	std::vector <size_t> block_offsets;
 
 	size_t offset = 0;
-	for (index_t i = 0; i < mapped.size(); i++) {
+	for (size_t i = 0; i < mapped.size(); i++) {
 		auto &m = mapped[i];
 		auto &g = mapped[i].refs;
 
@@ -48,7 +48,7 @@ void stitch_mapped_instructions(Buffer &result, std::vector <mapped_instruction_
 			m.atoms[i].reindex(reindex);
 
 		// Restore global refs
-		for (index_t i = 0; i < store.size(); i++)
+		for (size_t i = 0; i < store.size(); i++)
 			ref_state_restore(store[i]);
 
 		offset += m.pointer;
@@ -59,7 +59,7 @@ void stitch_mapped_instructions(Buffer &result, std::vector <mapped_instruction_
 	// Reindex the globals; doing it after because
 	// some instructions (e.g. branches/loops) have
 	// forward looking addresses
-	for (index_t i = 0; i < mapped.size(); i++) {
+	for (size_t i = 0; i < mapped.size(); i++) {
 		auto &m = mapped[i];
 		auto &g = mapped[i].refs;
 

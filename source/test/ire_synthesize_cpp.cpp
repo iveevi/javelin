@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include "ire/core.hpp"
+#include "profiles/targets.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -36,7 +37,7 @@ void simple_io()
 	};
 
 	auto kernel = kernel_from_args(shader);
-	auto cpp = kernel.compile(profiles::cplusplus_11);
+	auto cpp = kernel.compile(profiles::cpp_standard());
 	check_cpluslpus_source(cpp);
 }
 
@@ -60,7 +61,7 @@ void simple_vector_io()
 	};
 
 	auto kernel = kernel_from_args(shader);
-	auto cpp = kernel.compile(profiles::cplusplus_11);
+	auto cpp = kernel.compile(profiles::cpp_standard());
 	check_cpluslpus_source(cpp);
 }
 

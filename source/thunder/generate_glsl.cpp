@@ -17,7 +17,7 @@ std::string Linkage::generate_glsl(const std::string &version)
 
 	// Translating types
 	auto translate_type = [&](index_t i) -> std::string {
-		JVL_ASSERT(i < structs.size(),
+		JVL_ASSERT(i < (index_t) structs.size(),
 			"index {} is out of range of recorded "
 			"structs (with {} elements)", i, structs.size());
 
@@ -34,7 +34,7 @@ std::string Linkage::generate_glsl(const std::string &version)
 	std::string source = fmt::format("#version {}\n\n", version);
 
 	// Structure declarations, should already be in order
-	for (index_t i = 0; i < structs.size(); i++) {
+	for (size_t i = 0; i < structs.size(); i++) {
 		const auto &decl = structs[i];
 		if (decl.size() <= 1)
 			continue;
@@ -182,7 +182,7 @@ std::string Linkage::generate_glsl(const std::string &version)
 		}
 
 		std::vector <std::string> args;
-		for (index_t i = 0; i < b.parameters.size(); i++) {
+		for (size_t i = 0; i < b.parameters.size(); i++) {
 			index_t t = b.parameters.at(i);
 			t = b.struct_map.at(t);
 			std::string arg = fmt::format("{} _arg{}", translate_type(t), i);
@@ -190,7 +190,7 @@ std::string Linkage::generate_glsl(const std::string &version)
 		}
 
 		std::string parameters;
-		for (index_t i = 0; i < args.size(); i++) {
+		for (size_t i = 0; i < args.size(); i++) {
 			parameters += args[i];
 			if (i + 1 < args.size())
 				parameters += ", ";

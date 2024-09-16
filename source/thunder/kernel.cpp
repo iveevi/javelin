@@ -51,7 +51,7 @@ Linkage Kernel::linkage() const
 	// Generate block information
 	auto &block = linkage.blocks[-1];
 
-	for (int i = 0; i < pointer; i++) {
+	for (size_t i = 0; i < pointer; i++) {
 		if (!synthesized.contains(i))
 			continue;
 

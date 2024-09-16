@@ -73,7 +73,7 @@ void Editor::add_viewport()
 	viewports.emplace_back(drc, rg_viewport.render_pass);
 
 	auto &viewport = viewports.back();
-	imgui_callbacks.push_back(viewport.imgui_callback());
+	imgui_callbacks.push_back(viewport.callback_display());
 }
 
 // Resizing the swapchain and related items
@@ -206,7 +206,7 @@ void Editor::imgui_raytracer_popup(const RenderingInfo &)
 			vk::Extent2D(800, 800), samples);
 
 		auto &back = host_raytracers.back();
-		imgui_callbacks.emplace_back(back.imgui_callback());
+		imgui_callbacks.emplace_back(back.callback_display());
 		ImGui::CloseCurrentPopup();
 	}
 	

@@ -57,13 +57,13 @@ int64_t build_bvh(BVH &destination, const std::vector <BVHNode> &source, const c
 	if (mode != eSurfaceAreaHeuristic) {
 		// Sort source by center of AABB
 		std::vector <std::pair <float, uint64_t>> centers;
-		for (int i = 0; i < source.size(); i++)
+		for (size_t i = 0; i < source.size(); i++)
 			centers.push_back({ source[i].aabb.center()[axis], i });
 
 		std::sort(centers.begin(), centers.end());
 
 		// Split source into two groups
-		for (int i = 0; i < centers.size(); i++) {
+		for (size_t i = 0; i < centers.size(); i++) {
 			if (i < centers.size() / 2) {
 				left_source.push_back(source[centers[i].second]);
 
@@ -111,7 +111,7 @@ int64_t build_bvh(BVH &destination, const std::vector <BVHNode> &source, const c
 			int left_count = 0;
 			int right_count = 0;
 
-			for (int j = 0; j < source.size(); j++) {
+			for (size_t j = 0; j < source.size(); j++) {
 				if (source[j].aabb.center()[axis] < split) {
 					left_count++;
 					if (left_count == 1)
@@ -138,7 +138,7 @@ int64_t build_bvh(BVH &destination, const std::vector <BVHNode> &source, const c
 		}
 
 		// Split source into two groups
-		for (int i = 0; i < source.size(); i++) {
+		for (size_t i = 0; i < source.size(); i++) {
 			if (source[i].aabb.center()[axis] < min_split) {
 				left_source.push_back(source[i]);
 

@@ -42,8 +42,11 @@ struct Framebuffer {
 	wrapped::thread_safe_queue <Tile <TT>> tiles(int2 size, const TT &data) const {
 		wrapped::thread_safe_queue <Tile <TT>> tsq;
 
-		for (int i = 0; i < (height + size.y - 1)/size.y; i++) {
-			for (int j = 0; j < (width + size.x - 1)/size.x; j++) {
+		int rows = static_cast <int> ((height + size.y - 1)/size.y);
+		int cols = static_cast <int> ((width + size.x - 1)/size.x);
+
+		for (int i = 0; i < rows; i++) {
+			for (int j = 0; j < cols; j++) {
 				// TODO: fix by cropping
 				int2 ji = { j, i };
 				int2 ji_n = { j + 1, i + 1 };

@@ -13,14 +13,14 @@ bool opt_transform_compact(Buffer &result)
 	bool marked = false;
 
 	wrapped::reindex <index_t> relocation;
-	for (index_t i = 0; i < result.pointer; i++) {
+	for (size_t i = 0; i < result.pointer; i++) {
 		if (relocation.contains(i))
 			continue;
 
 		Atom atom = result.atoms[i];
 
 		// Exhaustive search through other items
-		for (index_t j = i + 1; j < result.pointer; j++) {
+		for (size_t j = i + 1; j < result.pointer; j++) {
 			if (relocation.contains(j))
 				continue;
 
@@ -36,7 +36,7 @@ bool opt_transform_compact(Buffer &result)
 	}
 
 	// Reindex the relevant parts
-	for (index_t i = 0; i < result.pointer; i++)
+	for (size_t i = 0; i < result.pointer; i++)
 		result.atoms[i].reindex(relocation);
 
 	return marked;
@@ -60,7 +60,7 @@ bool opt_transform_constructor_elision(Buffer &result)
 
 		usage_set loaders = graph[user];
 		wrapped::reindex <index_t> relocation;
-		for (index_t i = 0; i < result.pointer; i++)
+		for (size_t i = 0; i < result.pointer; i++)
 			relocation[i] = i;
 
 		relocation[user] = fields[idx];
@@ -71,7 +71,7 @@ bool opt_transform_constructor_elision(Buffer &result)
 		shortened = true;
 	};
 
-	for (index_t i = 0; i < result.pointer; i++) {
+	for (size_t i = 0; i < result.pointer; i++) {
 		// Find all the construct calls
 		auto &atom = result.atoms[i];
 		if (!atom.is <Construct> ())
@@ -129,7 +129,7 @@ bool opt_transform_dead_code_elimination(Buffer &result)
 
 	// Reversed usage graph
 	usage_graph reversed(graph.size());
-	for (index_t i = 0; i < graph.size(); i++) {
+	for (size_t i = 0; i < graph.size(); i++) {
 		for (index_t j : graph[i])
 			reversed[j].insert(i);
 	}
@@ -138,7 +138,7 @@ bool opt_transform_dead_code_elimination(Buffer &result)
 	std::queue <index_t> check_list;
 	std::vector <bool> include;
 
-	for (index_t i = 0; i < result.pointer; i++) {
+	for (size_t i = 0; i < result.pointer; i++) {
 		check_list.push(i);
 		include.push_back(true);
 	}
@@ -177,13 +177,13 @@ bool opt_transform_dead_code_elimination(Buffer &result)
 	index_t pointer = 0;
 
 	wrapped::reindex <index_t> relocation;
-	for (index_t i = 0; i < result.pointer; i++) {
+	for (size_t i = 0; i < result.pointer; i++) {
 		if (include[i])
 			relocation[i] = pointer++;
 	}
 
 	Buffer doubled;
-	for (index_t i = 0; i < result.pointer; i++) {
+	for (size_t i = 0; i < result.pointer; i++) {
 		if (relocation.contains(i)) {
 			result.atoms[i].reindex(relocation);
 			doubled.emit(result.atoms[i]);

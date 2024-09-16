@@ -68,5 +68,5 @@ struct Viewport {
 	void handle_input(const InteractiveWindow &);
 	void resize(DeviceResourceCollection &, const vk::RenderPass &);
 	void display_handle(const RenderingInfo &);
-	imgui_callback imgui_callback();
+	imgui_callback callback_display();
 };

@@ -248,7 +248,7 @@ void legalize_for_cc(Buffer &buffer)
 
 	std::vector <mapped_instruction_t> mapped(buffer.pointer);
 
-	for (index_t i = 0; i < mapped.size(); i++) {
+	for (size_t i = 0; i < mapped.size(); i++) {
 		auto &atom = atoms[i];
 
 		// Default population of scratches is preservation
@@ -257,7 +257,7 @@ void legalize_for_cc(Buffer &buffer)
 		em.pop();
 	}
 
-	for (index_t i = 0; i < mapped.size(); i++) {
+	for (size_t i = 0; i < mapped.size(); i++) {
 		bool transformed = false;
 
 		auto &atom = atoms[i];

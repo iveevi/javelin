@@ -378,7 +378,7 @@ void ad_fwd_transform(Buffer &result, const Buffer &source)
 	// Marking each differentiable parameter
 	ad_fwd_iteration_context_t context { .atoms = atoms };
 
-	for (index_t i = 0; i < mapped.size(); i++) {
+	for (size_t i = 0; i < mapped.size(); i++) {
 		auto &atom = atoms[i];
 		if (auto global = atom.template get <Qualifier> ()) {
 			if (global->kind == parameter)
@@ -409,7 +409,7 @@ void ad_fwd_transform(Buffer &result, const Buffer &source)
 	}
 
 	// Everything that is untouched needs to be populated into the global refs
-	for (index_t i = 0; i < mapped.size(); i++) {
+	for (size_t i = 0; i < mapped.size(); i++) {
 		if (context.diffed.contains(i))
 			continue;
 

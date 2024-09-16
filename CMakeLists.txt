@@ -88,11 +88,12 @@ add_executable(test
 # TODO: only on debug
 target_compile_options(lang-features PRIVATE
 	-Wall
+	-Werror
 	-fno-rtti
 	-fsanitize=address)
 
-target_compile_options(javelin-ire PRIVATE -Wall -fno-rtti)
-target_compile_options(javelin PRIVATE -Wall -fno-rtti)
+target_compile_options(javelin-ire PRIVATE -Wall -Werror -fno-rtti)
+target_compile_options(javelin PRIVATE -Wall -Werror -fno-rtti)
 
 include_directories(.
 	include

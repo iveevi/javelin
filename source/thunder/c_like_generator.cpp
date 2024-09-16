@@ -512,7 +512,7 @@ void c_like_generator_t::generate(index_t i)
 // General generator
 std::string c_like_generator_t::generate()
 {
-	for (int i = 0; i < pointer; i++) {
+	for (size_t i = 0; i < pointer; i++) {
 		if (synthesized.count(i)) {
 			// fmt::println("generating: {}", atoms[i]);
 			generate(i);

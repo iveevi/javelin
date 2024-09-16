@@ -226,7 +226,7 @@ float3 RaytracerCPU::radiance(const Ray &ray, int depth)
 	if (sh.time <= 0.0)
 		return float3(1, 1, 1);
 
-	assert(sh.material < scene.materials.size());
+	assert(sh.material < (int) scene.materials.size());
 	Material &material = scene.materials[sh.material];
 
 	if (auto em = emission(material))
@@ -321,7 +321,7 @@ void RaytracerCPU::display_handle(const RenderingInfo &info)
 	ImGui::End();
 }
 
-imgui_callback RaytracerCPU::imgui_callback()
+imgui_callback RaytracerCPU::callback_display()
 {
 	return {
 		uuid.global,

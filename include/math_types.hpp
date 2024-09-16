@@ -383,8 +383,6 @@ constexpr vector <T, N> normalize(const vector <T, N> &v)
 	vector <T, N> vn = v;
 
 	T l = length(v);
-
-#pragma unroll
 	for (size_t i = 0; i < N; i++)
 		vn[i] /= l;
 

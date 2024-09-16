@@ -200,7 +200,7 @@ void Viewport::display_handle(const RenderingInfo &info)
 	}
 }
 
-imgui_callback Viewport::imgui_callback()
+imgui_callback Viewport::callback_display()
 {
 	return {
 		uuid.global,

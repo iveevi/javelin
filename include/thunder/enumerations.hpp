@@ -75,6 +75,8 @@ static_assert(__pt_end + 1 == sizeof(tbl_primitive_types)/sizeof(const char *));
 //////////////////////
 
 enum QualifierKind : int8_t {
+	basic,
+
 	parameter,
 	arrays,
 	
@@ -111,6 +113,8 @@ enum QualifierKind : int8_t {
 };
 
 static constexpr const char *tbl_qualifier_kind[] = {
+	"basic",
+
 	"parameter",
 	"arrays",
 

@@ -82,5 +82,5 @@ struct RaytracerCPU {
 
 	// Displaying
 	void display_handle(const RenderingInfo &);
-	imgui_callback imgui_callback();
+	imgui_callback callback_display();
 };

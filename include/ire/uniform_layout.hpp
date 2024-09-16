@@ -46,7 +46,7 @@ struct uniform_layout_t {
 			auto &em = Emitter::active;
 
 			// TODO: name hint at the first type field...
-			for (int i = 0; i < fields.size(); i++) {
+			for (size_t i = 0; i < fields.size(); i++) {
 				layout_field f = fields[i];
 
 				bool unique = !listed.contains(f.ptr);

@@ -29,6 +29,8 @@ constexpr thunder::QualifierKind layout_in_as(InterpolationKind kind)
 	case smooth:
 		return thunder::layout_in_smooth;
 	}
+
+	return thunder::basic;
 }
 
 constexpr thunder::QualifierKind layout_out_as(InterpolationKind kind)
@@ -41,6 +43,8 @@ constexpr thunder::QualifierKind layout_out_as(InterpolationKind kind)
 	case smooth:
 		return thunder::layout_out_smooth;
 	}
+
+	return thunder::basic;
 }
 
 ///////////////////

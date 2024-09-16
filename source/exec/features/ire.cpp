@@ -109,8 +109,8 @@ int main()
 		return -1;
 	}
 
-	auto vs = kernel_from_args(vertex).compile(profiles::glsl_450);
-	auto fs = kernel_from_args(fragment).compile(profiles::glsl_450);
+	auto vs = kernel_from_args(vertex).compile(profiles::glsl_330);
+	auto fs = kernel_from_args(fragment).compile(profiles::glsl_330);
 
 	fmt::println("{}", vs);
 	fmt::println("{}", fs);

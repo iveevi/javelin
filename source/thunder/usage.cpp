@@ -12,7 +12,7 @@ inline bool uses(Atom atom, index_t i)
 usage_set usage(const std::vector <Atom> &pool, index_t index)
 {
 	usage_set indices;
-	for (index_t i = index + 1; i < pool.size(); i++) {
+	for (size_t i = index + 1; i < pool.size(); i++) {
 		if (uses(pool[i], index))
 			indices.insert(i);
 	}
@@ -23,7 +23,7 @@ usage_set usage(const std::vector <Atom> &pool, index_t index)
 usage_set usage(const Buffer &scratch, index_t index)
 {
 	usage_set indices;
-	for (index_t i = index + 1; i < scratch.pointer; i++) {
+	for (size_t i = index + 1; i < scratch.pointer; i++) {
 		if (uses(scratch.atoms[i], index))
 			indices.insert(i);
 	}
@@ -34,7 +34,7 @@ usage_set usage(const Buffer &scratch, index_t index)
 usage_graph usage(const Buffer &scratch)
 {
 	usage_graph graph(scratch.pointer);
-	for (index_t i = 0; i < graph.size(); i++)
+	for (size_t i = 0; i < graph.size(); i++)
 		graph[i] = usage(scratch, i);
 
 	return graph;

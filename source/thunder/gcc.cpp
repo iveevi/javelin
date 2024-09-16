@@ -555,7 +555,7 @@ void gcc_jit_function_generator_t::begin_function()
 
 	gcc_jit_type *return_type = nullptr;
 
-	for (int i = 0; i < pointer; i++) {
+	for (size_t i = 0; i < pointer; i++) {
 		if (!synthesized.count(i))
 			continue;
 
@@ -602,7 +602,7 @@ void gcc_jit_function_generator_t::generate()
 	begin_function();
 
 	auto used = work_list();
-	for (int i = 0; i < pointer; i++) {
+	for (size_t i = 0; i < pointer; i++) {
 		if (used.count(i))
 			generate(i);
 	}

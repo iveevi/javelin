@@ -63,7 +63,7 @@ void Buffer::include(index_t i)
 		if (constructor.transient)
 			synthesized.insert(i);
 
-		JVL_ASSERT(constructor.type < pointer,
+		JVL_ASSERT(constructor.type < (index_t) pointer,
 			"construct type is out of bounds: {} (pointer = {})",
 			atom, pointer);
 
