@@ -1,6 +1,5 @@
 #include "editor.hpp"
-#include "core/messaging.hpp"
-#include "source/exec/javelin/scene_inspector.hpp"
+#include "scene_inspector.hpp"
 
 MODULE(editor);
 

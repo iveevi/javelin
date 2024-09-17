@@ -21,15 +21,23 @@ FetchContent_Declare(fmt
 	GIT_TAG master)
 FetchContent_MakeAvailable(fmt)
 
-add_library(imgui SHARED
-	thirdparty/imgui/imgui.cpp
-	thirdparty/imgui/imgui_draw.cpp
-	thirdparty/imgui/imgui_widgets.cpp
-	thirdparty/imgui/imgui_demo.cpp
-	thirdparty/imgui/imgui_tables.cpp
-	thirdparty/imgui/backends/imgui_impl_glfw.cpp
-	thirdparty/imgui/backends/imgui_impl_vulkan.cpp)
+# Include directories
+include_directories(.
+	include
+	thirdparty
+	thirdparty/imgui
+	thirdparty/tinyobjloader
+	thirdparty/glad/include)
 
+# Bundle Vulkan necessities
+set(VULKAN_LIBRARY_SET
+	glfw
+	Vulkan::Vulkan
+	SPIRV
+	glslang
+	glslang-default-resource-limits)
+
+# Intermediate Representation Emitter (IRE)
 add_library(javelin-ire STATIC
 	source/ire/callable.cpp
 	source/ire/emitter.cpp
@@ -51,30 +59,67 @@ add_library(javelin-ire STATIC
 	source/thunder/synthesized.cpp
 	source/thunder/usage.cpp)
 
-add_executable(javelin
+target_compile_options(javelin-ire PRIVATE
+	-fno-rtti
+	$<$<CONFIG:Debug>:-Wall;-Werror>)
+
+target_link_libraries(javelin-ire fmt::fmt)
+
+# ImGui module for GLFW + Vulkan
+add_library(imgui SHARED
+	thirdparty/imgui/imgui.cpp
+	thirdparty/imgui/imgui_draw.cpp
+	thirdparty/imgui/imgui_widgets.cpp
+	thirdparty/imgui/imgui_demo.cpp
+	thirdparty/imgui/imgui_tables.cpp
+	thirdparty/imgui/backends/imgui_impl_glfw.cpp
+	thirdparty/imgui/backends/imgui_impl_vulkan.cpp)
+
+# Javelin editor
+add_executable(editor
 	source/core/aabb.cpp
 	source/core/scene.cpp
 	source/engine/imported_asset.cpp
-	source/exec/javelin/device_resource_collection.cpp
-	source/exec/javelin/editor.cpp
-	source/exec/javelin/imgui_render_group.cpp
-	source/exec/javelin/main.cpp
-	source/exec/javelin/raytracer_cpu.cpp
-	source/exec/javelin/scene_inspector.cpp
-	source/exec/javelin/viewport.cpp
-	source/exec/javelin/viewport_render_group.cpp
+	source/exec/editor/device_resource_collection.cpp
+	source/exec/editor/editor.cpp
+	source/exec/editor/imgui_render_group.cpp
+	source/exec/editor/main.cpp
+	source/exec/editor/raytracer_cpu.cpp
+	source/exec/editor/scene_inspector.cpp
+	source/exec/editor/viewport.cpp
+	source/exec/editor/viewport_render_group.cpp
 	source/gfx/cpu/bvh.cpp
 	source/gfx/cpu/intersection.cpp
 	source/gfx/cpu/scene.cpp)
 
+target_compile_options(editor PRIVATE
+	-fno-rtti
+	$<$<CONFIG:Debug>:-Wall;-Werror>)
+
+target_link_libraries(editor fmt::fmt ${VULKAN_LIBRARY_SET} imgui javelin-ire)
+
+# Experimental program for the IRE system
 add_executable(ire-features
 	source/exec/features/ire.cpp
 	thirdparty/glad/src/gl.c)
 
+set_property(TARGET ire-features PROPERTY ENABLE_EXPORTS ON)
+
+target_link_libraries(ire-features glfw fmt::fmt javelin-ire gccjit)
+
+# Experimental program for the JVL language
 add_executable(lang-features
 	source/exec/features/lang.cpp
 	source/lang/lex.cpp)
 
+target_compile_options(lang-features PRIVATE
+	-fno-rtti
+	$<$<CONFIG:Debug>:-Wall;-Werror;-fsanitize=address>)
+
+target_link_libraries(lang-features fmt::fmt
+	$<$<CONFIG:Debug>:-fsanitize=address>)
+
+# Testing suite using GoogleTest
 add_executable(test
 	source/test/ire_callable.cpp
 	source/test/ire_emitter.cpp
@@ -85,35 +130,6 @@ add_executable(test
 	source/test/math_matrix.cpp
 	thirdparty/glad/src/gl.c)
 
-# TODO: only on debug
-target_compile_options(lang-features PRIVATE
-	-Wall
-	-Werror
-	-fno-rtti
-	-fsanitize=address)
-
-target_compile_options(javelin-ire PRIVATE -Wall -Werror -fno-rtti)
-target_compile_options(javelin PRIVATE -Wall -Werror -fno-rtti)
-
-include_directories(.
-	include
-	thirdparty
-	thirdparty/imgui
-	thirdparty/tinyobjloader
-	thirdparty/glad/include)
-
-set(VULKAN_LIBRARY_SET
-	glfw
-	Vulkan::Vulkan
-	SPIRV
-	glslang
-	glslang-default-resource-limits)
-
-set_property(TARGET ire-features PROPERTY ENABLE_EXPORTS ON)
 set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)
 
-target_link_libraries(javelin-ire fmt::fmt)
-target_link_libraries(javelin fmt::fmt ${VULKAN_LIBRARY_SET} imgui javelin-ire)
-target_link_libraries(ire-features glfw fmt::fmt javelin-ire gccjit)
-target_link_libraries(lang-features fmt::fmt -fsanitize=address)
 target_link_libraries(test GTest::gtest_main javelin-ire glfw gccjit)

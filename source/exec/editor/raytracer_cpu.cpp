@@ -1,7 +1,7 @@
 #include "raytracer_cpu.hpp"
 #include "core/ray.hpp"
 #include "imgui.h"
-#include "source/exec/javelin/imgui_render_group.hpp"
+#include "imgui_render_group.hpp"
 
 // Raytracing functions
 static float random_uniform_float()

@@ -1,5 +1,5 @@
 #include "viewport_render_group.hpp"
-#include "source/exec/javelin/viewport.hpp"
+#include "viewport.hpp"
 
 // HSV palette generation
 // TODO: hsv util

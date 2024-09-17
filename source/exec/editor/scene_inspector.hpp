@@ -5,7 +5,7 @@
 #include <core/scene.hpp>
 
 #include "rendering_info.hpp"
-#include "source/exec/javelin/imgui_render_group.hpp"
+#include "imgui_render_group.hpp"
 
 using namespace jvl;
 using namespace jvl::core;
