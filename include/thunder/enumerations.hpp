@@ -240,18 +240,18 @@ static constexpr const char *tbl_operation_code[] = {
 	"or",
 	"and",
 
-	"bit or",
-	"bit and",
-	"bit xor",
-	"shift left",
-	"shift right",
+	"bit_or",
+	"bit_and",
+	"bit_xor",
+	"shift_left",
+	"shift_right",
 
 	"equals",
 	"not_equals",
-	"cmp_ge",
-	"cmp_geq",
-	"cmp_le",
-	"cmp_leq",
+	"greater",
+	"greater_equal",
+	"less",
+	"less_equal",
 
 	"__end"
 };

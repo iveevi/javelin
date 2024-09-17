@@ -21,8 +21,8 @@ Addresses Qualifier::addresses()
 
 std::string Qualifier::to_string() const
 {
-        return fmt::format("{:10} {}[{}]: %{}",
-                "qualifier",
+        return fmt::format("{:15} {}[{}]: %{}",
+                "QUALIFIER",
                 tbl_qualifier_kind[kind],
                 numerical,
                 underlying);
@@ -45,7 +45,7 @@ std::string TypeInformation::to_string() const
 {
         std::string result;
 
-        result += fmt::format("{:10} ", "type");
+        result += fmt::format("{:15} ", "TYPE");
         if (item != bad)
                 result += fmt::format("{}", tbl_primitive_types[item]);
         else if (down != -1)
@@ -83,7 +83,7 @@ Addresses Primitive::addresses()
 std::string Primitive::to_string() const
 {
         std::string result;
-        result = fmt::format("{:10} value: ", "primitive");
+        result = fmt::format("{:15} value: ", "PRIMITIVE");
 
         switch (type) {
         case i32:
@@ -117,8 +117,8 @@ Addresses Swizzle::addresses()
 
 std::string Swizzle::to_string() const
 {
-        return fmt::format("{:10} src: %{} component: #{}",
-                "swizzle", src, tbl_swizzle_code[code]);
+        return fmt::format("{:15} src: %{} component: #{}",
+                "SWIZZLE", src, tbl_swizzle_code[code]);
 }
 
 // Operation
@@ -136,8 +136,8 @@ Addresses Operation::addresses()
         
 std::string Operation::to_string() const
 {
-        return fmt::format("{:10} {}: (%{}, %{})",
-                "operation",
+        return fmt::format("{:15} {}(%{}, %{})",
+                "OPERATION",
                 tbl_operation_code[code],
                 a, b);
 }
@@ -155,8 +155,10 @@ Addresses Intrinsic::addresses()
         
 std::string Intrinsic::to_string() const
 {
-        return fmt::format("{:10} $({}) args: %{}",
-                "intrinsic", tbl_intrinsic_operation[opn], args);
+        return fmt::format("{:15} {}(%{})",
+                "INTRINSIC",
+                tbl_intrinsic_operation[opn],
+                args);
 }
 
 // List
@@ -175,7 +177,7 @@ std::string List::to_string() const
 {
         std::string result;
 
-        result += fmt::format("{:10} item: %{} next: ", "list", item);
+        result += fmt::format("{:15} item: %{} next: ", "LIST", item);
         if (next >= 0)
                 result += fmt::format("%{}", next);
         else
@@ -202,9 +204,9 @@ std::string Construct::to_string() const
         std::string result;
 
         if (transient)
-		return fmt::format("{:10} transient: %{}", "construct", type);
+		return fmt::format("{:15} transient(%{})", "CONSTRUCT", type);
 
-        result += fmt::format("{:10} type: %{} args: ", "construct", type);
+        result += fmt::format("{:15} type: %{} args: ", "CONSTRUCT", type);
         if (args == -1)
 		result += "(nil)";
         else
@@ -231,7 +233,7 @@ std::string Call::to_string() const
         std::string result;
 
         ire::Callable *cbl = ire::Callable::search_tracked(cid);
-        result += fmt::format("call ${}:", cbl->name);
+        result += fmt::format("{:15} ${}:", "CALL", cbl->name);
         if (args == -1)
                 result += fmt::format(" (nil) -> ");
         else
@@ -255,7 +257,7 @@ Addresses Store::addresses()
         
 std::string Store::to_string() const
 {
-        return fmt::format("{:10} from %{} to %{}", "store", src, dst);
+        return fmt::format("{:15} from %{} to %{}", "STORE", src, dst);
 }
 
 // Load
@@ -272,7 +274,7 @@ Addresses Load::addresses()
 
 std::string Load::to_string() const
 {
-        return fmt::format("{:10} src: %{} field: #{}", "load", src, idx);
+        return fmt::format("{:15} src: %{} field: #{}", "LOAD", src, idx);
 }
 
 // Load
@@ -289,7 +291,7 @@ Addresses ArrayAccess::addresses()
 
 std::string ArrayAccess::to_string() const
 {
-        return fmt::format("{:10} src: %{} loc: %{}", "access", src, loc);
+        return fmt::format("{:15} src: %{} loc: %{}", "ACCESS", src, loc);
 }
 
 // Branch
@@ -310,9 +312,9 @@ std::string Branch::to_string() const
                 return "end";
 
         if (cond >= 0)
-                return fmt::format("br: %{} ({}) -> %{}", cond, tbl_branch_kind[kind], failto);
+                return fmt::format("{:15} %{} ({}) -> %{}", "BRANCH", cond, tbl_branch_kind[kind], failto);
 
-        return fmt::format("br: (nil) ({}) -> %{}", tbl_branch_kind[kind], failto);
+        return fmt::format("{:15} (nil) ({}) -> %{}", "BRANCH", tbl_branch_kind[kind], failto);
 }
 
 // Returns
@@ -328,7 +330,7 @@ Addresses Returns::addresses()
 
 std::string Returns::to_string() const
 {
-        return fmt::format("{:10} value: %{}", "return", value);
+        return fmt::format("{:15} value: %{}", "RETURN", value);
 }
 
 } // namespace jvl::thunder

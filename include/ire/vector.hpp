@@ -153,11 +153,25 @@ class swizzle_base <T, 2> : public tagged {
 public:
 	swizzle_element <T, self, thunder::SwizzleCode::x> x;
 	swizzle_element <T, self, thunder::SwizzleCode::y> y;
-
-	explicit swizzle_base(T x = T(0), T y = T(0))
+	
+	explicit swizzle_base(T x_ = T(0))
 			: x(this), y(this) {
-		initial[0] = x;
-		initial[1] = y;
+		initial[0] = x_;
+		initial[1] = x_;
+	}
+
+	explicit swizzle_base(T x_, T y_)
+			: x(this), y(this) {
+		initial[0] = x_;
+		initial[1] = y_;
+	}
+	
+	explicit swizzle_base(const native_t <T> &x_, const native_t <T> y_)
+			: x(this), y(this) {
+		auto &em = Emitter::active;
+		thunder::index_t type = type_field_from_args <vec <T, 2>> ().id;
+		thunder::index_t args = list_from_args(x_, y_);
+		ref = em.emit_construct(type, args, false);
 	}
 
 	swizzle_base(cache_index_t cit) : tagged(cit), x(this), y(this) {}
