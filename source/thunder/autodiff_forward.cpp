@@ -103,7 +103,7 @@ index_t ad_fwd_intrinsic_dual_value(mapped_instruction_t &mapped,
 		index_t result;
 
 		args = em.emit_list_chain(arg0[0]);
-		result = em.emit_intrinsic(args, type, cos);
+		result = em.emit_intrinsic(args, cos);
 		mapped.track(result, 0b10);
 
 		return chain_rule(result);
@@ -112,7 +112,7 @@ index_t ad_fwd_intrinsic_dual_value(mapped_instruction_t &mapped,
 	case cos:
 	{
 		index_t args = em.emit_list_chain(arg0[0]);
-		index_t result = em.emit_intrinsic(args, type, sin);
+		index_t result = em.emit_intrinsic(args, sin);
 		mapped.track(result, 0b10);
 
 		result = em.emit_operation(result, -1, unary_negation);
@@ -179,8 +179,6 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 
 		// Dependencies; must have come from
 		// args, so no need to revisit it
-		queue.push_front(returns.type);
-
 		diffed.insert(index);
 
 		em.emit(returns);

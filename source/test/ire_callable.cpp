@@ -156,7 +156,8 @@ TEST(ire_callable, struct_parameter)
 	auto kernel = cbl.export_to_kernel();
 	auto glsl = kernel.compile(profiles::glsl_450);
 
-	// fmt::println("{}", glsl);
+	kernel.dump();
+	fmt::println("{}", glsl);
 
 	check_shader_sources(expected_struct_parameter_glsl, glsl);
 }
@@ -193,14 +194,16 @@ TEST(ire_callable, struct_return)
 	auto ftn = [](Seed seed) {
 		u32 a = seed.root << seed.shifted;
 		u32 b = seed.shifted | seed.root;
-		return a & b;
+		return Seed(a & b, b);
 	};
 
 	auto cbl = callable(ftn).named("shift_seed");
 	auto kernel = cbl.export_to_kernel();
-	auto glsl = kernel.compile(profiles::glsl_450);
 
-	// fmt::println("{}", glsl);
+	kernel.dump();
+	
+	auto glsl = kernel.compile(profiles::glsl_450);
+	fmt::println("{}", glsl);
 
 	check_shader_sources(expected_struct_return_glsl, glsl);
 }

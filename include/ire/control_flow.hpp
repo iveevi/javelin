@@ -58,16 +58,13 @@ inline void end()
 template <native T>
 inline void returns(const T &value)
 {
-	Emitter::active.emit_return(
-		native_t <T> (value).synthesize().id,
-		type_field_from_args <T> ().id);
+	Emitter::active.emit_return(native_t <T> (value).synthesize().id);
 }
 
 template <builtin T>
 inline void returns(const T &value)
 {
-	Emitter::active.emit_return(value.synthesize().id,
-		type_field_from_args <T> ().id);
+	Emitter::active.emit_return(value.synthesize().id);
 }
 
 template <aggregate T>
@@ -78,7 +75,7 @@ inline void returns(const T &value)
 	cache_index_t args = layout.list();
 	thunder::index_t type = type_field_from_args(layout).id;
 	thunder::index_t rv = em.emit_construct(type, args.id, false);
-	em.emit_return(rv, type);
+	em.emit_return(rv);
 }
 
 } // namespace jvl::ire

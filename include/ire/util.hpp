@@ -108,37 +108,20 @@ R operation_from_args(thunder::OperationCode type, const A &a, const B &b)
 }
 
 template <builtin R, builtin ... Args>
-R platform_intrinsic_from_args(thunder::IntrinsicOperation opn, const Args &... args)
+R platform_intrinsic_from_args(thunder::IntrinsicOperation code, const Args &... args)
 {
 	auto &em = Emitter::active;
-
-	thunder::Intrinsic intr;
-	intr.opn = opn;
-	intr.args = list_from_args(args...);
-	intr.type = type_field_from_args <R> ().id;
-
-	cache_index_t cit;
-	cit = em.emit(intr);
-
-	return cit;
+	thunder::index_t operands = list_from_args(args...);
+	thunder::index_t intrinsic = em.emit_intrinsic(operands, code);
+	return cache_index_t::from(intrinsic);
 }
 
 template <builtin ... Args>
-void void_platform_intrinsic_from_args(thunder::IntrinsicOperation opn, const Args &... args)
+void void_platform_intrinsic_from_args(thunder::IntrinsicOperation code, const Args &... args)
 {
 	auto &em = Emitter::active;
-
-	thunder::TypeInformation tf;
-	tf.item = thunder::PrimitiveType::none;
-
-	thunder::Intrinsic intr;
-	intr.opn = opn;
-	intr.type = em.emit(tf);
-
-	if constexpr (sizeof...(Args))
-		intr.args = list_from_args(args...);
-
-	em.emit(intr);
+	thunder::index_t operands = list_from_args(args...);
+	em.emit_intrinsic(operands, code);
 }
 
 inline void platform_intrinsic_keyword(thunder::IntrinsicOperation opn)

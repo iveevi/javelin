@@ -103,7 +103,7 @@ struct native_t : tagged {
 		auto &em = Emitter::active;
 		if (cached()) {
 			// At this point we are required to have storage for this
-			em.emit_store(ref.id, v.synthesize().id, false);
+			em.emit_store(ref.id, v.synthesize().id);
 		} else {
 			ref = v.synthesize().id;
 		}

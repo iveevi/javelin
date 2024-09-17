@@ -100,7 +100,7 @@ Linkage Kernel::linkage() const
 		}
 
 		if (auto returns = atom.get <Returns> ())
-			block.returns = returns->type;
+			block.returns = returns->value;
 
 		if (auto type_field = atom.get <TypeInformation> ())
 			generate_type_declaration(linkage, atoms, i);

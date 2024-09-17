@@ -7,6 +7,7 @@
 #include "thunder/enumerations.hpp"
 #include "thunder/linkage.hpp"
 #include "thunder/properties.hpp"
+#include "thunder/qualified_type.hpp"
 #include "wrapped_types.hpp"
 
 namespace jvl::thunder {
@@ -67,6 +68,19 @@ std::string Linkage::generate_glsl(const profiles::glsl_version &glsl_version)
 		}
 
 		return struct_names[i];
+	};
+
+	// TODO: hashing approach with qualified types
+	auto translate_qualified_type = [&](const QualifiedType &qt) -> std::string {
+		if (auto pd = qt.get <PlainDataType> ()) {
+			if (auto primitive = pd->get <PrimitiveType> ())
+				return tbl_primitive_types[*primitive];
+
+			if (auto concrete = pd->get <index_t> ())
+				return translate_type(*concrete);
+		}
+
+		JVL_ABORT("unhandled case for translate_qualified_type: {}", qt);
 	};
 
 	// Final source code
@@ -156,8 +170,8 @@ std::string Linkage::generate_glsl(const profiles::glsl_version &glsl_version)
 
 		std::string returns = "void";
 		if (b.returns != -1) {
-			index_t t = b.struct_map[b.returns];
-			returns = translate_type(t);
+			auto &qt = b.types[b.returns];
+			returns = translate_qualified_type(qt);
 		}
 
 		std::vector <std::string> args;

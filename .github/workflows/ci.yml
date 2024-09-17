@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     strategy:
+      fail-fast: false
       matrix:
         compiler: [ {c : gcc, cxx: g++}, {c: clang, cxx: clang++ } ]
         build: [ Release, Debug ]

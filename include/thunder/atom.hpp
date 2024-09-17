@@ -143,9 +143,7 @@ static_assert(atom_instruction <Operation>);
 //   type: return type of the instrinsic
 //   opn: intrinsic operation code
 struct Intrinsic {
-	// TODO: bool keyword
 	index_t args = -1;
-	index_t type = -1;
 	IntrinsicOperation opn;
 
 	bool operator==(const Intrinsic &) const;
@@ -208,14 +206,9 @@ static_assert(atom_instruction <Call>);
 //
 //   dst: reference to store into
 //   src: reference to the value
-//   bss: indicates if the store should be
-//      acted out statically
-//      (i.e. as initialization)
-// TODO: separate the bss version when its time
 struct Store {
 	index_t dst = -1;
 	index_t src = -1;
-	bool bss = false;
 
 	bool operator==(const Store &) const;
 	Addresses addresses();
@@ -273,10 +266,8 @@ static_assert(atom_instruction <Branch>);
 // Returning values from subroutines and kernels
 //
 //   value: reference to the value to be returned
-//   type: return type
 struct Returns {
 	index_t value = -1;
-	index_t type = -1;
 
 	bool operator==(const Returns &) const;
 	Addresses addresses();
@@ -340,14 +331,14 @@ static_assert(sizeof(TypeInformation)	== 6);
 static_assert(sizeof(Primitive)		== 5);
 static_assert(sizeof(Swizzle)		== 4);
 static_assert(sizeof(Operation)		== 6);
-static_assert(sizeof(Intrinsic)		== 6);
+static_assert(sizeof(Intrinsic)		== 4);
 static_assert(sizeof(List)		== 4);
 static_assert(sizeof(Construct)		== 6);
 static_assert(sizeof(Call)		== 6);
-static_assert(sizeof(Store)		== 6);
+static_assert(sizeof(Store)		== 4);
 static_assert(sizeof(Load)		== 4);
 static_assert(sizeof(Branch)		== 6);
-static_assert(sizeof(Returns)		== 4);
+static_assert(sizeof(Returns)		== 2);
 static_assert(sizeof(Atom)		== 8);
 
 } // namespace jvl::thunder

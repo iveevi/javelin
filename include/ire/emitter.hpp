@@ -67,8 +67,8 @@ struct Emitter {
 		return emit(thunder::Operation(a, b, code));
 	}
 
-	index_t emit_intrinsic(index_t args, index_t type, thunder::IntrinsicOperation opn) {
-		return emit(thunder::Intrinsic(args, type, opn));
+	index_t emit_intrinsic(index_t args, thunder::IntrinsicOperation opn) {
+		return emit(thunder::Intrinsic(args, opn));
 	}
 
 	index_t emit_list(index_t item, index_t next) {
@@ -83,8 +83,8 @@ struct Emitter {
 		return emit(thunder::Call(cid, args, type));
 	}
 
-	index_t emit_store(index_t dst, index_t src, bool bss) {
-		return emit(thunder::Store(dst, src, bss));
+	index_t emit_store(index_t dst, index_t src) {
+		return emit(thunder::Store(dst, src));
 	}
 
 	index_t emit_load(index_t src, index_t idx) {
@@ -99,8 +99,8 @@ struct Emitter {
 		return emit(thunder::Branch(cond, failto, kind));
 	}
 
-	index_t emit_return(index_t value, index_t type) {
-		return emit(thunder::Returns(value, type));
+	index_t emit_return(index_t value) {
+		return emit(thunder::Returns(value));
 	}
 
 	// Easier ways to construct list chains

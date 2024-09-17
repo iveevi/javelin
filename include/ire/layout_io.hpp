@@ -131,7 +131,7 @@ struct layout_out <T, kind> {
 		thunder::index_t type = type_field_from_args <native_t <T>> ().id;
 		thunder::index_t lout = em.emit_qualifier(type, binding, layout_out_as(kind));
 		thunder::index_t dst = em.emit_construct(lout, -1, true);
-		em.emit_store(dst, value.synthesize().id, false);
+		em.emit_store(dst, value.synthesize().id);
 		return *this;
 	}
 };

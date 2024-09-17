@@ -391,15 +391,11 @@ template <>
 void c_like_generator_t::generate(const Intrinsic &intrinsic, index_t index)
 {
 	// Keyword intrinsic
-	if (intrinsic.type == -1)
+	if (intrinsic.args == -1)
 		return finish(tbl_intrinsic_operation[intrinsic.opn]);
 
-	auto &atom = atoms[intrinsic.type];
-	if (!atom.is <TypeInformation> ())
-		return finish("?", false);
-
-	TypeInformation tf = atom.as <TypeInformation> ();
-	if (tf.item == none) {
+	auto &qt = types[index];
+	if (qt.is <NilType> ()) {
 		// Void return type, so no assignment
 		auto args = arguments(intrinsic.args);
 		std::string v = tbl_intrinsic_operation[intrinsic.opn] + arguments_to_string(args);

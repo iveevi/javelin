@@ -60,7 +60,7 @@ struct __glsl_intrinsic_variable_t <vec <T, 4>, code> {
 	// Assignment only for non-const intrinsics (assignable)
 	const self &operator=(const vec <T, 4> &other) {
 		auto &em = Emitter::active;
-		em.emit_store(synthesize().id, other.synthesize().id, false);
+		em.emit_store(synthesize().id, other.synthesize().id);
 		return *this;
 	}
 };

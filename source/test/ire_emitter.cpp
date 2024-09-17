@@ -36,13 +36,14 @@ void synthesize_layout_io_inner()
 		using thunder::index_t;
 
 		index_t type_in = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
-		index_t in = em.emit_qualifier(type_in, 0, thunder::layout_in_smooth);
-		index_t ld = em.emit_load(in, -1);
+		index_t in_ql = em.emit_qualifier(type_in, 0, thunder::layout_in_smooth);
+		index_t in = em.emit_construct(in_ql, -1, true);
 		
 		// Duplicate type is expected to be generated
 		index_t type_out = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
-		index_t out = em.emit_qualifier(type_out, 0, thunder::layout_out_smooth);
-		index_t st = em.emit_store(out, ld, false);
+		index_t out_ql = em.emit_qualifier(type_out, 0, thunder::layout_out_smooth);
+		index_t out = em.emit_construct(out_ql, -1, true);
+		index_t st = em.emit_store(out, in);
 	}
 	em.pop();
 

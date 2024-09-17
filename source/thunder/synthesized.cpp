@@ -49,13 +49,8 @@ void Buffer::include(index_t i)
 	} break;
 
 	case Atom::type_index <Returns> ():
-	{
-		auto &returns = atom.as <Returns> ();
 		synthesized.insert(i);
-
-		if (returns.type != -1)
-			synthesized.insert(returns.type);
-	} break;
+		break;
 
 	case Atom::type_index <Construct> ():
 	{

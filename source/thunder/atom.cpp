@@ -145,14 +145,12 @@ std::string Operation::to_string() const
 // Intrinsic
 bool Intrinsic::operator==(const Intrinsic &other) const
 {
-        return (args == other.args)
-                && (type == other.type)
-                && (opn == other.opn);
+        return (args == other.args) && (opn == other.opn);
 }
 
 Addresses Intrinsic::addresses()
 {
-        return { args, type };
+        return { args, Addresses::null() };
 }
         
 std::string Intrinsic::to_string() const
@@ -257,7 +255,7 @@ Addresses Store::addresses()
         
 std::string Store::to_string() const
 {
-        return fmt::format("{:10} src: %{} dst: %{} bss: {}", "store", src, dst, bss);
+        return fmt::format("{:10} from %{} to %{}", "store", src, dst);
 }
 
 // Load
@@ -320,13 +318,12 @@ std::string Branch::to_string() const
 // Returns
 bool Returns::operator==(const Returns &other) const
 {
-        return (value == other.value)
-                && (type == other.type);
+        return value == other.value;
 }
 
 Addresses Returns::addresses()
 {
-        return { value, type };
+        return { value, Addresses::null() };
 }
 
 std::string Returns::to_string() const
