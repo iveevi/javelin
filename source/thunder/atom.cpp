@@ -233,12 +233,9 @@ std::string Call::to_string() const
         std::string result;
 
         ire::Callable *cbl = ire::Callable::search_tracked(cid);
-        result += fmt::format("{:15} ${}:", "CALL", cbl->name);
-        if (args == -1)
-                result += fmt::format(" (nil) -> ");
-        else
-                result += fmt::format(" %{} -> ", args);
-        result += fmt::format("%{}", type);
+        result += fmt::format("{:15} ${}", "CALL", cbl->name);
+        if (args != -1)
+                result += fmt::format("(%{})", args);
 
         return result;
 }

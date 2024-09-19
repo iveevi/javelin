@@ -8,21 +8,17 @@
 // TODO: out/inout parameter qualifiers
 // TODO: external constant specialization
 
+#include "thunder/qualified_type.hpp"
+#include <queue>
 #include <map>
+#include <set>
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
 #include <ire/core.hpp>
+#include <thunder/opt.hpp>
 #include <profiles/targets.hpp>
-
-#include "ire/intrinsics/glsl.hpp"
-#include "ire/type_synthesis.hpp"
-#include "thunder/atom.hpp"
-#include "thunder/linkage.hpp"
-#include "thunder/opt.hpp"
-#include "thunder/qualified_type.hpp"
-#include "wrapped_types.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -71,116 +67,118 @@ auto seed_to_angle = callable_info() >> [](const aux &a, const seed &s)
 
 namespace jvl::thunder {
 
-using normalized_aggregate = std::vector <QualifiedType>;
-using normalized_aggregate_map = std::map <index_t, normalized_aggregate>;
+struct Aggregate {
+	std::string name;
+	std::vector <QualifiedType> fields;
 
-normalized_aggregate_map collect_aggregates(const Buffer &buffer)
-{
-	normalized_aggregate_map collected;
+	bool operator==(const Aggregate &other) {
+		if (fields.size() != other.fields.size())
+			return false;
+	
+		for (size_t i = 0; i < fields.size(); i++) {
+			if (fields[i] != other.fields[i])
+				return false;
+		}
 
-	for (size_t i : buffer.synthesized) {
-		auto qt = buffer.types[i];
-		if (!qt.is <StructFieldType> ())
-			continue;
+		return true;
+	}
+};
 
-		normalized_aggregate aggregate {
-			qt.as <StructFieldType> ().base()
+struct Function : Buffer {
+	std::string name;
+
+	Function(const Buffer &buffer, const std::string &name_)
+		: Buffer(buffer), name(name_) {}
+};
+
+using TypeMap = std::map <index_t, index_t>;
+
+struct LinkageUnit {
+	std::set <index_t> loaded;
+	std::vector <Function> functions;
+	std::vector <Aggregate> aggregates;
+	std::vector <TypeMap> maps;
+
+	index_t new_aggregate(const std::vector <QualifiedType> &fields) {
+		size_t index = aggregates.size();
+	
+		Aggregate aggr {
+			.name = fmt::format("s{}_t", index),
+			.fields = fields
 		};
 
-		do {
-			auto &sft = qt.as <StructFieldType> ();
-			qt = buffer.types[sft.next];
-			if (qt.is <StructFieldType> ()) {
+		auto it = std::find(aggregates.begin(), aggregates.end(), aggr);
+		if (it == aggregates.end()) {
+			aggregates.push_back(aggr);
+			return index;
+		}
+
+		fmt::println("duplicate aggregate\n");
+
+		return std::distance(aggregates.begin(), it);
+	}
+
+	void process_function(const Function &function) {
+		TypeMap map;
+
+		for (size_t i : function.synthesized) {
+			auto qt = function.types[i];
+			if (!qt.is <StructFieldType> ())
+				continue;
+
+			std::vector <QualifiedType> fields {
+				qt.as <StructFieldType> ().base()
+			};
+
+			do {
 				auto &sft = qt.as <StructFieldType> ();
-				aggregate.push_back(sft.base());
-			} else {
-				// TODO: if its concrete, we need to reference it...
-				JVL_ASSERT_PLAIN(qt.is_primitive());
-				aggregate.push_back(qt);
+				qt = function.types[sft.next];
+				if (qt.is <StructFieldType> ()) {
+					auto &sft = qt.as <StructFieldType> ();
+					fields.push_back(sft.base());
+				} else {
+					// TODO: if its concrete, we need to reference it...
+					JVL_ASSERT_PLAIN(qt.is_primitive());
+					fields.push_back(qt);
+				}
+			} while (qt.is <StructFieldType> ());
+
+			map[i] = new_aggregate(fields);
+		}
+
+		functions.emplace_back(function);
+		maps.emplace_back(map);
+	}
+
+	void add(const Callable &callable) {
+		if (loaded.contains(callable.cid)) {
+			fmt::println("callable already loaded into linkage unit");
+			return;
+		}
+
+		fmt::println("adding callable to linkage unit:");
+		callable.dump();
+
+		process_function(Function(callable, callable.name));
+	
+		std::queue <index_t> referenced;
+		for (size_t i = 0; i < callable.pointer; i++) {
+			auto &atom = callable[i];
+			if (atom.is <Call> ()) {
+				auto &call = atom.as <Call> ();
+				referenced.push(call.cid);
 			}
-		} while (qt.is <StructFieldType> ());
+		}
 
-		collected[i] = aggregate;
+		loaded.insert(callable.cid);
+		while (referenced.size()) {
+			index_t i = referenced.front();
+			referenced.pop();
+		
+			add(*Callable::search_tracked(i));
+		}
 	}
-
-	return collected;
-}
-
-struct aggregate_meta {
-	std::string name;
-	normalized_aggregate aggregate;
 };
-
-struct linked_aggregate_map {
-	using mapping = std::map <index_t, index_t>;
-
-	std::vector <mapping> maps;
-	std::vector <aggregate_meta> aggregates;
-};
-
-bool compare(const normalized_aggregate &A, const normalized_aggregate &B)
-{
-	if (A.size() != B.size())
-		return false;
-
-	for (size_t i = 0; i < A.size(); i++) {
-		if (A[i] != B[i])
-			return false;
-	}
-
-	return true;
-}
-
-linked_aggregate_map collect_linked_aggregates(const std::vector <Buffer> &buffers)
-{
-	linked_aggregate_map linked_aggregates;
-
-	auto insert = [&](const normalized_aggregate &aggregate) -> index_t {
-		auto &list = linked_aggregates.aggregates;
-		auto it = std::find_if(list.begin(), list.end(),
-			[&](const auto &meta) {
-				return meta.aggregate == aggregate;
-			});
-
-		if (it != list.end())
-			return std::distance(list.begin(), it);
-
-		index_t i = list.size();
-		std::string name = fmt::format("s{}_t", i);
-		aggregate_meta meta { name, aggregate };
-		list.push_back(meta);
-
-		return i;
-	};
-
-	for (auto &buffer : buffers) {
-		linked_aggregate_map::mapping map;
-
-		auto aggregates = collect_aggregates(buffer);
-		for (auto &[k, v] : aggregates)
-			map[k] = insert(v);
-
-		linked_aggregates.maps.push_back(map);
-	}
-
-	fmt::println("linked aggregate:");
-	fmt::println("  aggregates:");
-	for (auto &meta : linked_aggregates.aggregates) {
-		fmt::println("    name: {}", meta.name);
-		for (auto &qt : meta.aggregate)
-			fmt::println("      {}", qt);
-	}
-
-	fmt::println("  buffer maps:");
-	for (size_t i = 0; i < linked_aggregates.maps.size(); i++) {
-		auto &map = linked_aggregates.maps[i];
-		fmt::println("  map for block #{}", i + 1);
-		for (auto &[k, v] : map)
-			fmt::println("    {} -> {}", k, v);
-	}
-
-	return {};
-}
 
 }
 
@@ -202,7 +200,12 @@ int main()
 		.export_to_kernel()
 		.compile(profiles::glsl_450));
 
-	thunder::collect_aggregates(seed_to_vector);
-	thunder::collect_aggregates(seed_to_angle);
-	thunder::collect_linked_aggregates({ seed_to_angle, seed_to_vector });
+	thunder::LinkageUnit unit;
+	unit.add(seed_to_angle);
+	unit.add(seed_to_vector);
+
+	fmt::println("# of loaded: {}", unit.loaded.size());
+	fmt::println("# of functions: {}", unit.functions.size());
+	fmt::println("# of aggregates: {}", unit.aggregates.size());
+	fmt::println("# of type maps: {}", unit.maps.size());
 }

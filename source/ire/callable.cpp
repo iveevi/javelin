@@ -40,7 +40,7 @@ thunder::Kernel Callable::export_to_kernel() const
 	return kernel;
 }
 
-void Callable::dump()
+void Callable::dump() const
 {
 	fmt::println("------------------------------");
 	fmt::println("CALLABLE ${} ({}/{})", name, pointer, atoms.size());

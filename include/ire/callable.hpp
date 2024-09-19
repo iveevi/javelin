@@ -44,7 +44,7 @@ struct Callable : thunder::Buffer {
 
 	thunder::Kernel export_to_kernel() const;
 
-	void dump();
+	void dump() const;
 };
 
 // Internal construction of callables
