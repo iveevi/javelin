@@ -196,7 +196,7 @@ std::string Linkage::generate_cplusplus()
 	for (auto &i : sorted) {
 		auto &b = blocks[i];
 
-		wrapped::hash_table <int, std::string> local_struct_names;
+		std::map <index_t, std::string> local_struct_names;
 		for (auto &[i, t] : b.struct_map)
 			local_struct_names[i] = translate_type(t);
 

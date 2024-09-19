@@ -8,6 +8,7 @@
 // TODO: out/inout parameter qualifiers
 // TODO: external constant specialization
 
+#include "thunder/atom.hpp"
 #include "thunder/qualified_type.hpp"
 #include <queue>
 #include <map>
@@ -17,8 +18,9 @@
 #include <GLFW/glfw3.h>
 
 #include <ire/core.hpp>
-#include <thunder/opt.hpp>
 #include <profiles/targets.hpp>
+#include <thunder/c_like_generator.hpp>
+#include <thunder/opt.hpp>
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -86,6 +88,8 @@ struct Aggregate {
 
 struct Function : Buffer {
 	std::string name;
+	QualifiedType returns;
+	std::vector <QualifiedType> args;
 
 	Function(const Buffer &buffer, const std::string &name_)
 		: Buffer(buffer), name(name_) {}
@@ -118,32 +122,48 @@ struct LinkageUnit {
 		return std::distance(aggregates.begin(), it);
 	}
 
-	void process_function(const Function &function) {
+	void process_function(Function function) {
 		TypeMap map;
 
 		for (size_t i : function.synthesized) {
+			auto &atom = function[i];
+
+			// Get the return type of the function
+			if (atom.is <Returns> ())
+				function.returns = function.types[i];
+
+			// Get the parameter types
+			if (atom.is <Qualifier> ()) {
+				auto &qualifier = atom.as <Qualifier> ();
+				size_t binding = qualifier.numerical;
+				size_t size = std::max(function.args.size(), binding + 1);
+				function.args.resize(size);
+
+				function.args[binding] = function.types[i];
+			}
+
+			// Checking for structs used by the function
 			auto qt = function.types[i];
-			if (!qt.is <StructFieldType> ())
-				continue;
+			if (qt.is <StructFieldType> ()) {
+				std::vector <QualifiedType> fields {
+					qt.as <StructFieldType> ().base()
+				};
 
-			std::vector <QualifiedType> fields {
-				qt.as <StructFieldType> ().base()
-			};
-
-			do {
-				auto &sft = qt.as <StructFieldType> ();
-				qt = function.types[sft.next];
-				if (qt.is <StructFieldType> ()) {
+				do {
 					auto &sft = qt.as <StructFieldType> ();
-					fields.push_back(sft.base());
-				} else {
-					// TODO: if its concrete, we need to reference it...
-					JVL_ASSERT_PLAIN(qt.is_primitive());
-					fields.push_back(qt);
-				}
-			} while (qt.is <StructFieldType> ());
+					qt = function.types[sft.next];
+					if (qt.is <StructFieldType> ()) {
+						auto &sft = qt.as <StructFieldType> ();
+						fields.push_back(sft.base());
+					} else {
+						// TODO: if its concrete, we need to reference it...
+						JVL_ASSERT_PLAIN(qt.is_primitive());
+						fields.push_back(qt);
+					}
+				} while (qt.is <StructFieldType> ());
 
-			map[i] = new_aggregate(fields);
+				map[i] = new_aggregate(fields);
+			}
 		}
 
 		functions.emplace_back(function);
@@ -178,6 +198,47 @@ struct LinkageUnit {
 			add(*Callable::search_tracked(i));
 		}
 	}
+
+	std::string generate_glsl() {
+		std::string result;
+
+		result += "#version 450\n";
+		result += "\n";
+
+		for (size_t i = 0; i < functions.size(); i++) {
+			auto &function = functions[i];
+			auto &map = maps[i];
+
+			std::map <index_t, std::string> structs;
+			for (auto &[k, v] : map)
+				structs[k] = aggregates[v].name;
+
+			detail::auxiliary_block_t block(function, structs);
+			detail::c_like_generator_t generator(block);
+				
+			auto ts = generator.type_to_string(function.returns);
+
+			// TODO: sort
+
+			std::string args;
+			for (size_t i = 0; i < function.args.size(); i++) {
+				auto ts = generator.type_to_string(function.args[i]);
+				args += fmt::format("{} _arg{}{}", ts.pre, i, ts.post);
+				if (i + 1 < function.args.size())
+					args += ", ";
+			}
+
+			result += fmt::format("{} {}({})\n",
+				ts.pre + ts.post,
+				function.name, args);
+
+			result += "{\n";
+			result += generator.generate();
+			result += "}\n";
+		}
+
+		return result;
+	}
 };
 
 }
@@ -208,4 +269,6 @@ int main()
 	fmt::println("# of functions: {}", unit.functions.size());
 	fmt::println("# of aggregates: {}", unit.aggregates.size());
 	fmt::println("# of type maps: {}", unit.maps.size());
+
+	fmt::println("{}", unit.generate_glsl());
 }

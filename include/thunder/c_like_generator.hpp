@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 #include "atom.hpp"
 #include "qualified_type.hpp"
 #include "buffer.hpp"
@@ -7,14 +9,14 @@
 namespace jvl::thunder::detail {
 
 struct auxiliary_block_t : Buffer {
-	const wrapped::hash_table <int, std::string> &struct_names;
+	const std::map <index_t, std::string> &struct_names;
 
 	auxiliary_block_t(const Buffer &buffer, const auto &names)
 		: Buffer(buffer), struct_names(names) {}
 };
 
 struct c_like_generator_t : auxiliary_block_t {
-	wrapped::hash_table <index_t, std::string> local_variables;
+	std::map <index_t, std::string> local_variables;
 	size_t indentation;
 	std::string source;
 
