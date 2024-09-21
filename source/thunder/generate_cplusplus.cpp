@@ -29,7 +29,7 @@ std::string cpp_primitive_type_as_string()
 }
 
 template <typename T, size_t N>
-std::string jvl_vector_type_as_string(const std::string &name)
+std::string cpp_vector_type_as_string(const std::string &name)
 {
 	static const std::string components[] = { "x", "y", "z", "w" };
 
@@ -76,7 +76,7 @@ std::string jvl_vector_type_as_string(const std::string &name)
 	return ret + "};\n\n";
 }
 
-std::string jvl_primitive_type_as_string(PrimitiveType type)
+std::string cpp_primitive_type_as_string(PrimitiveType type)
 {
 	switch (type) {
 	case i32:
@@ -86,25 +86,25 @@ std::string jvl_primitive_type_as_string(PrimitiveType type)
 		return "";
 
 	case ivec2:
-		return jvl_vector_type_as_string <int32_t, 2> ("ivec2");
+		return cpp_vector_type_as_string <int32_t, 2> ("ivec2");
 	case ivec3:
-		return jvl_vector_type_as_string <int32_t, 3> ("ivec3");
+		return cpp_vector_type_as_string <int32_t, 3> ("ivec3");
 	case ivec4:
-		return jvl_vector_type_as_string <int32_t, 4> ("ivec4");
+		return cpp_vector_type_as_string <int32_t, 4> ("ivec4");
 
 	case uvec2:
-		return jvl_vector_type_as_string <uint32_t, 2> ("uvec2");
+		return cpp_vector_type_as_string <uint32_t, 2> ("uvec2");
 	case uvec3:
-		return jvl_vector_type_as_string <uint32_t, 3> ("uvec3");
+		return cpp_vector_type_as_string <uint32_t, 3> ("uvec3");
 	case uvec4:
-		return jvl_vector_type_as_string <uint32_t, 4> ("uvec4");
+		return cpp_vector_type_as_string <uint32_t, 4> ("uvec4");
 
 	case vec2:
-		return jvl_vector_type_as_string <float, 2> ("vec2");
+		return cpp_vector_type_as_string <float, 2> ("vec2");
 	case vec3:
-		return jvl_vector_type_as_string <float, 3> ("vec3");
+		return cpp_vector_type_as_string <float, 3> ("vec3");
 	case vec4:
-		return jvl_vector_type_as_string <float, 4> ("vec4");
+		return cpp_vector_type_as_string <float, 4> ("vec4");
 
 	default:
 		break;
@@ -157,7 +157,7 @@ std::string Linkage::generate_cplusplus()
 				continue;
 
 			// If we are here, it means that the type is a primitive
-			source += jvl_primitive_type_as_string(item);
+			source += cpp_primitive_type_as_string(item);
 			synthesized_primitives.insert(item);
 
 			continue;
@@ -172,7 +172,7 @@ std::string Linkage::generate_cplusplus()
 			std::string ft_name;
 			if (elem.nested == -1) {
 				if (!synthesized_primitives.count(elem.item)) {
-					source += jvl_primitive_type_as_string(elem.item);
+					source += cpp_primitive_type_as_string(elem.item);
 					synthesized_primitives.insert(elem.item);
 				}
 

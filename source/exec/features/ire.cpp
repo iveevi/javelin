@@ -76,5 +76,5 @@ int main()
 	unit.add(seed_to_angle);
 	unit.add(seed_to_vector);
 
-	fmt::println("{}", unit.generate_glsl());
+	fmt::println("{}", unit.generate_cpp());
 }

@@ -53,8 +53,11 @@ struct LinkageUnit {
 	std::vector <index_t> process_function(const Function &);
 	
 	void add(const TrackedBuffer &);
+	
+	auto configure_generators() const;
 
-	std::string generate_glsl();
+	std::string generate_glsl() const;
+	std::string generate_cpp() const;
 };
 
 } // namespace jvl::thunder
