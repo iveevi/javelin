@@ -8,8 +8,6 @@
 // TODO: out/inout parameter qualifiers
 // TODO: external constant specialization
 
-#include "thunder/atom.hpp"
-#include "thunder/qualified_type.hpp"
 #include <queue>
 #include <map>
 #include <set>
@@ -21,6 +19,7 @@
 #include <profiles/targets.hpp>
 #include <thunder/c_like_generator.hpp>
 #include <thunder/opt.hpp>
+#include <thunder/properties.hpp>
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -40,7 +39,8 @@ struct seed {
 
 auto seed_to_vector = callable_info() >> [](const seed &s)
 {
-	u32 x = (s.a << s.b) & (s.b - s.a);
+	layout_in <u32, flat> bias(0);
+	u32 x = (s.a << s.b) & (s.b - s.a) + bias;
 	u32 y = (s.b + s.a * s.b)/s.a;
 	uvec2 v = uvec2(x, y);
 	return uintBitsToFloat(v);
@@ -61,9 +61,12 @@ struct aux {
 
 auto seed_to_angle = callable_info() >> [](const aux &a, const seed &s)
 {
+	sampler1D tex(1);
+	layout_out <u32, flat> result(0);
 	vec2 v = seed_to_vector(s);
-	vec3 vone = v.x * a.one;
+	vec3 vone = v.x * a.one + tex.fetch(0, 0).x;
 	vec3 vtwo = v.y * a.two;
+	result = floatBitsToUint(vtwo).x;
 	return dot(vone, vtwo);
 };
 
@@ -97,11 +100,61 @@ struct Function : Buffer {
 
 using TypeMap = std::map <index_t, index_t>;
 
+struct local_layout_type {
+	index_t function;
+	index_t index;
+	QualifierKind kind;
+};
+
+static std::string layout_interpolationstring(QualifierKind kind)
+{
+	switch (kind) {
+	case layout_in_flat:
+	case layout_out_flat:
+		return "flat ";
+	case layout_in_noperspective:
+	case layout_out_noperspective:
+		return "noperspective ";
+	case layout_in_smooth:
+	case layout_out_smooth:
+		return "";
+	default:
+		break;
+	}
+
+	return "<interp:?>";
+}
+
+static std::string sampler_string(QualifierKind kind)
+{
+	PrimitiveType result = sampler_result(kind);
+	int32_t dimensions = sampler_dimension(kind);
+	switch (result) {
+        case ivec4:
+                return fmt::format("isampler{}D", dimensions);
+        case uvec4:
+                return fmt::format("usampler{}D", dimensions);
+        case vec4:
+                return fmt::format("sampler{}D", dimensions);
+        default:
+                break;
+        }
+
+        return fmt::format("<?>sampler{}D", dimensions);
+}
+
 struct LinkageUnit {
 	std::set <index_t> loaded;
 	std::vector <Function> functions;
 	std::vector <Aggregate> aggregates;
 	std::vector <TypeMap> maps;
+
+	struct {
+		index_t push_constant = -1;
+		std::map <index_t, local_layout_type> outputs;
+		std::map <index_t, local_layout_type> inputs;
+		std::map <index_t, QualifierKind> samplers;
+	} globals;
 
 	index_t new_aggregate(const std::vector <QualifiedType> &fields) {
 		size_t index = aggregates.size();
@@ -122,8 +175,18 @@ struct LinkageUnit {
 		return std::distance(aggregates.begin(), it);
 	}
 
-	void process_function(Function function) {
-		TypeMap map;
+	// TODO: return referenced callables
+	void process_function(const Function &ftn) {
+		// TODO: run validation here as well
+		index_t index = functions.size();
+
+		functions.emplace_back(ftn);
+		maps.emplace_back();
+
+		auto &function = functions.back();
+		auto &map = maps.back();
+
+		function.dump();
 
 		for (size_t i : function.synthesized) {
 			auto &atom = function[i];
@@ -132,19 +195,51 @@ struct LinkageUnit {
 			if (atom.is <Returns> ())
 				function.returns = function.types[i];
 
-			// Get the parameter types
+			// Parameters and global variables
 			if (atom.is <Qualifier> ()) {
 				auto &qualifier = atom.as <Qualifier> ();
-				size_t binding = qualifier.numerical;
-				size_t size = std::max(function.args.size(), binding + 1);
-				function.args.resize(size);
 
-				function.args[binding] = function.types[i];
+				if (sampler_kind(qualifier.kind)) {
+					size_t binding = qualifier.numerical;
+					globals.samplers[binding] = qualifier.kind;
+				}
+
+				switch (qualifier.kind) {
+				case parameter:
+				{
+					size_t binding = qualifier.numerical;
+					size_t size = std::max(function.args.size(), binding + 1);
+					function.args.resize(size);
+					function.args[binding] = function.types[i];
+				} break;
+
+				case layout_in_flat:
+				case layout_in_noperspective:
+				case layout_in_smooth:
+				{
+					size_t binding = qualifier.numerical;
+					local_layout_type lin(index, qualifier.underlying, qualifier.kind);
+					globals.inputs[binding] = lin;
+				} break;
+
+				case layout_out_flat:
+				case layout_out_noperspective:
+				case layout_out_smooth:
+				{
+					size_t binding = qualifier.numerical;
+					local_layout_type lout(index, qualifier.underlying, qualifier.kind);
+					globals.outputs[binding] = lout;
+				} break;
+
+				default:
+					break;
+				}
 			}
 
 			// Checking for structs used by the function
 			auto qt = function.types[i];
 			if (qt.is <StructFieldType> ()) {
+				fmt::println("attempting to create aggregate for {} (@{})", qt, i);
 				std::vector <QualifiedType> fields {
 					qt.as <StructFieldType> ().base()
 				};
@@ -165,19 +260,11 @@ struct LinkageUnit {
 				map[i] = new_aggregate(fields);
 			}
 		}
-
-		functions.emplace_back(function);
-		maps.emplace_back(map);
 	}
 
 	void add(const Callable &callable) {
-		if (loaded.contains(callable.cid)) {
-			fmt::println("callable already loaded into linkage unit");
+		if (loaded.contains(callable.cid))
 			return;
-		}
-
-		fmt::println("adding callable to linkage unit:");
-		callable.dump();
 
 		process_function(Function(callable, callable.name));
 	
@@ -205,6 +292,9 @@ struct LinkageUnit {
 		result += "#version 450\n";
 		result += "\n";
 
+		// Create the generators
+		std::vector <detail::c_like_generator_t> generators;
+
 		for (size_t i = 0; i < functions.size(); i++) {
 			auto &function = functions[i];
 			auto &map = maps[i];
@@ -213,18 +303,69 @@ struct LinkageUnit {
 			for (auto &[k, v] : map)
 				structs[k] = aggregates[v].name;
 
-			detail::auxiliary_block_t block(function, structs);
-			detail::c_like_generator_t generator(block);
+			fmt::println("struct names for function #{}", i);
+			for (auto &[k, v] : structs)
+				fmt::println("  %{} -> {}", k, v);
+
+			generators.emplace_back(detail::auxiliary_block_t(function, structs));
+		}
+
+		// Globals: layout inputs
+		for (auto &[b, llt] : globals.inputs) {
+			auto &types = functions[llt.function].types;
+			auto &generator = generators[llt.function];
+
+
+			fmt::println("layout input for: {}", types[llt.index]);
+			auto ts = generator.type_to_string(types[llt.index]);
+			auto interpolation = layout_interpolationstring(llt.kind);
+
+			result += fmt::format("layout (location = {}) in {} {}_lin{};\n",
+				b, ts.pre + ts.post, interpolation, b);
+		}
+
+		if (globals.inputs.size())
+			result += "\n";
+		
+		// Globals: layout outputs
+		for (auto &[b, llt] : globals.outputs) {
+			auto &types = functions[llt.function].types;
+			auto &generator = generators[llt.function];
+
+
+			fmt::println("layout input for: {}", types[llt.index]);
+			auto ts = generator.type_to_string(types[llt.index]);
+			auto interpolation = layout_interpolationstring(llt.kind);
+
+			result += fmt::format("layout (location = {}) out {} {}_lout{};\n",
+				b, ts.pre + ts.post, interpolation, b);
+		}
+
+		if (globals.outputs.size())
+			result += "\n";
+
+		// Globals: samplers
+		for (const auto &[binding, kind] : globals.samplers) {
+			result += fmt::format("layout (binding = {}) uniform {} _sampler{};\n",
+				binding, sampler_string(kind), binding);
+		}
+
+		if (globals.samplers.size())
+			result += "\n";
+
+		for (size_t i = 0; i < functions.size(); i++) {
+			auto &function = functions[i];
+			auto &generator = generators[i];
 				
 			auto ts = generator.type_to_string(function.returns);
 
-			// TODO: sort
+			// TODO: topologically sort the functions before synthesis
 
 			std::string args;
-			for (size_t i = 0; i < function.args.size(); i++) {
-				auto ts = generator.type_to_string(function.args[i]);
-				args += fmt::format("{} _arg{}{}", ts.pre, i, ts.post);
-				if (i + 1 < function.args.size())
+			for (size_t j = 0; j < function.args.size(); j++) {
+				auto ts = generator.type_to_string(function.args[j]);
+				args += fmt::format("{} _arg{}{}", ts.pre, j, ts.post);
+				if (j + 1 < function.args.size())
 					args += ", ";
 			}
 
@@ -235,6 +376,9 @@ struct LinkageUnit {
 			result += "{\n";
 			result += generator.generate();
 			result += "}\n";
+
+			if (i + 1 < functions.size())
+				result += "\n";
 		}
 
 		return result;
@@ -246,20 +390,21 @@ struct LinkageUnit {
 int main()
 {
 	thunder::opt_transform(seed_to_vector);
-	seed_to_vector.dump();
-
-	fmt::println("{}",
-		seed_to_vector
-		.export_to_kernel()
-		.compile(profiles::glsl_450));
-	
 	thunder::opt_transform(seed_to_angle);
-	seed_to_angle.dump();
+
+	// seed_to_vector.dump();
+
+	// fmt::println("{}",
+	// 	seed_to_vector
+	// 	.export_to_kernel()
+	// 	.compile(profiles::glsl_450));
 	
-	fmt::println("{}",
-		seed_to_angle
-		.export_to_kernel()
-		.compile(profiles::glsl_450));
+	// seed_to_angle.dump();
+	
+	// fmt::println("{}",
+	// 	seed_to_angle
+	// 	.export_to_kernel()
+	// 	.compile(profiles::glsl_450));
 
 	thunder::LinkageUnit unit;
 	unit.add(seed_to_angle);

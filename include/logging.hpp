@@ -49,7 +49,7 @@ inline void abort(const std::string &msg)
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::orange_red), "fatal error: ");
 	fmt::println("{}", msg);
 	std::fflush(stdout);
-	exit(-1);
+	__builtin_trap();
 }
 
 [[noreturn]]
@@ -60,7 +60,7 @@ inline void abort(const std::string &module, const std::string &msg)
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::orange_red), "fatal error: ");
 	fmt::println("{}", msg);
 	std::fflush(stdout);
-	exit(-1);
+	__builtin_trap();
 }
 
 [[noreturn]]
@@ -74,7 +74,7 @@ inline void abort(const std::string &module, const std::string &msg, const char 
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::pink), "note: ");
 	fmt::println("declared from {}:{}", file, line);
 	std::fflush(stdout);
-	exit(-1);
+	__builtin_trap();
 }
 
 inline void error(const std::string &msg)

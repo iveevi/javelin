@@ -5,7 +5,7 @@
 
 namespace jvl::thunder {
 
-MODULE(include-atoms);
+// MODULE(include-atoms);
 
 index_t reference_of(const std::vector <Atom> &atoms, index_t i)
 {
@@ -29,6 +29,8 @@ void Buffer::include(index_t i)
 
 	switch (atom.index()) {
 
+	// Store instructions and their (root)
+	// destinations should always be synthesized
 	case Atom::type_index <Store> ():
 	{
 		index_t dst = atom.as <Store> ().dst;
@@ -37,10 +39,13 @@ void Buffer::include(index_t i)
 		break;
 	}
 
+	// Always synthesize branches
 	case Atom::type_index <Branch> ():
 		synthesized.insert(i);
 		break;
 
+	// Global variables are always instatiated,
+	// even if not used by the unit
 	case Atom::type_index <Qualifier> ():
 	{
 		auto &global = atom.as <Qualifier> ();
@@ -48,25 +53,32 @@ void Buffer::include(index_t i)
 		synthesized.insert(global.underlying);
 	} break;
 
+	// Always synthesize returns
 	case Atom::type_index <Returns> ():
 		synthesized.insert(i);
 		break;
 
+	// Construction is to be synthesized only
+	// if its for a transient construction, or
+	// if its for an array type
 	case Atom::type_index <Construct> ():
 	{
-		auto &constructor = atom.as <Construct> ();
-		if (constructor.transient)
-			synthesized.insert(i);
+		synthesized.insert(i);
+		// auto &constructor = atom.as <Construct> ();
+		// if (constructor.transient)
+		// 	synthesized.insert(i);
 
-		JVL_ASSERT(constructor.type < (index_t) pointer,
-			"construct type is out of bounds: {} (pointer = {})",
-			atom, pointer);
+		// JVL_ASSERT(constructor.type < (index_t) pointer,
+		// 	"construct type is out of bounds: {} (pointer = {})",
+		// 	atom, pointer);
 
-		QualifiedType qt = types[constructor.type];
-		if (qt.is <ArrayType> ())
-			synthesized.insert(i);
+		// QualifiedType qt = types[constructor.type];
+		// if (qt.is <ArrayType> ())
+		// 	synthesized.insert(i);
 	} break;
 
+	// If the type information indicates a nested struct,
+	// then synthesize the nested struct regardless of usage
 	case Atom::type_index <TypeInformation> ():
 	{
 		auto &type_field = atom.as <TypeInformation> ();
@@ -74,6 +86,14 @@ void Buffer::include(index_t i)
 			synthesized.insert(type_field.down);
 	} break;
 
+	// Call values should be evaluated only once by default;
+	// at linking time, it may be possible to inline functions.
+	case Atom::type_index <Call> ():
+		synthesized.insert(i);
+		break;
+
+	default:
+		break;
 	}
 }
 

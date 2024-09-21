@@ -343,6 +343,10 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 			return { .pre = tbl_primitive_types[*p], .post = "" };
 
 		index_t concrete = pd.as <index_t> ();
+		JVL_ASSERT(struct_names.contains(concrete),
+			"concrete type %{} has no associated name: {}",
+			concrete, qt);
+
 		return { .pre = struct_names.at(concrete), .post = "" };
 	}
 
@@ -412,11 +416,6 @@ void c_like_generator_t::generate(const Construct &construct, index_t index)
 {
 	if (construct.transient)
 		return;
-
-	auto &qt = types[index];
-	auto pd = qt.get <PlainDataType> ();
-	if (pd && pd->is <index_t> ())
-		qt = types[pd->as <index_t> ()];
 
 	if (construct.args == -1)
 		return declare(index);
@@ -510,7 +509,7 @@ std::string c_like_generator_t::generate()
 {
 	for (size_t i = 0; i < pointer; i++) {
 		if (synthesized.count(i)) {
-			// fmt::println("generating: {}", atoms[i]);
+			// fmt::println("  generating: {}", atoms[i]);
 			generate(i);
 		}
 	}

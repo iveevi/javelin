@@ -9,7 +9,7 @@
 namespace jvl::thunder::detail {
 
 struct auxiliary_block_t : Buffer {
-	const std::map <index_t, std::string> &struct_names;
+	std::map <index_t, std::string> struct_names;
 
 	auxiliary_block_t(const Buffer &buffer, const auto &names)
 		: Buffer(buffer), struct_names(names) {}
