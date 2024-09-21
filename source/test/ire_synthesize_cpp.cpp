@@ -35,9 +35,13 @@ void simple_io()
 		layout_out <T> lout(0);
 		lout = lin;
 	};
+	
+	auto cbl = callable_info_r <i32> ("main") >> shader;
+	
+	thunder::LinkageUnit unit;
+	unit.add(cbl);
+	auto cpp = unit.generate_cpp();
 
-	auto kernel = kernel_from_args(shader);
-	auto cpp = kernel.compile(profiles::cpp_standard());
 	check_cpluslpus_source(cpp);
 }
 
@@ -60,8 +64,12 @@ void simple_vector_io()
 		lout = lin;
 	};
 
-	auto kernel = kernel_from_args(shader);
-	auto cpp = kernel.compile(profiles::cpp_standard());
+	auto cbl = callable_info_r <i32> ("main") >> shader;
+
+	thunder::LinkageUnit unit;
+	unit.add(cbl);
+	auto cpp = unit.generate_cpp();
+
 	check_cpluslpus_source(cpp);
 }
 

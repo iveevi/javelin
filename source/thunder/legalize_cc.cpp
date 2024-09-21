@@ -2,7 +2,6 @@
 #include "logging.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
-#include "thunder/linkage.hpp"
 #include "thunder/opt.hpp"
 #include "thunder/properties.hpp"
 #include "thunder/qualified_type.hpp"

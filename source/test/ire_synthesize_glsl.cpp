@@ -64,8 +64,12 @@ void simple_io()
 		lout = lin;
 	};
 
-	auto kernel = kernel_from_args(shader);
-	auto glsl = kernel.compile(profiles::glsl_450);
+	auto cbl = callable_info_r <i32> ("main") >> shader;
+	
+	thunder::LinkageUnit unit;
+	unit.add(cbl);
+	auto glsl = unit.generate_cpp();
+
 	check_glsl_source(glsl, GL_VERTEX_SHADER);
 }
 
@@ -88,8 +92,12 @@ void simple_vector_io()
 		lout = lin;
 	};
 
-	auto kernel = kernel_from_args(shader);
-	auto glsl = kernel.compile(profiles::glsl_450);
+	auto cbl = callable_info_r <i32> ("main") >> shader;
+	
+	thunder::LinkageUnit unit;
+	unit.add(cbl);
+	auto glsl = unit.generate_cpp();
+
 	check_glsl_source(glsl, GL_VERTEX_SHADER);
 }
 

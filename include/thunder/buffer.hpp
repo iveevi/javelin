@@ -2,12 +2,10 @@
 
 #include "atom.hpp"
 #include "qualified_type.hpp"
-#include "../wrapped_types.hpp"
 
 namespace jvl::thunder {
 
 // Forward declarations
-struct Kernel;
 struct QualifiedType;
 
 // Arbitrary pools of atoms
@@ -26,8 +24,7 @@ public:
 	Buffer();
 
 	index_t emit(const Atom &, bool = true);
-	Kernel export_to_kernel() const;
-	void validate() const;
+	
 	void clear();
 	void dump() const;
 

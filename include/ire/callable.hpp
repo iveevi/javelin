@@ -15,7 +15,8 @@ template <non_trivial_generic_or_void R, generic ... Args>
 struct Callable : thunder::TrackedBuffer {
 	// TODO: only R needs to be restricted, the rest can be filtered depending on synthesizable or not...
 	template <size_t index>
-	void __fill_parameter_references(std::tuple <Args...> &tpl) {
+	void __fill_parameter_references(std::tuple <Args...> &tpl)
+	requires (sizeof...(Args) > 0) {
 		auto &em = Emitter::active;
 
 		using type_t = std::decay_t <decltype(std::get <index> (tpl))>;
@@ -46,7 +47,8 @@ struct Callable : thunder::TrackedBuffer {
 		Emitter::active.push(*this);
 	}
 
-	void call(std::tuple <Args...> &args) {
+	void call(std::tuple <Args...> &args)
+	requires (sizeof...(Args) > 0) {
 		__fill_parameter_references <0> (args);
 	}
 
@@ -110,6 +112,17 @@ struct signature_pair {
 
 	template <typename RR>
 	using manual_callable = Callable <RR, std::decay_t <Args>...>;
+};
+
+template <non_trivial_generic_or_void R>
+struct signature_pair <R> {
+	using return_t = R;
+	using args_t = std::nullopt_t;
+
+	using callable = Callable <R>;
+
+	template <typename RR>
+	using manual_callable = Callable <RR>;
 };
 
 template <typename R, typename ... Args>
@@ -180,9 +193,13 @@ auto callable(F ftn)
 
 	typename S::template manual_callable <R> cbl;
 	cbl.begin();
-		auto args = typename S::args_t();
-		cbl.call(args);
-		std::apply(ftn, args);
+		if constexpr (std::same_as <typename S::args_t, std::nullopt_t>) {
+			ftn();
+		} else {
+			auto args = typename S::args_t();
+			cbl.call(args);
+			std::apply(ftn, args);
+		}
 	cbl.end();
 
 	return cbl;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "buffer.hpp"
-#include "kernel.hpp"
 
 namespace jvl::thunder {
 
@@ -34,8 +33,6 @@ struct TrackedBuffer : Buffer {
 	TrackedBuffer &operator=(const TrackedBuffer &);
 
 	// TODO: destructor, which offloads it from the global list
-
-	thunder::Kernel export_to_kernel() const;
 
 	void dump() const;
 };

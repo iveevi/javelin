@@ -7,7 +7,6 @@
 #include "logging.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
-#include "thunder/linkage.hpp"
 #include "thunder/qualified_type.hpp"
 #include "thunder/properties.hpp"
 #include "thunder/gcc_jit_generator.hpp"
@@ -19,7 +18,7 @@ extern "C" float clamp(float x, float low, float high)
 	return std::min(high, std::max(low, x));
 }
 
-namespace jvl::thunder {
+namespace jvl::thunder::detail {
 
 MODULE(gcc-jit);
 
@@ -278,8 +277,6 @@ gcc_jit_function *intrinsic_lookup(gcc_jit_context *const context, const intrins
 
 	JVL_ABORT("{} intrinsic is unsupported in (gcc) JIT", tbl_intrinsic_operation[info.opn]);
 }
-
-namespace detail {
 
 gcc_jit_function_generator_t::gcc_jit_function_generator_t(gcc_jit_context *const context_, const Buffer &buffer_)
 		: Buffer(buffer_), context(context_) {}
@@ -634,41 +631,4 @@ void gcc_jit_function_generator_t::generate()
 	}
 }
 
-} // namespace detail
-
-Linkage::jit_result_t Linkage::generate_jit_gcc()
-{
-	JVL_INFO("compiling linkage atoms with gcc jit");
-
-	gcc_jit_context *context = gcc_jit_context_acquire();
-	JVL_ASSERT(context, "failed to acquire context");
-
-	// TODO: pass options
-	gcc_jit_context_set_int_option(context, GCC_JIT_INT_OPTION_OPTIMIZATION_LEVEL, 0);
-	gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DEBUGINFO, true);
-	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_GIMPLE, true);
-	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_INITIAL_TREE, true);
-	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_SUMMARY, true);
-	// gcc_jit_context_set_bool_option(context, GCC_JIT_BOOL_OPTION_DUMP_GENERATED_CODE, true);
-
-	// for (auto &[_, block] : blocks)
-	// 	generate_block(context, block);
-
-	for (auto &[_, block] : blocks) {
-		// detail::unnamed_body_t body(block);
-		detail::gcc_jit_function_generator_t generator(context, block);
-		generator.generate();
-	}
-
-	gcc_jit_context_dump_to_file(context, "gcc_jit_result.c", true);
-
-	gcc_jit_result *result = gcc_jit_context_compile(context);
-	JVL_ASSERT(result, "failed to compile function");
-
-	void *ftn = gcc_jit_result_get_code(result, "function");
-	JVL_ASSERT(result, "failed to load function result");
-
-	return { ftn };
-}
-
-} // namespace jvl::thunder
+} // namespace jvl::thunder::detail

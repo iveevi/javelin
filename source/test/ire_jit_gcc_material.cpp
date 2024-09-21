@@ -71,7 +71,7 @@ auto ref = [](ReferenceMaterial mat, aligned_float3 n, aligned_float3 h)
 
 TEST(ire_jit, material)
 {
-	thunder::detail::legalize_for_cc(ftn);
+	// thunder::detail::legalize_for_cc(ftn);
 	thunder::opt_transform(ftn);
 	auto compiled = jit(ftn);
 

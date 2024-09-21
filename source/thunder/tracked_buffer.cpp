@@ -32,13 +32,6 @@ TrackedBuffer &TrackedBuffer::operator=(const TrackedBuffer &other)
 	return *this;
 }
 
-thunder::Kernel TrackedBuffer::export_to_kernel() const
-{
-	auto kernel = Buffer::export_to_kernel();
-	kernel.name = name;
-	return kernel;
-}
-
 void TrackedBuffer::dump() const
 {
 	fmt::println("------------------------------");

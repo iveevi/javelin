@@ -47,11 +47,7 @@ add_library(javelin-ire STATIC
 	source/thunder/classify.cpp
 	source/thunder/comparison.cpp
 	source/thunder/gcc.cpp
-	source/thunder/generate_cplusplus.cpp
-	source/thunder/generate_glsl.cpp
-	source/thunder/kernel.cpp
 	source/thunder/legalize_cc.cpp
-	source/thunder/linkage.cpp
 	source/thunder/linkage_unit.cpp
 	source/thunder/optimization.cpp
 	source/thunder/qualified_type.cpp

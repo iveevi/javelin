@@ -186,11 +186,14 @@ void ViewportRenderGroup::configure_pipeline_mode(DeviceResourceCollection &drc,
 {
 	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
 
-	std::string vertex_shader = kernel_from_args(vertex, mode)
-		.compile(profiles::glsl_450);
+	std::string vertex_shader;
+	std::string fragment_shader;
 
-	std::string fragment_shader = kernel_from_args(fragment, mode)
-		.compile(profiles::glsl_450);
+	// std::string vertex_shader = kernel_from_args(vertex, mode)
+	// 	.compile(profiles::glsl_450);
+
+	// std::string fragment_shader = kernel_from_args(fragment, mode)
+	// 	.compile(profiles::glsl_450);
 
 	auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
 		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)

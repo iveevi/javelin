@@ -22,8 +22,10 @@ TEST(ire_callable, sum)
 	};
 
 	auto cbl = callable(ftn).named("sum");
-	auto kernel = cbl.export_to_kernel();
-	auto glsl = kernel.compile(profiles::glsl_450);
+
+	thunder::LinkageUnit unit;
+	unit.add(cbl);
+	auto glsl = unit.generate_glsl();
 
 	// fmt::println("{}", glsl);
 
@@ -49,8 +51,10 @@ TEST(ire_callable, arithmetic)
 	};
 
 	auto cbl = callable(ftn).named("arithemtic");
-	auto kernel = cbl.export_to_kernel();
-	auto glsl = kernel.compile(profiles::glsl_450);
+	
+	thunder::LinkageUnit unit;
+	unit.add(cbl);
+	auto glsl = unit.generate_glsl();
 	
 	// fmt::println("{}", glsl);
 
@@ -66,8 +70,10 @@ TEST(ire_callable, returns)
 	};
 
 	auto cbl = callable <f32> (ftn).named("arithemtic");
-	auto kernel = cbl.export_to_kernel();
-	auto glsl = kernel.compile(profiles::glsl_450);
+	
+	thunder::LinkageUnit unit;
+	unit.add(cbl);
+	auto glsl = unit.generate_glsl();
 	
 	// fmt::println("{}", glsl);
 
@@ -102,8 +108,10 @@ TEST(ire_callable, conditional_returns)
 	};
 
 	auto cbl = callable(ftn).named("conditional");
-	auto kernel = cbl.export_to_kernel();
-	auto glsl = kernel.compile(profiles::glsl_450);
+	
+	thunder::LinkageUnit unit;
+	unit.add(cbl);
+	auto glsl = unit.generate_glsl();
 
 	check_shader_sources(expected_conditional_returns_glsl, glsl);
 }
@@ -153,11 +161,12 @@ TEST(ire_callable, struct_parameter)
 	};
 
 	auto cbl = callable(ftn).named("project");
-	auto kernel = cbl.export_to_kernel();
-	auto glsl = kernel.compile(profiles::glsl_450);
+	
+	thunder::LinkageUnit unit;
+	unit.add(cbl);
+	auto glsl = unit.generate_glsl();
 
-	kernel.dump();
-	fmt::println("{}", glsl);
+	// fmt::println("{}", glsl);
 
 	check_shader_sources(expected_struct_parameter_glsl, glsl);
 }
@@ -198,12 +207,12 @@ TEST(ire_callable, struct_return)
 	};
 
 	auto cbl = callable(ftn).named("shift_seed");
-	auto kernel = cbl.export_to_kernel();
-
-	kernel.dump();
 	
-	auto glsl = kernel.compile(profiles::glsl_450);
-	fmt::println("{}", glsl);
+	thunder::LinkageUnit unit;
+	unit.add(cbl);
+	auto glsl = unit.generate_glsl();
+	
+	// fmt::println("{}", glsl);
 
 	check_shader_sources(expected_struct_return_glsl, glsl);
 }

@@ -6,7 +6,6 @@
 
 #include "../thunder/buffer.hpp"
 #include "../thunder/atom.hpp"
-#include "../thunder/kernel.hpp"
 #include "../thunder/enumerations.hpp"
 #include "thunder/qualified_type.hpp"
 
@@ -137,16 +136,5 @@ struct Emitter {
 
 	static thread_local Emitter active;
 };
-
-template <typename F, typename ... Args>
-thunder::Kernel kernel_from_args(const F &ftn, const Args &... args)
-{
-	auto &em = Emitter::active;
-	thunder::Buffer scratch;
-	em.push(scratch);
-		ftn(args...);
-	em.pop();
-	return scratch.export_to_kernel();
-}
 
 } // namespace jvl::ire

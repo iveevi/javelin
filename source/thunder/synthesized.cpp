@@ -1,7 +1,4 @@
-#include "logging.hpp"
-#include "thunder/atom.hpp"
-#include "thunder/linkage.hpp"
-#include "thunder/qualified_type.hpp"
+#include "thunder/buffer.hpp"
 
 namespace jvl::thunder {
 

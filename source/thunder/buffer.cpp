@@ -1,10 +1,7 @@
 #include "logging.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/buffer.hpp"
-#include "thunder/enumerations.hpp"
-#include "thunder/kernel.hpp"
 #include "thunder/qualified_type.hpp"
-#include "wrapped_types.hpp"
 
 namespace jvl::thunder {
 
@@ -30,59 +27,6 @@ index_t Buffer::emit(const Atom &atom, bool enable_classification)
 	}
 	
 	return pointer++;
-}
-
-// Kernel transfer
-Kernel Buffer::export_to_kernel() const
-{
-	// TODO: export the kernel, then optimize and dce, and then validate...
-	// validate();
-
-	// TODO: run through optimizations
-	// TODO: find the right kernel flags
-
-	auto kernel = Kernel(*this, thunder::Kernel::eAll);
-	
-	kernel.atoms.resize(pointer);
-	kernel.atoms.shrink_to_fit();
-	
-	kernel.types.resize(pointer);
-	kernel.types.shrink_to_fit();
-
-	return kernel;
-}
-
-// Validation for kernels
-void Buffer::validate() const
-{
-	// Phase 1: Verify that layout IOs are consistent
-	// TODO: recursive IR cmp
-
-	wrapped::hash_table <index_t, index_t> inputs;
-	wrapped::hash_table <index_t, index_t> outputs;
-
-	// for (int i = 0; i < pointer; i++) {
-	// 	Atom g = atoms[i];
-	// 	if (!g.is <Qualifier>())
-	// 		continue;
-
-	// 	Qualifier global = g.as <Qualifier> ();
-	// 	if (global.kind == layout_in) {
-	// 		int type = global.underlying;
-	// 		int binding = global.numerical;
-	// 		if (inputs.count(binding) && inputs[binding] != type)
-	// 			fmt::println("JVL (error): layout in type conflict with binding #{}", binding);
-	// 		else
-	// 			inputs[binding] = type;
-	// 	} else if (global.kind == layout_out) {
-	// 		int type = global.underlying;
-	// 		int binding = global.numerical;
-	// 		if (outputs.count(binding) && outputs[binding] != type)
-	// 			fmt::println("JVL (error): layout out type conflict with binding #{}", binding);
-	// 		else
-	// 			outputs[binding] = type;
-	// 	}
-	// }
 }
 
 void Buffer::clear()
