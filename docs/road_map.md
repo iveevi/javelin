@@ -7,7 +7,7 @@
 - [ ] `inout` and `out` qualifiers for parameters
 - [ ] Uniform variables and buffers (GLSL)
 - [ ] Storage buffer objects (GLSL)
-- [ ] Image and sampler objects (GLSL)
+- [x] Image and sampler objects (GLSL)
 - [ ] For loop control flow
 - [ ] Match-case control flow or equivalent
 - [ ] Target conditional code
@@ -15,10 +15,10 @@
 - [ ] Reflection information for generating descriptor sets
 	- Layout types and locations
 	- Buffer, image, and sampler binding locations
-- [ ] Flat layout outputs
+- [x] Flat layout outputs
 
 ## Examples
 
-- [ ] False coloring of triangle meshes using arrays
+- [x] False coloring of triangle meshes using arrays
 - [ ] Specialized glyph rendering through runtime shader generation
 	- Parallelized version as well, compiling multiple shaders at the same time
