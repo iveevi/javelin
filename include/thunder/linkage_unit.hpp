@@ -4,12 +4,7 @@
 #include <set>
 
 #include "buffer.hpp"
-
-namespace jvl::ire {
-
-struct Callable;
-
-}
+#include "tracked_buffer.hpp"
 
 namespace jvl::thunder {
 
@@ -57,7 +52,7 @@ struct LinkageUnit {
 	
 	std::vector <index_t> process_function(const Function &);
 	
-	void add(const ire::Callable &);
+	void add(const TrackedBuffer &);
 
 	std::string generate_glsl();
 };

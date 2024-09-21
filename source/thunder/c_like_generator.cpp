@@ -1,8 +1,8 @@
-#include "ire/callable.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/c_like_generator.hpp"
 #include "thunder/enumerations.hpp"
 #include "thunder/qualified_type.hpp"
+#include "thunder/tracked_buffer.hpp"
 
 namespace jvl::thunder::detail {
 
@@ -274,7 +274,7 @@ std::string c_like_generator_t::inlined(index_t index) const
 	{
 		auto &call = atom.as <Call> ();
 		
-		ire::Callable *cbl = ire::Callable::search_tracked(call.cid);
+		TrackedBuffer *cbl = TrackedBuffer::search_tracked(call.cid);
 		std::string args;
 		if (call.args != -1)
 			args = arguments_to_string(arguments(call.args));
@@ -426,7 +426,7 @@ void c_like_generator_t::generate(const Construct &construct, index_t index)
 template <>
 void c_like_generator_t::generate(const Call &call, index_t index)
 {
-	ire::Callable *cbl = ire::Callable::search_tracked(call.cid);
+	TrackedBuffer *cbl = TrackedBuffer::search_tracked(call.cid);
 	std::string args = "()";
 	if (call.args != -1)
 		args = arguments_to_string(arguments(call.args));

@@ -20,7 +20,7 @@ constexpr void jit_check_arguments()
 }
 
 template <typename R, typename ... Args>
-auto jit(const callable_t <R, Args...> &callable)
+auto jit(const Callable <R, Args...> &callable)
 {
 	jit_check_return <R> ();
 	jit_check_arguments <Args...> ();

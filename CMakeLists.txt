@@ -39,7 +39,6 @@ set(VULKAN_LIBRARY_SET
 
 # Intermediate Representation Emitter (IRE)
 add_library(javelin-ire STATIC
-	source/ire/callable.cpp
 	source/ire/emitter.cpp
 	source/thunder/atom.cpp
 	source/thunder/autodiff_forward.cpp
@@ -58,6 +57,7 @@ add_library(javelin-ire STATIC
 	source/thunder/qualified_type.cpp
 	source/thunder/stitch.cpp
 	source/thunder/synthesized.cpp
+	source/thunder/tracked_buffer.cpp
 	source/thunder/usage.cpp)
 
 target_compile_options(javelin-ire PRIVATE

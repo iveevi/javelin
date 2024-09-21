@@ -1,6 +1,6 @@
 #include "thunder/atom.hpp"
-#include "ire/callable.hpp"
 #include "thunder/enumerations.hpp"
+#include "thunder/tracked_buffer.hpp"
 
 namespace jvl::thunder {
 
@@ -232,7 +232,7 @@ std::string Call::to_string() const
 {
         std::string result;
 
-        ire::Callable *cbl = ire::Callable::search_tracked(cid);
+        TrackedBuffer *cbl = TrackedBuffer::search_tracked(cid);
         result += fmt::format("{:15} ${}", "CALL", cbl->name);
         if (args != -1)
                 result += fmt::format("(%{})", args);

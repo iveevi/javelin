@@ -1,6 +1,6 @@
 #include "thunder/linkage.hpp"
-#include "ire/callable.hpp"
 #include "thunder/enumerations.hpp"
+#include "thunder/tracked_buffer.hpp"
 
 namespace jvl::thunder {
 
@@ -51,7 +51,7 @@ Linkage &Linkage::resolve()
 	// Get the resolved linkages of the used callables
 	wrapped::hash_table <index_t, Linkage> used;
 	for (auto &i : callables) {
-		ire::Callable *cbl = ire::Callable::search_tracked(i);
+		TrackedBuffer *cbl = TrackedBuffer::search_tracked(i);
 
 		Kernel cbl_kernel = cbl->export_to_kernel();
 
@@ -102,7 +102,7 @@ void Linkage::dump() const
 
 	fmt::println("Callables referenced: {}", callables.size());
 	for (auto &i : callables) {
-		ire::Callable *cbl = ire::Callable::search_tracked(i);
+		TrackedBuffer *cbl = TrackedBuffer::search_tracked(i);
 		fmt::println("  ${} (@{})", cbl->name, i);
 	}
 
@@ -142,7 +142,7 @@ void Linkage::dump() const
 		if (i == -1) {
 			fmt::println("  Block $main:");
 		} else {
-			ire::Callable *cbl = ire::Callable::search_tracked(i);
+			TrackedBuffer *cbl = TrackedBuffer::search_tracked(i);
 			fmt::println("  Block ${}:", cbl->name);
 		}
 
@@ -163,7 +163,7 @@ void Linkage::dump() const
 		if (i == -1) {
 			fmt::print("$origin ");
 		} else {
-			ire::Callable *cbl = ire::Callable::search_tracked(i);
+			TrackedBuffer *cbl = TrackedBuffer::search_tracked(i);
 			fmt::print("${} ", cbl->name);
 		}
 	}

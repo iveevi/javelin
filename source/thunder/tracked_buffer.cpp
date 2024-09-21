@@ -1,9 +1,8 @@
-#include "ire/callable.hpp"
-#include "ire/emitter.hpp"
+#include "thunder/tracked_buffer.hpp"
 
-namespace jvl::ire {
+namespace jvl::thunder {
 
-Callable::Callable() : Buffer()
+TrackedBuffer::TrackedBuffer() : Buffer()
 {
 	static size_t id = 0;
 	cid = id++;
@@ -12,14 +11,14 @@ Callable::Callable() : Buffer()
 	tracked()[cid] = this;
 }
 
-Callable::Callable(const Callable &other)
+TrackedBuffer::TrackedBuffer(const TrackedBuffer &other)
 {
 	*this = other;
 }
 
 // TODO: destructor will erase the entry if the active * == this
 
-Callable &Callable::operator=(const Callable &other)
+TrackedBuffer &TrackedBuffer::operator=(const TrackedBuffer &other)
 {
 	if (this != &other) {
 		Buffer::operator=(other);
@@ -33,19 +32,19 @@ Callable &Callable::operator=(const Callable &other)
 	return *this;
 }
 
-thunder::Kernel Callable::export_to_kernel() const
+thunder::Kernel TrackedBuffer::export_to_kernel() const
 {
 	auto kernel = Buffer::export_to_kernel();
 	kernel.name = name;
 	return kernel;
 }
 
-void Callable::dump() const
+void TrackedBuffer::dump() const
 {
 	fmt::println("------------------------------");
-	fmt::println("CALLABLE ${} ({}/{})", name, pointer, atoms.size());
+	fmt::println("TRACKED BUFFER ${} ({}/{})", name, pointer, atoms.size());
 	fmt::println("------------------------------");
 	Buffer::dump();
 }
 
-} // namespace jvl::ire
+} // namespace jvl::thunder

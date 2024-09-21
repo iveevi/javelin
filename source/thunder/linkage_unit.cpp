@@ -146,7 +146,7 @@ std::vector <index_t> LinkageUnit::process_function(const Function &ftn)
 	return referenced;
 }
 
-void LinkageUnit::add(const ire::Callable &callable)
+void LinkageUnit::add(const TrackedBuffer &callable)
 {
 	if (loaded.contains(callable.cid))
 		return;
@@ -155,7 +155,7 @@ void LinkageUnit::add(const ire::Callable &callable)
 
 	loaded.insert(callable.cid);
 	for (index_t i : referenced)	
-		add(*ire::Callable::search_tracked(i));
+		add(*TrackedBuffer::search_tracked(i));
 }
 
 //////////////////////////////////

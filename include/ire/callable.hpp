@@ -2,9 +2,7 @@
 
 #include <type_traits>
 
-#include "../thunder/atom.hpp"
-#include "../thunder/buffer.hpp"
-#include "../thunder/kernel.hpp"
+#include "../thunder/tracked_buffer.hpp"
 #include "control_flow.hpp"
 #include "ire/tagged.hpp"
 #include "type_synthesis.hpp"
@@ -12,44 +10,9 @@
 
 namespace jvl::ire {
 
-struct Callable : thunder::Buffer {
-	// Global list of callables
-	static auto &tracked() {
-		static std::unordered_map <size_t, Callable *> map;
-		return map;
-	}
-
-	static Callable *search_tracked(size_t cid) {
-		auto &t = tracked();
-		if (t.contains(cid))
-			return t[cid];
-
-		return nullptr;
-	}
-
-	// Unique id
-	size_t cid;
-
-	// An optional name (defaults to "callable<cid>")
-	std::string name;
-
-	// For callables we can track back used and synthesized
-	// insructions from working backwards at the returns
-
-	Callable();
-	Callable(const Callable &);
-	Callable &operator=(const Callable &);
-
-	// TODO: destructor, which offloads it from the global list
-
-	thunder::Kernel export_to_kernel() const;
-
-	void dump() const;
-};
-
 // Internal construction of callables
 template <non_trivial_generic_or_void R, generic ... Args>
-struct callable_t : Callable {
+struct Callable : thunder::TrackedBuffer {
 	// TODO: only R needs to be restricted, the rest can be filtered depending on synthesizable or not...
 	template <size_t index>
 	void __fill_parameter_references(std::tuple <Args...> &tpl) {
@@ -143,10 +106,10 @@ struct signature_pair {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;
 
-	using callable = callable_t <R, std::decay_t <Args>...>;
+	using callable = Callable <R, std::decay_t <Args>...>;
 
 	template <typename RR>
-	using manual_callable = callable_t <RR, std::decay_t <Args>...>;
+	using manual_callable = Callable <RR, std::decay_t <Args>...>;
 };
 
 template <typename R, typename ... Args>
@@ -180,10 +143,10 @@ struct signature <R (Args...)> {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;
 
-	using callable = callable_t <R, std::decay_t <Args>...>;
+	using callable = Callable <R, std::decay_t <Args>...>;
 
 	template <typename RR>
-	using manual_callable = callable_t <RR, std::decay_t <Args>...>;
+	using manual_callable = Callable <RR, std::decay_t <Args>...>;
 };
 
 }
