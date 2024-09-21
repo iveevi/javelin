@@ -276,7 +276,7 @@ gcc_jit_function *intrinsic_lookup(gcc_jit_context *const context, const intrins
 		break;
 	}
 
-	JVL_ABORT("unhandled case in intrinsic lookup: {}", tbl_intrinsic_operation[info.opn]);
+	JVL_ABORT("{} intrinsic is unsupported in (gcc) JIT", tbl_intrinsic_operation[info.opn]);
 }
 
 namespace detail {
@@ -311,13 +311,10 @@ gcc_jit_type *gcc_jit_function_generator_t::jitify_type(QualifiedType qt)
 
 	variant_case(QualifiedType, StructFieldType):
 	{
-		fmt::println("struct field type:");
 		std::vector <gcc_jit_field *> fields;
 
 		index_t f = 0;
 		while (!qt.is <NilType> ()) {
-			fmt::println("  current {}", qt);
-
 			gcc_jit_type *type = nullptr;
 			if (qt.is <StructFieldType> ()) {
 				auto &sft = qt.as <StructFieldType> ();
@@ -354,6 +351,37 @@ gcc_jit_type *gcc_jit_function_generator_t::jitify_type(QualifiedType qt)
 	JVL_ABORT("failed to JIT (gcc-jit) the following type: {}", original);
 }
 
+// Expanding list chains
+gcc_jit_function_generator_t::expanded_list_chain gcc_jit_function_generator_t::expand_list_chain(index_t next) const
+{
+	std::vector <PrimitiveType> argument_types;
+	std::vector <gcc_jit_rvalue *> argument_rvalues;
+
+	while (next != -1) {
+		auto &atom = atoms[next];
+		JVL_ASSERT(atom.is <List> (),
+			"intrinsic arguments must be in "
+			"the form of list chains, instead got: {}",
+			atom);
+
+		auto &list = atom.as <List> ();
+
+		auto rv = reinterpret_cast <gcc_jit_rvalue *> (values.at(list.item));
+		auto qt = types[list.item];
+
+		JVL_ASSERT(qt.is_primitive(), "intrinsic arguments must be primitives");
+
+		auto primitive = qt.as <PlainDataType> ().as <PrimitiveType> ();
+
+		argument_types.push_back(primitive);
+		argument_rvalues.push_back(rv);
+
+		next = list.next;
+	}
+
+	return { argument_types, argument_rvalues };
+}
+
 // Per-atom generator
 template <atom_instruction T>
 gcc_jit_object *generate(const T &atom, index_t i) {
@@ -387,6 +415,7 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const Primitive &primivit
 template <>
 gcc_jit_object *gcc_jit_function_generator_t::generate(const Construct &constructor, index_t index)
 {
+	// Handle the special case of transient constructors
 	if (constructor.transient) {
 		auto &atom = atoms[constructor.type];
 		JVL_ASSERT(atom.is <Qualifier> (), "transient constructors must be typed to qualifiers");
@@ -398,10 +427,31 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const Construct &construc
 			return gcc_jit_rvalue_as_object(rv);
 		}
 
-		JVL_ABORT("unhandled case for transient constructors: {}", qualifier);
+		JVL_ABORT("transient construction of {} "
+			"qualified types is unsupported",
+			tbl_qualifier_kind[qualifier.kind]);
 	}
 
-	JVL_ABORT("unfinished implementation for JIT-ing constructor: {}", constructor);
+	// Regular constructors
+	auto args = expand_list_chain(constructor.args);
+
+	fmt::println("regular constructor: {} args", args.rvalues.size());
+
+	gcc_jit_type *type = jitify_type(types[index]);
+	gcc_jit_struct *aggregate = reinterpret_cast <gcc_jit_struct *> (type);
+	
+	// Assuming a one-to-one mapping from args to fields
+	std::vector <gcc_jit_field *> fields;
+	for (size_t i = 0; i < args.rvalues.size(); i++) {
+		auto field = gcc_jit_struct_get_field(aggregate, i);
+		fields.emplace_back(field);
+	}
+
+	gcc_jit_rvalue *constructed = gcc_jit_context_new_struct_constructor(context,
+		LOCATION(context), type, args.rvalues.size(),
+		fields.data(), args.rvalues.data());
+
+	return gcc_jit_rvalue_as_object(constructed);
 }
 
 gcc_jit_object *gcc_jit_function_generator_t::load_field(index_t src, index_t index, bool lvalue)
@@ -458,41 +508,17 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const Intrinsic &intrinsi
 {
 	auto type = jitify_type(types[index]);
 
-	std::vector <PrimitiveType> argument_types;
-	std::vector <gcc_jit_rvalue *> argument_rvalues;
-
-	index_t next = intrinsic.args;
-	while (next != -1) {
-		auto &atom = atoms[next];
-		JVL_ASSERT(atom.is <List> (),
-			"intrinsic arguments must be in "
-			"the form of list chains, instead got: {}",
-			atom);
-
-		auto &list = atom.as <List> ();
-
-		auto rv = reinterpret_cast <gcc_jit_rvalue *> (values.at(list.item));
-		auto qt = types[list.item];
-
-		JVL_ASSERT(qt.is_primitive(), "intrinsic arguments must be primitives");
-
-		auto primitive = qt.as <PlainDataType> ().as <PrimitiveType> ();
-
-		argument_types.push_back(primitive);
-		argument_rvalues.push_back(rv);
-
-		next = list.next;
-	}
+	auto args = expand_list_chain(intrinsic.args);
 
 	auto info = intrinsic_lookup_info {
 		.opn = intrinsic.opn,
-		.types = argument_types,
+		.types = args.types,
 		.returns = type
 	};
 
 	auto ftn = intrinsic_lookup(context, info);
 	auto expr = gcc_jit_context_new_call(context, LOCATION(context), ftn,
-		argument_rvalues.size(), argument_rvalues.data());
+		args.rvalues.size(), args.rvalues.data());
 
 	return gcc_jit_rvalue_as_object(expr);
 }

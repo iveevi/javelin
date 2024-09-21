@@ -20,6 +20,14 @@ struct gcc_jit_function_generator_t : Buffer {
 
 	// Generating types
 	gcc_jit_type *jitify_type(QualifiedType);
+
+	// Expanding list chains
+	struct expanded_list_chain {
+		std::vector <PrimitiveType> types;
+		std::vector <gcc_jit_rvalue *> rvalues;
+	};
+
+	expanded_list_chain expand_list_chain(index_t) const;
 	
 	// Per-atom generator
 	void generate(index_t);

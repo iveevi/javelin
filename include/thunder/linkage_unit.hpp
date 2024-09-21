@@ -58,6 +58,7 @@ struct LinkageUnit {
 
 	std::string generate_glsl() const;
 	std::string generate_cpp() const;
+	void *jit() const;
 };
 
 } // namespace jvl::thunder

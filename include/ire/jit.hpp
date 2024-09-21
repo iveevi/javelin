@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../thunder/linkage_unit.hpp"
 #include "callable.hpp"
 #include "solidify.hpp"
 
@@ -14,7 +15,7 @@ constexpr void jit_check_return()
 template <typename T, typename ... Args>
 constexpr void jit_check_arguments()
 {
-	static_assert(solidifiable <T>, "function to be JIT-ed must have a arguments that are solidifiable");
+	static_assert(solidifiable <T>, "function to be JIT-ed must have arguments which are solidifiable");
 	if constexpr (solidifiable <T> && sizeof...(Args))
 		return jit_check_arguments <Args...> ();
 }
@@ -26,10 +27,12 @@ auto jit(const Callable <R, Args...> &callable)
 	jit_check_arguments <Args...> ();
 
 	using function_t = solid_t <R> (*)(solid_t <Args> ...);
-	auto kernel = callable.export_to_kernel();
-	auto linkage = kernel.linkage().resolve();
-	auto jr = linkage.generate_jit_gcc();
-	return function_t(jr.result);
+
+	thunder::LinkageUnit unit;
+	unit.add(callable);
+	auto ftn = unit.jit();
+
+	return function_t(ftn);
 }
 
 } // namespace jvl::ire
