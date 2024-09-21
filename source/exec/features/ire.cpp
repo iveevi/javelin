@@ -73,6 +73,7 @@ auto seed_to_angle = callable_info() >> [](const aux &a, const seed &s)
 namespace jvl::thunder {
 
 struct Aggregate {
+	size_t function;
 	std::string name;
 	std::vector <QualifiedType> fields;
 
@@ -101,7 +102,7 @@ struct Function : Buffer {
 using TypeMap = std::map <index_t, index_t>;
 
 struct local_layout_type {
-	index_t function;
+	size_t function;
 	index_t index;
 	QualifierKind kind;
 };
@@ -156,10 +157,11 @@ struct LinkageUnit {
 		std::map <index_t, QualifierKind> samplers;
 	} globals;
 
-	index_t new_aggregate(const std::vector <QualifiedType> &fields) {
+	index_t new_aggregate(size_t ftn, const std::vector <QualifiedType> &fields) {
 		size_t index = aggregates.size();
 	
 		Aggregate aggr {
+			.function = ftn,
 			.name = fmt::format("s{}_t", index),
 			.fields = fields
 		};
@@ -175,8 +177,69 @@ struct LinkageUnit {
 		return std::distance(aggregates.begin(), it);
 	}
 
+	void process_function_qualifier(Function &function, index_t index, index_t i, const Qualifier &qualifier) {
+		if (sampler_kind(qualifier.kind)) {
+			size_t binding = qualifier.numerical;
+			globals.samplers[binding] = qualifier.kind;
+		}
+
+		switch (qualifier.kind) {
+		case parameter:
+		{
+			size_t binding = qualifier.numerical;
+			size_t size = std::max(function.args.size(), binding + 1);
+			function.args.resize(size);
+			function.args[binding] = function.types[i];
+		} break;
+
+		case layout_in_flat:
+		case layout_in_noperspective:
+		case layout_in_smooth:
+		{
+			size_t binding = qualifier.numerical;
+			local_layout_type lin(index, qualifier.underlying, qualifier.kind);
+			globals.inputs[binding] = lin;
+		} break;
+
+		case layout_out_flat:
+		case layout_out_noperspective:
+		case layout_out_smooth:
+		{
+			size_t binding = qualifier.numerical;
+			local_layout_type lout(index, qualifier.underlying, qualifier.kind);
+			globals.outputs[binding] = lout;
+		} break;
+
+		default:
+			break;
+		}
+	}
+
+	void process_function_aggregate(TypeMap &map, const Function &function, index_t i, QualifiedType qt) {
+		std::vector <QualifiedType> fields {
+			qt.as <StructFieldType> ().base()
+		};
+
+		do {
+			auto &sft = qt.as <StructFieldType> ();
+			qt = function.types[sft.next];
+			if (qt.is <StructFieldType> ()) {
+				auto &sft = qt.as <StructFieldType> ();
+				fields.push_back(sft.base());
+			} else {
+				// TODO: if its concrete, we need to reference it...
+				JVL_ASSERT_PLAIN(qt.is_primitive());
+				fields.push_back(qt);
+			}
+		} while (qt.is <StructFieldType> ());
+
+		map[i] = new_aggregate(i, fields);
+	}
+
 	// TODO: return referenced callables
-	void process_function(const Function &ftn) {
+	std::vector <index_t> process_function(const Function &ftn) {
+		std::vector <index_t> referenced;
+
 		// TODO: run validation here as well
 		index_t index = functions.size();
 
@@ -196,94 +259,33 @@ struct LinkageUnit {
 				function.returns = function.types[i];
 
 			// Parameters and global variables
-			if (atom.is <Qualifier> ()) {
-				auto &qualifier = atom.as <Qualifier> ();
+			if (atom.is <Qualifier> ())
+				process_function_qualifier(function, index, i, atom.as <Qualifier> ());
 
-				if (sampler_kind(qualifier.kind)) {
-					size_t binding = qualifier.numerical;
-					globals.samplers[binding] = qualifier.kind;
-				}
-
-				switch (qualifier.kind) {
-				case parameter:
-				{
-					size_t binding = qualifier.numerical;
-					size_t size = std::max(function.args.size(), binding + 1);
-					function.args.resize(size);
-					function.args[binding] = function.types[i];
-				} break;
-
-				case layout_in_flat:
-				case layout_in_noperspective:
-				case layout_in_smooth:
-				{
-					size_t binding = qualifier.numerical;
-					local_layout_type lin(index, qualifier.underlying, qualifier.kind);
-					globals.inputs[binding] = lin;
-				} break;
-
-				case layout_out_flat:
-				case layout_out_noperspective:
-				case layout_out_smooth:
-				{
-					size_t binding = qualifier.numerical;
-					local_layout_type lout(index, qualifier.underlying, qualifier.kind);
-					globals.outputs[binding] = lout;
-				} break;
-
-				default:
-					break;
-				}
+			// Referenced callables
+			if (atom.is <Call> ()) {
+				auto &call = atom.as <Call> ();
+				referenced.push_back(call.cid);
 			}
 
 			// Checking for structs used by the function
 			auto qt = function.types[i];
-			if (qt.is <StructFieldType> ()) {
-				fmt::println("attempting to create aggregate for {} (@{})", qt, i);
-				std::vector <QualifiedType> fields {
-					qt.as <StructFieldType> ().base()
-				};
-
-				do {
-					auto &sft = qt.as <StructFieldType> ();
-					qt = function.types[sft.next];
-					if (qt.is <StructFieldType> ()) {
-						auto &sft = qt.as <StructFieldType> ();
-						fields.push_back(sft.base());
-					} else {
-						// TODO: if its concrete, we need to reference it...
-						JVL_ASSERT_PLAIN(qt.is_primitive());
-						fields.push_back(qt);
-					}
-				} while (qt.is <StructFieldType> ());
-
-				map[i] = new_aggregate(fields);
-			}
+			if (qt.is <StructFieldType> ())
+				process_function_aggregate(map, function, i, qt);
 		}
+
+		return referenced;
 	}
 
 	void add(const Callable &callable) {
 		if (loaded.contains(callable.cid))
 			return;
 
-		process_function(Function(callable, callable.name));
-	
-		std::queue <index_t> referenced;
-		for (size_t i = 0; i < callable.pointer; i++) {
-			auto &atom = callable[i];
-			if (atom.is <Call> ()) {
-				auto &call = atom.as <Call> ();
-				referenced.push(call.cid);
-			}
-		}
+		auto referenced = process_function(Function(callable, callable.name));
 
 		loaded.insert(callable.cid);
-		while (referenced.size()) {
-			index_t i = referenced.front();
-			referenced.pop();
-		
+		for (index_t i : referenced)	
 			add(*Callable::search_tracked(i));
-		}
 	}
 
 	std::string generate_glsl() {
@@ -310,11 +312,23 @@ struct LinkageUnit {
 			generators.emplace_back(detail::auxiliary_block_t(function, structs));
 		}
 
+		// Declare the aggregates used
+		for (auto &aggregate : aggregates) {
+			auto &generator = generators[aggregate.function];
+
+			result += "struct " + aggregate.name + " {\n";
+			for (size_t i = 0; i < aggregate.fields.size(); i++) {
+				auto ts = generator.type_to_string(aggregate.fields[i]);
+				result += fmt::format("\t{} f{}{};\n", ts.pre, i, ts.post);
+			}
+			result += "};\n\n";
+		}
+
 		// Globals: layout inputs
 		for (auto &[b, llt] : globals.inputs) {
+			// TODO: a combined generator...
 			auto &types = functions[llt.function].types;
 			auto &generator = generators[llt.function];
-
 
 			fmt::println("layout input for: {}", types[llt.index]);
 			auto ts = generator.type_to_string(types[llt.index]);
@@ -391,20 +405,6 @@ int main()
 {
 	thunder::opt_transform(seed_to_vector);
 	thunder::opt_transform(seed_to_angle);
-
-	// seed_to_vector.dump();
-
-	// fmt::println("{}",
-	// 	seed_to_vector
-	// 	.export_to_kernel()
-	// 	.compile(profiles::glsl_450));
-	
-	// seed_to_angle.dump();
-	
-	// fmt::println("{}",
-	// 	seed_to_angle
-	// 	.export_to_kernel()
-	// 	.compile(profiles::glsl_450));
 
 	thunder::LinkageUnit unit;
 	unit.add(seed_to_angle);

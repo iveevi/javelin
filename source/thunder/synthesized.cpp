@@ -58,23 +58,12 @@ void Buffer::include(index_t i)
 		synthesized.insert(i);
 		break;
 
-	// Construction is to be synthesized only
-	// if its for a transient construction, or
-	// if its for an array type
+	// Construction always takes place,
+	// and its type should always be synthesized
 	case Atom::type_index <Construct> ():
 	{
 		synthesized.insert(i);
-		// auto &constructor = atom.as <Construct> ();
-		// if (constructor.transient)
-		// 	synthesized.insert(i);
-
-		// JVL_ASSERT(constructor.type < (index_t) pointer,
-		// 	"construct type is out of bounds: {} (pointer = {})",
-		// 	atom, pointer);
-
-		// QualifiedType qt = types[constructor.type];
-		// if (qt.is <ArrayType> ())
-		// 	synthesized.insert(i);
+		synthesized.insert(atom.as <Construct> ().type);
 	} break;
 
 	// If the type information indicates a nested struct,
