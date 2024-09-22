@@ -182,6 +182,7 @@ struct stage_bracket {
 #define JVL_ERROR(...)		jvl::log::error(__module__, fmt::format(__VA_ARGS__))
 #define JVL_WARNING(...)	jvl::log::warning(__module__, fmt::format(__VA_ARGS__))
 #define JVL_INFO(...)		jvl::log::info(__module__, fmt::format(__VA_ARGS__))
+#define JVL_DEBUG_INFO(...)	jvl::log::info(__module__, fmt::format(__VA_ARGS__))
 #define JVL_NOTE(...)		jvl::log::note(fmt::format(__VA_ARGS__))
 
 #define JVL_STAGE()		jvl::log::stage_bracket __stage(__module__)
@@ -196,6 +197,7 @@ struct stage_bracket {
 #define JVL_ERROR(...)		jvl::log::error(__module__, fmt::format(__VA_ARGS__))
 #define JVL_WARNING(...)	jvl::log::warning(__module__, fmt::format(__VA_ARGS__))
 #define JVL_INFO(...)		jvl::log::info(__module__, fmt::format(__VA_ARGS__))
+#define JVL_DEBUG_INFO(...)
 #define JVL_NOTE(...)		jvl::log::note(fmt::format(__VA_ARGS__))
 
 #define JVL_STAGE()

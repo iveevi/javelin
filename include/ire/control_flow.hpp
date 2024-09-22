@@ -46,6 +46,35 @@ inline void loop(const boolean &b)
 	em.emit(branch);
 }
 
+// Python-like range loops
+template <builtin T>
+struct range {
+	T start;
+	T end;
+	T step;
+
+	range(const T &start_, const T &end_, const T &step_ = T(1))
+		: start(start_), end(end_), step(step_) {}
+};
+
+template <builtin T>
+inline T loop(const range <T>  &range)
+{
+	auto &em = Emitter::active;
+
+	T i = range.start;
+	boolean cond = i < range.end;
+	
+	auto pre = [i, range](){
+		T l = i;
+		l += range.step;
+	};
+
+	em.emit_branch(cond.synthesize().id, -1, thunder::loop_while, pre);
+
+	return i;
+}
+
 inline void end()
 {
 	auto &em = Emitter::active;

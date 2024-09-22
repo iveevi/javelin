@@ -50,6 +50,8 @@ add_library(javelin-ire STATIC
 	source/thunder/legalize_cc.cpp
 	source/thunder/linkage_unit.cpp
 	source/thunder/optimization.cpp
+	source/thunder/overload_intrinsics.cpp
+	source/thunder/overload_operations.cpp
 	source/thunder/qualified_type.cpp
 	source/thunder/stitch.cpp
 	source/thunder/synthesized.cpp
