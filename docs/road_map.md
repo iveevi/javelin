@@ -16,6 +16,8 @@
 	- Layout types and locations
 	- Buffer, image, and sampler binding locations
 - [x] Flat layout outputs
+- [ ] Push constants with offsets
+- [ ] Casting operations
 
 ## Examples
 

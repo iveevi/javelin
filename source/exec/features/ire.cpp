@@ -30,12 +30,46 @@ struct seed {
 	}
 };
 
+template <builtin T>
+struct range {
+	T start;
+	T end;
+	T step;
+
+	range(const T &start_, const T &end_, const T &step_ = T(1))
+		: start(start_), end(end_), step(step_) {}
+};
+
+template <builtin T>
+inline T loop(const range <T>  &range)
+{
+	auto &em = Emitter::active;
+
+	T i = range.start;
+	boolean cond = i < range.end;
+	
+	auto pre = [i, range](){
+		T l = i;
+		l += range.step;
+	};
+
+	em.emit_branch(cond.synthesize().id, -1, thunder::loop_while, pre);
+	return i;
+}
+
 auto seed_to_vector = callable("seed_to_vector")
 	<< std::make_tuple(seed(), 16)
 	<< [](const seed &s, int bias)
 {
 	u32 x = (s.a << s.b) ^ (s.b - s.a);
-	u32 y = bias + (s.b + s.a * s.b)/s.a;
+
+	auto iterations = range <f32> (0, 10.0, 1.618);
+
+	auto iter = loop(iterations);
+		u32 y = floatBitsToUint(bias * iter) + (s.b + s.a * s.b)/s.a;
+		x += y;
+	end();
+
 	returns(uvec2(x, y));
 };
 
@@ -43,5 +77,5 @@ int main()
 {
 	thunder::opt_transform(seed_to_vector);
 	auto unit = link(seed_to_vector, seed_to_vector);
-	fmt::println("{}", unit.generate_cpp());
+	fmt::println("{}", unit.generate_glsl());
 }

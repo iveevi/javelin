@@ -114,6 +114,16 @@ vec <T, N> dFdyFine(const vec <T, N> &v)
 }
 
 // Casting intrinsics
+inline native_t <int32_t> floatBitsToInt(const native_t <float> &v)
+{
+	return platform_intrinsic_from_args <native_t <int32_t>> (thunder::glsl_floatBitsToInt, v);
+}
+
+inline native_t <uint32_t> floatBitsToUint(const native_t <float> &v)
+{
+	return platform_intrinsic_from_args <native_t <uint32_t>> (thunder::glsl_floatBitsToUint, v);
+}
+
 template <size_t N>
 vec <int32_t, N> floatBitsToInt(const vec <float, N> &v)
 {

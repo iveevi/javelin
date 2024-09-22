@@ -303,6 +303,7 @@ struct overload_table : public wrapped::hash_table <T, overload_list> {
 };
 
 // Overload table for intrinsics
+// TODO: separate files
 static QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std::vector <QualifiedType> &args)
 {
         static const overload_table <IntrinsicOperation> table {
@@ -398,11 +399,25 @@ static QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, co
 		} },
 		
 		// GLSL casting intrinsics
+		{ glsl_floatBitsToInt, {
+                        overload::from(i32, f32),
+                        overload::from(ivec2, vec2),
+                        overload::from(ivec3, vec3),
+                        overload::from(ivec4, vec4),
+                } },
+
 		{ glsl_floatBitsToUint, {
                         overload::from(u32, f32),
                         overload::from(uvec2, vec2),
                         overload::from(uvec3, vec3),
                         overload::from(uvec4, vec4),
+                } },
+		
+		{ glsl_intBitsToFloat, {
+                        overload::from(f32, i32),
+                        overload::from(vec2, ivec2),
+                        overload::from(vec3, ivec3),
+                        overload::from(vec4, ivec4),
                 } },
                 
 		{ glsl_uintBitsToFloat, {

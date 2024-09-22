@@ -14,10 +14,17 @@ namespace jvl::ire {
 // More advanced pool which manages control flow as well as scopes of pools
 struct Emitter {
 	using index_t = thunder::index_t;
+	using precondition_t = std::optional <std::function <void ()>>;
+	using buffer_ref_t = std::reference_wrapper <thunder::Buffer>;
+
+	struct cf_await {
+		index_t ref;
+		precondition_t pre;
+	};
 
 	std::stack <bool> classify;
-	std::stack <index_t> control_flow_ends;
-	std::stack <std::reference_wrapper <thunder::Buffer>> scopes;
+	std::stack <cf_await> control_flow_ends;
+	std::stack <buffer_ref_t> scopes;
 
 	Emitter() = default;
 
@@ -27,7 +34,7 @@ struct Emitter {
 
 	// Emitting instructions during function invocation
 	index_t emit(const thunder::Atom &);
-	index_t emit(const thunder::Branch &);
+	index_t emit(const thunder::Branch &, const precondition_t & = std::nullopt);
 
 	// Instruction specific emitters
 	index_t emit_qualifier(index_t underlying, index_t numerical, thunder::QualifierKind kind) {
@@ -94,8 +101,8 @@ struct Emitter {
 		return emit(thunder::ArrayAccess(src, loc));
 	}
 
-	index_t emit_branch(index_t cond, index_t failto, thunder::BranchKind kind) {
-		return emit(thunder::Branch(cond, failto, kind));
+	index_t emit_branch(index_t cond, index_t failto, thunder::BranchKind kind, const precondition_t &pre = std::nullopt) {
+		return emit(thunder::Branch(cond, failto, kind), pre);
 	}
 
 	index_t emit_return(index_t value) {
@@ -128,10 +135,7 @@ struct Emitter {
 		return result;
 	}
 
-	// Callbacks for control flow types
-	void control_flow_callback(index_t);
-
-	// Printing the IR state
+	// Printing the active buffer
 	void dump();
 
 	static thread_local Emitter active;
