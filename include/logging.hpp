@@ -1,7 +1,6 @@
 #pragma once
 
 #include <chrono>
-#include <ratio>
 
 #include <fmt/color.h>
 
@@ -172,6 +171,10 @@ struct stage_bracket {
 // Helper macros for easier logging
 #define MODULE(name) static constexpr const char __module__[] = #name
 
+} // namespace log
+
+#ifdef JVL_DEBUG
+
 #define JVL_ASSERT(cond, ...)	jvl::log::assertion(cond, __module__, fmt::format(__VA_ARGS__), __FILE__, __LINE__)
 #define JVL_ASSERT_PLAIN(cond)	jvl::log::assertion(cond, __module__, fmt::format("{}:{}\t{}", __FILE__, __LINE__, #cond))
 
@@ -184,6 +187,18 @@ struct stage_bracket {
 #define JVL_STAGE()		jvl::log::stage_bracket __stage(__module__)
 #define JVL_STAGE_SECTION(s)	jvl::log::stage_bracket __stage(#s)
 
-// TODO: info_verbose (logging in cmd line)
+#else
 
-} // namespace log
+#define JVL_ASSERT(cond, ...)	if (cond && __module__) {}
+#define JVL_ASSERT_PLAIN(cond)	if (cond && __module__) {}
+
+#define JVL_ABORT(...)		jvl::log::abort(__module__, fmt::format(__VA_ARGS__), __FILE__, __LINE__)
+#define JVL_ERROR(...)		jvl::log::error(__module__, fmt::format(__VA_ARGS__))
+#define JVL_WARNING(...)	jvl::log::warning(__module__, fmt::format(__VA_ARGS__))
+#define JVL_INFO(...)		jvl::log::info(__module__, fmt::format(__VA_ARGS__))
+#define JVL_NOTE(...)		jvl::log::note(fmt::format(__VA_ARGS__))
+
+#define JVL_STAGE()
+#define JVL_STAGE_SECTION(s)
+
+#endif

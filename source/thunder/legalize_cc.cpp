@@ -50,11 +50,6 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 	mapped.clear();
 	em.push(mapped, false);
 
-	fmt::println("legalizing operation {} for overload ({}, {})",
-		tbl_operation_code[code],
-		tbl_primitive_types[type_a],
-		tbl_primitive_types[type_b]);
-
 	// Assuming this is a binary instruction
 	if (vector_type(type_a) && vector_type(type_b)) {
 		PrimitiveType ctype = swizzle_type_of(type_a, SwizzleCode::x);
@@ -126,10 +121,6 @@ void legalize_for_cc_vector_constructor(mapped_instruction_t &mapped,
 					const std::vector <index_t> &args,
 					const std::vector <PrimitiveType> &types)
 {
-	fmt::println("legalizing constructor for {}", tbl_primitive_types[type_to_construct]);
-	for (auto type : types)
-		fmt::println("  arg: {}", tbl_primitive_types[type]);
-
 	// For now assume only one argument when constructing heterogenously
 	JVL_ASSERT(args.size() == 1, "vector constructor legalization currently requires exactly one argument");
 	
@@ -141,7 +132,6 @@ void legalize_for_cc_vector_constructor(mapped_instruction_t &mapped,
 
 	PrimitiveType type_a = types[0];
 	if (type_a == type_to_construct) {
-		fmt::println("identical constructor");
 		size_t ccount = vector_component_count(type_to_construct);
 
 		std::vector <index_t> components;
@@ -189,10 +179,6 @@ void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 	if (opn == dot) {
 		PrimitiveType type_a = types[0];
 		PrimitiveType type_b = types[1];
-
-		JVL_INFO("legalizing dot product between {} and {}",
-			tbl_primitive_types[type_a],
-			tbl_primitive_types[type_b]);
 
 		JVL_ASSERT_PLAIN(vector_type(type_a) && vector_type(type_b));
 		JVL_ASSERT_PLAIN(swizzle_type_of(type_a, SwizzleCode::x) == swizzle_type_of(type_b, SwizzleCode::x));
@@ -286,9 +272,6 @@ void legalize_for_cc(Buffer &buffer)
 		if (auto constructor = atom.get <Construct> ()) {
 			auto ptype = primitive_type_of(buffer, constructor->type);
 			if (!constructor->transient && vector_type(ptype)) {
-				fmt::println("legalizing constructor: {}", atom);
-				fmt::println("constructor for vector type: {}", tbl_primitive_types[ptype]);
-				
 				auto args = buffer.expand_list(constructor->args);
 				std::vector <PrimitiveType> types;
 				for (auto i : args) {

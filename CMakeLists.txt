@@ -64,6 +64,9 @@ target_link_libraries(javelin-ire
 	fmt::fmt
 	gccjit)
 
+target_compile_definitions(javelin-ire PRIVATE
+	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
+
 # ImGui module for GLFW + Vulkan
 add_library(imgui SHARED
 	thirdparty/imgui/imgui.cpp
