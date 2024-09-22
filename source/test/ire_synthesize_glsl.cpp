@@ -56,7 +56,7 @@ void check_glsl_source(std::string &source, GLuint stage)
 }
 
 template <typename T>
-void simple_io()
+void simple_parameter()
 {
 	auto shader = []() {
 		layout_in <T> lin(0);
@@ -72,16 +72,16 @@ void simple_io()
 
 TEST(ire_synthesize_glsl, simple_int)
 {
-	simple_io <int> ();
+	simple_parameter <int> ();
 }
 
 TEST(ire_synthesize_glsl, simple_float)
 {
-	simple_io <float> ();
+	simple_parameter <float> ();
 }
 
 template <typename T, size_t N>
-void simple_vector_io()
+void simple_vector_parameters()
 {
 	auto shader = []() {
 		layout_in <vec <T, N>> lin(0);
@@ -97,30 +97,30 @@ void simple_vector_io()
 
 TEST(ire_synthesize_glsl, simple_int_2)
 {
-	simple_vector_io <int, 2> ();
+	simple_vector_parameters <int, 2> ();
 }
 
 TEST(ire_synthesize_glsl, simple_float_2)
 {
-	simple_vector_io <float, 2> ();
+	simple_vector_parameters <float, 2> ();
 }
 
 TEST(ire_synthesize_glsl, simple_int_3)
 {
-	simple_vector_io <int, 3> ();
+	simple_vector_parameters <int, 3> ();
 }
 
 TEST(ire_synthesize_glsl, simple_float_3)
 {
-	simple_vector_io <float, 3> ();
+	simple_vector_parameters <float, 3> ();
 }
 
 TEST(ire_synthesize_glsl, simple_int_4)
 {
-	simple_vector_io <int, 4> ();
+	simple_vector_parameters <int, 4> ();
 }
 
 TEST(ire_synthesize_glsl, simple_float_4)
 {
-	simple_vector_io <float, 4> ();
+	simple_vector_parameters <float, 4> ();
 }

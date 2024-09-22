@@ -71,10 +71,7 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 			index_t cb = em.emit(Swizzle(b, (SwizzleCode) i));
 			mapped.track(cb, 0b01);
 
-			index_t l = em.emit(List(cb, -1));
-			l = em.emit(List(ca, l));
-
-			components[i] = em.emit(Operation(l, code));
+			components[i] = em.emit(Operation(ca, cb, code));
 		}
 
 		index_t l = em.emit_list_chain(components);
@@ -94,11 +91,7 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 			index_t c = em.emit(Swizzle(a, (SwizzleCode) i));
 			mapped.track(c, 0b01);
 
-			index_t l = em.emit(List(b, -1));
-			mapped.track(l, 0b01);
-			l = em.emit(List(c, l));
-
-			components[i] = em.emit(Operation(l, code));
+			components[i] = em.emit(Operation(c, b, code));
 		}
 
 		index_t l = em.emit_list_chain(components);
@@ -114,11 +107,7 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 			index_t c = em.emit(Swizzle(b, (SwizzleCode) i));
 			mapped.track(c, 0b01);
 
-			index_t l = em.emit(List(c, -1));
-			l = em.emit(List(a, l));
-			mapped.track(l, 0b01);
-
-			components[i] = em.emit(Operation(l, code));
+			components[i] = em.emit(Operation(a, c, code));
 		}
 
 		index_t l = em.emit_list_chain(components);

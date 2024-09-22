@@ -1,7 +1,7 @@
 #include "util.hpp"
 
-#include "ire/core.hpp"
-#include "profiles/targets.hpp"
+#include <ire/core.hpp>
+#include <profiles/targets.hpp>
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -9,16 +9,16 @@ using namespace jvl::ire;
 const std::string expected_sum_glsl = R"(
 #version 450
 
-int main(int _arg0)
+int sum(int _arg0, int _arg1)
 {
-    return _arg0;
+    return (_arg0 + _arg1);
 }
 )";
 
 TEST(ire_callable, sum)
 {
-	auto ftn = [](i32 x) {
-		return x;
+	auto ftn = [](i32 x, i32 y) {
+		return x + y;
 	};
 
 	auto F = callable("sum") << ftn;
@@ -29,11 +29,10 @@ TEST(ire_callable, sum)
 	check_shader_sources(expected_sum_glsl, glsl);
 }
 
-// TODO: refactor to callables' names
 const std::string expected_arithmetic_glsl = R"(
 #version 450
 
-float main(float _arg0, float _arg1, float _arg2)
+float arithmetic(float _arg0, float _arg1, float _arg2)
 {
     return ((_arg0 + (_arg1 * _arg2)) / ((((_arg0 + (_arg1 * _arg2)) / (_arg0 - _arg1)) * _arg2) * _arg2));
 }
@@ -75,7 +74,7 @@ TEST(ire_callable, returns)
 const std::string expected_conditional_returns_glsl = R"(
 #version 450
 
-float main(float _arg0, float _arg1, float _arg2)
+float conditional(float _arg0, float _arg1, float _arg2)
 {
     if (((_arg0 + (_arg1 * _arg2)) < 0)) {
         return ((_arg0 + (_arg1 * _arg2)) / ((((_arg0 + (_arg1 * _arg2)) / (_arg0 - _arg1)) * _arg2) * _arg2));
@@ -113,7 +112,7 @@ struct s0_t {
     mat4 f2;
 };
 
-vec4 main(s0_t _arg0, vec3 _arg1)
+vec4 project(s0_t _arg0, vec3 _arg1)
 {
     vec4 s0 = vec4(_arg1, 1);
     s0 = (_arg0.f0 * s0);
@@ -164,9 +163,10 @@ struct s0_t {
     uint f1;
 };
 
-uint main(s0_t _arg0)
+s0_t shift_seed(s0_t _arg0)
 {
-    return ((_arg0.f0 << _arg0.f1) & (_arg0.f1 | _arg0.f0));
+    s0_t s0 = s0_t(((_arg0.f0 << _arg0.f1) & (_arg0.f1 | _arg0.f0)), (_arg0.f1 | _arg0.f0));
+    return s0;
 }
 )";
 

@@ -244,7 +244,7 @@ void generate_aggregates(std::string &result,
 		result += "struct " + aggregate.name + " {\n";
 		for (size_t i = 0; i < aggregate.fields.size(); i++) {
 			auto ts = generator.type_to_string(aggregate.fields[i]);
-			result += fmt::format("\t{} f{}{};\n", ts.pre, i, ts.post);
+			result += fmt::format("    {} f{}{};\n", ts.pre, i, ts.post);
 		}
 		result += "};\n\n";
 	}
@@ -288,7 +288,7 @@ void generat_push_constant(std::string &result,
 
 	result += "layout (push_constant) uniform block\n";
 	result += "{\n";
-	result += fmt::format("\t{} _pc;\n", ts.pre + ts.post);
+	result += fmt::format("    {} _pc;\n", ts.pre + ts.post);
 	result += "};\n\n";
 }
 
@@ -497,6 +497,10 @@ auto used_primitives(const std::vector <Function> &functions)
 std::string LinkageUnit::generate_cpp() const
 {
 	std::string result;
+
+	// Add the necessary headers
+	result += "#include <cstdint>\n";
+	result += "\n";
 
 	// Collect and synthesize all the primitives that are used
 	for (auto p : used_primitives(functions)) {
