@@ -38,6 +38,9 @@ bool opt_transform_dead_code_elimination(Buffer &);
 // TODO: options to control level of optimization
 void opt_transform(Buffer &);
 
+// Legalizing instructions for C-family compiled targets
+void legalize_for_cc(Buffer &);
+
 // Stitching mapped instruction blocks
 void stitch_mapped_instructions(Buffer &, std::vector <mapped_instruction_t> &);
 

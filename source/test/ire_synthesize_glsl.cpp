@@ -64,11 +64,8 @@ void simple_io()
 		lout = lin;
 	};
 
-	auto cbl = callable_info_r("main") << shader;
-	
-	thunder::LinkageUnit unit;
-	unit.add(cbl);
-	auto glsl = unit.generate_glsl();
+	auto F = callable("main") << shader;
+	auto glsl = link(F).generate_glsl();
 
 	check_glsl_source(glsl, GL_VERTEX_SHADER);
 }
@@ -92,11 +89,8 @@ void simple_vector_io()
 		lout = lin;
 	};
 
-	auto cbl = callable_info_r("main") << shader;
-	
-	thunder::LinkageUnit unit;
-	unit.add(cbl);
-	auto glsl = unit.generate_glsl();
+	auto F = callable("main") << shader;
+	auto glsl = link(F).generate_glsl();
 
 	check_glsl_source(glsl, GL_VERTEX_SHADER);
 }

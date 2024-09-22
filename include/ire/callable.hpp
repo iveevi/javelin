@@ -165,36 +165,84 @@ struct signature <R (Args...)> {
 
 }
 
-// For functions which have concrete return types already
-template <detail::acceptable_callable F>
+// Interface for constructing callables from functions
+template <non_trivial_generic_or_void R = void>
+struct callable {
+	std::string name;
+
+	callable(const std::string &name_)
+		: name(name_) {}
+};
+
+template <non_trivial_generic_or_void R, typename ... Args>
+struct callable_args : callable <R> {
+	std::tuple <Args...> args;
+
+	callable_args(const std::string &name_,
+		      const std::tuple <Args...> &args_)
+		: callable <R> (name_), args(args_) {}
+};
+
+template <non_trivial_generic_or_void R, typename ... Args>
+auto operator<<(const callable <R> &C, const std::tuple <Args...> &args)
+{
+	return callable_args <R, Args...> (C.name, args);
+}
+
+template <non_trivial_generic_or_void R, typename T>
+requires (!detail::acceptable_callable <T>)
+auto operator<<(const callable <R> &C, const T &arg)
+{
+	return callable_args <R, T> (C.name, std::make_tuple(arg));
+}
+
+template <non_trivial_generic_or_void R, detail::acceptable_callable F, typename ... Args>
 requires (!std::same_as <typename detail::signature <F> ::return_t, void>)
-auto callable(F ftn)
+auto operator<<(const callable_args <R, Args...> &C, F ftn)
 {
 	using S = detail::signature <F>;
 
-	typename S::callable cbl;
+	if constexpr (sizeof...(Args)) {
+		// Make sure the types match
+		using required = typename S::args_t;
+		using provided = decltype(C.args);
+		static_assert(std::same_as <required, provided>);
+	}
 
+	typename S::callable cbl;
 	cbl.begin();
 		if constexpr (std::same_as <typename S::args_t, std::nullopt_t>) {
 			auto values = ftn();
 			returns(values);
 		} else {
 			auto args = typename S::args_t();
+			if constexpr (sizeof...(Args))
+				args = C.args;
+
 			cbl.call(args);
 			auto values = std::apply(ftn, args);
 			returns(values);
 		}
 	cbl.end();
 
-	return cbl;
+	return cbl.named(C.name);
 }
 
 // Void functions are presumbed to contain returns(...) statements already
-template <non_trivial_generic_or_void R, detail::acceptable_callable F>
+template <non_trivial_generic_or_void R, detail::acceptable_callable F, typename ... Args>
 requires (std::same_as <typename detail::signature <F> ::return_t, void>)
-auto callable(F ftn)
+auto operator<<(const callable_args <R, Args...> &C, F ftn)
 {
 	using S = detail::signature <F>;
+	
+	if constexpr (sizeof...(Args)) {
+		// Make sure the types match
+		using required = typename S::args_t;
+		using provided = decltype(C.args);
+		static_assert(std::same_as <required, provided>,
+			"arguments piped to the callable interface "
+			"must match the arguments of the function");
+	}
 
 	typename S::template manual_callable <R> cbl;
 	cbl.begin();
@@ -202,52 +250,22 @@ auto callable(F ftn)
 			ftn();
 		} else {
 			auto args = typename S::args_t();
+			if constexpr (sizeof...(Args))
+				args = C.args;
+
 			cbl.call(args);
 			std::apply(ftn, args);
 		}
 	cbl.end();
 
-	return cbl;
+	return cbl.named(C.name);
 }
 
-// Conversion tricks inline
-class callable_info {
-	std::optional <std::string> name_;
-public:
-	callable_info() = default;
-	callable_info(const std::string &name) : name_(name) {}
-
-	auto &name(const std::string &name) {
-		name_ = name;
-		return *this;
-	}
-
-	friend auto operator<<(callable_info ci, auto ftn) {
-		auto cbl = callable(ftn);
-		if (ci.name_)
-			cbl = cbl.named(*ci.name_);
-		return cbl;
-	}
-};
-
-template <non_trivial_generic_or_void R = void>
-class callable_info_r {
-	std::optional <std::string> name_;
-public:
-	callable_info_r() = default;
-	callable_info_r(const std::string &name) : name_(name) {}
-
-	auto &name(const std::string &name) {
-		name_ = name;
-		return *this;
-	}
-
-	friend auto operator<<(callable_info_r ci, auto ftn) {
-		auto cbl = callable <R> (ftn);
-		if (ci.name_)
-			cbl = cbl.named(*ci.name_);
-		return cbl;
-	}
-};
+template <non_trivial_generic_or_void R, typename F>
+requires detail::acceptable_callable <F>
+auto operator<<(const callable <R> &C, F ftn)
+{
+	return callable_args <R> (C.name, {}) << ftn;
+}
 
 } // namespace jvl::ire

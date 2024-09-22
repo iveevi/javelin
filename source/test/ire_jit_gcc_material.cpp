@@ -49,7 +49,7 @@ struct ReferenceMaterial {
 };
 
 // GGX microfacet distribution function
-auto ftn = callable_info() << [](Material mat, vec3 n, vec3 h)
+auto ftn = callable("ggx_ndf") << [](Material mat, vec3 n, vec3 h)
 {
 	f32 alpha = mat.roughness;
 	f32 theta = acos(clamp(dot(n, h), 0.0f, 0.999f));
@@ -71,7 +71,7 @@ auto ref = [](ReferenceMaterial mat, aligned_float3 n, aligned_float3 h)
 
 TEST(ire_jit, material)
 {
-	// thunder::detail::legalize_for_cc(ftn);
+	thunder::legalize_for_cc(ftn);
 	thunder::opt_transform(ftn);
 	auto compiled = jit(ftn);
 

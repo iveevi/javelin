@@ -6,7 +6,7 @@
 #include "thunder/properties.hpp"
 #include "thunder/qualified_type.hpp"
 
-namespace jvl::thunder::detail {
+namespace jvl::thunder {
 
 MODULE(legalize-cc);
 
@@ -332,4 +332,4 @@ void legalize_for_cc(Buffer &buffer)
 	stitch_mapped_instructions(buffer, mapped);
 }
 
-} // namespace jvl::thunder::detail
+} // namespace jvl::thunder

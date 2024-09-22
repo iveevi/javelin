@@ -30,32 +30,18 @@ struct seed {
 	}
 };
 
-auto seed_to_vector = callable_info() << [](const seed &s)
+auto seed_to_vector = callable("seed_to_vector")
+	<< std::make_tuple(seed(), 16)
+	<< [](const seed &s, int bias)
 {
 	u32 x = (s.a << s.b) ^ (s.b - s.a);
-	u32 y = (s.b + s.a * s.b)/s.a;
-	return uvec2(x, y);
+	u32 y = bias + (s.b + s.a * s.b)/s.a;
+	returns(uvec2(x, y));
 };
 
 int main()
 {
 	thunder::opt_transform(seed_to_vector);
-
-	thunder::LinkageUnit unit;
-	// unit.add(seed_to_angle);
-	unit.add(seed_to_vector);
-
+	auto unit = link(seed_to_vector, seed_to_vector);
 	fmt::println("{}", unit.generate_cpp());
-
-	auto ftn = unit.jit();
-
-	auto f = jit(seed_to_vector);
-
-	auto s = solid_t <seed> ();
-	s.get <0> () = 1;
-	s.get <1> () = 5;
-
-	auto v = f(s);
-
-	fmt::println("v: ({}, {})", v.x, v.y);
 }

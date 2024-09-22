@@ -8,6 +8,7 @@
 #include "emitter.hpp"
 #include "jit.hpp"
 #include "layout_io.hpp"
+#include "linking.hpp"
 #include "matrix.hpp"
 #include "push_constant.hpp"
 #include "sampler.hpp"
@@ -21,5 +22,3 @@
 // TODO: organize into different targets, i.e. core/glsl.hpp, core/spirv.hpp, etc.
 // TODO: debug only
 #include "guarantees.hpp"
-
-#include "../thunder/linkage_unit.hpp"

@@ -21,11 +21,8 @@ TEST(ire_callable, sum)
 		return x;
 	};
 
-	auto cbl = callable(ftn).named("sum");
-
-	thunder::LinkageUnit unit;
-	unit.add(cbl);
-	auto glsl = unit.generate_glsl();
+	auto F = callable("sum") << ftn;
+	auto glsl = link(F).generate_glsl();
 
 	// fmt::println("{}", glsl);
 
@@ -50,11 +47,8 @@ TEST(ire_callable, arithmetic)
 		return a / b;
 	};
 
-	auto cbl = callable(ftn).named("arithemtic");
-	
-	thunder::LinkageUnit unit;
-	unit.add(cbl);
-	auto glsl = unit.generate_glsl();
+	auto F = callable("arithmetic") << ftn;
+	auto glsl = link(F).generate_glsl();
 	
 	// fmt::println("{}", glsl);
 
@@ -69,11 +63,8 @@ TEST(ire_callable, returns)
 		returns(a / b);
 	};
 
-	auto cbl = callable <f32> (ftn).named("arithemtic");
-	
-	thunder::LinkageUnit unit;
-	unit.add(cbl);
-	auto glsl = unit.generate_glsl();
+	auto F = callable <f32> ("arithmetic") << ftn;
+	auto glsl = link(F).generate_glsl();
 	
 	// fmt::println("{}", glsl);
 
@@ -107,11 +98,8 @@ TEST(ire_callable, conditional_returns)
 		return a;
 	};
 
-	auto cbl = callable(ftn).named("conditional");
-	
-	thunder::LinkageUnit unit;
-	unit.add(cbl);
-	auto glsl = unit.generate_glsl();
+	auto cbl = callable("conditional") << ftn;
+	auto glsl = link(cbl).generate_glsl();
 
 	check_shader_sources(expected_conditional_returns_glsl, glsl);
 }
@@ -160,11 +148,8 @@ TEST(ire_callable, struct_parameter)
 		return vh;
 	};
 
-	auto cbl = callable(ftn).named("project");
-	
-	thunder::LinkageUnit unit;
-	unit.add(cbl);
-	auto glsl = unit.generate_glsl();
+	auto F = callable("project") << ftn;
+	auto glsl = link(F).generate_glsl();
 
 	// fmt::println("{}", glsl);
 
@@ -206,11 +191,8 @@ TEST(ire_callable, struct_return)
 		return Seed(a & b, b);
 	};
 
-	auto cbl = callable(ftn).named("shift_seed");
-	
-	thunder::LinkageUnit unit;
-	unit.add(cbl);
-	auto glsl = unit.generate_glsl();
+	auto F = callable("shift_seed") << ftn;
+	auto glsl = link(F).generate_glsl();
 	
 	// fmt::println("{}", glsl);
 
