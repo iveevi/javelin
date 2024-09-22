@@ -87,6 +87,11 @@ Emitter::index_t Emitter::emit(const thunder::Branch &branch, const precondition
 		branch.failto = i;
 	} return i;
 
+	// These two are simply keywords
+	case thunder::control_flow_skip:
+	case thunder::control_flow_stop:
+		return i;
+
 	default:
 		break;
 	}

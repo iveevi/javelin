@@ -41,6 +41,10 @@ auto seed_to_vector = callable("seed_to_vector")
 	auto iter = loop(iterations);
 		u32 y = floatBitsToUint(bias * iter) + (s.b + s.a * s.b)/s.a;
 		x += y;
+
+		cond(x % 2 == 1);
+			stop();
+		end();
 	end();
 
 	returns(uvec2(x, y));

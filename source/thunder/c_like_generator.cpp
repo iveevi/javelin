@@ -486,6 +486,12 @@ void c_like_generator_t::generate(const Branch &branch, index_t)
 		indentation++;
 		return;
 
+	case control_flow_skip:
+		return finish("continue", true);
+	
+	case control_flow_stop:
+		return finish("break", true);
+
 	default:
 		break;
 	}

@@ -75,12 +75,22 @@ inline T loop(const range <T>  &range)
 	return i;
 }
 
+[[gnu::always_inline]]
+inline void stop()
+{
+	Emitter::active.emit_branch(-1, -1, thunder::control_flow_stop);
+}
+
+[[gnu::always_inline]]
+inline void skip()
+{
+	Emitter::active.emit_branch(-1, -1, thunder::control_flow_skip);
+}
+
+[[gnu::always_inline]]
 inline void end()
 {
-	auto &em = Emitter::active;
-	thunder::Branch branch;
-	branch.kind = thunder::control_flow_end;
-	em.emit(branch);
+	Emitter::active.emit_branch(-1, -1, thunder::control_flow_end);
 }
 
 // TODO: match/match_case statements

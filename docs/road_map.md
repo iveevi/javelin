@@ -8,7 +8,8 @@
 - [ ] Uniform variables and buffers (GLSL)
 - [ ] Storage buffer objects (GLSL)
 - [x] Image and sampler objects (GLSL)
-- [ ] For loop control flow
+- [x] For loop control flow
+	- Equivalent declarations for `break` and `continue` statements
 - [ ] Match-case control flow or equivalent
 - [ ] Target conditional code
 	- Resolved and optimized during compilation

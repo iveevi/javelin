@@ -178,6 +178,8 @@ enum BranchKind : int8_t {
 	conditional_else,
 	loop_while,
 	loop_for,
+	control_flow_skip,
+	control_flow_stop,
 	control_flow_end,
 	__bk_end
 };
@@ -188,6 +190,8 @@ static constexpr const char *tbl_branch_kind[] = {
 	"else",
 	"while",
 	"for",
+	"continue",
+	"break",
 	"end",
 	"__end"
 };
