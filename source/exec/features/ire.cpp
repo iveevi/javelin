@@ -30,12 +30,13 @@ struct seed {
 	}
 };
 
-auto seed_to_vector = callable_info() >> [](const seed &s)
+auto seed_to_vector = callable_info() << [](const seed &s)
 {
 	u32 x = (s.a << s.b) ^ (s.b - s.a);
 	u32 y = (s.b + s.a * s.b)/s.a;
 	return uvec2(x, y);
 };
+
 int main()
 {
 	thunder::opt_transform(seed_to_vector);

@@ -1,3 +1,5 @@
+#include <thunder/opt.hpp>
+
 #include "viewport_render_group.hpp"
 #include "viewport.hpp"
 
@@ -186,14 +188,36 @@ void ViewportRenderGroup::configure_pipeline_mode(DeviceResourceCollection &drc,
 {
 	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
 
-	std::string vertex_shader;
-	std::string fragment_shader;
+	auto &em = Emitter::active;
 
-	// std::string vertex_shader = kernel_from_args(vertex, mode)
-	// 	.compile(profiles::glsl_450);
+	thunder::TrackedBuffer vs_callable;
+	vs_callable.name = "main";
 
-	// std::string fragment_shader = kernel_from_args(fragment, mode)
-	// 	.compile(profiles::glsl_450);
+	em.push(vs_callable);
+		vertex(mode);
+	em.pop();
+
+	// thunder::opt_transform(vs_callable);
+	
+	thunder::TrackedBuffer fs_callable;
+	fs_callable.name = "main";
+
+	em.push(fs_callable);
+		fragment(mode);
+	em.pop();
+	
+	// thunder::opt_transform(fs_callable);
+
+	thunder::LinkageUnit vs_unit;
+	vs_unit.add(vs_callable);
+
+	std::string vertex_shader = vs_unit.generate_glsl();
+	
+	thunder::LinkageUnit fs_unit;
+	fs_unit.add(fs_callable);
+	
+	fs_callable.dump();
+	std::string fragment_shader = fs_unit.generate_glsl();
 
 	auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
 		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)

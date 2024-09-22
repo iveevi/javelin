@@ -325,6 +325,9 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 {
 	// TODO: might need some target specific handling
 	switch (qt.index()) {
+	
+	case QualifiedType::type_index <NilType> ():
+		return { "void", "" };
 
 	case QualifiedType::type_index <ArrayType> ():
 	{
@@ -343,11 +346,10 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 			return { .pre = tbl_primitive_types[*p], .post = "" };
 
 		index_t concrete = pd.as <index_t> ();
-		JVL_ASSERT(struct_names.contains(concrete),
-			"concrete type %{} has no associated name: {}",
-			concrete, qt);
+		if (struct_names.contains(concrete))
+			return { .pre = struct_names.at(concrete), .post = "" };
 
-		return { .pre = struct_names.at(concrete), .post = "" };
+		return type_to_string(types[concrete]);
 	}
 
 	default:

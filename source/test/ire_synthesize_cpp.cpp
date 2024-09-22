@@ -36,7 +36,7 @@ void simple_io()
 		lout = lin;
 	};
 	
-	auto cbl = callable_info_r <i32> ("main") >> shader;
+	auto cbl = callable_info_r <i32> ("main") << shader;
 	
 	thunder::LinkageUnit unit;
 	unit.add(cbl);
@@ -64,7 +64,7 @@ void simple_vector_io()
 		lout = lin;
 	};
 
-	auto cbl = callable_info_r <i32> ("main") >> shader;
+	auto cbl = callable_info_r <i32> ("main") << shader;
 
 	thunder::LinkageUnit unit;
 	unit.add(cbl);

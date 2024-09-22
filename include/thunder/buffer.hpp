@@ -1,5 +1,7 @@
 #pragma once
 
+#include <set>
+
 #include "atom.hpp"
 #include "qualified_type.hpp"
 
@@ -16,7 +18,7 @@ class Buffer {
 	// Populate the synthesized set
 	void include(index_t);
 public:
-	std::unordered_set <index_t> synthesized;
+	std::set <index_t> synthesized;
 	std::vector <QualifiedType> types;
 	std::vector <Atom> atoms;
 	size_t pointer;

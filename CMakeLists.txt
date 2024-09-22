@@ -60,7 +60,9 @@ target_compile_options(javelin-ire PRIVATE
 	-fno-rtti
 	$<$<CONFIG:Debug>:-Wall;-Werror>)
 
-target_link_libraries(javelin-ire fmt::fmt)
+target_link_libraries(javelin-ire
+	fmt::fmt
+	gccjit)
 
 # ImGui module for GLFW + Vulkan
 add_library(imgui SHARED
@@ -93,7 +95,11 @@ target_compile_options(editor PRIVATE
 	-fno-rtti
 	$<$<CONFIG:Debug>:-Wall;-Werror>)
 
-target_link_libraries(editor fmt::fmt ${VULKAN_LIBRARY_SET} imgui javelin-ire)
+target_link_libraries(editor
+	fmt::fmt
+	${VULKAN_LIBRARY_SET}
+	imgui
+	javelin-ire)
 
 # Experimental program for the IRE system
 add_executable(ire-features
@@ -129,4 +135,8 @@ add_executable(test
 
 set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)
 
-target_link_libraries(test GTest::gtest_main javelin-ire glfw gccjit)
+target_link_libraries(test
+	GTest::gtest_main
+	javelin-ire
+	glfw
+	gccjit)

@@ -55,12 +55,22 @@ void LinkageUnit::process_function_qualifier(Function &function, index_t index, 
 	}
 
 	switch (qualifier.kind) {
+
 	case parameter:
 	{
 		size_t binding = qualifier.numerical;
 		size_t size = std::max(function.args.size(), binding + 1);
 		function.args.resize(size);
 		function.args[binding] = function.types[i];
+	} break;
+
+	case push_constant:
+	{
+		globals.push_constant = {
+			(size_t) index,
+			i,
+			push_constant
+		};
 	} break;
 
 	case layout_in_flat:
@@ -255,12 +265,31 @@ void generate_layout_io(std::string &result,
 		auto ts = generator.type_to_string(types[llt.index]);
 		auto interpolation = layout_interpolationstring(llt.kind);
 
-		result += fmt::format("layout (location = {}) {} {} {}_l{}{};\n",
-			b, iot, ts.pre + ts.post, interpolation, iot, b);
+		result += fmt::format("layout (location = {}) {} {}{} _l{}{};\n",
+			b, iot, interpolation, ts.pre + ts.post, iot, b);
 	}
 
 	if (list.size())
 		result += "\n";
+}
+
+void generat_push_constant(std::string &result,
+			   const generator_list &generators,
+			   const std::vector <Function> &functions,
+			   local_layout_type pc)
+{
+	if (pc.index == -1)
+		return;
+		
+	auto &types = functions[pc.function].types;
+	auto &generator = generators[pc.function];
+
+	auto ts = generator.type_to_string(types[pc.index]);
+
+	result += "layout (push_constant) uniform block\n";
+	result += "{\n";
+	result += fmt::format("\t{} _pc;\n", ts.pre + ts.post);
+	result += "};\n\n";
 }
 
 void generat_samplers(std::string &result,
@@ -317,6 +346,9 @@ std::string LinkageUnit::generate_glsl() const
 	// Globals: layout inputs and outputs
 	generate_layout_io(result, generators, functions, "in", globals.inputs);
 	generate_layout_io(result, generators, functions, "out", globals.outputs);
+	
+	// Globals: push constants
+	generat_push_constant(result, generators, functions, globals.push_constant);
 
 	// Globals: samplers
 	generat_samplers(result, globals.samplers);

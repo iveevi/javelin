@@ -11,9 +11,8 @@
 namespace jvl::ire {
 
 // Internal construction of callables
-template <non_trivial_generic_or_void R, generic ... Args>
+template <non_trivial_generic_or_void R, typename ... Args>
 struct Callable : thunder::TrackedBuffer {
-	// TODO: only R needs to be restricted, the rest can be filtered depending on synthesizable or not...
 	template <size_t index>
 	void __fill_parameter_references(std::tuple <Args...> &tpl)
 	requires (sizeof...(Args) > 0) {
@@ -29,7 +28,7 @@ struct Callable : thunder::TrackedBuffer {
 			thunder::index_t q = em.emit_qualifier(t, index, thunder::parameter);
 			thunder::index_t c = em.emit_construct(q, -1, true);
 			layout.ref_with(cache_index_t::from(c));
-		} else {
+		} else if constexpr (builtin <type_t>) {
 			auto &x = std::get <index> (tpl);
 
 			using T = std::decay_t <decltype(x)>;
@@ -37,6 +36,8 @@ struct Callable : thunder::TrackedBuffer {
 			thunder::index_t t = type_field_from_args <T> ().id;
 			thunder::index_t q = em.emit_qualifier(t, index, thunder::parameter);
 			x.ref = em.emit_construct(q, -1, true);
+		} else {
+			// Otherwise treat it as a parameter for Type I partial specialization
 		}
 
 		if constexpr (index + 1 < sizeof...(Args))
@@ -103,7 +104,7 @@ concept acceptable_callable = std::is_function_v <F> || requires(const F &ftn) {
 	{ std::function(ftn) };
 };
 
-template <non_trivial_generic_or_void R, generic ... Args>
+template <non_trivial_generic_or_void R, typename ... Args>
 struct signature_pair {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;
@@ -151,7 +152,7 @@ struct signature {
 };
 
 // Exception for real functions, which cannot be instantiated
-template <non_trivial_generic R, generic ... Args>
+template <non_trivial_generic R, typename ... Args>
 struct signature <R (Args...)> {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;
@@ -165,7 +166,6 @@ struct signature <R (Args...)> {
 }
 
 // For functions which have concrete return types already
-// TODO: type restrictions with concepts
 template <detail::acceptable_callable F>
 requires (!std::same_as <typename detail::signature <F> ::return_t, void>)
 auto callable(F ftn)
@@ -175,17 +175,22 @@ auto callable(F ftn)
 	typename S::callable cbl;
 
 	cbl.begin();
-		auto args = typename S::args_t();
-		cbl.call(args);
-		auto values = std::apply(ftn, args);
-		returns(values);
+		if constexpr (std::same_as <typename S::args_t, std::nullopt_t>) {
+			auto values = ftn();
+			returns(values);
+		} else {
+			auto args = typename S::args_t();
+			cbl.call(args);
+			auto values = std::apply(ftn, args);
+			returns(values);
+		}
 	cbl.end();
 
 	return cbl;
 }
 
 // Void functions are presumbed to contain returns(...) statements already
-template <generic R, detail::acceptable_callable F>
+template <non_trivial_generic_or_void R, detail::acceptable_callable F>
 requires (std::same_as <typename detail::signature <F> ::return_t, void>)
 auto callable(F ftn)
 {
@@ -217,7 +222,7 @@ public:
 		return *this;
 	}
 
-	friend auto operator>>(callable_info ci, auto ftn) {
+	friend auto operator<<(callable_info ci, auto ftn) {
 		auto cbl = callable(ftn);
 		if (ci.name_)
 			cbl = cbl.named(*ci.name_);
@@ -225,7 +230,7 @@ public:
 	}
 };
 
-template <non_trivial_generic R>
+template <non_trivial_generic_or_void R = void>
 class callable_info_r {
 	std::optional <std::string> name_;
 public:
@@ -237,7 +242,7 @@ public:
 		return *this;
 	}
 
-	friend auto operator>>(callable_info_r ci, auto ftn) {
+	friend auto operator<<(callable_info_r ci, auto ftn) {
 		auto cbl = callable <R> (ftn);
 		if (ci.name_)
 			cbl = cbl.named(*ci.name_);

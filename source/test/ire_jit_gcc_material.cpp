@@ -49,7 +49,7 @@ struct ReferenceMaterial {
 };
 
 // GGX microfacet distribution function
-auto ftn = callable_info() >> [](Material mat, vec3 n, vec3 h)
+auto ftn = callable_info() << [](Material mat, vec3 n, vec3 h)
 {
 	f32 alpha = mat.roughness;
 	f32 theta = acos(clamp(dot(n, h), 0.0f, 0.999f));

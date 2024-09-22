@@ -39,7 +39,7 @@ struct LinkageUnit {
 	std::vector <TypeMap> maps;
 
 	struct {
-		index_t push_constant = -1;
+		local_layout_type push_constant = { 0, -1 };
 		std::map <index_t, local_layout_type> outputs;
 		std::map <index_t, local_layout_type> inputs;
 		std::map <index_t, QualifierKind> samplers;
