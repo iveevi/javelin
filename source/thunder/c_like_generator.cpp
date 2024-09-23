@@ -31,7 +31,9 @@ static std::optional <std::string> generate_global_reference(const Qualifier &qu
 	case QualifierKind::uniform:
 		return fmt::format("_uniform{}", qualifier.numerical);
 
+	case QualifierKind::storage_buffer:
 	case QualifierKind::read_only_storage_buffer:
+	case QualifierKind::write_only_storage_buffer:
 		return fmt::format("_buffer{}", qualifier.numerical);
 
 	// GLSL images and samplers

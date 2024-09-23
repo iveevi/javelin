@@ -6,8 +6,8 @@
 	- For CC targets, solidify into wide arrays
 - [ ] `inout` and `out` qualifiers for parameters
 - [x] Uniform variables and buffers (GLSL)
-- [ ] Storage buffer objects (GLSL)
-	- read only, write only
+- [x] Storage buffer objects (GLSL)
+	- read-write, read only, write only
 - [x] Image and sampler objects (GLSL)
 - [x] For loop control flow
 	- Equivalent declarations for `break` and `continue` statements

@@ -86,9 +86,14 @@ template <generic T>
 using uniform = bound_buffer_object <T, thunder::uniform>;
 
 template <generic T>
+using buffer = bound_buffer_object <T, thunder::storage_buffer>;
+
+template <generic T>
 using read_only_buffer = bound_buffer_object <T, thunder::read_only_storage_buffer>;
 
-// TODO: read only, write only, read-write...
+template <generic T>
+using write_only_buffer = bound_buffer_object <T, thunder::write_only_storage_buffer>;
+
 // TODO: shared variables
 
 } // namespace jvl::ire

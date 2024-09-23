@@ -92,7 +92,9 @@ enum QualifierKind : int8_t {
 
 	uniform,
 
+	storage_buffer,
 	read_only_storage_buffer,
+	write_only_storage_buffer,
 	
 	isampler_1d,
 	isampler_2d,
@@ -134,7 +136,9 @@ static constexpr const char *tbl_qualifier_kind[] = {
 
 	"uniform",
 
-	"buffer (read)",
+	"buffer (read-write)",
+	"buffer (read-only)",
+	"buffer (write-only)",
 
 	"isampler1D",
 	"isampler2D",

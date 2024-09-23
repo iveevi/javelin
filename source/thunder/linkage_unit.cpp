@@ -93,7 +93,9 @@ void LinkageUnit::process_function_qualifier(Function &function, index_t index, 
 		globals.uniforms[binding] = un;
 	} break;
 
+	case storage_buffer:
 	case read_only_storage_buffer:
+	case write_only_storage_buffer:
 	{
 		size_t binding = qualifier.numerical;
 		local_layout_type bf(index, qualifier.underlying, qualifier.kind);
@@ -319,6 +321,22 @@ void generat_uniforms(std::string &result,
 	}
 }
 
+static std::string buffer_qualifier(QualifierKind kind)
+{
+	switch (kind) {
+	case storage_buffer:
+		return "";
+	case read_only_storage_buffer:
+		return "readonly ";
+	case write_only_storage_buffer:
+		return "writeonly ";
+	default:
+		break;
+	}
+
+	return "<buffer:?>";
+}
+
 void generat_buffers(std::string &result,
 		     const generator_list &generators,
 		     const std::vector <Function> &functions,
@@ -330,7 +348,8 @@ void generat_buffers(std::string &result,
 
 		auto ts = generator.type_to_string(types[llt.index]);
 
-		result += fmt::format("layout (binding = {}) readonly buffer bblock{}\n", b, b);
+		result += fmt::format("layout (binding = {}) {}buffer bblock{}\n",
+			b, buffer_qualifier(llt.kind), b);
 		result += "{\n";
 		result += fmt::format("    {} _buffer{};\n", ts.pre + ts.post, b);
 		result += "};\n\n";

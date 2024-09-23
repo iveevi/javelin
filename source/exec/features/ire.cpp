@@ -36,7 +36,7 @@ auto seed_to_vector = callable("seed_to_vector")
 {
 	push_constant <uint32_t> pc;
 	uniform <uint32_t> prime(1);
-	read_only_buffer <uvec2> offset(2);
+	write_only_buffer <uvec2> offset(2);
 
 	u32 x = (s.a << s.b) ^ (s.b - s.a);
 
