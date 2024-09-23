@@ -23,10 +23,13 @@ QualifiedType lookup_operation_overload(const OperationCode &key, const std::vec
 		overload::from(vec4, vec4, vec4),
 
 		overload::from(ivec3, ivec3, i32),
-		overload::from(ivec3, i32, i32),
+		overload::from(ivec3, i32, ivec3),
+		
+		overload::from(uvec2, uvec2, u32),
+		overload::from(uvec2, u32, uvec2),
 
 		overload::from(uvec3, uvec3, u32),
-		overload::from(uvec3, u32, u32),
+		overload::from(uvec3, u32, uvec3),
 		
 		overload::from(vec3, vec3, f32),
 		overload::from(vec3, f32, vec3),

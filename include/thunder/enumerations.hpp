@@ -89,6 +89,10 @@ enum QualifierKind : int8_t {
 	layout_out_smooth,
 
 	push_constant,
+
+	uniform,
+
+	read_only_storage_buffer,
 	
 	isampler_1d,
 	isampler_2d,
@@ -127,6 +131,10 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"layout_output_smooth",
 
 	"push_constant",
+
+	"uniform",
+
+	"buffer (read)",
 
 	"isampler1D",
 	"isampler2D",

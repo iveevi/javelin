@@ -5,8 +5,9 @@
 - [ ] Arrays of generic items without a statically specified size
 	- For CC targets, solidify into wide arrays
 - [ ] `inout` and `out` qualifiers for parameters
-- [ ] Uniform variables and buffers (GLSL)
+- [x] Uniform variables and buffers (GLSL)
 - [ ] Storage buffer objects (GLSL)
+	- read only, write only
 - [x] Image and sampler objects (GLSL)
 - [x] For loop control flow
 	- Equivalent declarations for `break` and `continue` statements
@@ -16,6 +17,7 @@
 - [ ] Reflection information for generating descriptor sets
 	- Layout types and locations
 	- Buffer, image, and sampler binding locations
+- [ ] Shared variables
 - [x] Flat layout outputs
 - [ ] Push constants with offsets
 - [ ] Casting operations

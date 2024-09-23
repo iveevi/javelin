@@ -44,7 +44,15 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 
 		// Vector operations
                 { dot, {
-                        overload::from(f32, vec2, vec2),
+                        overload::from(i32, ivec2, ivec2),
+                        overload::from(i32, ivec3, ivec3),
+                        overload::from(i32, ivec4, ivec4),
+                        
+			overload::from(u32, uvec2, uvec2),
+                        overload::from(u32, uvec3, uvec3),
+                        overload::from(u32, uvec4, uvec4),
+                        
+			overload::from(f32, vec2, vec2),
                         overload::from(f32, vec3, vec3),
                         overload::from(f32, vec4, vec4),
                 } },

@@ -34,15 +34,19 @@ auto seed_to_vector = callable("seed_to_vector")
 	<< std::make_tuple(seed(), 16)
 	<< [](const seed &s, int bias)
 {
+	push_constant <uint32_t> pc;
+	uniform <uint32_t> prime(1);
+	read_only_buffer <uvec2> offset(2);
+
 	u32 x = (s.a << s.b) ^ (s.b - s.a);
 
 	auto iterations = range <f32> (0, 10.0, 1.618);
 
 	auto iter = loop(iterations);
 		u32 y = floatBitsToUint(bias * iter) + (s.b + s.a * s.b)/s.a;
-		x += y;
+		x += y - pc + dot(offset, 1 - offset);
 
-		cond(x % 2 == 1);
+		cond((x * prime) % 2 == 1);
 			stop();
 		end();
 	end();

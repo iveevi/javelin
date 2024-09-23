@@ -65,13 +65,8 @@ void LinkageUnit::process_function_qualifier(Function &function, index_t index, 
 	} break;
 
 	case push_constant:
-	{
-		globals.push_constant = {
-			(size_t) index,
-			i,
-			push_constant
-		};
-	} break;
+		globals.push_constant = local_layout_type(index, i, push_constant);
+		break;
 
 	case layout_in_flat:
 	case layout_in_noperspective:
@@ -89,6 +84,20 @@ void LinkageUnit::process_function_qualifier(Function &function, index_t index, 
 		size_t binding = qualifier.numerical;
 		local_layout_type lout(index, qualifier.underlying, qualifier.kind);
 		globals.outputs[binding] = lout;
+	} break;
+
+	case uniform:
+	{
+		size_t binding = qualifier.numerical;
+		local_layout_type un(index, qualifier.underlying, qualifier.kind);
+		globals.uniforms[binding] = un;
+	} break;
+
+	case read_only_storage_buffer:
+	{
+		size_t binding = qualifier.numerical;
+		local_layout_type bf(index, qualifier.underlying, qualifier.kind);
+		globals.buffers[binding] = bf;
 	} break;
 
 	default:
@@ -292,6 +301,42 @@ void generat_push_constant(std::string &result,
 	result += "};\n\n";
 }
 
+void generat_uniforms(std::string &result,
+			    const generator_list &generators,
+			    const std::vector <Function> &functions,
+			    const auto &list)
+{
+	for (auto &[b, llt] : list) {
+		auto &types = functions[llt.function].types;
+		auto &generator = generators[llt.function];
+
+		auto ts = generator.type_to_string(types[llt.index]);
+
+		result += fmt::format("layout (binding = {}) uniform ublock{}\n", b, b);
+		result += "{\n";
+		result += fmt::format("    {} _uniform{};\n", ts.pre + ts.post, b);
+		result += "};\n\n";
+	}
+}
+
+void generat_buffers(std::string &result,
+		     const generator_list &generators,
+		     const std::vector <Function> &functions,
+		     const auto &list)
+{
+	for (auto &[b, llt] : list) {
+		auto &types = functions[llt.function].types;
+		auto &generator = generators[llt.function];
+
+		auto ts = generator.type_to_string(types[llt.index]);
+
+		result += fmt::format("layout (binding = {}) readonly buffer bblock{}\n", b, b);
+		result += "{\n";
+		result += fmt::format("    {} _buffer{};\n", ts.pre + ts.post, b);
+		result += "};\n\n";
+	}
+}
+
 void generat_samplers(std::string &result,
 		      const auto &samplers)
 {
@@ -349,6 +394,10 @@ std::string LinkageUnit::generate_glsl() const
 	
 	// Globals: push constants
 	generat_push_constant(result, generators, functions, globals.push_constant);
+
+	// Globals: uniform variables and buffers
+	generat_uniforms(result, generators, functions, globals.uniforms);
+	generat_buffers(result, generators, functions, globals.buffers);
 
 	// Globals: samplers
 	generat_samplers(result, globals.samplers);

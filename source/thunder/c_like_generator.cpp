@@ -24,8 +24,15 @@ static std::optional <std::string> generate_global_reference(const Qualifier &qu
 	case QualifierKind::layout_out_noperspective:
 	case QualifierKind::layout_out_smooth:
 		return fmt::format("_lout{}", qualifier.numerical);
+
 	case QualifierKind::push_constant:
 		return "_pc";
+
+	case QualifierKind::uniform:
+		return fmt::format("_uniform{}", qualifier.numerical);
+
+	case QualifierKind::read_only_storage_buffer:
+		return fmt::format("_buffer{}", qualifier.numerical);
 
 	// GLSL images and samplers
 	case QualifierKind::isampler_1d:
