@@ -2,6 +2,10 @@
 
 ## Intermediate Representation Emitter
 
+- [x] Generic type system
+- [x] Solidifying types into native `C++` data
+- [x] Aggregate structures
+- [x] Vector types
 - [ ] Arrays of generic items without a statically specified size
 	- For CC targets, solidify into wide arrays
 - [ ] `inout` and `out` qualifiers for parameters
@@ -17,8 +21,9 @@
 - [ ] Reflection information for generating descriptor sets
 	- Layout types and locations
 	- Buffer, image, and sampler binding locations
-- [ ] Shared variables
-- [x] Flat layout outputs
+- [x] Shared variables
+- [x] Layout intputs and outputs
+	- With interpolation modes: `flat`, `noperspective`, and `smooth`
 - [ ] Push constants with offsets
 - [ ] Casting operations
 

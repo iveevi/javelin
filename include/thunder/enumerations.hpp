@@ -95,6 +95,8 @@ enum QualifierKind : int8_t {
 	storage_buffer,
 	read_only_storage_buffer,
 	write_only_storage_buffer,
+
+	shared,
 	
 	isampler_1d,
 	isampler_2d,
@@ -139,6 +141,8 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"buffer (read-write)",
 	"buffer (read-only)",
 	"buffer (write-only)",
+
+	"shared",
 
 	"isampler1D",
 	"isampler2D",

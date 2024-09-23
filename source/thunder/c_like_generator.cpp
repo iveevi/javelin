@@ -12,52 +12,55 @@ MODULE(c-like-generator);
 static std::optional <std::string> generate_global_reference(const Qualifier &qualifier)
 {
 	switch (qualifier.kind) {
-	case QualifierKind::parameter:
+	case parameter:
 		return fmt::format("_arg{}", qualifier.numerical);
 
 	// GLSL input/output etc. qualifiers
-	case QualifierKind::layout_in_flat:
-	case QualifierKind::layout_in_noperspective:
-	case QualifierKind::layout_in_smooth:
+	case layout_in_flat:
+	case layout_in_noperspective:
+	case layout_in_smooth:
 		return fmt::format("_lin{}", qualifier.numerical);
-	case QualifierKind::layout_out_flat:
-	case QualifierKind::layout_out_noperspective:
-	case QualifierKind::layout_out_smooth:
+	case layout_out_flat:
+	case layout_out_noperspective:
+	case layout_out_smooth:
 		return fmt::format("_lout{}", qualifier.numerical);
 
-	case QualifierKind::push_constant:
+	case push_constant:
 		return "_pc";
 
-	case QualifierKind::uniform:
+	case uniform:
 		return fmt::format("_uniform{}", qualifier.numerical);
 
-	case QualifierKind::storage_buffer:
-	case QualifierKind::read_only_storage_buffer:
-	case QualifierKind::write_only_storage_buffer:
+	case storage_buffer:
+	case read_only_storage_buffer:
+	case write_only_storage_buffer:
 		return fmt::format("_buffer{}", qualifier.numerical);
 
+	case shared:
+		return fmt::format("_shared{}", qualifier.numerical);
+
 	// GLSL images and samplers
-	case QualifierKind::isampler_1d:
-	case QualifierKind::isampler_2d:
-	case QualifierKind::isampler_3d:
-	case QualifierKind::usampler_1d:
-	case QualifierKind::usampler_2d:
-	case QualifierKind::usampler_3d:
-	case QualifierKind::sampler_1d:
-	case QualifierKind::sampler_2d:
-	case QualifierKind::sampler_3d:
+	case isampler_1d:
+	case isampler_2d:
+	case isampler_3d:
+	case usampler_1d:
+	case usampler_2d:
+	case usampler_3d:
+	case sampler_1d:
+	case sampler_2d:
+	case sampler_3d:
 		return fmt::format("_sampler{}", qualifier.numerical);
 
 	// GLSL shader stage intrinsics
-	case QualifierKind::glsl_intrinsic_gl_FragCoord:
+	case glsl_intrinsic_gl_FragCoord:
 		return "gl_FragCoord";
-	case QualifierKind::glsl_intrinsic_gl_FragDepth:
+	case glsl_intrinsic_gl_FragDepth:
 		return "gl_FragDepth";
-	case QualifierKind::glsl_intrinsic_gl_VertexID:
+	case glsl_intrinsic_gl_VertexID:
 		return "gl_VertexID";
-	case QualifierKind::glsl_intrinsic_gl_VertexIndex:
+	case glsl_intrinsic_gl_VertexIndex:
 		return "gl_VertexIndex";
-	case QualifierKind::glsl_intrinsic_gl_Position:
+	case glsl_intrinsic_gl_Position:
 		return "gl_Position";
 
 	default:

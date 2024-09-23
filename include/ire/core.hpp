@@ -12,6 +12,7 @@
 #include "linking.hpp"
 #include "matrix.hpp"
 #include "sampler.hpp"
+#include "shared.hpp"
 #include "solidify.hpp"
 #include "uniform_layout.hpp"
 #include "vector.hpp"

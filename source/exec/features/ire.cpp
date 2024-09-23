@@ -36,7 +36,8 @@ auto seed_to_vector = callable("seed_to_vector")
 {
 	push_constant <uint32_t> pc;
 	uniform <uint32_t> prime(1);
-	write_only_buffer <uvec2> offset(2);
+	shared <uvec2> offset1;
+	shared <uvec2> offset2;
 
 	u32 x = (s.a << s.b) ^ (s.b - s.a);
 
@@ -44,7 +45,7 @@ auto seed_to_vector = callable("seed_to_vector")
 
 	auto iter = loop(iterations);
 		u32 y = floatBitsToUint(bias * iter) + (s.b + s.a * s.b)/s.a;
-		x += y - pc + dot(offset, 1 - offset);
+		x += y - pc + dot(offset1, 1 - offset2);
 
 		cond((x * prime) % 2 == 1);
 			stop();

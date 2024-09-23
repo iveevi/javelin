@@ -94,6 +94,4 @@ using read_only_buffer = bound_buffer_object <T, thunder::read_only_storage_buff
 template <generic T>
 using write_only_buffer = bound_buffer_object <T, thunder::write_only_storage_buffer>;
 
-// TODO: shared variables
-
 } // namespace jvl::ire

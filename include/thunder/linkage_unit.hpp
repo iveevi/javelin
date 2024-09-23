@@ -44,6 +44,7 @@ struct LinkageUnit {
 		std::map <index_t, local_layout_type> inputs;
 		std::map <index_t, local_layout_type> uniforms;
 		std::map <index_t, local_layout_type> buffers;
+		std::map <index_t, local_layout_type> shared;
 		std::map <index_t, QualifierKind> samplers;
 	} globals;
 

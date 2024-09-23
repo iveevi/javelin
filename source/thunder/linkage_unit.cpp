@@ -102,6 +102,13 @@ void LinkageUnit::process_function_qualifier(Function &function, index_t index, 
 		globals.buffers[binding] = bf;
 	} break;
 
+	case shared:
+	{
+		size_t id = qualifier.numerical;
+		local_layout_type bf(index, qualifier.underlying, qualifier.kind);
+		globals.shared[id] = bf;
+	} break;
+
 	default:
 		break;
 	}
@@ -284,7 +291,7 @@ void generate_layout_io(std::string &result,
 		result += "\n";
 }
 
-void generat_push_constant(std::string &result,
+void generate_push_constant(std::string &result,
 			   const generator_list &generators,
 			   const std::vector <Function> &functions,
 			   local_layout_type pc)
@@ -303,7 +310,7 @@ void generat_push_constant(std::string &result,
 	result += "};\n\n";
 }
 
-void generat_uniforms(std::string &result,
+void generate_uniforms(std::string &result,
 			    const generator_list &generators,
 			    const std::vector <Function> &functions,
 			    const auto &list)
@@ -337,7 +344,7 @@ static std::string buffer_qualifier(QualifierKind kind)
 	return "<buffer:?>";
 }
 
-void generat_buffers(std::string &result,
+void generate_buffers(std::string &result,
 		     const generator_list &generators,
 		     const std::vector <Function> &functions,
 		     const auto &list)
@@ -354,6 +361,24 @@ void generat_buffers(std::string &result,
 		result += fmt::format("    {} _buffer{};\n", ts.pre + ts.post, b);
 		result += "};\n\n";
 	}
+}
+
+void generate_shared(std::string &result,
+		     const generator_list &generators,
+		     const std::vector <Function> &functions,
+		     const auto &list)
+{
+	for (auto &[b, llt] : list) {
+		auto &types = functions[llt.function].types;
+		auto &generator = generators[llt.function];
+
+		auto ts = generator.type_to_string(types[llt.index]);
+
+		result += fmt::format("shared {} _shared{};\n", ts.pre + ts.post, b);
+	}
+
+	if (list.size())
+		result += "\n";
 }
 
 void generat_samplers(std::string &result,
@@ -412,11 +437,14 @@ std::string LinkageUnit::generate_glsl() const
 	generate_layout_io(result, generators, functions, "out", globals.outputs);
 	
 	// Globals: push constants
-	generat_push_constant(result, generators, functions, globals.push_constant);
+	generate_push_constant(result, generators, functions, globals.push_constant);
 
 	// Globals: uniform variables and buffers
-	generat_uniforms(result, generators, functions, globals.uniforms);
-	generat_buffers(result, generators, functions, globals.buffers);
+	generate_uniforms(result, generators, functions, globals.uniforms);
+	generate_buffers(result, generators, functions, globals.buffers);
+
+	// Globals: shared variables
+	generate_shared(result, generators, functions, globals.shared);
 
 	// Globals: samplers
 	generat_samplers(result, globals.samplers);
