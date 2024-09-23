@@ -68,6 +68,9 @@ void check_glsl_source(std::string &source, GLuint stage)
 template <typename T>
 void simple_layouts()
 {
+	if (!init_context())
+		GTEST_SKIP();
+
 	auto shader = []() {
 		layout_in <T> lin(0);
 		layout_out <T> lout(0);
@@ -83,6 +86,9 @@ void simple_layouts()
 template <typename T, size_t N>
 void simple_layouts()
 {
+	if (!init_context())
+		GTEST_SKIP();
+
 	auto shader = []() {
 		layout_in <vec <T, N>> lin(0);
 		layout_out <vec <T, N>> lout(0);
