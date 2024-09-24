@@ -24,7 +24,7 @@
 - [x] Shared variables
 - [x] Layout intputs and outputs
 	- With interpolation modes: `flat`, `noperspective`, and `smooth`
-- [ ] Push constants with offsets
+- [x] Push constants with offsets
 - [ ] Casting operations
 
 ## Examples

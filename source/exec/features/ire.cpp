@@ -34,7 +34,7 @@ auto seed_to_vector = callable("seed_to_vector")
 	<< std::make_tuple(seed(), 16)
 	<< [](const seed &s, int bias)
 {
-	push_constant <uint32_t> pc;
+	push_constant <uint32_t> pc(16);
 	uniform <uint32_t> prime(1);
 	shared <uvec2> offset1;
 	shared <uvec2> offset2;

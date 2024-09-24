@@ -1,51 +1,8 @@
+#include <core/color.hpp>
 #include <thunder/opt.hpp>
 
 #include "viewport_render_group.hpp"
 #include "viewport.hpp"
-
-// HSV palette generation
-// TODO: hsv util
-vec3 hsv_to_rgb(const float3 &hsv)
-{
-	float h = hsv.x;
-	float s = hsv.y;
-	float v = hsv.z;
-
-	float c = v * s;
-	float x = c * (1.0f - fabs(fmod(h / 60.0f, 2.0f) - 1.0f));
-	float m = v - c;
-
-	float r;
-	float g;
-	float b;
-	if (0 <= h && h < 60) {
-		r = c;
-		g = x;
-		b = 0;
-	} else if (60 <= h && h < 120) {
-		r = x;
-		g = c;
-		b = 0;
-	} else if (120 <= h && h < 180) {
-		r = 0;
-		g = c;
-		b = x;
-	} else if (180 <= h && h < 240) {
-		r = 0;
-		g = x;
-		b = c;
-	} else if (240 <= h && h < 300) {
-		r = x;
-		g = 0;
-		b = c;
-	} else {
-		r = c;
-		g = 0;
-		b = x;
-	}
-
-	return vec3((r + m), (g + m), (b + m));
-}
 
 // Function to generate an HSV color palette
 template <thunder::index_t N>
@@ -56,8 +13,8 @@ array <vec3, N> hsv_palette(float saturation, float lightness)
 	float step = 360.0f / float(N);
 	for (int32_t i = 0; i < N; i++) {
 		float3 hsv = float3(i * step, saturation, lightness);
-		vec3 rgb = hsv_to_rgb(hsv);
-		palette[i] = rgb;
+		float3 rgb = hsv_to_rgb(hsv);
+		palette[i] = vec3(rgb.x, rgb.y, rgb.z);
 	}
 
 	return palette;
@@ -69,7 +26,6 @@ struct MVP {
 	mat4 view;
 	mat4 proj;
 	i32 id;
-	i32 selected;
 
 	vec4 project(vec3 position) {
 		return proj * (view * (model * vec4(position, 1.0)));
@@ -81,8 +37,7 @@ struct MVP {
 			named_field(model),
 			named_field(view),
 			named_field(proj),
-			named_field(id),
-			named_field(selected)
+			named_field(id)
 		);
 	}
 };
@@ -94,7 +49,6 @@ void vertex(ViewportMode mode)
 	layout_out <int, flat> out_id(0);
 
 	layout_out <int, flat> out_uuid(1);
-	layout_out <int, flat> out_selected(2);
 	
 	push_constant <MVP> mvp;
 	gl_Position = mvp.project(position);
@@ -112,17 +66,15 @@ void vertex(ViewportMode mode)
 	}
 
 	out_uuid = mvp.id;
-	out_selected = mvp.selected;	
 }
 
 void fragment(ViewportMode mode)
 {
 	layout_in <vec3> position(0);
+
 	layout_in <int, flat> id(0);
+
 	layout_out <vec4> fragment(0);
-	
-	layout_in <int, flat> uuid(1);
-	layout_in <int, flat> selected(2);
 
 	switch (mode) {
 	
@@ -160,7 +112,9 @@ void fragment(ViewportMode mode)
 	}
 
 	// Highlighting the selected object
-	cond(uuid == selected);
+	push_constant <uint> highlight(sizeof(solid_t <MVP>));
+
+	cond(highlight == 1u);
 		fragment = mix(fragment, vec4(1, 1, 0, 1), 0.8f);
 	end();
 }
@@ -203,6 +157,7 @@ void ViewportRenderGroup::configure_pipeline_mode(DeviceResourceCollection &drc,
 		.with_vertex_layout(vertex_layout)
 		.with_shader_bundle(bundle)
 		.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
+		.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t <MVP>))
 		.cull_mode(vk::CullModeFlagBits::eNone);
 }
 
@@ -239,18 +194,25 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 	auto m_view = uniform_field(MVP, view);
 	auto m_proj = uniform_field(MVP, proj);
 	auto m_id = uniform_field(MVP, id);
-	auto m_selected = uniform_field(MVP, selected);
 
 	mvp[m_model] = jvl::float4x4::identity();
 	mvp[m_proj] = jvl::core::perspective(viewport.aperature);
 	mvp[m_view] = viewport.transform.to_view_matrix();
-	mvp[m_selected] = viewport.selected;
 
 	for (size_t i = 0; i < scene.uuids.size(); i++) {
 		auto &mesh = scene.meshes[i];
 		mvp[m_id] = scene.uuids[i];
 
-		cmd.pushConstants <solid_t <MVP>> (ppl.layout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
+		cmd.pushConstants <solid_t <MVP>> (ppl.layout,
+			vk::ShaderStageFlagBits::eVertex,
+			0,
+			mvp);
+
+		cmd.pushConstants <solid_t <u32>> (ppl.layout,
+			vk::ShaderStageFlagBits::eFragment,
+			sizeof(solid_t <MVP>),
+			viewport.selected == scene.uuids[i]);
+
 		cmd.bindVertexBuffers(0, mesh.vertices.buffer, { 0 });
 		cmd.bindIndexBuffer(mesh.triangles.buffer, 0, vk::IndexType::eUint32);
 		cmd.drawIndexed(mesh.count, 1, 0, 0, 0);

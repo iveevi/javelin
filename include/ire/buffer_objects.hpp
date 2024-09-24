@@ -71,16 +71,14 @@ struct bound_buffer_object <T, K> : T {
 };
 
 // Bindless versions, for push constants
-template <generic T, thunder::QualifierKind K>
-struct bindless_buffer_object : bound_buffer_object <T, K> {
-	template <typename ... Args>
-	bindless_buffer_object(const Args &... args)
-			: bound_buffer_object <T, K> (0, args...) {}
-};
 
 // Specializations
 template <generic T>
-using push_constant = bindless_buffer_object <T, thunder::push_constant>;
+struct push_constant : bound_buffer_object <T, thunder::push_constant> {
+	template <typename ... Args>
+	push_constant(size_t offset = 0, const Args &... args)
+			: bound_buffer_object <T, thunder::push_constant> (offset, args...) {}
+};
 
 template <generic T>
 using uniform = bound_buffer_object <T, thunder::uniform>;

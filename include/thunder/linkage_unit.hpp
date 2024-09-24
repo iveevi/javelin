@@ -32,6 +32,15 @@ struct local_layout_type {
 	QualifierKind kind;
 };
 
+
+struct push_constant_info : local_layout_type {
+	size_t offset;
+
+	static push_constant_info from() {
+		return { { 0, -1, thunder::push_constant }, 0 };
+	}
+};
+
 struct LinkageUnit {
 	std::set <index_t> loaded;
 	std::vector <Function> functions;
@@ -39,7 +48,7 @@ struct LinkageUnit {
 	std::vector <TypeMap> maps;
 
 	struct {
-		local_layout_type push_constant = { 0, -1 };
+		push_constant_info push_constant = push_constant_info::from();
 		std::map <index_t, local_layout_type> outputs;
 		std::map <index_t, local_layout_type> inputs;
 		std::map <index_t, local_layout_type> uniforms;

@@ -65,8 +65,15 @@ void LinkageUnit::process_function_qualifier(Function &function, index_t index, 
 	} break;
 
 	case push_constant:
-		globals.push_constant = local_layout_type(index, i, push_constant);
-		break;
+	{
+		push_constant_info info;
+		info.index = i;
+		info.function = index;
+		info.kind = thunder::push_constant;
+		info.offset = qualifier.numerical;
+
+		globals.push_constant = info;
+	} break;
 
 	case layout_in_flat:
 	case layout_in_noperspective:
@@ -294,7 +301,7 @@ void generate_layout_io(std::string &result,
 void generate_push_constant(std::string &result,
 			   const generator_list &generators,
 			   const std::vector <Function> &functions,
-			   local_layout_type pc)
+			   push_constant_info pc)
 {
 	if (pc.index == -1)
 		return;
@@ -306,7 +313,10 @@ void generate_push_constant(std::string &result,
 
 	result += "layout (push_constant) uniform block\n";
 	result += "{\n";
-	result += fmt::format("    {} _pc;\n", ts.pre + ts.post);
+	if (pc.offset == 0)
+		result += fmt::format("    {} _pc;\n", ts.pre + ts.post);
+	else
+		result += fmt::format("    layout (offset = {}) {} _pc;\n", pc.offset, ts.pre + ts.post);
 	result += "};\n\n";
 }
 
