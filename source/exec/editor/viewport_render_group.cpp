@@ -4,7 +4,9 @@
 #include "viewport_render_group.hpp"
 #include "viewport.hpp"
 
-// Function to generate an HSV color palette
+MODULE(viewport-render-group);
+
+// Function to generate an HSV color palette in shader code
 template <thunder::index_t N>
 array <vec3, N> hsv_palette(float saturation, float lightness)
 {
@@ -20,7 +22,7 @@ array <vec3, N> hsv_palette(float saturation, float lightness)
 	return palette;
 }
 
-// Shader sources
+// Model-view-projection structure
 struct MVP {
 	mat4 model;
 	mat4 view;
@@ -42,14 +44,38 @@ struct MVP {
 	}
 };
 
+// Material information
+struct UberMaterial {
+	vec3 kd;
+	vec3 ks;
+	f32 roughness;
+
+	auto layout() const {
+		return uniform_layout(
+			"Material",
+			named_field(kd),
+			named_field(ks),
+			named_field(roughness)
+		);
+	}
+};
+
+// Vertex shader(s)
 void vertex(ViewportMode mode)
 {
+	// Vertex inputs
 	layout_in <vec3> position(0);
+
+	// Regurgitate vertex positions
 	layout_out <vec3> out_position(0);
+
+	// Object vertex ID
 	layout_out <int, flat> out_id(0);
 
+	// Object UUID
 	layout_out <int, flat> out_uuid(1);
 	
+	// Projection informations
 	push_constant <MVP> mvp;
 	gl_Position = mvp.project(position);
 	gl_Position.y = -gl_Position.y;
@@ -68,15 +94,27 @@ void vertex(ViewportMode mode)
 	out_uuid = mvp.id;
 }
 
+// Fragment shader(s)
 void fragment(ViewportMode mode)
 {
+	// Position from vertex shader
 	layout_in <vec3> position(0);
 
+	// Object vertex ID
 	layout_in <int, flat> id(0);
 
+	// Material properties
+	uniform <UberMaterial> material(0);
+
+	// Resulting fragment color
 	layout_out <vec4> fragment(0);
 
 	switch (mode) {
+
+	case eAlbedo:
+	{
+		fragment = vec4(material.kd, 1.0);
+	} break;
 	
 	case eNormal:
 	{
@@ -127,6 +165,13 @@ ViewportRenderGroup::ViewportRenderGroup(DeviceResourceCollection &drc)
 }
 
 // Configuration
+static const std::array <vk::DescriptorSetLayoutBinding, 1> albedo_bindings {
+	vk::DescriptorSetLayoutBinding {
+		0, vk::DescriptorType::eUniformBuffer,
+		1, vk::ShaderStageFlagBits::eFragment
+	}
+};
+
 void ViewportRenderGroup::configure_render_pass(DeviceResourceCollection &drc)
 {
 	render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
@@ -152,13 +197,18 @@ void ViewportRenderGroup::configure_pipeline_mode(DeviceResourceCollection &drc,
 		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
 		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 
-	pipelines[mode] = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
+	auto ppa = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
 		.with_render_pass(render_pass, 0)
 		.with_vertex_layout(vertex_layout)
 		.with_shader_bundle(bundle)
 		.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
 		.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t <MVP>))
 		.cull_mode(vk::CullModeFlagBits::eNone);
+		
+	if (mode == eAlbedo)
+		pipelines[mode] = ppa.with_dsl_bindings(albedo_bindings);
+	else
+		pipelines[mode] = ppa;
 }
 
 void ViewportRenderGroup::configure_pipelines(DeviceResourceCollection &drc)
@@ -171,6 +221,7 @@ void ViewportRenderGroup::configure_pipelines(DeviceResourceCollection &drc)
 void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 {
 	auto &cmd = info.cmd;
+	auto &drc = info.drc;
 	auto &scene = info.device_scene;
 
 	// Configure the rendering extent
@@ -199,9 +250,41 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 	mvp[m_proj] = jvl::core::perspective(viewport.aperature);
 	mvp[m_view] = viewport.transform.to_view_matrix();
 
+	static std::map <uint64_t, vk::DescriptorSet> material_descriptors;
+
+	if (viewport.mode == eAlbedo) {
+		auto allocator = littlevk::bind(drc.device, drc.descriptor_pool);
+		for (size_t i = 0; i < scene.uuids.size(); i++) {
+			auto &mesh = scene.meshes[i];
+			for (auto i : mesh.material_usage) {
+				if (material_descriptors.contains(i))
+					continue;
+
+				auto &material = scene.materials[i];
+
+				vk::DescriptorSet descriptor = allocator.allocate_descriptor_sets(*ppl.dsl).front();
+				JVL_ASSERT_PLAIN(descriptor);
+
+				littlevk::bind(drc.device, descriptor, albedo_bindings)
+					.update(0, 0, *material.uber, 0, sizeof(vulkan::Material::uber_x))
+					.finalize();
+
+				material_descriptors[i] = descriptor;
+			}
+		}
+	}
+
 	for (size_t i = 0; i < scene.uuids.size(); i++) {
 		auto &mesh = scene.meshes[i];
 		mvp[m_id] = scene.uuids[i];
+
+		int mid = *mesh.material_usage.begin();
+
+		if (viewport.mode == eAlbedo) {
+			cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+				ppl.layout, 0,
+				material_descriptors[mid], {});
+		}
 
 		cmd.pushConstants <solid_t <MVP>> (ppl.layout,
 			vk::ShaderStageFlagBits::eVertex,

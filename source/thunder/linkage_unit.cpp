@@ -326,10 +326,9 @@ void generate_uniforms(std::string &result,
 			    const auto &list)
 {
 	for (auto &[b, llt] : list) {
-		auto &types = functions[llt.function].types;
 		auto &generator = generators[llt.function];
 
-		auto ts = generator.type_to_string(types[llt.index]);
+		auto ts = generator.type_to_string(QualifiedType::concrete(llt.index));
 
 		result += fmt::format("layout (binding = {}) uniform ublock{}\n", b, b);
 		result += "{\n";

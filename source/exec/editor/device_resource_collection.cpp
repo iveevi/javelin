@@ -35,6 +35,8 @@ void DeviceResourceCollection::configure_device(const std::vector <const char *>
 	device = littlevk::device(phdev, queue_family, EXTENSIONS);
 	dal = littlevk::Deallocator(device);
 
+	swapchain = combined().swapchain(surface, queue_family);
+
 	graphics_queue = device.getQueue(queue_family.graphics, 0);
 	present_queue = device.getQueue(queue_family.present, 0);
 
@@ -42,7 +44,20 @@ void DeviceResourceCollection::configure_device(const std::vector <const char *>
 		vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
 		queue_family.graphics).unwrap(dal);
 
-	swapchain = combined().swapchain(surface, queue_family);
+	// Configuring the descriptor pool
+	std::vector <vk::DescriptorPoolSize> sizes {
+		vk::DescriptorPoolSize {
+			vk::DescriptorType::eUniformBuffer,
+			2
+		}
+	};
+
+	descriptor_pool = littlevk::descriptor_pool(device,
+		vk::DescriptorPoolCreateInfo {
+			vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+			1000,
+			sizes
+		}).unwrap(dal);
 }
 
 DeviceResourceCollection DeviceResourceCollection::from(const DeviceResourceCollectionInfo &info)

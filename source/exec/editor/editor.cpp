@@ -98,6 +98,7 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 	RenderingInfo info {
 		// Rendering structures
 		.cmd = cmd,
+		.drc = drc,
 		.operation = sop,
 		.window = drc.window,
 		.frame = frame,

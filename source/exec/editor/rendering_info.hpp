@@ -13,6 +13,7 @@ using namespace jvl::gfx;
 struct RenderingInfo {
 	// Primary rendering structures
 	const vk::CommandBuffer &cmd;
+	const DeviceResourceCollection &drc;
 	const littlevk::SurfaceOperation &operation;
 
 	InteractiveWindow &window;

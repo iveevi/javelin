@@ -35,21 +35,15 @@ auto seed_to_vector = callable("seed_to_vector")
 	<< [](const seed &s, int bias)
 {
 	push_constant <uint32_t> pc(16);
-	uniform <uint32_t> prime(1);
-	shared <uvec2> offset1;
-	shared <uvec2> offset2;
+	uniform <seed> prime(1);
 
 	u32 x = (s.a << s.b) ^ (s.b - s.a);
 
 	auto iterations = range <f32> (0, 10.0, 1.618);
 
 	auto iter = loop(iterations);
-		u32 y = floatBitsToUint(bias * iter) + (s.b + s.a * s.b)/s.a;
-		x += y - pc + dot(offset1, 1 - offset2);
-
-		cond((x * prime) % 2 == 1);
-			stop();
-		end();
+		u32 y = floatBitsToUint(bias * iter);
+		x += (y - pc + prime.a) / prime.b;
 	end();
 
 	returns(uvec2(x, y));
@@ -58,6 +52,7 @@ auto seed_to_vector = callable("seed_to_vector")
 int main()
 {
 	thunder::opt_transform(seed_to_vector);
+	seed_to_vector.dump();
 	auto unit = link(seed_to_vector, seed_to_vector);
 	fmt::println("{}", unit.generate_glsl());
 }

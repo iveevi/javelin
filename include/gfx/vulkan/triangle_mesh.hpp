@@ -11,6 +11,8 @@ struct TriangleMesh {
 	littlevk::Buffer vertices;
 	littlevk::Buffer triangles;
 	size_t count;
+	
+	std::set <int> material_usage;
 
 	// TODO: flags for the properties interleaved in vertices
 
@@ -19,8 +21,14 @@ struct TriangleMesh {
 
 		vmesh.count = 3 * tmesh.triangles.size();
 		std::tie(vmesh.vertices, vmesh.triangles) = allocator
-			.buffer(tmesh.positions, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer)
-			.buffer(tmesh.triangles, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer);
+			.buffer(tmesh.positions,
+				vk::BufferUsageFlagBits::eTransferDst
+				| vk::BufferUsageFlagBits::eVertexBuffer)
+			.buffer(tmesh.triangles,
+				vk::BufferUsageFlagBits::eTransferDst
+				| vk::BufferUsageFlagBits::eIndexBuffer);
+
+		vmesh.material_usage = tmesh.material_usage;
 
 		return vmesh;
 	}
