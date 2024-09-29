@@ -7,7 +7,7 @@ Javelin is a system for **graphics programming**; to this serve this purpose, it
 * A programming language for end-to-end graphics applications, shaders included
 * An editor for managing and viewing 3D scenes
 
-Many components of Javelin are a work in progress. See the [road map](docs/road_map.md) for to get an idea of what is coming next.
+Many components of Javelin are a work in progress. See the [road map](docs/road_map.md) to get an idea of what is coming next.
 
 ![GoogleTest](https://github.com/iveevi/javelin/actions/workflows/ci.yml/badge.svg)
 

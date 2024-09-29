@@ -60,12 +60,12 @@ add_library(javelin-ire STATIC
 
 target_compile_options(javelin-ire PRIVATE
 	-fno-rtti
-	$<$<CONFIG:Debug>:-Wall;-Werror;-coverage>)
+	$<$<CONFIG:Debug>:-Wall;-Werror;--coverage>)
 
 target_link_libraries(javelin-ire
 	fmt::fmt
 	gccjit
-	gcov)
+	$<$<CONFIG:Debug>:--coverage>)
 
 target_compile_definitions(javelin-ire PRIVATE
 	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
@@ -100,7 +100,7 @@ add_executable(editor
 
 target_compile_options(editor PRIVATE
 	-fno-rtti
-	$<$<CONFIG:Debug>:-Wall;-Werror;-coverage>)
+	$<$<CONFIG:Debug>:-Wall;-Werror;--coverage>)
 
 target_compile_definitions(editor PRIVATE
 	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
@@ -109,7 +109,8 @@ target_link_libraries(editor
 	fmt::fmt
 	${VULKAN_LIBRARY_SET}
 	imgui
-	javelin-ire)
+	javelin-ire
+	$<$<CONFIG:Debug>:--coverage>)
 
 # Experimental program for the IRE system
 add_executable(ire-features

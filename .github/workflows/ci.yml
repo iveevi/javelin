@@ -24,7 +24,7 @@ jobs:
           sudo apt update -y
           sudo apt install -y cmake libvulkan1 libglfw3-dev \
             glslang-tools glslang-dev libfmt-dev            \
-            clang gcc-14 libgccjit-14-dev
+            clang gcc-14 libgccjit-14-dev llvm lcov
           sudo ln -s /usr/lib/gcc/x86_64-linux-gnu/14/include/libgccjit.h /usr/include/libgccjit.h
           sudo ln -s /usr/lib/gcc/x86_64-linux-gnu/14/libgccjit.so /usr/lib/libgccjit.so
       - uses: actions/checkout@v3
@@ -38,3 +38,12 @@ jobs:
           cmake --build build -j -t test
       - name: test
         run: ./build/test
+      - name: coverage
+        if: ${{ (matrix.build == 'Debug') && (matrix.compiler.c == 'gcc') }}
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: |
+          lcov -c -d build -o coverage.info
+          lcov -r coverage.info "/usr" -o coverage.info
+          lcov -r coverage.info "build/" -o coverage.info
+          bash <(curl -s https://codecov.io/bash) -f coverage.info
