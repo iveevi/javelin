@@ -60,11 +60,12 @@ add_library(javelin-ire STATIC
 
 target_compile_options(javelin-ire PRIVATE
 	-fno-rtti
-	$<$<CONFIG:Debug>:-Wall;-Werror>)
+	$<$<CONFIG:Debug>:-Wall;-Werror;-coverage>)
 
 target_link_libraries(javelin-ire
 	fmt::fmt
-	gccjit)
+	gccjit
+	gcov)
 
 target_compile_definitions(javelin-ire PRIVATE
 	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
@@ -83,6 +84,7 @@ add_library(imgui SHARED
 add_executable(editor
 	source/core/aabb.cpp
 	source/core/scene.cpp
+	source/core/texture.cpp
 	source/engine/imported_asset.cpp
 	source/exec/editor/device_resource_collection.cpp
 	source/exec/editor/editor.cpp
@@ -98,7 +100,10 @@ add_executable(editor
 
 target_compile_options(editor PRIVATE
 	-fno-rtti
-	$<$<CONFIG:Debug>:-Wall;-Werror>)
+	$<$<CONFIG:Debug>:-Wall;-Werror;-coverage>)
+
+target_compile_definitions(editor PRIVATE
+	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
 
 target_link_libraries(editor
 	fmt::fmt

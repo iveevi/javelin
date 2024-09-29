@@ -1,10 +1,12 @@
 #include <cstddef>
+
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
 #include <fmt/printf.h>
 #include <fmt/std.h>
 
+#include "core/texture.hpp"
 #include "engine/imported_asset.hpp"
 
 template <>
@@ -31,7 +33,6 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 {
 	using core::Mesh;
 	using core::Material;
-	using core::Phong;
 
 	ImportedAsset imported_asset;
 	imported_asset.path = path;
@@ -163,13 +164,19 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 	for (auto &material : materials) {
 		Material m;
 		// TODO: check for textures
-		m.values[Material::brdf_key] = Phong::id;
+		m.values[Material::brdf_key] = "default";
 
 		// Diffuse value
 		if (material.diffuse_texname.empty())
 			m.values[Material::diffuse_key] = to_float3(material.diffuse);
-		else
+		else {
+			auto fixed = material.diffuse_texname;
+			std::replace(fixed.begin(), fixed.end(), '\\', '/');
+
+			auto texture_path = path.parent_path() / fixed;
+			core::Texture::from(texture_path);
 			m.values[Material::diffuse_key] = material.diffuse_texname;
+		}
 
 		// Specular value
 		if (material.specular_texname.empty())

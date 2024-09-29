@@ -10,6 +10,7 @@ using namespace jvl::ire;
 class ViewportRenderGroup {
 	void configure_render_pass(DeviceResourceCollection &);
 	void configure_pipeline_mode(DeviceResourceCollection &, ViewportMode);
+	void configure_pipeline_albedo(DeviceResourceCollection &, vulkan::MaterialFlags);
 	void configure_pipelines(DeviceResourceCollection &);
 public:
 	vk::RenderPass render_pass;

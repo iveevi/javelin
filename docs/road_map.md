@@ -26,9 +26,17 @@
 	- With interpolation modes: `flat`, `noperspective`, and `smooth`
 - [x] Push constants with offsets
 - [ ] Casting operations
+- [ ] Partial evaluation of callables
+
+## Pipeline Generation
+
+- [ ] Vertex layout inference
+	- Generating a buffer with this information from a variant mesh
+- [ ] Descriptor set layout binding generation
 
 ## Examples
 
 - [x] False coloring of triangle meshes using arrays
+- [ ] Custom color palette rendering of meshes with HSV
 - [ ] Specialized glyph rendering through runtime shader generation
 	- Parallelized version as well, compiling multiple shaders at the same time

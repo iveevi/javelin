@@ -2,10 +2,30 @@
 
 #include <littlevk/littlevk.hpp>
 
-#include "triangle_mesh.hpp"
+#include "../../logging.hpp"
 #include "../cpu/scene.hpp"
+#include "triangle_mesh.hpp"
 
 namespace jvl::gfx::vulkan {
+
+enum MaterialFlags : uint64_t {
+	eNone = 0x0,
+	eAlbedoSampler = 0x1,
+	eSpecularSampler = 0x10,
+	eRoughnessSampler = 0x100,
+};
+
+[[gnu::always_inline]]
+inline bool enabled(MaterialFlags one, MaterialFlags two)
+{
+	return (one & two) == two;
+}
+
+[[gnu::always_inline]]
+inline MaterialFlags operator|(MaterialFlags one, MaterialFlags two)
+{
+	return MaterialFlags(uint64_t(one) | uint64_t(two));
+}
 
 // TODO: separate header
 // Uber material structure
@@ -17,24 +37,63 @@ struct Material {
 		float roughness;
 	};
 
+	MaterialFlags flags;
+
 	littlevk::Buffer uber;
+	littlevk::Buffer specialized;
 
 	static std::optional <Material> from(littlevk::LinkedDeviceAllocator <> allocator, const core::Material &material) {
+		MODULE(vulkan-material-from);
+
+		// Albedo / Diffuse
+		MaterialFlags flags = eNone;
+
+		JVL_ASSERT_PLAIN(material.values.contains(core::Material::diffuse_key));
+		auto kd = material.values.get(core::Material::diffuse_key).value();
+		if (kd.is <std::string> ())
+			flags = flags | eAlbedoSampler;
+		else
+			JVL_ASSERT_PLAIN(kd.is <float3> ());
+
+		// Specular
+		JVL_ASSERT_PLAIN(material.values.contains(core::Material::specular_key));
+		auto ks = material.values.get(core::Material::specular_key).value();
+		if (ks.is <std::string> ())
+			flags = flags | eSpecularSampler;
+		else
+			JVL_ASSERT_PLAIN(ks.is <float3> ());
+
+		// Roughness
+		JVL_ASSERT_PLAIN(material.values.contains(core::Material::roughness_key));
+		auto roughness = material.values.get(core::Material::roughness_key).value();
+		if (roughness.is <std::string> ())
+			flags = flags | eRoughnessSampler;
+		else
+			JVL_ASSERT_PLAIN(roughness.is <float> ());
+
+		// Construct the Uber material form
 		uber_x info;
 
-		if (auto opt_kd = material.values.get(core::Material::diffuse_key).as <float3> ())
-			info.kd = opt_kd.value();
-
-		if (auto opt_ks = material.values.get(core::Material::specular_key).as <float3> ())
-			info.ks = opt_ks.value();
-
-		if (auto opt_roughness = material.values.get(core::Material::roughness_key).as <float> ())
-			info.roughness = opt_roughness.value();
+		if (enabled(flags, eAlbedoSampler))
+			info.kd = float3(0.5, 0.5, 0.5);
+		else
+			info.kd = kd.as <float3> ();
+		
+		if (enabled(flags, eSpecularSampler))
+			info.ks = float3(0.5, 0.5, 0.5);
+		else
+			info.ks = ks.as <float3> ();
+		
+		if (enabled(flags, eRoughnessSampler))
+			info.roughness = 0.1;
+		else
+			info.roughness = roughness.as <float> ();
 
 		return Material {
+			.flags = flags,
 			.uber = allocator.buffer(&info, sizeof(info),
 				vk::BufferUsageFlagBits::eTransferDst
-				| vk::BufferUsageFlagBits::eUniformBuffer)
+				| vk::BufferUsageFlagBits::eUniformBuffer),
 		};
 	}
 };

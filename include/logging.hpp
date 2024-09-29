@@ -176,7 +176,7 @@ struct stage_bracket {
 #ifdef JVL_DEBUG
 
 #define JVL_ASSERT(cond, ...)	jvl::log::assertion(cond, __module__, fmt::format(__VA_ARGS__), __FILE__, __LINE__)
-#define JVL_ASSERT_PLAIN(cond)	jvl::log::assertion(cond, __module__, fmt::format("{}:{}\t{}", __FILE__, __LINE__, #cond))
+#define JVL_ASSERT_PLAIN(cond)	jvl::log::assertion(cond, __module__, fmt::format("{}:{}\n\t{}", __FILE__, __LINE__, #cond))
 
 #define JVL_ABORT(...)		jvl::log::abort(__module__, fmt::format(__VA_ARGS__), __FILE__, __LINE__)
 #define JVL_ERROR(...)		jvl::log::error(__module__, fmt::format(__VA_ARGS__))
