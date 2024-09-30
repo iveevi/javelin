@@ -68,13 +68,14 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 		std::unordered_map <tinyobj::index_t, int32_t> index_map;
 
 		const tinyobj::shape_t &shape = shapes[s];
+		const tinyobj::mesh_t &smesh = shape.mesh;
 		
 		imported_asset.names.push_back(shape.name);
 
 		// Loop over faces (polygon)
 		size_t index_offset = 0;
-		for (size_t f = 0; f < shape.mesh.num_face_vertices.size(); f++) {
-			size_t fv = size_t(shape.mesh.num_face_vertices[f]);
+		for (size_t f = 0; f < smesh.num_face_vertices.size(); f++) {
+			size_t fv = size_t(smesh.num_face_vertices[f]);
 
 			// Triangles or quadrilaterals
 			int32_t indices[4] { -1, -1, -1, -1 };
@@ -82,7 +83,7 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 			// Loop over vertices in the face.
 			for (size_t v = 0; v < fv; v++) {
 				// access to vertex
-				tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+				tinyobj::index_t idx = smesh.indices[index_offset + v];
 				if (index_map.count(idx)) {
 					indices[v] = index_map[idx];
 					continue;
@@ -129,7 +130,7 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 				quadrilaterals.push_back(f);
 			}
 
-			materials.push_back(shape.mesh.material_ids[f]);
+			materials.push_back(smesh.material_ids[f]);
 
 			index_offset += fv;
 		}

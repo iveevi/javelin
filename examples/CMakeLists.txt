@@ -1,3 +1,3 @@
-project(palette CXX)
+project(examples CXX)
 
 add_subdirectory(palette)

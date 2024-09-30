@@ -43,8 +43,10 @@ void Scene::add(const engine::ImportedAsset &asset)
 
 		// Find the unique materials
 		std::unordered_set <int> ref;
-		for (auto &i : mids)
-			ref.insert(i);
+		for (auto &i : mids) {
+			if (i >= 0)
+				ref.insert(i);
+		}
 
 		// Generate list of materials and the reindex map
 		std::unordered_map <int, int> reindex;
