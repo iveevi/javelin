@@ -1,17 +1,8 @@
 #pragma once
 
-#include <imgui/imgui.h>
-#include <imgui/backends/imgui_impl_vulkan.h>
-#include <imgui/backends/imgui_impl_glfw.h>
+#include "interactive_window.hpp"
 
-#include <littlevk/littlevk.hpp>
-
-struct InteractiveWindow : littlevk::Window {
-	InteractiveWindow() = default;
-	InteractiveWindow(const littlevk::Window &);
-
-	bool key_pressed(int) const;
-};
+namespace jvl::engine {
 
 struct DeviceResourceCollectionInfo {
 	vk::PhysicalDevice phdev;
@@ -44,12 +35,4 @@ public:
 	static DeviceResourceCollection from(const DeviceResourceCollectionInfo &);
 };
 
-namespace imgui {
-
-// Configure vulkan device resource collection with ImGui
-void configure_vulkan(DeviceResourceCollection &, const vk::RenderPass &);
-
-// Generate a ImGui descriptor set for an image
-vk::DescriptorSet add_vk_texture(const vk::Sampler &, const vk::ImageView &, const vk::ImageLayout &);
-
-} // namespace imgui
+} // namespace jvl::engine

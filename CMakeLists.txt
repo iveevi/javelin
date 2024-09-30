@@ -70,8 +70,8 @@ target_link_libraries(javelin-ire
 target_compile_definitions(javelin-ire PRIVATE
 	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
 
-# ImGui module for GLFW + Vulkan
-add_library(imgui SHARED
+# ImGui sources for GLFW + Vulkan
+set(IMGUI_SOURCES
 	thirdparty/imgui/imgui.cpp
 	thirdparty/imgui/imgui_draw.cpp
 	thirdparty/imgui/imgui_widgets.cpp
@@ -80,37 +80,54 @@ add_library(imgui SHARED
 	thirdparty/imgui/backends/imgui_impl_glfw.cpp
 	thirdparty/imgui/backends/imgui_impl_vulkan.cpp)
 
-# Javelin editor
-add_executable(editor
+# Javelin graphics stack
+add_library(javelin-gfx STATIC
+	${IMGUI_SOURCES}
 	source/core/aabb.cpp
 	source/core/scene.cpp
 	source/core/texture.cpp
+	source/engine/device_resource_collection.cpp
 	source/engine/imported_asset.cpp
-	source/exec/editor/device_resource_collection.cpp
+	source/engine/interactive_window.cpp
+	source/gfx/cpu/bvh.cpp
+	source/gfx/cpu/intersection.cpp
+	source/gfx/cpu/scene.cpp)
+
+target_compile_options(javelin-gfx PRIVATE
+	-fno-rtti
+	$<$<CONFIG:Debug>:-Wall;-Werror;--coverage>)
+
+target_link_libraries(javelin-gfx
+	fmt::fmt
+	${VULKAN_LIBRARY_SET}
+	$<$<CONFIG:Debug>:--coverage>)
+
+target_compile_definitions(javelin-gfx PRIVATE
+	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
+
+# Javelin editor
+add_executable(editor
 	source/exec/editor/editor.cpp
+	source/exec/editor/gfx.cpp
 	source/exec/editor/imgui_render_group.cpp
 	source/exec/editor/main.cpp
 	source/exec/editor/raytracer_cpu.cpp
 	source/exec/editor/scene_inspector.cpp
 	source/exec/editor/viewport.cpp
-	source/exec/editor/viewport_render_group.cpp
-	source/gfx/cpu/bvh.cpp
-	source/gfx/cpu/intersection.cpp
-	source/gfx/cpu/scene.cpp)
+	source/exec/editor/viewport_render_group.cpp)
 
 target_compile_options(editor PRIVATE
 	-fno-rtti
 	$<$<CONFIG:Debug>:-Wall;-Werror;--coverage>)
 
-target_compile_definitions(editor PRIVATE
-	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
-
 target_link_libraries(editor
 	fmt::fmt
-	${VULKAN_LIBRARY_SET}
-	imgui
 	javelin-ire
+	javelin-gfx
 	$<$<CONFIG:Debug>:--coverage>)
+
+target_compile_definitions(editor PRIVATE
+	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
 
 # Experimental program for the IRE system
 add_executable(ire-features
@@ -151,3 +168,6 @@ target_link_libraries(test
 	javelin-ire
 	glfw
 	gccjit)
+
+# Example projects
+add_subdirectory(examples)

@@ -7,7 +7,6 @@
 #include <core/transform.hpp>
 #include <core/aperature.hpp>
 
-#include "device_resource_collection.hpp"
 #include "imgui_render_group.hpp"
 #include "rendering_info.hpp"
 

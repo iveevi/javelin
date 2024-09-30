@@ -1,6 +1,5 @@
 #pragma once
 
-#include "device_resource_collection.hpp"
 #include "imgui_render_group.hpp"
 #include "raytracer_cpu.hpp"
 #include "rendering_info.hpp"

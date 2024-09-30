@@ -4,7 +4,7 @@
 #include <core/messaging.hpp>
 #include <gfx/vulkan/scene.hpp>
 
-#include "device_resource_collection.hpp"
+#include "gfx.hpp"
 
 using namespace jvl;
 using namespace jvl::core;
