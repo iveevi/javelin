@@ -4,12 +4,12 @@
 
 namespace jvl::core {
 
-// HSV palette generation
-float3 hsv_to_rgb(const float3 &hsv)
+// HSL palette generation
+inline float3 hsl_to_rgb(const float3 &hsl)
 {
-	float h = hsv.x;
-	float s = hsv.y;
-	float v = hsv.z;
+	float h = hsl.x;
+	float s = hsl.y;
+	float v = hsl.z;
 
 	float c = v * s;
 	float x = c * (1.0f - fabs(fmod(h / 60.0f, 2.0f) - 1.0f));

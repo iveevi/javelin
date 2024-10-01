@@ -2,25 +2,31 @@
 #include <core/color.hpp>
 #include <core/scene.hpp>
 #include <core/transform.hpp>
+#include <engine/camera_controller.hpp>
 #include <engine/device_resource_collection.hpp>
 #include <engine/imported_asset.hpp>
 #include <gfx/cpu/scene.hpp>
 #include <gfx/vulkan/scene.hpp>
 #include <ire/core.hpp>
 
+#include "common/extensions.hpp"
+#include "common/default_framebuffer_set.hpp"
+
 using namespace jvl;
 using namespace jvl::ire;
 
-// Palette generation from SV values
+VULKAN_EXTENSIONS(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
+// Palette generation from SL values
 template <size_t N>
-array <vec3, N> hsv_palette(float saturation, float lightness)
+array <vec3, N> hsl_palette(float saturation, float lightness)
 {
 	std::array <vec3, N> palette;
 
 	float step = 360.0f / float(N);
 	for (int32_t i = 0; i < N; i++) {
 		float3 hsv = float3(i * step, saturation, lightness);
-		float3 rgb = core::hsv_to_rgb(hsv);
+		float3 rgb = core::hsl_to_rgb(hsv);
 		palette[i] = vec3(rgb.x, rgb.y, rgb.z);
 	}
 
@@ -66,8 +72,7 @@ void vertex()
 	out_id = (gl_VertexIndex / 3);
 }
 
-// TODO: pass hsv
-void fragment()
+void fragment(float saturation, float lightness)
 {
 	// Triangle index
 	layout_in <int, flat> id(0);
@@ -75,7 +80,7 @@ void fragment()
 	// Resulting fragment color
 	layout_out <vec4> fragment(0);
 		
-	auto palette = hsv_palette <16> (0.5, 1);
+	auto palette = hsl_palette <16> (saturation, lightness);
 
 	fragment = vec4(palette[id % palette.size()], 1);
 }
@@ -86,11 +91,12 @@ littlevk::Pipeline configure_pipeline(engine::DeviceResourceCollection &drc, con
 	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
 
 	auto vs_callable = callable("main") << vertex;
-	auto fs_callable = callable("main") << fragment;
+	auto fs_callable = callable("main") << std::make_tuple(0.5f, 0.8f) << fragment;
 
 	std::string vertex_shader = link(vs_callable).generate_glsl();
 	std::string fragment_shader = link(fs_callable).generate_glsl();
 
+	// TODO: automatic generation by observing used layouts
 	auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
 		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
 		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
@@ -104,89 +110,23 @@ littlevk::Pipeline configure_pipeline(engine::DeviceResourceCollection &drc, con
 		.cull_mode(vk::CullModeFlagBits::eNone);
 }
 
-void handle_input(const engine::InteractiveWindow &window, core::Transform &camera_transform)
-{
-	static constexpr float speed = 100.0f;
-	static float last_time = 0.0f;
-
-	float delta = speed * float(glfwGetTime() - last_time);
-	last_time = glfwGetTime();
-
-	jvl::float3 velocity(0.0f);
-	if (window.key_pressed(GLFW_KEY_S))
-		velocity.z -= delta;
-	else if (window.key_pressed(GLFW_KEY_W))
-		velocity.z += delta;
-
-	if (window.key_pressed(GLFW_KEY_D))
-		velocity.x -= delta;
-	else if (window.key_pressed(GLFW_KEY_A))
-		velocity.x += delta;
-
-	if (window.key_pressed(GLFW_KEY_E))
-		velocity.y -= delta;
-	else if (window.key_pressed(GLFW_KEY_Q))
-		velocity.y += delta;
-
-	camera_transform.translate += camera_transform.rotation.rotate(velocity);
-}
-	
-static bool voided = true;
-static bool dragging = false;
-static float last_x = 0;
-static float last_y = 0;
-static float pitch = 0;
-static float yaw = 0;
-
-static core::Transform *active_transform = nullptr;
-
-void handle_cursor(float2 mouse, core::Transform &transform)
-{
-	static constexpr float sensitivity = 0.0025f;
-
-	if (!dragging)
-		return;
-
-	if (voided) {
-		last_x = mouse.x;
-		last_y = mouse.y;
-		voided = false;
-	}
-
-	double dx = mouse.x - last_x;
-	double dy = mouse.y - last_y;
-
-	// Dragging state
-	pitch -= dx * sensitivity;
-	yaw -= dy * sensitivity;
-
-	float pi_e = pi <float> / 2.0f - 1e-3f;
-	yaw = std::min(pi_e, std::max(-pi_e, yaw));
-
-	last_x = mouse.x;
-	last_y = mouse.y;
-
-	transform.rotation = fquat::euler_angles(yaw, pitch, 0);
-}
-
 void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)
 {
+	auto controller = reinterpret_cast <engine::CameraController *> (glfwGetWindowUserPointer(window));
 	if (button == GLFW_MOUSE_BUTTON_LEFT) {
 		if (action == GLFW_PRESS) {
-			dragging = true;
+			controller->dragging = true;
 		} else if (action == GLFW_RELEASE) {
-			dragging = false;
-			voided = true;
+			controller->dragging = false;
+			controller->voided = true;
 		}
 	}
 }
 
 void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 {
-	if (!active_transform)
-		return;
-
-	handle_cursor(float2(x, y), *active_transform);
+	auto controller = reinterpret_cast <engine::CameraController *> (glfwGetWindowUserPointer(window));
+	controller->handle_cursor(float2(x, y));
 }
 
 int main(int argc, char *argv[])
@@ -203,14 +143,9 @@ int main(int argc, char *argv[])
 	// Load the asset and scene
 	std::filesystem::path path = argv[1];
 
-	// Device extensions
-	static const std::vector <const char *> EXTENSIONS {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	};
-
 	// Load physical device
 	auto predicate = [](vk::PhysicalDevice phdev) {
-		return littlevk::physical_device_able(phdev, EXTENSIONS);
+		return littlevk::physical_device_able(phdev, VK_EXTENSIONS);
 	};
 
 	// Configure the resource collection
@@ -218,7 +153,7 @@ int main(int argc, char *argv[])
 		.phdev = littlevk::pick_physical_device(predicate),
 		.title = "Editor",
 		.extent = vk::Extent2D(1920, 1080),
-		.extensions = EXTENSIONS,
+		.extensions = VK_EXTENSIONS,
 	};
 	
 	auto drc = engine::DeviceResourceCollection::from(info);
@@ -243,24 +178,9 @@ int main(int argc, char *argv[])
 
 	auto ppl = configure_pipeline(drc, render_pass);
 	
-	// Create the frame buffers
-	auto &extent = drc.window.extent;
-
-	littlevk::Image depth = drc.allocator()
-		.image(extent,
-			vk::Format::eD32Sfloat,
-			vk::ImageUsageFlagBits::eDepthStencilAttachment,
-			vk::ImageAspectFlagBits::eDepth);
-
-	littlevk::FramebufferGenerator generator {
-		drc.device, render_pass,
-		extent, drc.dal
-	};
-
-	for (size_t i = 0; i < drc.swapchain.images.size(); i++)
-		generator.add(drc.swapchain.image_views[i], depth.view);
-
-	auto framebuffers = generator.unpack();
+	// Framebuffer manager
+	DefaultFramebufferSet framebuffers;
+	framebuffers.resize(drc, render_pass);
 
 	// Camera transform and aperature
 	core::Transform camera_transform;
@@ -285,8 +205,13 @@ int main(int argc, char *argv[])
 	auto frame = 0u;
 	auto sync = littlevk::present_syncronization(drc.device, 2).unwrap(drc.dal);
 	
-	// Handling mouse events
-	active_transform = &camera_transform;
+	// Handling camera events
+	engine::CameraController controller {
+		camera_transform,
+		engine::CameraControllerBinding()
+	};
+
+	glfwSetWindowUserPointer(drc.window.handle, &controller);
 	glfwSetMouseButtonCallback(drc.window.handle, glfw_button_callback);
 	glfwSetCursorPosCallback(drc.window.handle, glfw_cursor_callback);
 
@@ -298,13 +223,13 @@ int main(int argc, char *argv[])
 		auto &cmd = command_buffers[frame];
 		auto sync_frame = sync[frame];
 
-		handle_input(drc.window, camera_transform);
+		controller.handle_movement(drc.window);
 	
 		// Grab the next image
 		littlevk::SurfaceOperation sop;
 		sop = littlevk::acquire_image(drc.device, drc.swapchain.swapchain, sync_frame);
 		if (sop.status == littlevk::SurfaceOperation::eResize) {
-			drc.combined().resize(drc.surface, drc.window, drc.swapchain);
+			framebuffers.resize(drc, render_pass);
 			continue;
 		}
 	
@@ -345,20 +270,17 @@ int main(int argc, char *argv[])
 		cmd.end();
 	
 		// Submit command buffer while signaling the semaphore
-		constexpr vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-
-		vk::SubmitInfo submit_info {
-			sync_frame.image_available,
-			wait_stage, cmd,
-			sync_frame.render_finished
-		};
-
-		drc.graphics_queue.submit(submit_info, sync_frame.in_flight);
+		vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+		drc.graphics_queue.submit(vk::SubmitInfo {
+				sync_frame.image_available,
+				wait_stage, cmd,
+				sync_frame.render_finished
+			}, sync_frame.in_flight);
 	
 		// Present to the window
 		sop = littlevk::present_image(drc.present_queue, drc.swapchain.swapchain, sync_frame, sop.index);
 		if (sop.status == littlevk::SurfaceOperation::eResize)
-			drc.combined().resize(drc.surface, drc.window, drc.swapchain);
+			framebuffers.resize(drc, render_pass);
 	
 		// Advance to the next frame
 		frame = 1 - frame;

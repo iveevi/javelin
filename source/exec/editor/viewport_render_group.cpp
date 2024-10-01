@@ -15,7 +15,7 @@ array <vec3, N> hsv_palette(float saturation, float lightness)
 	float step = 360.0f / float(N);
 	for (int32_t i = 0; i < N; i++) {
 		float3 hsv = float3(i * step, saturation, lightness);
-		float3 rgb = hsv_to_rgb(hsv);
+		float3 rgb = hsl_to_rgb(hsv);
 		palette[i] = vec3(rgb.x, rgb.y, rgb.z);
 	}
 

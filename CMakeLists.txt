@@ -86,6 +86,7 @@ add_library(javelin-gfx STATIC
 	source/core/aabb.cpp
 	source/core/scene.cpp
 	source/core/texture.cpp
+	source/engine/camera_controller.cpp
 	source/engine/device_resource_collection.cpp
 	source/engine/imported_asset.cpp
 	source/engine/interactive_window.cpp
