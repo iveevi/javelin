@@ -16,30 +16,71 @@ Many components of Javelin are a work in progress. See the [road map](docs/road_
 
 The Intermediate Representation Emitter (IRE) is Javelin's JIT framework for runtime shader and kernel generation. It aims to provide a seamless C++ experience when working with graphics shaders as well as multi-platform kernels.
 
-A simple example of using the IRE is the following vertex shader:
+For example, the following C++ code demonstrates how to use the IRE to write a simple vertex-fragment shader that simply projects vertices and sets the surface color to a static value.
 
 ```cpp
-// Contrived example when 2D input vertices are scale by a fixed amount
-void vertex(float scale)
-{
-    layout_in <vec2> position(0);
+// Model-view-projection structure
+struct MVP {
+    // Typical matrix structures
+    mat4 model;
+    mat4 view;
+    mat4 proj;
 
-    gl_Position = vec4(scale * position, 0, 1);
+    // Define a method to perform the projection
+    vec4 project(vec3 position) {
+        return proj * (view * (model * vec4(position, 1.0)));
+    }
+
+    // Define the layout structure of this struct for generated shader code
+    auto layout() const {
+        return uniform_layout(
+            "MVP",
+            named_field(model),
+            named_field(view),
+            named_field(proj)
+        );
+    }
+};
+
+// Shader kernels
+void vertex()
+{
+    // Vertex inputs
+    layout_in <vec3> position(0);
+
+    // Projection information
+    push_constant <MVP> mvp;
+
+    // Projecting the vertex
+    gl_Position = mvp.project(position);
 }
 
-// ...
-
-void compile_pipeline(float scale)
+void fragment(float3 color)
 {
-    // Generate a kernel object from the shader
-    auto kernel = kernel_from_args(vertex, scale);
+    // Resulting fragment color
+    layout_out <vec4> fragment(0);
 
-    // Generat GLSL (450) source code from the kernel
-    std::string vertex_shader = kernel.compile(profiles::glsl_450);
-
-    // use <vertex_shader> however it is needed...
+    // Set the color
+    fragment = vec4(color.x, color.y, color.z, 1);
 }
 ```
+
+The corresponding GLSL source code can be generated as follows:
+
+```cpp
+auto vs_callable = callable("main") // Name of the kernel
+	<< vertex;
+
+// Instantiate a fragment shader that colors the surface RED
+auto fs_callable = callable("main") // Name of the kernel
+	<< std::make_tuple(float3(1, 0, 0))
+	<< fragment;
+
+std::string vertex_shader = link(vs_callable).generate_glsl();
+std::string fragment_shader = link(fs_callable).generate_glsl();
+```
+
+Other, more complex examples can be found in the `examples` directory.
 
 The IRE supports compiling to multiple targets, with more to come in the future:
 
