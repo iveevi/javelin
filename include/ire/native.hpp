@@ -74,6 +74,13 @@ struct native_t : tagged {
 
 	native_t(T v = T()) : value(v) {}
 
+	// Explicit conversion operations
+	template <native U>
+	requires std::is_convertible_v <U, T>
+	explicit native_t(const native_t <U> &other) {
+		this->ref = other.ref;
+	}
+
 	native_t operator-() const {
 		auto &em = Emitter::active;
 

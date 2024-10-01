@@ -8,7 +8,7 @@ MODULE(viewport-render-group);
 
 // Function to generate an HSV color palette in shader code
 template <thunder::index_t N>
-array <vec3, N> hsv_palette(float saturation, float lightness)
+array <vec3> hsv_palette(float saturation, float lightness)
 {
 	std::array <vec3, N> palette;
 
@@ -70,10 +70,10 @@ void vertex(ViewportMode mode)
 	layout_out <vec3> out_position(0);
 
 	// Object vertex ID
-	layout_out <int, flat> out_id(0);
+	layout_out <uint32_t, flat> out_id(0);
 
 	// Object UUID
-	layout_out <int, flat> out_uuid(1);
+	layout_out <int32_t, flat> out_uuid(1);
 	
 	// Projection informations
 	push_constant <MVP> mvp;
@@ -85,7 +85,7 @@ void vertex(ViewportMode mode)
 		out_position = position;
 		break;
 	case eTriangles:
-		out_id = (gl_VertexIndex / 3);
+		out_id = u32(gl_VertexIndex / 3);
 		break;
 	default:
 		break;
@@ -101,7 +101,7 @@ void fragment(ViewportMode mode)
 	layout_in <vec3> position(0);
 
 	// Object vertex ID
-	layout_in <int, flat> id(0);
+	layout_in <uint32_t, flat> id(0);
 
 	// Material properties
 	uniform <UberMaterial> material(0);
@@ -128,7 +128,7 @@ void fragment(ViewportMode mode)
 	{
 		auto palette = hsv_palette <16> (0.5, 1);
 
-		fragment = vec4(palette[id % palette.size()], 1);
+		fragment = vec4(palette[id % palette.length], 1);
 	} break;
 
 	case eDepth:

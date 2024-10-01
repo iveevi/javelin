@@ -23,15 +23,14 @@ using namespace jvl::ire;
 VULKAN_EXTENSIONS(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
 // Palette generation from SL values
-template <size_t N>
-array <vec3, N> hsl_palette(float saturation, float lightness)
+array <vec3> hsl_palette(float saturation, float lightness, int N)
 {
-	std::array <vec3, N> palette;
+	std::vector <vec3> palette(N);
 
 	float step = 360.0f / float(N);
 	for (int32_t i = 0; i < N; i++) {
-		float3 hsv = float3(i * step, saturation, lightness);
-		float3 rgb = core::hsl_to_rgb(hsv);
+		float3 hsl = float3(i * step, saturation, lightness);
+		float3 rgb = core::hsl_to_rgb(hsl);
 		palette[i] = vec3(rgb.x, rgb.y, rgb.z);
 	}
 
@@ -65,7 +64,7 @@ void vertex()
 	layout_in <vec3> position(0);
 	
 	// Object triangle index
-	layout_out <int, flat> out_id(0);
+	layout_out <uint32_t, flat> out_id(0);
 	
 	// Projection information
 	push_constant <MVP> mvp;
@@ -74,32 +73,33 @@ void vertex()
 	gl_Position = mvp.project(position);
 
 	// Transfering triangle index
-	out_id = (gl_VertexIndex / 3);
+	out_id = u32(gl_VertexIndex / 3);
 }
 
-void fragment(float saturation, float lightness)
+void fragment(float saturation, float lightness, int splits)
 {
 	// Triangle index
-	layout_in <int, flat> id(0);
+	layout_in <uint32_t, flat> id(0);
 	
 	// Resulting fragment color
 	layout_out <vec4> fragment(0);
 		
-	auto palette = hsl_palette <16> (saturation, lightness);
+	auto palette = hsl_palette(saturation, lightness, splits);
 
-	fragment = vec4(palette[id % palette.size()], 1);
+	fragment = vec4(palette[id % palette.length], 1);
 }
 
 // Constructing the graphics pipeline
 littlevk::Pipeline configure_pipeline(engine::DeviceResourceCollection &drc,
 				      const vk::RenderPass &render_pass,
 				      float saturation,
-				      float lightness)
+				      float lightness,
+				      int splits)
 {
 	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
 
 	auto vs_callable = callable("main") << vertex;
-	auto fs_callable = callable("main") << std::make_tuple(saturation, lightness) << fragment;
+	auto fs_callable = callable("main") << std::make_tuple(saturation, lightness, splits) << fragment;
 
 	std::string vertex_shader = link(vs_callable).generate_glsl();
 	std::string fragment_shader = link(fs_callable).generate_glsl();
@@ -202,8 +202,9 @@ int main(int argc, char *argv[])
 	// Initial pipeline
 	float saturation = 0.5f;
 	float lightness = 1.0f;
+	int splits = 16;
 
-	auto ppl = configure_pipeline(drc, render_pass, saturation, lightness);
+	auto ppl = configure_pipeline(drc, render_pass, saturation, lightness, splits);
 	
 	// Framebuffer manager
 	DefaultFramebufferSet framebuffers;
@@ -304,12 +305,12 @@ int main(int argc, char *argv[])
 			// TODO: preview the colors in a grid
 			ImGui::Begin("Configure Palette");
 			
-			// TODO: configure the # as well...
 			ImGui::SliderFloat("saturation", &saturation, 0, 1);
 			ImGui::SliderFloat("lightness", &lightness, 0, 1);
+			ImGui::SliderInt("splits", &splits, 4, 64);
 			if (ImGui::Button("Confirm")) {
 				ppl = configure_pipeline(drc, render_pass,
-					saturation, lightness);
+					saturation, lightness, splits);
 			}
 
 			ImGui::End();

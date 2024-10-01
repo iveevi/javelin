@@ -27,6 +27,24 @@ thunder::index_t list_from_array(const std::array <T, N> &args)
 	return next;
 }
 
+template <builtin T>
+thunder::index_t list_from_vector(const std::vector <T> &args)
+{
+	auto &em = Emitter::active;
+
+	thunder::List list;
+
+	thunder::index_t next = -1;
+	for (int32_t i = args.size() - 1; i >= 0; i--) {
+		list.item = args[i].synthesize().id;
+		list.next = next;
+
+		next = em.emit(list);
+	}
+
+	return next;
+}
+
 template <native T, typename ... Args>
 thunder::index_t list_from_args(const T &t, const Args &... args)
 {
