@@ -267,10 +267,7 @@ int main(int argc, char *argv[])
 
 		// ImGui window to configure the palette 
 		{
-			// TODO: RAII context
-			ImGui_ImplVulkan_NewFrame();
-			ImGui_ImplGlfw_NewFrame();
-			ImGui::NewFrame();
+			engine::ImGuiRenderContext context(cmd);
 
 			ImGui::Begin("Configure Pipeline");
 			
@@ -279,9 +276,6 @@ int main(int argc, char *argv[])
 				ppl = configure_pipeline(drc, render_pass, color);
 
 			ImGui::End();
-
-			ImGui::Render();
-			ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 		}
 
 		cmd.endRenderPass();

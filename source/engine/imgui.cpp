@@ -5,6 +5,21 @@
 
 namespace jvl::engine {
 
+// Rendering context using RAII
+ImGuiRenderContext::ImGuiRenderContext(const vk::CommandBuffer &cmd_)
+		: cmd(cmd_)
+{
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+}
+
+ImGuiRenderContext::~ImGuiRenderContext()
+{
+	ImGui::Render();
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+}
+
 // ImGui utilities
 void configure_imgui(DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
 {

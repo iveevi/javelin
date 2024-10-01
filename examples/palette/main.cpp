@@ -297,10 +297,7 @@ int main(int argc, char *argv[])
 
 		// ImGui window to configure the palette 
 		{
-			// TODO: RAII context
-			ImGui_ImplVulkan_NewFrame();
-			ImGui_ImplGlfw_NewFrame();
-			ImGui::NewFrame();
+			engine::ImGuiRenderContext context(cmd);
 
 			// TODO: preview the colors in a grid
 			ImGui::Begin("Configure Palette");
@@ -314,9 +311,6 @@ int main(int argc, char *argv[])
 			}
 
 			ImGui::End();
-
-			ImGui::Render();
-			ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 		}
 
 		cmd.endRenderPass();

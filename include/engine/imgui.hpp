@@ -4,6 +4,14 @@
 
 namespace jvl::engine {
 
+// Rendering context using RAII
+struct ImGuiRenderContext {
+	const vk::CommandBuffer &cmd;
+
+	ImGuiRenderContext(const vk::CommandBuffer &);
+	~ImGuiRenderContext();
+};
+
 // Configure vulkan device resource collection with ImGui
 void configure_imgui(DeviceResourceCollection &, const vk::RenderPass &);
 

@@ -1,6 +1,8 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_vulkan.h>
 
+#include <engine/imgui.hpp>
+
 #include "imgui_render_group.hpp"
 
 ImGuiRenderGroup::ImGuiRenderGroup(DeviceResourceCollection &drc)
@@ -38,21 +40,15 @@ void ImGuiRenderGroup::render(const RenderingInfo &info, const imgui_callback_li
 	auto rpbi = littlevk::default_rp_begin_info <1> (render_pass,
 		framebuffers[info.operation.index], info.window);
 
-	info.cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);
-	
-	ImGui_ImplVulkan_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
+	info.cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);	
 
-	ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
-	
-	for (auto &ic : callbacks)
-		ic.callback(info);
+	{
+		ImGuiRenderContext context(info.cmd);
 
-	// Complete the rendering	
-	ImGui::Render();
-
-	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), info.cmd);
+		ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
+		for (auto &ic : callbacks)
+			ic.callback(info);
+	}
 	
 	// Finish the rendering pass
 	info.cmd.endRenderPass();
