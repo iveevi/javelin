@@ -1,3 +1,5 @@
+#include <engine/imgui.hpp>
+
 #include "raytracer_cpu.hpp"
 #include "core/ray.hpp"
 #include "imgui.h"
@@ -176,7 +178,7 @@ RaytracerCPU::RaytracerCPU(DeviceResourceCollection &drc,
 
 	sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
 
-	descriptor = imgui::add_vk_texture(sampler, display.view, vk::ImageLayout::eShaderReadOnlyOptimal);
+	descriptor = imgui_texture_descriptor(sampler, display.view, vk::ImageLayout::eShaderReadOnlyOptimal);
 
 	// Preprocessing
 	scene.build_bvh();

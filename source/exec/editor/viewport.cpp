@@ -1,3 +1,5 @@
+#include <engine/imgui.hpp>
+
 #include "viewport.hpp"
 #include "imgui.h"
 
@@ -76,7 +78,7 @@ void Viewport::resize(DeviceResourceCollection &drc, const vk::RenderPass &rende
 
 	vk::Sampler sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
 	for (const littlevk::Image &image : targets) {
-		vk::DescriptorSet dset = imgui::add_vk_texture(sampler, image.view,
+		vk::DescriptorSet dset = imgui_texture_descriptor(sampler, image.view,
 			vk::ImageLayout::eShaderReadOnlyOptimal);
 
 		imgui_descriptors.push_back(dset);

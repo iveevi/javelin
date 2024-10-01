@@ -1,3 +1,6 @@
+#include <imgui/backends/imgui_impl_glfw.h>
+#include <imgui/backends/imgui_impl_vulkan.h>
+
 #include "imgui_render_group.hpp"
 
 ImGuiRenderGroup::ImGuiRenderGroup(DeviceResourceCollection &drc)

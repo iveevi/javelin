@@ -1,11 +1,12 @@
+#include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_vulkan.h>
 
-#include "gfx.hpp"
+#include "engine/imgui.hpp"
 
-namespace imgui {
+namespace jvl::engine {
 
 // ImGui utilities
-void configure_vulkan(DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
+void configure_imgui(DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
 {
 	ImGui::CreateContext();
 
@@ -48,11 +49,11 @@ void configure_vulkan(DeviceResourceCollection &drc, const vk::RenderPass &rende
 	ImGui_ImplVulkan_DestroyFontsTexture();
 }
 
-vk::DescriptorSet add_vk_texture(const vk::Sampler &sampler, const vk::ImageView &view, const vk::ImageLayout &layout)
+vk::DescriptorSet imgui_texture_descriptor(const vk::Sampler &sampler, const vk::ImageView &view, const vk::ImageLayout &layout)
 {
 	return ImGui_ImplVulkan_AddTexture(static_cast <VkSampler> (sampler),
 			                   static_cast <VkImageView> (view),
 					   static_cast <VkImageLayout> (layout));
 }
 
-} // namespace imgui
+} // namespace jvl::engine

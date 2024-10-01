@@ -1,3 +1,5 @@
+#include <engine/imgui.hpp>
+
 #include "editor.hpp"
 #include "scene_inspector.hpp"
 
@@ -56,7 +58,7 @@ Editor::Editor()
 	// ImGui configuration
 	rg_imgui = ImGuiRenderGroup(drc);
 
-	imgui::configure_vulkan(drc, rg_imgui.render_pass);
+	configure_imgui(drc, rg_imgui.render_pass);
 
 	// Other render groups		
 	rg_viewport = ViewportRenderGroup(drc);

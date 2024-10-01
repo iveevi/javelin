@@ -3,12 +3,12 @@
 #include <core/scene.hpp>
 #include <core/messaging.hpp>
 #include <gfx/vulkan/scene.hpp>
-
-#include "gfx.hpp"
+#include <engine/device_resource_collection.hpp>
 
 using namespace jvl;
 using namespace jvl::core;
 using namespace jvl::gfx;
+using namespace jvl::engine;
 
 struct RenderingInfo {
 	// Primary rendering structures

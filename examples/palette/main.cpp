@@ -1,9 +1,14 @@
+#include <imgui/imgui.h>
+#include <imgui/backends/imgui_impl_glfw.h>
+#include <imgui/backends/imgui_impl_vulkan.h>
+
 #include <core/aperature.hpp>
 #include <core/color.hpp>
 #include <core/scene.hpp>
 #include <core/transform.hpp>
 #include <engine/camera_controller.hpp>
 #include <engine/device_resource_collection.hpp>
+#include <engine/imgui.hpp>
 #include <engine/imported_asset.hpp>
 #include <gfx/cpu/scene.hpp>
 #include <gfx/vulkan/scene.hpp>
@@ -86,12 +91,15 @@ void fragment(float saturation, float lightness)
 }
 
 // Constructing the graphics pipeline
-littlevk::Pipeline configure_pipeline(engine::DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
+littlevk::Pipeline configure_pipeline(engine::DeviceResourceCollection &drc,
+				      const vk::RenderPass &render_pass,
+				      float saturation,
+				      float lightness)
 {
 	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
 
 	auto vs_callable = callable("main") << vertex;
-	auto fs_callable = callable("main") << std::make_tuple(0.5f, 0.8f) << fragment;
+	auto fs_callable = callable("main") << std::make_tuple(saturation, lightness) << fragment;
 
 	std::string vertex_shader = link(vs_callable).generate_glsl();
 	std::string fragment_shader = link(fs_callable).generate_glsl();
@@ -113,6 +121,15 @@ littlevk::Pipeline configure_pipeline(engine::DeviceResourceCollection &drc, con
 void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)
 {
 	auto controller = reinterpret_cast <engine::CameraController *> (glfwGetWindowUserPointer(window));
+
+	ImGuiIO &io = ImGui::GetIO();
+	if (io.WantCaptureMouse) {
+		io.AddMouseButtonEvent(button, action);
+		controller->voided = true;
+		controller->dragging = false;
+		return;
+	}
+
 	if (button == GLFW_MOUSE_BUTTON_LEFT) {
 		if (action == GLFW_PRESS) {
 			controller->dragging = true;
@@ -125,6 +142,9 @@ void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)
 
 void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 {
+	ImGuiIO &io = ImGui::GetIO();
+	io.MousePos = ImVec2(x, y);
+
 	auto controller = reinterpret_cast <engine::CameraController *> (glfwGetWindowUserPointer(window));
 	controller->handle_cursor(float2(x, y));
 }
@@ -176,7 +196,14 @@ int main(int argc, char *argv[])
 			.depth_attachment(1, vk::ImageLayout::eDepthStencilAttachmentOptimal)
 			.done();
 
-	auto ppl = configure_pipeline(drc, render_pass);
+	// Configure ImGui
+	engine::configure_imgui(drc, render_pass);
+
+	// Initial pipeline
+	float saturation = 0.5f;
+	float lightness = 1.0f;
+
+	auto ppl = configure_pipeline(drc, render_pass, saturation, lightness);
 	
 	// Framebuffer manager
 	DefaultFramebufferSet framebuffers;
@@ -226,6 +253,7 @@ int main(int argc, char *argv[])
 		controller.handle_movement(drc.window);
 	
 		// Grab the next image
+		// TODO: RAII context
 		littlevk::SurfaceOperation sop;
 		sop = littlevk::acquire_image(drc.device, drc.swapchain.swapchain, sync_frame);
 		if (sop.status == littlevk::SurfaceOperation::eResize) {
@@ -264,6 +292,30 @@ int main(int argc, char *argv[])
 			cmd.bindVertexBuffers(0, mesh.vertices.buffer, { 0 });
 			cmd.bindIndexBuffer(mesh.triangles.buffer, 0, vk::IndexType::eUint32);
 			cmd.drawIndexed(mesh.count, 1, 0, 0, 0);
+		}
+
+		// ImGui window to configure the palette 
+		{
+			// TODO: RAII context
+			ImGui_ImplVulkan_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
+
+			// TODO: preview the colors in a grid
+			ImGui::Begin("Configure Palette");
+			
+			// TODO: configure the # as well...
+			ImGui::SliderFloat("saturation", &saturation, 0, 1);
+			ImGui::SliderFloat("lightness", &lightness, 0, 1);
+			if (ImGui::Button("Confirm")) {
+				ppl = configure_pipeline(drc, render_pass,
+					saturation, lightness);
+			}
+
+			ImGui::End();
+
+			ImGui::Render();
+			ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 		}
 
 		cmd.endRenderPass();

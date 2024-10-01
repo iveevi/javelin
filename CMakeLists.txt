@@ -88,6 +88,7 @@ add_library(javelin-gfx STATIC
 	source/core/texture.cpp
 	source/engine/camera_controller.cpp
 	source/engine/device_resource_collection.cpp
+	source/engine/imgui.cpp
 	source/engine/imported_asset.cpp
 	source/engine/interactive_window.cpp
 	source/gfx/cpu/bvh.cpp
@@ -109,7 +110,6 @@ target_compile_definitions(javelin-gfx PRIVATE
 # Javelin editor
 add_executable(editor
 	source/exec/editor/editor.cpp
-	source/exec/editor/gfx.cpp
 	source/exec/editor/imgui_render_group.cpp
 	source/exec/editor/main.cpp
 	source/exec/editor/raytracer_cpu.cpp
