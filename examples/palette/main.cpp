@@ -8,6 +8,7 @@
 #include <core/transform.hpp>
 #include <engine/camera_controller.hpp>
 #include <engine/device_resource_collection.hpp>
+#include <engine/frame_render_context.hpp>
 #include <engine/imgui.hpp>
 #include <engine/imported_asset.hpp>
 #include <gfx/cpu/scene.hpp>
@@ -242,38 +243,43 @@ int main(int argc, char *argv[])
 	glfwSetWindowUserPointer(drc.window.handle, &controller);
 	glfwSetMouseButtonCallback(drc.window.handle, glfw_button_callback);
 	glfwSetCursorPosCallback(drc.window.handle, glfw_cursor_callback);
+	
+	// Handling window resizing
+	auto resizer = [&]() { framebuffers.resize(drc, render_pass); };
 
 	// Main loop
 	auto &window = drc.window;
 	while (!window.should_close()) {
 		window.poll();
 
-		auto &cmd = command_buffers[frame];
-		auto sync_frame = sync[frame];
-
 		controller.handle_movement(drc.window);
-	
-		// Grab the next image
-		// TODO: RAII context
-		littlevk::SurfaceOperation sop;
-		sop = littlevk::acquire_image(drc.device, drc.swapchain.swapchain, sync_frame);
-		if (sop.status == littlevk::SurfaceOperation::eResize) {
-			framebuffers.resize(drc, render_pass);
+
+		engine::FrameRenderContext context {
+			drc,
+			command_buffers[frame],
+			sync[frame],
+			resizer
+		};
+
+		if (!context)
 			continue;
-		}
+
+		auto &cmd = context.cmd;
+		auto &sync_frame = context.sync_frame;
 	
 		// Start the command buffer
-		vk::CommandBufferBeginInfo cbbi;
-		cmd.begin(cbbi);
+		cmd.begin(vk::CommandBufferBeginInfo());
 		
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(drc.window.extent));
 
-		auto rpbi = littlevk::default_rp_begin_info <2> (render_pass,
-			framebuffers[sop.index],
-			drc.window.extent);
-
-		cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);
+		littlevk::RenderPassBeginInfo(2)
+			.with_render_pass(render_pass)
+			.with_framebuffer(framebuffers[context.sop.index])
+			.with_extent(drc.window.extent)
+			.clear_color(0, std::array <float, 4> { 0, 0, 0, 1 })
+			.clear_depth(1, 1)
+			.begin(cmd);
 	
 		// Update the constants with the view matrix
 		auto &extent = drc.window.extent;
@@ -323,11 +329,6 @@ int main(int argc, char *argv[])
 				wait_stage, cmd,
 				sync_frame.render_finished
 			}, sync_frame.in_flight);
-	
-		// Present to the window
-		sop = littlevk::present_image(drc.present_queue, drc.swapchain.swapchain, sync_frame, sop.index);
-		if (sop.status == littlevk::SurfaceOperation::eResize)
-			framebuffers.resize(drc, render_pass);
 	
 		// Advance to the next frame
 		frame = 1 - frame;

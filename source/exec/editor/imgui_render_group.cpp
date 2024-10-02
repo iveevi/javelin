@@ -37,10 +37,12 @@ void ImGuiRenderGroup::render(const RenderingInfo &info, const imgui_callback_li
 	littlevk::viewport_and_scissor(info.cmd, littlevk::RenderArea(info.window));
 
 	// Start the rendering pass
-	auto rpbi = littlevk::default_rp_begin_info <1> (render_pass,
-		framebuffers[info.operation.index], info.window);
-
-	info.cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);	
+	littlevk::RenderPassBeginInfo(1)
+		.with_render_pass(render_pass)
+		.with_framebuffer(framebuffers[info.operation.index])
+		.with_extent(info.window.extent)
+		.clear_color(0, std::array <float, 4> { 0, 0, 0, 0 })
+		.begin(info.cmd);
 
 	{
 		ImGuiRenderContext context(info.cmd);

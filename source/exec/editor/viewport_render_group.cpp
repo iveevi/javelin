@@ -229,11 +229,13 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 
 	viewport.handle_input(info.window);
 
-	auto rpbi = littlevk::default_rp_begin_info <2> (render_pass,
-		viewport.framebuffers[info.operation.index],
-		viewport.extent);
-
-	cmd.beginRenderPass(rpbi, vk::SubpassContents::eInline);
+	littlevk::RenderPassBeginInfo(2)
+		.with_render_pass(render_pass)
+		.with_framebuffer(viewport.framebuffers[info.operation.index])
+		.with_extent(viewport.extent)
+		.clear_color(0, std::array <float, 4> { 0, 0, 0, 1 })
+		.clear_depth(1, 1)
+		.begin(cmd);
 
 	auto &ppl = pipelines[viewport.mode];
 
