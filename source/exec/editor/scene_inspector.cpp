@@ -1,3 +1,7 @@
+#include <nfd.hpp>
+
+#include <engine/imported_asset.hpp>
+
 #include "scene_inspector.hpp"
 #include "core/messaging.hpp"
 
@@ -29,7 +33,30 @@ void SceneInspector::scene_hierarchy_object(const Scene &scene, const Scene::Obj
 
 void SceneInspector::scene_hierarchy(const RenderingInfo &info)
 {
-	ImGui::Begin("Scene");
+	bool window_open = true;
+
+	// TODO: closing...	
+	ImGui::Begin("Scene", &window_open, ImGuiWindowFlags_MenuBar);
+
+	if (ImGui::BeginMenuBar()) {
+		// Importing assets
+		if (ImGui::MenuItem("Import")) {
+			fmt::println("starting native dialog system");
+
+			NFD::Guard guard;
+			NFD::UniquePath path;
+			nfdresult_t result = NFD::OpenDialog(path, nullptr, 0);
+
+			if (result == NFD_OKAY) {
+				fmt::println("requested asset at: {}", path.get());
+				// TODO: background thread with loader...
+				auto asset = engine::ImportedAsset::from(path.get()).value();
+				info.scene.add(asset);
+			}
+		}
+
+		ImGui::EndMenuBar();
+	}
 
 	for (auto &uuid : info.scene.root) {
 		auto &obj = info.scene[uuid];
@@ -39,6 +66,7 @@ void SceneInspector::scene_hierarchy(const RenderingInfo &info)
 	ImGui::End();
 
 	// Send the update
+	// TODO: constructor frmo uuid
 	Message message {
 		.type_id = uuid.type_id,
 		.global = uuid.global,

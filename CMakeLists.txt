@@ -21,13 +21,17 @@ FetchContent_Declare(fmt
 	GIT_TAG master)
 FetchContent_MakeAvailable(fmt)
 
+# Native File Dialog (extended)
+add_subdirectory(thirdparty/nativefiledialog-extended)
+
 # Include directories
 include_directories(.
 	include
 	thirdparty
 	thirdparty/imgui
 	thirdparty/tinyobjloader
-	thirdparty/glad/include)
+	thirdparty/glad/include
+	thirdparty/nativefiledialog-extended/src/include)
 
 # Bundle Vulkan necessities
 set(VULKAN_LIBRARY_SET
@@ -99,7 +103,7 @@ target_compile_options(javelin-gfx PRIVATE
 	-fno-rtti
 	$<$<CONFIG:Debug>:-Wall;-Werror;--coverage>)
 
-target_link_libraries(javelin-gfx
+target_link_libraries(javelin-gfx PRIVATE
 	fmt::fmt
 	${VULKAN_LIBRARY_SET}
 	$<$<CONFIG:Debug>:--coverage>)
@@ -121,7 +125,8 @@ target_compile_options(editor PRIVATE
 	-fno-rtti
 	$<$<CONFIG:Debug>:-Wall;-Werror;--coverage>)
 
-target_link_libraries(editor
+target_link_libraries(editor PRIVATE
+	nfd
 	fmt::fmt
 	javelin-ire
 	javelin-gfx
@@ -148,7 +153,8 @@ target_compile_options(lang-features PRIVATE
 	-fno-rtti
 	$<$<CONFIG:Debug>:-Wall;-Werror;-fsanitize=address>)
 
-target_link_libraries(lang-features fmt::fmt
+target_link_libraries(lang-features PRIVATE
+	fmt::fmt
 	$<$<CONFIG:Debug>:-fsanitize=address>)
 
 # Testing suite using GoogleTest

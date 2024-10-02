@@ -13,3 +13,6 @@
 [submodule "thirdparty/stb"]
 	path = thirdparty/stb
 	url = https://github.com/nothings/stb.git
+[submodule "thirdparty/nativefiledialog-extended"]
+	path = thirdparty/nativefiledialog-extended
+	url = https://github.com/btzy/nativefiledialog-extended
