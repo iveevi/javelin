@@ -12,8 +12,8 @@ using namespace jvl::engine;
 
 struct RenderingInfo {
 	// Primary rendering structures
+	DeviceResourceCollection &drc;
 	const vk::CommandBuffer &cmd;
-	const DeviceResourceCollection &drc;
 	const littlevk::SurfaceOperation &operation;
 
 	InteractiveWindow &window;

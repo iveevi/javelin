@@ -23,7 +23,7 @@ jobs:
         run: |
           sudo apt update -y
           sudo apt install -y cmake libvulkan1 libglfw3-dev \
-            glslang-tools glslang-dev libfmt-dev            \
+            glslang-tools glslang-dev libfmt-dev libgtk-3-dev \
             clang gcc-14 libgccjit-14-dev llvm lcov
           sudo ln -s /usr/lib/gcc/x86_64-linux-gnu/14/include/libgccjit.h /usr/include/libgccjit.h
           sudo ln -s /usr/lib/gcc/x86_64-linux-gnu/14/libgccjit.so /usr/lib/libgccjit.so
