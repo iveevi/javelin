@@ -19,40 +19,28 @@
 using namespace jvl;
 using namespace jvl::ire;
 
-struct seed {
-	u32 a;
-	u32 b;
-
-	auto layout() const {
-		return uniform_layout("seed",
-			named_field(a),
-			named_field(b));
-	}
-};
-
-auto seed_to_vector = callable("seed_to_vector")
-	<< std::make_tuple(seed(), 16)
-	<< [](const seed &s, int bias)
+auto fragment = callable("main")
+	<< std::make_tuple(true)
+	<< [](bool texture)
 {
-	push_constant <uint32_t> pc(16);
-	uniform <seed> prime(1);
+	layout_in <vec2> uv(2);
 
-	u32 x = (s.a << s.b) ^ (s.b - s.a);
+	layout_out <vec4> fragment(0);
 
-	auto iterations = range <f32> (0, 10.0, 1.618);
+	if (texture) {
+		sampler2D albedo(0);
 
-	auto iter = loop(iterations);
-		u32 y = floatBitsToUint(bias * iter);
-		x += (y - pc + prime.a) / prime.b;
-	end();
-
-	returns(uvec2(x, y));
+		fragment = albedo.sample(uv);
+		cond(fragment.w < 0.1f);
+			discard();
+		end();
+	}
 };
 
 int main()
 {
-	thunder::opt_transform(seed_to_vector);
-	seed_to_vector.dump();
-	auto unit = link(seed_to_vector, seed_to_vector);
+	// thunder::opt_transform(fragment);
+	fragment.dump();
+	auto unit = link(fragment);
 	fmt::println("{}", unit.generate_glsl());
 }

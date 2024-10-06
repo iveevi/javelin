@@ -309,6 +309,11 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 							sampler2D albedo(0);
 
 							fragment = albedo.sample(uv);
+							cond(fragment.w < 0.1f);
+								discard();
+							end();
+
+							fragment.w = 1.0f;
 						} else {
 							constexpr size_t mvp_size = sizeof(solid_t <MVP>);
 							constexpr size_t vec3_size = sizeof(solid_t <vec3>);

@@ -78,6 +78,10 @@ void Buffer::include(index_t i)
 		synthesized.insert(i);
 		break;
 
+	case Atom::type_index <Intrinsic> ():
+		synthesized.insert(i);
+		break;
+
 	default:
 		break;
 	}

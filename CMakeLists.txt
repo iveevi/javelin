@@ -102,7 +102,8 @@ add_library(javelin-gfx STATIC
 	source/engine/imported_asset.cpp
 	source/gfx/cpu/bvh.cpp
 	source/gfx/cpu/intersection.cpp
-	source/gfx/cpu/scene.cpp)
+	source/gfx/cpu/scene.cpp
+	source/gfx/vulkan/material.cpp)
 
 target_compile_options(javelin-gfx PRIVATE
 	-fno-rtti

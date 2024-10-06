@@ -95,4 +95,18 @@ native_t <bool> operator!=(const A &a, const B &b)
 	return underlying(a) != underlying(b);
 }
 
+template <arithmetic A, arithmetic B>
+requires overload_compatible <A, B>
+native_t <bool> operator>(const A &a, const B &b)
+{
+	return underlying(a) > underlying(b);
+}
+
+template <arithmetic A, arithmetic B>
+requires overload_compatible <A, B>
+native_t <bool> operator<(const A &a, const B &b)
+{
+	return underlying(a) < underlying(b);
+}
+
 } // namespace jvl::ire

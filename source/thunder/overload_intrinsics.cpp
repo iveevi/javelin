@@ -150,6 +150,8 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 		{ glsl_dFdyFine, {
 			overload::from(vec3, vec3),
 		} },
+
+		{ discard, { overload::from(none) } },
         };
 
         return table.lookup(key, args);
