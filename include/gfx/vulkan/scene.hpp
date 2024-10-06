@@ -8,7 +8,7 @@
 
 namespace jvl::gfx::vulkan {
 
-enum MaterialFlags : uint64_t {
+enum class MaterialFlags : uint64_t {
 	eNone = 0x0,
 	eAlbedoSampler = 0x1,
 	eSpecularSampler = 0x10,
@@ -18,7 +18,7 @@ enum MaterialFlags : uint64_t {
 [[gnu::always_inline]]
 inline bool enabled(MaterialFlags one, MaterialFlags two)
 {
-	return (one & two) == two;
+	return (uint64_t(one) & uint64_t(two)) == uint64_t(two);
 }
 
 [[gnu::always_inline]]
@@ -46,12 +46,12 @@ struct Material {
 		MODULE(vulkan-material-from);
 
 		// Albedo / Diffuse
-		MaterialFlags flags = eNone;
+		MaterialFlags flags = MaterialFlags::eNone;
 
 		JVL_ASSERT_PLAIN(material.values.contains(core::Material::diffuse_key));
 		auto kd = material.values.get(core::Material::diffuse_key).value();
 		if (kd.is <std::string> ())
-			flags = flags | eAlbedoSampler;
+			flags = flags | MaterialFlags::eAlbedoSampler;
 		else
 			JVL_ASSERT_PLAIN(kd.is <float3> ());
 
@@ -59,7 +59,7 @@ struct Material {
 		JVL_ASSERT_PLAIN(material.values.contains(core::Material::specular_key));
 		auto ks = material.values.get(core::Material::specular_key).value();
 		if (ks.is <std::string> ())
-			flags = flags | eSpecularSampler;
+			flags = flags | MaterialFlags::eSpecularSampler;
 		else
 			JVL_ASSERT_PLAIN(ks.is <float3> ());
 
@@ -67,24 +67,24 @@ struct Material {
 		JVL_ASSERT_PLAIN(material.values.contains(core::Material::roughness_key));
 		auto roughness = material.values.get(core::Material::roughness_key).value();
 		if (roughness.is <std::string> ())
-			flags = flags | eRoughnessSampler;
+			flags = flags | MaterialFlags::eRoughnessSampler;
 		else
 			JVL_ASSERT_PLAIN(roughness.is <float> ());
 
 		// Construct the Uber material form
 		uber_x info;
 
-		if (enabled(flags, eAlbedoSampler))
+		if (enabled(flags, MaterialFlags::eAlbedoSampler))
 			info.kd = float3(0.5, 0.5, 0.5);
 		else
 			info.kd = kd.as <float3> ();
 		
-		if (enabled(flags, eSpecularSampler))
+		if (enabled(flags, MaterialFlags::eSpecularSampler))
 			info.ks = float3(0.5, 0.5, 0.5);
 		else
 			info.ks = ks.as <float3> ();
 		
-		if (enabled(flags, eRoughnessSampler))
+		if (enabled(flags, MaterialFlags::eRoughnessSampler))
 			info.roughness = 0.1;
 		else
 			info.roughness = roughness.as <float> ();

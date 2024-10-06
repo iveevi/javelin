@@ -41,6 +41,11 @@ set(VULKAN_LIBRARY_SET
 	glslang
 	glslang-default-resource-limits)
 
+# Options for coverage
+if (${ENABLE_COVERAGE})
+	set(COVERAGE_FLAGS --coverage)
+endif()
+
 # Intermediate Representation Emitter (IRE)
 add_library(javelin-ire STATIC
 	source/ire/emitter.cpp
@@ -101,7 +106,7 @@ add_library(javelin-gfx STATIC
 
 target_compile_options(javelin-gfx PRIVATE
 	-fno-rtti
-	$<$<CONFIG:Debug>:-Wall;-Werror;--coverage>)
+	$<$<CONFIG:Debug>:-Wall;-Werror;${COVERAGE_FLAGS}>)
 
 target_link_libraries(javelin-gfx PRIVATE
 	fmt::fmt
@@ -123,7 +128,7 @@ add_executable(editor
 
 target_compile_options(editor PRIVATE
 	-fno-rtti
-	$<$<CONFIG:Debug>:-Wall;-Werror;--coverage>)
+	$<$<CONFIG:Debug>:-Wall;-Werror;${COVERAGE_FLAGS}>)
 
 target_link_libraries(editor PRIVATE
 	nfd

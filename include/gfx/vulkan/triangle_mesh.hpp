@@ -7,6 +7,14 @@
 
 namespace jvl::gfx::vulkan {
 
+enum class VertexFlags : uint64_t {
+	eNone = 0x0,
+	eVertex = 0x1,
+	eNormal = 0x10,
+	eUV = 0x100,
+	eAll = eVertex | eNormal | eUV
+};
+
 struct TriangleMesh {
 	littlevk::Buffer vertices;
 	littlevk::Buffer triangles;
@@ -14,9 +22,9 @@ struct TriangleMesh {
 	
 	std::set <int> material_usage;
 
-	// TODO: flags for the properties interleaved in vertices
-
-	static std::optional <TriangleMesh> from(littlevk::LinkedDeviceAllocator <> allocator, const core::TriangleMesh &tmesh) {
+	static std::optional <TriangleMesh> from(littlevk::LinkedDeviceAllocator <> allocator,
+						 const core::TriangleMesh &tmesh,
+						 const VertexFlags &flags = VertexFlags::eAll) {
 		TriangleMesh vmesh;
 
 		vmesh.count = 3 * tmesh.triangles.size();
