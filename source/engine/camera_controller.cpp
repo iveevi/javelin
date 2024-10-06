@@ -4,8 +4,8 @@
 namespace jvl::engine {
 
 CameraController::CameraController(core::Transform &transform_,
-				   const CameraControllerBinding &binding_)
-		: transform(transform_), binding(binding_) {}
+				   const CameraControllerSettings &binding_)
+		: transform(transform_), settings(binding_) {}
 
 void CameraController::handle_cursor(float2 mouse)
 {
@@ -20,12 +20,12 @@ void CameraController::handle_cursor(float2 mouse)
 
 	double dx = mouse.x - last_x;
 	double dy = mouse.y - last_y;
-	if (binding.invert_y)
+	if (settings.invert_y)
 		dy = -dy;
 
 	// Dragging state
-	pitch -= dx * sensitivity;
-	yaw -= dy * sensitivity;
+	pitch -= dx * settings.sensitivity / 1e+3f;
+	yaw -= dy * settings.sensitivity / 1e+3f;
 
 	float pi_e = pi <float> / 2.0f - 1e-3f;
 	yaw = std::min(pi_e, std::max(-pi_e, yaw));
@@ -38,23 +38,23 @@ void CameraController::handle_cursor(float2 mouse)
 
 void CameraController::handle_movement(const engine::InteractiveWindow &window)
 {
-	float delta = speed * float(glfwGetTime() - last_t);
+	float delta = settings.speed * float(glfwGetTime() - last_t);
 	last_t = glfwGetTime();
 
 	jvl::float3 velocity(0.0f);
-	if (window.key_pressed(binding.backward))
+	if (window.key_pressed(settings.backward))
 		velocity.z -= delta;
-	else if (window.key_pressed(binding.forward))
+	else if (window.key_pressed(settings.forward))
 		velocity.z += delta;
 
-	if (window.key_pressed(binding.right))
+	if (window.key_pressed(settings.right))
 		velocity.x -= delta;
-	else if (window.key_pressed(binding.left))
+	else if (window.key_pressed(settings.left))
 		velocity.x += delta;
 
-	if (window.key_pressed(binding.down))
+	if (window.key_pressed(settings.down))
 		velocity.y -= delta;
-	else if (window.key_pressed(binding.up))
+	else if (window.key_pressed(settings.up))
 		velocity.y += delta;
 
 	transform.translate += transform.rotation.rotate(velocity);

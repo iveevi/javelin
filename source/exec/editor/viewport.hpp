@@ -55,7 +55,8 @@ struct Viewport {
 
 	// Display information
 	std::string main_title;
-	std::string popup_title;
+	std::string camera_settings_popup_title;
+	std::string view_mode_popup_title;
 
 	// Images and framebuffers
 	std::vector <littlevk::Image> targets;

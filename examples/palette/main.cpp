@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
 	// Handling camera events
 	engine::CameraController controller {
 		camera_transform,
-		engine::CameraControllerBinding()
+		engine::CameraControllerSettings()
 	};
 
 	glfwSetWindowUserPointer(drc.window.handle, &controller);

@@ -7,7 +7,7 @@
 
 namespace jvl::engine {
 
-struct CameraControllerBinding {
+struct CameraControllerSettings {
 	int forward = GLFW_KEY_W;
 	int backward = GLFW_KEY_S;
 	int left = GLFW_KEY_A;
@@ -16,14 +16,14 @@ struct CameraControllerBinding {
 	int down = GLFW_KEY_E;
 
 	bool invert_y = false;
+	
+	float speed = 100.0f;
+	float sensitivity = 2.5f;
 };
 
 struct CameraController {
 	bool voided = true;
 	bool dragging = false;
-
-	float speed = 100.0f;
-	float sensitivity = 0.0025f;
 
 	float last_t = 0.0f;
 	float last_x = 0.0f;
@@ -34,9 +34,9 @@ struct CameraController {
 
 	core::Transform &transform;
 
-	CameraControllerBinding binding;
+	CameraControllerSettings settings;
 
-	CameraController(core::Transform &, const CameraControllerBinding &);
+	CameraController(core::Transform &, const CameraControllerSettings &);
 
 	void handle_cursor(float2);
 	void handle_movement(const engine::InteractiveWindow &);

@@ -4,18 +4,19 @@
 #include "imgui.h"
 
 Viewport::Viewport(DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
-		: uuid(new_uuid <Viewport> ()), controller(transform, engine::CameraControllerBinding())
+		: uuid(new_uuid <Viewport> ()), controller(transform, engine::CameraControllerSettings())
 {
 	extent = drc.window.extent;
 	resize(drc, render_pass);
 
 	main_title = fmt::format("Viewport ({})##{}", uuid.type_local, uuid.global);
-	popup_title = fmt::format("Mode##{}", uuid.global);
+	camera_settings_popup_title= fmt::format("Camera Settings##{}", uuid.global);
+	view_mode_popup_title = fmt::format("View Mode##{}", uuid.global);
 
 	// Presets for the camera controller
-	controller.binding.up = GLFW_KEY_E;
-	controller.binding.down  = GLFW_KEY_Q;
-	controller.binding.invert_y = true;
+	controller.settings.up = GLFW_KEY_E;
+	controller.settings.down  = GLFW_KEY_Q;
+	controller.settings.invert_y = true;
 }
 
 void Viewport::handle_input(const InteractiveWindow &window)
@@ -92,16 +93,18 @@ void Viewport::display_handle(const RenderingInfo &info)
 
 	active = ImGui::IsWindowFocused();
 
-	bool popup = false;
+	bool camera_settings_popup = false;
+	bool view_mode_popup = false;
 
 	if (ImGui::BeginMenuBar()) {
-		if (ImGui::MenuItem("Display")) {
-			popup = true;
-		}
+		if (ImGui::MenuItem("Display"))
+			view_mode_popup = true;
+		
+		if (ImGui::MenuItem("Camera"))
+			camera_settings_popup = true;
 
-		if (ImGui::MenuItem("Render")) {
+		if (ImGui::MenuItem("Render"))
 			fmt::println("triggering cpu raytracer...");
-		}
 
 		ImGui::EndMenuBar();
 	}
@@ -146,10 +149,13 @@ void Viewport::display_handle(const RenderingInfo &info)
 
 	ImGui::End();
 
-	if (popup)
-		ImGui::OpenPopup(popup_title.c_str());
+	if (view_mode_popup)
+		ImGui::OpenPopup(view_mode_popup_title.c_str());
+	
+	if (camera_settings_popup)
+		ImGui::OpenPopup(camera_settings_popup_title.c_str());
 
-	if (ImGui::BeginPopup(popup_title.c_str())) {
+	if (ImGui::BeginPopup(view_mode_popup_title.c_str())) {
 		bool selected = false;
 		for (int32_t i = 0; i < eCount; i++) {
 			if (ImGui::Selectable(tbl_viewport_mode[i])) {
@@ -162,6 +168,12 @@ void Viewport::display_handle(const RenderingInfo &info)
 		if (selected)
 			ImGui::CloseCurrentPopup();
 
+		ImGui::EndPopup();
+	}
+	
+	if (ImGui::BeginPopup(camera_settings_popup_title.c_str())) {
+		ImGui::SliderFloat("speed", &controller.settings.speed, 1, 1000);
+		ImGui::SliderFloat("sensitivity", &controller.settings.sensitivity, 1, 10);
 		ImGui::EndPopup();
 	}
 }
