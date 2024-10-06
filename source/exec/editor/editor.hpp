@@ -15,6 +15,10 @@ struct Editor {
 	ImGuiRenderGroup		rg_imgui;
 	ViewportRenderGroup		rg_viewport;
 
+	// Resource caches
+	TextureBank			texture_bank;
+	vulkan::TextureBank		device_texture_bank;
+
 	// Scene management
 	core::Scene			scene;
 	vulkan::Scene			vk_scene;

@@ -52,7 +52,10 @@ void SceneInspector::scene_hierarchy(const RenderingInfo &info)
 				// TODO: background thread with loader...
 				auto asset = engine::ImportedAsset::from(path.get()).value();
 				info.scene.add(asset);
-				info.device_scene = vulkan::Scene::from(info.drc, cpu::Scene::from(info.scene));
+				info.device_scene = vulkan::Scene::from(info.drc,
+					info.texture_bank,
+					info.device_texture_bank,
+					cpu::Scene::from(info.scene));
 			}
 		}
 

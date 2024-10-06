@@ -15,14 +15,15 @@ struct RenderingInfo {
 	DeviceResourceCollection &drc;
 	const vk::CommandBuffer &cmd;
 	const littlevk::SurfaceOperation &operation;
-
 	InteractiveWindow &window;
-
 	int32_t frame;
+
+	// Caches
+	TextureBank &texture_bank;
+	vulkan::TextureBank &device_texture_bank;
 
 	// Scenes
 	Scene &scene;
-
 	vulkan::Scene &device_scene;
 
 	// Messaging system

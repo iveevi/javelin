@@ -6,7 +6,10 @@ namespace jvl::gfx::vulkan {
 
 MODULE(vulkan-material);
 
-std::optional <Material> Material::from(core::DeviceResourceCollection &drc, const core::Material &material)
+std::optional <Material> Material::from(core::DeviceResourceCollection &drc,
+					core::TextureBank &bank,
+					TextureBank &device_bank,
+					const core::Material &material)
 {
 	Material result;
 
@@ -21,42 +24,49 @@ std::optional <Material> Material::from(core::DeviceResourceCollection &drc, con
 		result.flags = result.flags | MaterialFlags::eAlbedoSampler;
 
 		std::string path = kd.as <std::string> ();
-		fmt::println("uploading texture {} to device", path);
+		if (!device_bank.contains(path)) {
+			fmt::println("uploading texture {} to device", path);
 
-		auto texture = core::Texture::from(path);
+			auto &texture = core::Texture::from(bank, path);
 
-		littlevk::ImageCreateInfo image_info {
-			uint32_t(texture.width),
-			uint32_t(texture.height),
-			vk::Format::eR8G8B8A8Unorm,
-			vk::ImageUsageFlagBits::eSampled
-			| vk::ImageUsageFlagBits::eTransferDst,
-			vk::ImageAspectFlagBits::eColor,
-			vk::ImageType::e2D,
-			vk::ImageViewType::e2D
-		};
+			littlevk::ImageCreateInfo image_info {
+				uint32_t(texture.width),
+				uint32_t(texture.height),
+				vk::Format::eR8G8B8A8Unorm,
+				vk::ImageUsageFlagBits::eSampled
+				| vk::ImageUsageFlagBits::eTransferDst,
+				vk::ImageAspectFlagBits::eColor,
+				vk::ImageType::e2D,
+				vk::ImageViewType::e2D
+			};
 
-		littlevk::Buffer staging;
+			littlevk::Buffer staging;
 
-		std::tie(staging, result.albedo) = drc.allocator()
-			.buffer(texture.data,
-				4 * texture.width * texture.height * sizeof(uint8_t),
-				vk::BufferUsageFlagBits::eTransferDst
-				| vk::BufferUsageFlagBits::eTransferSrc)
-			.image(image_info);
+			std::tie(staging, result.kd) = drc.allocator()
+				.buffer(texture.data,
+					4 * texture.width * texture.height * sizeof(uint8_t),
+					vk::BufferUsageFlagBits::eTransferDst
+					| vk::BufferUsageFlagBits::eTransferSrc)
+				.image(image_info);
 
-		drc.commander().submit_and_wait([&](const vk::CommandBuffer &cmd) {
-			result.albedo.transition(cmd, vk::ImageLayout::eTransferDstOptimal);
+			auto &image = result.kd.as <littlevk::Image> ();
+			drc.commander().submit_and_wait([&](const vk::CommandBuffer &cmd) {
+				image.transition(cmd, vk::ImageLayout::eTransferDstOptimal);
 
-			littlevk::copy_buffer_to_image(cmd,
-				result.albedo,
-				staging,
-				vk::ImageLayout::eTransferDstOptimal);
+				littlevk::copy_buffer_to_image(cmd,
+					image,
+					staging,
+					vk::ImageLayout::eTransferDstOptimal);
 
-			result.albedo.transition(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
-		});
+				image.transition(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
+			});
+
+			device_bank[path] = image;
+		} else {
+			result.kd = device_bank[path];
+		}
 	} else {
-		JVL_ASSERT_PLAIN(kd.is <float3> ());
+		result.kd = kd.as <float3> ();
 	}
 
 	// Specular

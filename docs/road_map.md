@@ -46,7 +46,7 @@
 
 ## Engine
 
-- [ ] Texture caching to avoid duplicate texture loading
+- [x] Texture caching to avoid duplicate texture loading
 
 ## Examples
 

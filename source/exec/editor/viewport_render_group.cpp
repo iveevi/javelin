@@ -378,7 +378,7 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 					auto sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
 					littlevk::bind(drc.device, descriptor, binding)
 						.queue_update(0, 0, sampler,
-							material.albedo.view,
+							material.kd.as <littlevk::Image> ().view,
 							vk::ImageLayout::eShaderReadOnlyOptimal)
 						.finalize();
 
@@ -421,7 +421,7 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 				cmd.pushConstants <float3> (ppl.layout,
 					vk::ShaderStageFlagBits::eFragment,
 					aligned_mvp_size,
-					float3(1, 0, 1));
+					material.kd.as <float3> ());
 			}
 			
 			cmd.bindVertexBuffers(0, mesh.vertices.buffer, { 0 });

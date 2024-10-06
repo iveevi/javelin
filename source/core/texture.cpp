@@ -38,4 +38,13 @@ Texture Texture::from(const std::filesystem::path &path)
 	return result;
 }
 
+Texture &Texture::from(TextureBank &bank, const std::filesystem::path &path)
+{
+	if (bank.contains(path))
+		return bank[path];
+
+	bank[path] = Texture::from(path);
+	return bank[path];
+}
+
 } // namespace jvl::core

@@ -3,7 +3,9 @@
 #include "../../core/messaging.hpp"
 #include "../../core/device_resource_collection.hpp"
 #include "../../core/material.hpp"
+#include "../../core/texture.hpp"
 #include "material_flags.hpp"
+#include "texture_bank.hpp"
 
 namespace jvl::gfx::vulkan {
 
@@ -24,9 +26,12 @@ struct Material {
 	littlevk::Buffer specialized;
 
 	// TODO: some deferred strategy
-	littlevk::Image albedo;
+	wrapped::variant <float3, littlevk::Image> kd;
 
-	static std::optional <Material> from(core::DeviceResourceCollection &, const core::Material &);
+	static std::optional <Material> from(core::DeviceResourceCollection &,
+		core::TextureBank &,
+		TextureBank &,
+		const core::Material &);
 };
 
 } // namespace jvl::gfx::vulkan

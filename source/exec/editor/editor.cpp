@@ -105,6 +105,10 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 		.window = drc.window,
 		.frame = frame,
 
+		// Caches
+		.texture_bank = texture_bank,
+		.device_texture_bank = device_texture_bank,
+
 		// Scenes
 		.scene = scene,
 		.device_scene = vk_scene,

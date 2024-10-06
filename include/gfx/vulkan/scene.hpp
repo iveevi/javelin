@@ -3,9 +3,11 @@
 #include <littlevk/littlevk.hpp>
 
 #include "../../core/device_resource_collection.hpp"
+#include "../../core/texture.hpp"
 #include "../cpu/scene.hpp"
-#include "triangle_mesh.hpp"
 #include "material.hpp"
+#include "texture_bank.hpp"
+#include "triangle_mesh.hpp"
 
 namespace jvl::gfx::vulkan {
 
@@ -14,7 +16,10 @@ struct Scene {
 	std::vector <TriangleMesh> meshes;
 	std::vector <Material> materials;
 
-	static Scene from(core::DeviceResourceCollection &drc, const cpu::Scene &other) {
+	static Scene from(core::DeviceResourceCollection &drc,
+			  core::TextureBank &bank,
+			  TextureBank &device_bank,
+			  const cpu::Scene &other) {
 		Scene result;
 		result.uuids = other.uuids;
 		
@@ -24,7 +29,7 @@ struct Scene {
 		}
 
 		for (auto &m : other.materials) {
-			auto vkm = Material::from(drc, m).value();
+			auto vkm = Material::from(drc, bank, device_bank, m).value();
 			result.materials.push_back(vkm);
 		}
 
