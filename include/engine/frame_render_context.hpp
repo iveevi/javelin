@@ -1,18 +1,18 @@
 #pragma once
 
-#include "device_resource_collection.hpp"
+#include "../core/device_resource_collection.hpp"
 
 namespace jvl::engine {
 
 struct FrameRenderContext {
-	const DeviceResourceCollection &drc;
+	const core::DeviceResourceCollection &drc;
 	const vk::CommandBuffer &cmd;
 	const littlevk::PresentSyncronization::Frame &sync_frame;
 	std::function <void ()> resizer;
 
 	littlevk::SurfaceOperation sop;
 
-	FrameRenderContext(const DeviceResourceCollection &drc_,
+	FrameRenderContext(const core::DeviceResourceCollection &drc_,
 			   const vk::CommandBuffer &cmd_,
 			   const littlevk::PresentSyncronization::Frame &sync_frame_,
 			   const std::function <void ()> &resizer_)

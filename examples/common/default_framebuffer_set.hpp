@@ -2,7 +2,7 @@
 
 #include <littlevk/littlevk.hpp>
 
-#include <engine/device_resource_collection.hpp>
+#include <core/device_resource_collection.hpp>
 
 using namespace jvl;
 
@@ -15,7 +15,7 @@ struct DefaultFramebufferSet {
 		return handles[i];
 	}
 
-	void resize(engine::DeviceResourceCollection &drc, const vk::RenderPass &render_pass) {
+	void resize(core::DeviceResourceCollection &drc, const vk::RenderPass &render_pass) {
 		// Handle swapchain resizing here
 		drc.combined().resize(drc.surface, drc.window, drc.swapchain);
 

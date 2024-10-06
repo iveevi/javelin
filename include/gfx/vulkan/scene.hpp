@@ -3,7 +3,7 @@
 #include <littlevk/littlevk.hpp>
 
 #include "../../core/texture.hpp"
-#include "../../engine/device_resource_collection.hpp"
+#include "../../core/device_resource_collection.hpp"
 #include "../../logging.hpp"
 #include "../cpu/scene.hpp"
 #include "triangle_mesh.hpp"
@@ -49,7 +49,7 @@ struct Material {
 	// TODO: some deferred strategy
 	littlevk::Image albedo;
 
-	static std::optional <Material> from(engine::DeviceResourceCollection &drc, const core::Material &material) {
+	static std::optional <Material> from(core::DeviceResourceCollection &drc, const core::Material &material) {
 		MODULE(vulkan-material-from);
 
 		Material result;
@@ -150,7 +150,7 @@ struct Scene {
 	std::vector <TriangleMesh> meshes;
 	std::vector <Material> materials;
 
-	static Scene from(engine::DeviceResourceCollection &drc, const cpu::Scene &other) {
+	static Scene from(core::DeviceResourceCollection &drc, const cpu::Scene &other) {
 		Scene result;
 		result.uuids = other.uuids;
 		

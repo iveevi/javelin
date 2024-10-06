@@ -1,9 +1,9 @@
 #pragma once
 
+#include <core/device_resource_collection.hpp>
 #include <core/scene.hpp>
 #include <core/messaging.hpp>
 #include <gfx/vulkan/scene.hpp>
-#include <engine/device_resource_collection.hpp>
 
 using namespace jvl;
 using namespace jvl::core;

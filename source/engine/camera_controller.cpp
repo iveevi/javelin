@@ -36,7 +36,7 @@ void CameraController::handle_cursor(float2 mouse)
 	transform.rotation = fquat::euler_angles(yaw, pitch, 0);
 }
 
-void CameraController::handle_movement(const engine::InteractiveWindow &window)
+void CameraController::handle_movement(const core::InteractiveWindow &window)
 {
 	float delta = settings.speed * float(glfwGetTime() - last_t);
 	last_t = glfwGetTime();

@@ -1,6 +1,6 @@
-#include "engine/device_resource_collection.hpp"
+#include "core/device_resource_collection.hpp"
 
-namespace jvl::engine {
+namespace jvl::core {
 
 // DeviceResourceCollection implementations
 littlevk::LinkedDeviceAllocator <> DeviceResourceCollection::allocator()

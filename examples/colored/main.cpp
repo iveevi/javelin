@@ -4,10 +4,10 @@
 
 #include <core/aperature.hpp>
 #include <core/color.hpp>
+#include <core/device_resource_collection.hpp>
 #include <core/scene.hpp>
 #include <core/transform.hpp>
 #include <engine/camera_controller.hpp>
-#include <engine/device_resource_collection.hpp>
 #include <engine/frame_render_context.hpp>
 #include <engine/imgui.hpp>
 #include <engine/imported_asset.hpp>
@@ -65,7 +65,7 @@ void fragment(float3 color)
 }
 
 // Constructing the graphics pipeline
-littlevk::Pipeline configure_pipeline(engine::DeviceResourceCollection &drc,
+littlevk::Pipeline configure_pipeline(core::DeviceResourceCollection &drc,
 				      const vk::RenderPass &render_pass,
 				      float3 color)
 {
@@ -142,14 +142,14 @@ int main(int argc, char *argv[])
 	};
 
 	// Configure the resource collection
-	engine::DeviceResourceCollectionInfo info {
+	core::DeviceResourceCollectionInfo info {
 		.phdev = littlevk::pick_physical_device(predicate),
 		.title = "Editor",
 		.extent = vk::Extent2D(1920, 1080),
 		.extensions = VK_EXTENSIONS,
 	};
 	
-	auto drc = engine::DeviceResourceCollection::from(info);
+	auto drc = core::DeviceResourceCollection::from(info);
 
 	// Load the scene
 	auto asset = engine::ImportedAsset::from(path).value();

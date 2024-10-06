@@ -3,7 +3,7 @@
 #include <littlevk/littlevk.hpp>
 
 #include "../core/transform.hpp"
-#include "interactive_window.hpp"
+#include "../core/interactive_window.hpp"
 
 namespace jvl::engine {
 
@@ -39,7 +39,7 @@ struct CameraController {
 	CameraController(core::Transform &, const CameraControllerSettings &);
 
 	void handle_cursor(float2);
-	void handle_movement(const engine::InteractiveWindow &);
+	void handle_movement(const core::InteractiveWindow &);
 };
 
 } // namespace jvl::engine

@@ -1,6 +1,6 @@
-#include "engine/interactive_window.hpp"
+#include "core/interactive_window.hpp"
 
-namespace jvl::engine {
+namespace jvl::core {
 
 // Interactive window implementations	
 InteractiveWindow::InteractiveWindow(const littlevk::Window &window)
@@ -21,4 +21,4 @@ void InteractiveWindow::poll() const
 	return glfwPollEvents();
 }
 
-} // namespace jvl::engine
+} // namespace jvl::core

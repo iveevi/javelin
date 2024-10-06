@@ -1,6 +1,6 @@
 #pragma once
 
-#include "device_resource_collection.hpp"
+#include "../core/device_resource_collection.hpp"
 
 namespace jvl::engine {
 
@@ -13,7 +13,7 @@ struct ImGuiRenderContext {
 };
 
 // Configure vulkan device resource collection with ImGui
-void configure_imgui(DeviceResourceCollection &, const vk::RenderPass &);
+void configure_imgui(core::DeviceResourceCollection &, const vk::RenderPass &);
 
 // Generate a ImGui descriptor set for an image
 vk::DescriptorSet imgui_texture_descriptor(const vk::Sampler &, const vk::ImageView &, const vk::ImageLayout &);

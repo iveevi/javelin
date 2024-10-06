@@ -93,13 +93,13 @@ set(IMGUI_SOURCES
 add_library(javelin-gfx STATIC
 	${IMGUI_SOURCES}
 	source/core/aabb.cpp
+	source/core/device_resource_collection.cpp
+	source/core/interactive_window.cpp
 	source/core/scene.cpp
 	source/core/texture.cpp
 	source/engine/camera_controller.cpp
-	source/engine/device_resource_collection.cpp
 	source/engine/imgui.cpp
 	source/engine/imported_asset.cpp
-	source/engine/interactive_window.cpp
 	source/gfx/cpu/bvh.cpp
 	source/gfx/cpu/intersection.cpp
 	source/gfx/cpu/scene.cpp)

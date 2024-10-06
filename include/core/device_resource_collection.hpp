@@ -1,8 +1,10 @@
 #pragma once
 
+#include <vector>
+
 #include "interactive_window.hpp"
 
-namespace jvl::engine {
+namespace jvl::core {
 
 // TODO: move to core?
 struct DeviceResourceCollectionInfo {
@@ -36,4 +38,4 @@ public:
 	static DeviceResourceCollection from(const DeviceResourceCollectionInfo &);
 };
 
-} // namespace jvl::engine
+} // namespace jvl::core

@@ -2,7 +2,7 @@
 
 #include <littlevk/littlevk.hpp>
 
-namespace jvl::engine {
+namespace jvl::core {
 
 struct InteractiveWindow : littlevk::Window {
 	InteractiveWindow() = default;
@@ -13,4 +13,4 @@ struct InteractiveWindow : littlevk::Window {
 	void poll() const;
 };
 
-} // namespace jvl::engine
+} // namespace jvl::core
