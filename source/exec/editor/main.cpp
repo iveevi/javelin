@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 
 	// Prepare host and device scenes
 	auto host_scene = cpu::Scene::from(editor.scene);
-	editor.vk_scene = vulkan::Scene::from(editor.drc.allocator(), host_scene);
+	editor.vk_scene = vulkan::Scene::from(editor.drc, host_scene);
 
 	// Main loop
 	editor.loop();

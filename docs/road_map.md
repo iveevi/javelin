@@ -35,6 +35,19 @@
 	- Generating a buffer with this information from a variant mesh
 - [ ] Descriptor set layout binding generation
 
+## Editor
+
+- [x] Visualization for surface normals
+- [x] Visualization for surface texture coordinates
+- [x] Visualization for depth
+- [x] Visualization for individual triangles
+- [ ] Visualization for textured and untextured albedo
+- [ ] Visualization for object roughness
+
+## Engine
+
+- [ ] Texture caching to avoid duplicate texture loading
+
 ## Examples
 
 - [x] False coloring of triangle meshes using arrays

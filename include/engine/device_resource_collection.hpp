@@ -4,6 +4,7 @@
 
 namespace jvl::engine {
 
+// TODO: move to core?
 struct DeviceResourceCollectionInfo {
 	vk::PhysicalDevice phdev;
 	std::string title;

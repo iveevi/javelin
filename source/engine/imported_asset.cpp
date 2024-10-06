@@ -168,15 +168,12 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 		m.values[Material::brdf_key] = "default";
 
 		// Diffuse value
-		if (material.diffuse_texname.empty())
+		if (material.diffuse_texname.empty()) {
 			m.values[Material::diffuse_key] = to_float3(material.diffuse);
-		else {
+		} else {
 			auto fixed = material.diffuse_texname;
 			std::replace(fixed.begin(), fixed.end(), '\\', '/');
-
-			auto texture_path = path.parent_path() / fixed;
-			core::Texture::from(texture_path);
-			m.values[Material::diffuse_key] = material.diffuse_texname;
+			m.values[Material::diffuse_key] = path.parent_path() / fixed;
 		}
 
 		// Specular value

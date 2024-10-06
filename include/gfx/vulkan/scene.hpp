@@ -2,6 +2,8 @@
 
 #include <littlevk/littlevk.hpp>
 
+#include "../../core/texture.hpp"
+#include "../../engine/device_resource_collection.hpp"
 #include "../../logging.hpp"
 #include "../cpu/scene.hpp"
 #include "triangle_mesh.hpp"
@@ -30,6 +32,8 @@ inline MaterialFlags operator|(MaterialFlags one, MaterialFlags two)
 // TODO: separate header
 // Uber material structure
 struct Material {
+	core::UUID uuid;
+
 	// TODO: variant of different modes of materials... with flags
 	struct uber_x {
 		float3 kd;
@@ -42,24 +46,68 @@ struct Material {
 	littlevk::Buffer uber;
 	littlevk::Buffer specialized;
 
-	static std::optional <Material> from(littlevk::LinkedDeviceAllocator <> allocator, const core::Material &material) {
+	// TODO: some deferred strategy
+	littlevk::Image albedo;
+
+	static std::optional <Material> from(engine::DeviceResourceCollection &drc, const core::Material &material) {
 		MODULE(vulkan-material-from);
 
+		Material result;
+
+		result.uuid = core::new_uuid <Material> ();
+
 		// Albedo / Diffuse
-		MaterialFlags flags = MaterialFlags::eNone;
+		result.flags = MaterialFlags::eNone;
 
 		JVL_ASSERT_PLAIN(material.values.contains(core::Material::diffuse_key));
 		auto kd = material.values.get(core::Material::diffuse_key).value();
-		if (kd.is <std::string> ())
-			flags = flags | MaterialFlags::eAlbedoSampler;
-		else
+		if (kd.is <std::string> ()) {
+			result.flags = result.flags | MaterialFlags::eAlbedoSampler;
+
+			std::string path = kd.as <std::string> ();
+			fmt::println("uploading texture {} to device", path);
+
+			auto texture = core::Texture::from(path);
+
+			littlevk::ImageCreateInfo image_info {
+				uint32_t(texture.width),
+				uint32_t(texture.height),
+				vk::Format::eR8G8B8A8Unorm,
+				vk::ImageUsageFlagBits::eSampled
+				| vk::ImageUsageFlagBits::eTransferDst,
+				vk::ImageAspectFlagBits::eColor,
+				vk::ImageType::e2D,
+				vk::ImageViewType::e2D
+			};
+
+			littlevk::Buffer staging;
+
+			std::tie(staging, result.albedo) = drc.allocator()
+				.buffer(texture.data,
+					4 * texture.width * texture.height * sizeof(uint8_t),
+					vk::BufferUsageFlagBits::eTransferDst
+					| vk::BufferUsageFlagBits::eTransferSrc)
+				.image(image_info);
+
+			drc.commander().submit_and_wait([&](const vk::CommandBuffer &cmd) {
+				result.albedo.transition(cmd, vk::ImageLayout::eTransferDstOptimal);
+
+				littlevk::copy_buffer_to_image(cmd,
+					result.albedo,
+					staging,
+					vk::ImageLayout::eTransferDstOptimal);
+
+				result.albedo.transition(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
+			});
+		} else {
 			JVL_ASSERT_PLAIN(kd.is <float3> ());
+		}
 
 		// Specular
 		JVL_ASSERT_PLAIN(material.values.contains(core::Material::specular_key));
 		auto ks = material.values.get(core::Material::specular_key).value();
 		if (ks.is <std::string> ())
-			flags = flags | MaterialFlags::eSpecularSampler;
+			result.flags = result.flags | MaterialFlags::eSpecularSampler;
 		else
 			JVL_ASSERT_PLAIN(ks.is <float3> ());
 
@@ -67,34 +115,33 @@ struct Material {
 		JVL_ASSERT_PLAIN(material.values.contains(core::Material::roughness_key));
 		auto roughness = material.values.get(core::Material::roughness_key).value();
 		if (roughness.is <std::string> ())
-			flags = flags | MaterialFlags::eRoughnessSampler;
+			result.flags = result.flags | MaterialFlags::eRoughnessSampler;
 		else
 			JVL_ASSERT_PLAIN(roughness.is <float> ());
 
 		// Construct the Uber material form
 		uber_x info;
 
-		if (enabled(flags, MaterialFlags::eAlbedoSampler))
+		if (enabled(result.flags, MaterialFlags::eAlbedoSampler))
 			info.kd = float3(0.5, 0.5, 0.5);
 		else
 			info.kd = kd.as <float3> ();
 		
-		if (enabled(flags, MaterialFlags::eSpecularSampler))
+		if (enabled(result.flags, MaterialFlags::eSpecularSampler))
 			info.ks = float3(0.5, 0.5, 0.5);
 		else
 			info.ks = ks.as <float3> ();
 		
-		if (enabled(flags, MaterialFlags::eRoughnessSampler))
+		if (enabled(result.flags, MaterialFlags::eRoughnessSampler))
 			info.roughness = 0.1;
 		else
 			info.roughness = roughness.as <float> ();
 
-		return Material {
-			.flags = flags,
-			.uber = allocator.buffer(&info, sizeof(info),
+		result.uber = drc.allocator().buffer(&info, sizeof(info),
 				vk::BufferUsageFlagBits::eTransferDst
-				| vk::BufferUsageFlagBits::eUniformBuffer),
-		};
+				| vk::BufferUsageFlagBits::eUniformBuffer);
+
+		return result;
 	}
 };
 
@@ -103,17 +150,17 @@ struct Scene {
 	std::vector <TriangleMesh> meshes;
 	std::vector <Material> materials;
 
-	static Scene from(const littlevk::LinkedDeviceAllocator <> &allocator, const cpu::Scene &other) {
+	static Scene from(engine::DeviceResourceCollection &drc, const cpu::Scene &other) {
 		Scene result;
 		result.uuids = other.uuids;
 		
 		for (auto &m : other.meshes) {
-			auto vkm = TriangleMesh::from(allocator, m).value();
+			auto vkm = TriangleMesh::from(drc.allocator(), m).value();
 			result.meshes.push_back(vkm);
 		}
 
 		for (auto &m : other.materials) {
-			auto vkm = Material::from(allocator, m).value();
+			auto vkm = Material::from(drc, m).value();
 			result.materials.push_back(vkm);
 		}
 

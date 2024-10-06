@@ -4,7 +4,7 @@
 #include "viewport_render_group.hpp"
 #include "viewport.hpp"
 
-MODULE(viewport-render-group);
+// MODULE(viewport-render-group);
 
 // Function to generate an HSV color palette in shader code
 template <thunder::index_t N>
@@ -231,8 +231,10 @@ void ViewportRenderGroup::configure_pipeline_mode(DeviceResourceCollection &drc,
 
 void ViewportRenderGroup::configure_pipelines(DeviceResourceCollection &drc)
 {
-	for (int32_t i = 0; i < eCount; i++)
-		configure_pipeline_mode(drc, (ViewportMode) i);
+	for (int32_t i = 0; i < eCount; i++) {
+		if (i != eAlbedo)
+			configure_pipeline_mode(drc, (ViewportMode) i);
+	}
 }
 
 // Rendering
@@ -255,10 +257,6 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 		.clear_depth(1, 1)
 		.begin(cmd);
 
-	auto &ppl = pipelines[viewport.mode];
-
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
-
 	solid_t <MVP> mvp;
 
 	auto m_model = uniform_field(MVP, model);
@@ -270,55 +268,183 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 	mvp[m_proj] = jvl::core::perspective(viewport.aperature);
 	mvp[m_view] = viewport.transform.to_view_matrix();
 
-	static std::map <uint64_t, vk::DescriptorSet> material_descriptors;
-
 	if (viewport.mode == eAlbedo) {
-		auto allocator = littlevk::bind(drc.device, drc.descriptor_pool);
+		// auto allocator = littlevk::bind(drc.device, drc.descriptor_pool);
 		for (size_t i = 0; i < scene.uuids.size(); i++) {
 			auto &mesh = scene.meshes[i];
 			for (auto i : mesh.material_usage) {
-				if (material_descriptors.contains(i))
+				// TODO: may need multiple descriptors per material
+				auto &material = scene.materials[i];
+				if (descriptors.contains(material.uuid.global))
 					continue;
 
-				auto &material = scene.materials[i];
+				// This only depends on the diffuse texture
+				bool texture = enabled(material.flags, vulkan::MaterialFlags::eAlbedoSampler);
 
-				vk::DescriptorSet descriptor = allocator.allocate_descriptor_sets(*ppl.dsl).front();
-				JVL_ASSERT_PLAIN(descriptor);
+				PipelineEncoding encoding(eAlbedo, texture);
 
-				littlevk::bind(drc.device, descriptor, albedo_bindings)
-					.update(0, 0, *material.uber, 0, sizeof(vulkan::Material::uber_x))
-					.finalize();
+				if (!pipelines.contains(encoding)) {
+					fmt::println("compiling pipeline for Albedo ({:08b})", encoding.specialization);
 
-				material_descriptors[i] = descriptor;
+					auto vertex = callable("main") << []() {
+						layout_in <vec3> position(0);
+						layout_in <vec2> uv(2);
+
+						layout_out <vec2> out_uv(2);
+
+						// Projection informations
+						push_constant <MVP> mvp;
+						gl_Position = mvp.project(position);
+						gl_Position.y = -gl_Position.y;
+
+						out_uv = uv;
+					};
+					
+					auto fragment = callable("main") << std::make_tuple(texture) << [](bool texture) {
+						layout_in <vec2> uv(2);
+
+						layout_out <vec4> fragment(0);
+
+						if (texture) {
+							sampler2D albedo(0);
+
+							fragment = albedo.sample(uv);
+						} else {
+							constexpr size_t mvp_size = sizeof(solid_t <MVP>);
+							constexpr size_t vec3_size = sizeof(solid_t <vec3>);
+							constexpr size_t aligned_mvp_size = ((mvp_size / vec3_size) + 1) * vec3_size;
+
+							push_constant <vec3> albedo(aligned_mvp_size);
+
+							fragment = vec4(albedo, 1.0);
+						}
+					};
+					
+					auto vertex_layout = littlevk::VertexLayout <
+						littlevk::rgb32f,
+						littlevk::rgb32f,
+						littlevk::rg32f
+					> ();
+	
+					std::string vertex_shader = link(vertex).generate_glsl();
+					std::string fragment_shader = link(fragment).generate_glsl();
+
+					auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
+						.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
+						.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
+
+					auto ppa = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
+						.with_render_pass(render_pass, 0)
+						.with_vertex_layout(vertex_layout)
+						.with_shader_bundle(bundle)
+						.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
+						.cull_mode(vk::CullModeFlagBits::eNone);
+					
+					if (texture) {
+						ppa.with_dsl_binding(0, vk::DescriptorType::eCombinedImageSampler,
+							1, vk::ShaderStageFlagBits::eFragment);
+					} else {
+						constexpr size_t mvp_size = sizeof(solid_t <MVP>);
+						constexpr size_t vec3_size = sizeof(solid_t <vec3>);
+						constexpr size_t aligned_mvp_size = ((mvp_size / vec3_size) + 1) * vec3_size;
+
+						ppa.with_push_constant <solid_t <vec3>> (vk::ShaderStageFlagBits::eFragment, aligned_mvp_size);
+					}
+
+					pipelines[encoding] = ppa;
+
+					// TODO: auto pipeline construction
+				}
+
+				if (texture) {
+					// TODO: generate from compilation
+					std::array <vk::DescriptorSetLayoutBinding, 1> binding {
+						vk::DescriptorSetLayoutBinding {
+							0, vk::DescriptorType::eCombinedImageSampler,
+							1, vk::ShaderStageFlagBits::eFragment
+						}
+					};
+
+					auto &ppl = pipelines[encoding];
+
+					vk::DescriptorSet descriptor = littlevk::bind(drc.device, drc.descriptor_pool)
+						.allocate_descriptor_sets(*ppl.dsl).front();
+
+					auto sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
+					littlevk::bind(drc.device, descriptor, binding)
+						.queue_update(0, 0, sampler,
+							material.albedo.view,
+							vk::ImageLayout::eShaderReadOnlyOptimal)
+						.finalize();
+
+					descriptors[material.uuid.global] = descriptor;
+				}
 			}
 		}
 	}
 
-	for (size_t i = 0; i < scene.uuids.size(); i++) {
-		auto &mesh = scene.meshes[i];
-		mvp[m_id] = scene.uuids[i];
+	if (viewport.mode == eAlbedo) {
+		for (size_t i = 0; i < scene.uuids.size(); i++) {
+			auto &mesh = scene.meshes[i];
+			mvp[m_id] = scene.uuids[i];
 
-		int mid = *mesh.material_usage.begin();
+			// TODO: one mesh, one geometry
 
-		if (viewport.mode == eAlbedo) {
-			cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-				ppl.layout, 0,
-				material_descriptors[mid], {});
+			auto mid = *mesh.material_usage.begin();
+			auto &material = scene.materials[mid];
+
+			bool texture = enabled(material.flags, vulkan::MaterialFlags::eAlbedoSampler);
+			auto encoding = PipelineEncoding(eAlbedo, texture);
+			
+			auto &ppl = pipelines[encoding];
+
+			cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
+			
+			cmd.pushConstants <solid_t <MVP>> (ppl.layout,
+				vk::ShaderStageFlagBits::eVertex,
+				0, mvp);
+			
+			constexpr size_t mvp_size = sizeof(solid_t <MVP>);
+			constexpr size_t vec3_size = sizeof(solid_t <vec3>);
+			constexpr size_t aligned_mvp_size = ((mvp_size / vec3_size) + 1) * vec3_size;
+
+			if (texture) {
+				cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+					ppl.layout, 0,
+					descriptors.at(material.uuid.global), {});
+			} else {
+				cmd.pushConstants <float3> (ppl.layout,
+					vk::ShaderStageFlagBits::eFragment,
+					aligned_mvp_size,
+					float3(1, 0, 1));
+			}
+			
+			cmd.bindVertexBuffers(0, mesh.vertices.buffer, { 0 });
+			cmd.bindIndexBuffer(mesh.triangles.buffer, 0, vk::IndexType::eUint32);
+			cmd.drawIndexed(mesh.count, 1, 0, 0, 0);
 		}
+	} else {
+		auto &ppl = pipelines[viewport.mode];
 
-		cmd.pushConstants <solid_t <MVP>> (ppl.layout,
-			vk::ShaderStageFlagBits::eVertex,
-			0,
-			mvp);
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
 
-		cmd.pushConstants <solid_t <u32>> (ppl.layout,
-			vk::ShaderStageFlagBits::eFragment,
-			sizeof(solid_t <MVP>),
-			viewport.selected == scene.uuids[i]);
+		for (size_t i = 0; i < scene.uuids.size(); i++) {
+			auto &mesh = scene.meshes[i];
+			mvp[m_id] = scene.uuids[i];
 
-		cmd.bindVertexBuffers(0, mesh.vertices.buffer, { 0 });
-		cmd.bindIndexBuffer(mesh.triangles.buffer, 0, vk::IndexType::eUint32);
-		cmd.drawIndexed(mesh.count, 1, 0, 0, 0);
+			cmd.pushConstants <solid_t <MVP>> (ppl.layout,
+				vk::ShaderStageFlagBits::eVertex,
+				0, mvp);
+
+			cmd.pushConstants <solid_t <u32>> (ppl.layout,
+				vk::ShaderStageFlagBits::eFragment,
+				sizeof(solid_t <MVP>),
+				viewport.selected == scene.uuids[i]);
+
+			cmd.bindVertexBuffers(0, mesh.vertices.buffer, { 0 });
+			cmd.bindIndexBuffer(mesh.triangles.buffer, 0, vk::IndexType::eUint32);
+			cmd.drawIndexed(mesh.count, 1, 0, 0, 0);
+		}
 	}
 
 	cmd.endRenderPass();
