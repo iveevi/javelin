@@ -65,9 +65,14 @@ void vertex(ViewportMode mode)
 {
 	// Vertex inputs
 	layout_in <vec3> position(0);
+	layout_in <vec3> normal(1);
+	layout_in <vec2> uv(2);
 
 	// Regurgitate vertex positions
 	layout_out <vec3> out_position(0);
+
+	// TODO: allow duplicate bindings...
+	layout_out <vec2> out_uv(2);
 
 	// Object vertex ID
 	layout_out <uint32_t, flat> out_id(0);
@@ -84,6 +89,9 @@ void vertex(ViewportMode mode)
 	case eNormal:
 		out_position = position;
 		break;
+	case eTextureCoordinates:
+		out_uv = uv;
+		break;
 	case eTriangles:
 		out_id = u32(gl_VertexIndex / 3);
 		break;
@@ -99,6 +107,7 @@ void fragment(ViewportMode mode)
 {
 	// Position from vertex shader
 	layout_in <vec3> position(0);
+	layout_in <vec2> uv(2);
 
 	// Object vertex ID
 	layout_in <uint32_t, flat> id(0);
@@ -122,6 +131,11 @@ void fragment(ViewportMode mode)
 		vec3 dV = dFdyFine(position);
 		vec3 N = normalize(cross(dV, dU));
 		fragment = vec4(0.5f + 0.5f * N, 1.0f);
+	} break;
+
+	case eTextureCoordinates:
+	{
+		fragment = vec4(uv.x, uv.y, 0.0, 1.0f);
 	} break;
 
 	case eTriangles:
@@ -185,7 +199,11 @@ void ViewportRenderGroup::configure_render_pass(DeviceResourceCollection &drc)
 
 void ViewportRenderGroup::configure_pipeline_mode(DeviceResourceCollection &drc, ViewportMode mode)
 {
-	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
+	auto vertex_layout = littlevk::VertexLayout <
+		littlevk::rgb32f,
+		littlevk::rgb32f,
+		littlevk::rg32f
+	> ();
 
 	auto vs_callable = callable("main") << mode << vertex;
 	auto fs_callable = callable("main") << mode << fragment;

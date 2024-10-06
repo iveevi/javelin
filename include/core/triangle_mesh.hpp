@@ -10,6 +10,8 @@ namespace jvl::core {
 
 struct TriangleMesh {
 	buffer <float3> positions;
+	buffer <float3> normals;
+	buffer <float2> uvs;
 	buffer <int3> triangles;
 	buffer <int> materials;
 	std::set <int> material_usage;
@@ -27,6 +29,16 @@ struct TriangleMesh {
 		else
 			return std::nullopt;
 
+		if (auto opt_normals = vprops
+			.get(Mesh::normal_key)
+			.as <buffer <float3>> ())
+			tm.normals = opt_normals.value();
+		
+		if (auto opt_uvs = vprops
+			.get(Mesh::uv_key)
+			.as <buffer <float2>> ())
+			tm.uvs = opt_uvs.value();
+
 		if (auto opt_tris = fprops
 			.get(Mesh::triangle_key)
 			.as <buffer <int3>> ())
@@ -36,7 +48,6 @@ struct TriangleMesh {
 			.get(Mesh::material_key)
 			.as <buffer <int>> ()) {
 			tm.materials = opt_materials.value();
-			
 			for (auto i : tm.materials)
 				tm.material_usage.insert(i);
 		}

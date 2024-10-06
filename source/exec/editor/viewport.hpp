@@ -6,6 +6,7 @@
 
 #include <core/transform.hpp>
 #include <core/aperature.hpp>
+#include <engine/camera_controller.hpp>
 
 #include "imgui_render_group.hpp"
 #include "rendering_info.hpp"
@@ -17,6 +18,7 @@ using namespace jvl::core;
 enum ViewportMode : int32_t {
 	eAlbedo,
 	eNormal,
+	eTextureCoordinates,
 	eTriangles,
 	eDepth,
 	eCount,
@@ -25,6 +27,7 @@ enum ViewportMode : int32_t {
 static constexpr const char *tbl_viewport_mode[] = {
 	"Albedo",
 	"Normal",
+	"Texture Coordinates",
 	"Triangles",
 	"Depth",
 	"__end",
@@ -37,19 +40,17 @@ static_assert(eCount + 1 == sizeof(tbl_viewport_mode)/sizeof(const char *));
 struct Viewport {
 	UUID uuid;
 
-	// Viewing information
+	// Viewing angle
 	Aperature aperature;
 	Transform transform;
+	CameraController controller;
+
+	// Viewing information
 	int64_t selected;
 
 	ViewportMode mode = eNormal;
 
 	// Input handling information
-	float pitch = 0;
-	float yaw = 0;
-	double last_x = 0;
-	double last_y = 0;
-	bool voided = true;
 	bool active = false;
 
 	// Display information

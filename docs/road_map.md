@@ -27,6 +27,7 @@
 - [x] Push constants with offsets
 - [ ] Casting operations
 - [ ] Partial evaluation of callables
+- [ ] Duplicate bindings with DEC optimization
 
 ## Pipeline Generation
 
@@ -37,6 +38,6 @@
 ## Examples
 
 - [x] False coloring of triangle meshes using arrays
-- [ ] Custom color palette rendering of meshes with HSV
+- [x] Custom color palette rendering of meshes with HSV
 - [ ] Specialized glyph rendering through runtime shader generation
 	- Parallelized version as well, compiling multiple shaders at the same time

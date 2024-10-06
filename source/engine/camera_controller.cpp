@@ -20,6 +20,8 @@ void CameraController::handle_cursor(float2 mouse)
 
 	double dx = mouse.x - last_x;
 	double dy = mouse.y - last_y;
+	if (binding.invert_y)
+		dy = -dy;
 
 	// Dragging state
 	pitch -= dx * sensitivity;

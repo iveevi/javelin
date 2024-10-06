@@ -4,43 +4,26 @@
 #include "imgui.h"
 
 Viewport::Viewport(DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
-		: uuid(new_uuid <Viewport> ())
+		: uuid(new_uuid <Viewport> ()), controller(transform, engine::CameraControllerBinding())
 {
 	extent = drc.window.extent;
 	resize(drc, render_pass);
 
 	main_title = fmt::format("Viewport ({})##{}", uuid.type_local, uuid.global);
 	popup_title = fmt::format("Mode##{}", uuid.global);
+
+	// Presets for the camera controller
+	controller.binding.up = GLFW_KEY_E;
+	controller.binding.down  = GLFW_KEY_Q;
+	controller.binding.invert_y = true;
 }
 
 void Viewport::handle_input(const InteractiveWindow &window)
 {
-	static constexpr float speed = 100.0f;
-	static float last_time = 0.0f;
-
 	if (!active)
 		return;
-	
-	float delta = speed * float(glfwGetTime() - last_time);
-	last_time = glfwGetTime();
 
-	jvl::float3 velocity(0.0f);
-	if (window.key_pressed(GLFW_KEY_S))
-		velocity.z -= delta;
-	else if (window.key_pressed(GLFW_KEY_W))
-		velocity.z += delta;
-
-	if (window.key_pressed(GLFW_KEY_D))
-		velocity.x -= delta;
-	else if (window.key_pressed(GLFW_KEY_A))
-		velocity.x += delta;
-
-	if (window.key_pressed(GLFW_KEY_E))
-		velocity.y += delta;
-	else if (window.key_pressed(GLFW_KEY_Q))
-		velocity.y -= delta;
-
-	transform.translate += transform.rotation.rotate(velocity);
+	controller.handle_movement(window);
 }
 
 void Viewport::resize(DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
@@ -154,30 +137,11 @@ void Viewport::display_handle(const RenderingInfo &info)
 	if (ImGui::IsWindowFocused() && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
 		ImVec2 mouse = ImGui::GetMousePos();
 
-		static constexpr float sensitivity = 0.0025f;
-
-		if (voided) {
-			last_x = mouse.x;
-			last_y = mouse.y;
-			voided = false;
-		}
-
-		double dx = mouse.x - last_x;
-		double dy = mouse.y - last_y;
-
-		// Dragging state
-		pitch -= dx * sensitivity;
-		yaw += dy * sensitivity;
-
-		float pi_e = pi <float> / 2.0f - 1e-3f;
-		yaw = std::min(pi_e, std::max(-pi_e, yaw));
-
-		transform.rotation = fquat::euler_angles(yaw, pitch, 0);
-
-		last_x = mouse.x;
-		last_y = mouse.y;
+		controller.dragging = true;
+		controller.handle_cursor(float2(mouse.x, mouse.y));
 	} else {
-		voided = true;
+		controller.voided = true;
+		controller.dragging = false;
 	}
 
 	ImGui::End();

@@ -14,6 +14,8 @@ struct CameraControllerBinding {
 	int right = GLFW_KEY_D;
 	int up = GLFW_KEY_Q;
 	int down = GLFW_KEY_E;
+
+	bool invert_y = false;
 };
 
 struct CameraController {
