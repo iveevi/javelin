@@ -113,7 +113,6 @@ bool ViewportRenderGroup::handle_texture_state
 		<vulkan::ReadyTexture> (LoadingWork &unit, vulkan::ReadyTexture &ready)
 {
 	if (ready.updated) {
-		// TODO: destroy old descriptor set
 		unit.descriptor = ready.newer;
 		return false;
 	} 
@@ -233,8 +232,7 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 
 	// Pre-rendering actions
 	if (viewport.mode == ViewportMode::eAlbedo) {
-		for (size_t i = 0; i < scene.uuids.size(); i++) {
-			auto &mesh = scene.meshes[i];
+		for (auto &mesh : scene.meshes) {
 			for (auto i : mesh.material_usage) {
 				// TODO: may need multiple descriptors per material
 				auto &material = scene.materials[i];
@@ -370,9 +368,8 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 	}
 
 	if (viewport.mode == ViewportMode::eAlbedo) {
-		for (size_t i = 0; i < scene.uuids.size(); i++) {
-			auto &mesh = scene.meshes[i];
-			mvp[m_id] = scene.uuids[i];
+		for (auto &mesh : scene.meshes) {
+			mvp[m_id] = mesh.uuid.global;
 
 			// TODO: one mesh, one geometry
 
@@ -414,9 +411,8 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
 
-		for (size_t i = 0; i < scene.uuids.size(); i++) {
-			auto &mesh = scene.meshes[i];
-			mvp[m_id] = scene.uuids[i];
+		for (auto &mesh : scene.meshes) {
+			mvp[m_id] = mesh.uuid.global;
 
 			cmd.pushConstants <solid_t <MVP>> (ppl.layout,
 				vk::ShaderStageFlagBits::eVertex,
@@ -425,7 +421,7 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 			cmd.pushConstants <solid_t <u32>> (ppl.layout,
 				vk::ShaderStageFlagBits::eFragment,
 				sizeof(solid_t <MVP>),
-				viewport.selected == scene.uuids[i]);
+				viewport.selected == mesh.uuid.global);
 
 			cmd.bindVertexBuffers(0, mesh.vertices.buffer, { 0 });
 			cmd.bindIndexBuffer(mesh.triangles.buffer, 0, vk::IndexType::eUint32);

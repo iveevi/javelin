@@ -14,6 +14,10 @@ struct UUID {
 	int64_t type_local;
 };
 
+struct Unique {
+	core::UUID uuid;
+};
+
 // ID generation for each type
 [[gnu::always_inline]]
 inline int64_t new_type_id()

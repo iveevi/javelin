@@ -53,7 +53,8 @@ void SceneInspector::scene_hierarchy(const RenderingInfo &info)
 				auto asset = engine::ImportedAsset::from(path.get()).value();
 				info.scene.add(asset);
 				info.device_scene = vulkan::Scene::from(info.drc,
-					cpu::Scene::from(info.scene));
+					cpu::Scene::from(info.scene),
+					vulkan::SceneFlags::eOneMaterialPerMesh);
 			}
 		}
 

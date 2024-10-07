@@ -2,8 +2,10 @@
 
 #include <core/device_resource_collection.hpp>
 #include <core/scene.hpp>
+#include <core/texture.hpp>
 #include <core/messaging.hpp>
 #include <gfx/vulkan/scene.hpp>
+#include <gfx/vulkan/texture_bank.hpp>
 
 using namespace jvl;
 using namespace jvl::core;

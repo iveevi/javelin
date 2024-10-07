@@ -2,8 +2,9 @@
 
 #include <littlevk/littlevk.hpp>
 
-#include "../../types.hpp"
+#include "../../core/messaging.hpp"
 #include "../../core/triangle_mesh.hpp"
+#include "../../types.hpp"
 
 namespace jvl::gfx::vulkan {
 
@@ -68,7 +69,7 @@ inline buffer <float> interleave(const core::TriangleMesh &tmesh, const VertexFl
 	return bf;
 }
 
-struct TriangleMesh {
+struct TriangleMesh : core::Unique {
 	littlevk::Buffer vertices;
 	littlevk::Buffer triangles;
 	size_t count;
@@ -82,6 +83,7 @@ struct TriangleMesh {
 						 const VertexFlags &flags = VertexFlags::eAll) {
 		TriangleMesh vmesh;
 
+		vmesh.uuid = core::new_uuid <TriangleMesh> ();
 		vmesh.flags = flags;
 		vmesh.count = 3 * tmesh.triangles.size();
 

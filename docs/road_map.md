@@ -41,7 +41,7 @@
 - [x] Visualization for surface texture coordinates
 - [x] Visualization for depth
 - [x] Visualization for individual triangles
-- [ ] Visualization for textured and untextured albedo
+- [x] Visualization for textured and untextured albedo
 - [ ] Visualization for object roughness
 
 ## Engine
