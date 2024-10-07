@@ -29,7 +29,6 @@ struct MVP {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
-	i32 id;
 
 	vec4 project(vec3 position) {
 		return proj * (view * (model * vec4(position, 1.0)));
@@ -40,8 +39,7 @@ struct MVP {
 			"MVP",
 			named_field(model),
 			named_field(view),
-			named_field(proj),
-			named_field(id)
+			named_field(proj)
 		);
 	}
 };
@@ -57,8 +55,19 @@ struct UberMaterial {
 			"Material",
 			named_field(kd),
 			named_field(ks),
-			named_field(roughness)
-		);
+			named_field(roughness));
+	}
+};
+
+// Albedo + highlight flag
+struct Albedo {
+	vec3 color;
+	u32 highlight;
+
+	auto layout() const {
+		return uniform_layout("MVP",
+			named_field(color),
+			named_field(highlight));
 	}
 };
 
@@ -78,9 +87,6 @@ inline void vertex(ViewportMode mode)
 
 	// Object vertex ID
 	layout_out <uint32_t, flat> out_id(0);
-
-	// Object UUID
-	layout_out <int32_t, flat> out_uuid(1);
 	
 	// Projection informations
 	push_constant <MVP> mvp;
@@ -100,8 +106,6 @@ inline void vertex(ViewportMode mode)
 	default:
 		break;
 	}
-
-	out_uuid = mvp.id;
 }
 
 // Fragment shader(s)
@@ -157,7 +161,7 @@ inline void fragment(ViewportMode mode)
 	}
 
 	// Highlighting the selected object
-	push_constant <uint> highlight(sizeof(solid_t <MVP>));
+	push_constant <u32> highlight(sizeof(solid_t <MVP>));
 
 	cond(highlight == 1u);
 		fragment = mix(fragment, vec4(1, 1, 0, 1), 0.8f);

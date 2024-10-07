@@ -23,7 +23,9 @@ Scene Scene::from(const core::Scene &scene)
 
 			auto tmesh = core::TriangleMesh::from(g).value();
 			result.meshes.push_back(tmesh);
-			result.uuids.push_back(obj.id());
+
+			// result.mesh_to_object[tmesh] = obj;
+			result.mesh_to_object.add(tmesh, obj);
 		}
 
 		for (auto &material : obj.materials)

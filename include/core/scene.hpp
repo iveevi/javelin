@@ -21,10 +21,7 @@ namespace jvl::core {
 
 struct Scene {
 	// Element of a scene
-	struct Object {
-		// Global ID
-		UUID uuid;
-
+	struct Object : Unique {
 		// Identifier for the object
 		std::string name;
 
@@ -37,11 +34,6 @@ struct Scene {
 
 		// Children
 		std::set <int64_t> children;
-
-		// Global ID
-		int64_t id() const {
-			return uuid.global;
-		}
 	};
 
 	std::set <int64_t> root;

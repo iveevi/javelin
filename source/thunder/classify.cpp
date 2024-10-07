@@ -144,15 +144,12 @@ QualifiedType Buffer::classify(index_t i) const
 
 			index_t concrete = pd.as <index_t> ();
 			index_t left = load.idx;
-			while (true) {
+			while (left--) {
 				JVL_ASSERT(concrete != -1, "load attempting to access out of bounds field");
 				auto &atom = atoms[concrete];
 				JVL_ASSERT(atom.is <TypeInformation> (), "expected type information, instead got: {}", atom);
 				auto &ti = atom.as <TypeInformation> ();
-				if ((--left) > 0)
-					concrete = ti.next;
-				else
-					break;
+				concrete = ti.next;
 			}
 
 			return types[concrete].remove_qualifiers();

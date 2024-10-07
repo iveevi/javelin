@@ -104,6 +104,7 @@ add_library(javelin-gfx STATIC
 	source/gfx/cpu/intersection.cpp
 	source/gfx/cpu/scene.cpp
 	source/gfx/vulkan/material.cpp
+	source/gfx/vulkan/scene.cpp
 	source/gfx/vulkan/texture_bank.cpp)
 
 target_compile_options(javelin-gfx PRIVATE

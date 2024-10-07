@@ -306,7 +306,7 @@ Addresses Branch::addresses()
 std::string Branch::to_string() const
 {
         if (kind == control_flow_end)
-                return "end";
+                return "END";
 
         if (cond >= 0)
                 return fmt::format("{:15} %{} ({}) -> %{}", "BRANCH", cond, tbl_branch_kind[kind], failto);

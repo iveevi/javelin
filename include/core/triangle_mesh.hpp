@@ -3,12 +3,13 @@
 #include <set>
 
 #include "mesh.hpp"
+#include "messaging.hpp"
 
 #include <fmt/printf.h>
 
 namespace jvl::core {
 
-struct TriangleMesh {
+struct TriangleMesh : core::Unique {
 	buffer <float3> positions;
 	buffer <float3> normals;
 	buffer <float2> uvs;
@@ -18,6 +19,8 @@ struct TriangleMesh {
 
 	static std::optional <TriangleMesh> from(const Mesh &m) {
 		TriangleMesh tm;
+
+		tm.uuid = new_uuid <TriangleMesh> ();
 
 		auto &vprops = m.vertex_properties;
 		auto &fprops = m.face_properties;

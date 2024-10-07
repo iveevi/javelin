@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <map>
 #include <queue>
 
 #include "wrapped_types.hpp"
@@ -16,7 +17,15 @@ struct UUID {
 
 struct Unique {
 	core::UUID uuid;
+
+	// Global ID
+	int64_t id() const {
+		return uuid.global;
+	}
 };
+
+template <typename T>
+concept marked = std::is_base_of_v <Unique, T>;
 
 // ID generation for each type
 [[gnu::always_inline]]
@@ -61,6 +70,27 @@ inline UUID new_uuid()
 		.type_local = new_type_local_uuid <T> (),
 	};
 }
+
+// Tracking UUID relationships
+template <marked A, marked B>
+struct Equivalence {
+	std::map <int64_t, int64_t> a_to_b;
+	std::map <int64_t, int64_t> b_to_a;
+
+	const int64_t &operator[](const A &a) const {
+		return a_to_b.at(a.id());
+	}
+
+	void add(const A &a, const B &b) {
+		a_to_b[a.id()] = b.id();
+		b_to_a[b.id()] = a.id();
+	}
+	
+	void add(const A &a, int64_t b_id) {
+		a_to_b[a.id()] = b_id;
+		b_to_a[b_id] = a.id();
+	}
+};
 
 // UUID based messaging system
 enum MessageKind : int64_t {
