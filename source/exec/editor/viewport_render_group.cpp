@@ -3,189 +3,29 @@
 
 #include "viewport_render_group.hpp"
 #include "viewport.hpp"
+#include "shaders.hpp"
 
-// MODULE(viewport-render-group);
-
-// Function to generate an HSV color palette in shader code
-template <thunder::index_t N>
-array <vec3> hsv_palette(float saturation, float lightness)
-{
-	std::array <vec3, N> palette;
-
-	float step = 360.0f / float(N);
-	for (int32_t i = 0; i < N; i++) {
-		float3 hsv = float3(i * step, saturation, lightness);
-		float3 rgb = hsl_to_rgb(hsv);
-		palette[i] = vec3(rgb.x, rgb.y, rgb.z);
-	}
-
-	return palette;
-}
-
-// Model-view-projection structure
-struct MVP {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	i32 id;
-
-	vec4 project(vec3 position) {
-		return proj * (view * (model * vec4(position, 1.0)));
-	}
-
-	auto layout() const {
-		return uniform_layout(
-			"MVP",
-			named_field(model),
-			named_field(view),
-			named_field(proj),
-			named_field(id)
-		);
-	}
-};
-
-// Material information
-struct UberMaterial {
-	vec3 kd;
-	vec3 ks;
-	f32 roughness;
-
-	auto layout() const {
-		return uniform_layout(
-			"Material",
-			named_field(kd),
-			named_field(ks),
-			named_field(roughness)
-		);
-	}
-};
-
-// Vertex shader(s)
-void vertex(ViewportMode mode)
-{
-	// Vertex inputs
-	layout_in <vec3> position(0);
-	layout_in <vec3> normal(1);
-	layout_in <vec2> uv(2);
-
-	// Regurgitate vertex positions
-	layout_out <vec3> out_position(0);
-
-	// TODO: allow duplicate bindings...
-	layout_out <vec2> out_uv(2);
-
-	// Object vertex ID
-	layout_out <uint32_t, flat> out_id(0);
-
-	// Object UUID
-	layout_out <int32_t, flat> out_uuid(1);
-	
-	// Projection informations
-	push_constant <MVP> mvp;
-	gl_Position = mvp.project(position);
-	gl_Position.y = -gl_Position.y;
-
-	switch (mode) {
-	case eNormal:
-		out_position = position;
-		break;
-	case eTextureCoordinates:
-		out_uv = uv;
-		break;
-	case eTriangles:
-		out_id = u32(gl_VertexIndex / 3);
-		break;
-	default:
-		break;
-	}
-
-	out_uuid = mvp.id;
-}
-
-// Fragment shader(s)
-void fragment(ViewportMode mode)
-{
-	// Position from vertex shader
-	layout_in <vec3> position(0);
-	layout_in <vec2> uv(2);
-
-	// Object vertex ID
-	layout_in <uint32_t, flat> id(0);
-
-	// Material properties
-	uniform <UberMaterial> material(0);
-
-	// Resulting fragment color
-	layout_out <vec4> fragment(0);
-
-	switch (mode) {
-
-	case eAlbedo:
-	{
-		fragment = vec4(material.kd, 1.0);
-	} break;
-	
-	case eNormal:
-	{
-		vec3 dU = dFdxFine(position);
-		vec3 dV = dFdyFine(position);
-		vec3 N = normalize(cross(dV, dU));
-		fragment = vec4(0.5f + 0.5f * N, 1.0f);
-	} break;
-
-	case eTextureCoordinates:
-	{
-		fragment = vec4(uv.x, uv.y, 0.0, 1.0f);
-	} break;
-
-	case eTriangles:
-	{
-		auto palette = hsv_palette <16> (0.5, 1);
-
-		fragment = vec4(palette[id % palette.length], 1);
-	} break;
-
-	case eDepth:
-	{
-		float near = 0.1f;
-		float far = 10000.0f;
-		
-		f32 d = gl_FragCoord.z;
-		f32 linearized = (near * far) / (far + d * (near - far));
-
-		linearized = ire::log(linearized/250.0f + 1);
-
-		fragment = vec4(vec3(linearized), 1);
-	} break;
-
-	default:
-		fragment = vec4(1, 0, 1, 1);
-		break;
-	}
-
-	// Highlighting the selected object
-	push_constant <uint> highlight(sizeof(solid_t <MVP>));
-
-	cond(highlight == 1u);
-		fragment = mix(fragment, vec4(1, 1, 0, 1), 0.8f);
-	end();
-}
+MODULE(viewport-render-group);
 
 // Constructor	
 ViewportRenderGroup::ViewportRenderGroup(DeviceResourceCollection &drc)
 {
 	configure_render_pass(drc);
 	configure_pipelines(drc);
+
+	// Configure thread workers		
+	auto ftn = std::bind(&ViewportRenderGroup::texture_loader_worker, this);
+	auto queue_family = littlevk::find_queue_families(drc.phdev, drc.surface);
+
+	active_workers[eTextureLoader] = std::thread(ftn);
+
+	texture_loading_pool = littlevk::command_pool(drc.device,
+		vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+		queue_family.graphics
+	).unwrap(drc.dal);
 }
 
 // Configuration
-static const std::array <vk::DescriptorSetLayoutBinding, 1> albedo_bindings {
-	vk::DescriptorSetLayoutBinding {
-		0, vk::DescriptorType::eUniformBuffer,
-		1, vk::ShaderStageFlagBits::eFragment
-	}
-};
-
 void ViewportRenderGroup::configure_render_pass(DeviceResourceCollection &drc)
 {
 	render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
@@ -199,6 +39,8 @@ void ViewportRenderGroup::configure_render_pass(DeviceResourceCollection &drc)
 
 void ViewportRenderGroup::configure_pipeline_mode(DeviceResourceCollection &drc, ViewportMode mode)
 {
+	JVL_ASSERT_PLAIN(mode != ViewportMode::eAlbedo);
+
 	auto vertex_layout = littlevk::VertexLayout <
 		littlevk::rgb32f,
 		littlevk::rgb32f,
@@ -215,93 +57,127 @@ void ViewportRenderGroup::configure_pipeline_mode(DeviceResourceCollection &drc,
 		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
 		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 
-	auto ppa = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
+	pipelines[mode] = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
 		.with_render_pass(render_pass, 0)
 		.with_vertex_layout(vertex_layout)
 		.with_shader_bundle(bundle)
 		.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
 		.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t <MVP>))
 		.cull_mode(vk::CullModeFlagBits::eNone);
-		
-	if (mode == eAlbedo)
-		pipelines[mode] = ppa.with_dsl_bindings(albedo_bindings);
-	else
-		pipelines[mode] = ppa;
 }
 
 void ViewportRenderGroup::configure_pipelines(DeviceResourceCollection &drc)
 {
-	for (int32_t i = 0; i < eCount; i++) {
-		if (i != eAlbedo)
+	for (int32_t i = 0; i < uint32_t(ViewportMode::eCount); i++) {
+		if (i != uint32_t(ViewportMode::eAlbedo))
 			configure_pipeline_mode(drc, (ViewportMode) i);
 	}
 }
 
-// Texture loading thread
+// Texture loading thread and states
+template <>
+bool ViewportRenderGroup::handle_texture_state
+	<vulkan::UnloadedTexture> (LoadingWork &unit, vulkan::UnloadedTexture &unloaded)
+{
+	auto &drc = unit.drc;
+
+	auto &texture = core::Texture::from(unit.host_bank, unloaded.path);
+
+	unit.device_bank.upload(drc.allocator(),
+		littlevk::bind(drc.device, texture_loading_pool, drc.graphics_queue),
+		unloaded.path,
+		texture,
+		unit.extra);
+	
+	unit.material.kd = vulkan::ReadyTexture({}, unloaded.path, false);
+
+	return true;	
+}
+
+template <>
+bool ViewportRenderGroup::handle_texture_state
+		<vulkan::ReadyTexture> (LoadingWork &unit, vulkan::ReadyTexture &ready)
+{
+	if (ready.updated) {
+		// TODO: destroy old descriptor set
+		unit.descriptor = ready.newer;
+		return false;
+	} 
+
+	auto &drc = unit.drc;
+	
+	static std::optional <vk::Sampler> default_sampler;
+	if (!default_sampler)
+		default_sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
+
+	ready.updated = true;
+	ready.newer = littlevk::bind(drc.device, drc.descriptor_pool)
+		.allocate_descriptor_sets(*unit.ppl.dsl)
+		.front();
+
+	// Push update
+	ImageDescriptorBinding update;
+	update.descriptor = ready.newer;
+	update.binding = 0;
+	update.count = 1;
+	update.sampler = default_sampler.value();
+	update.view = unit.device_bank.at(ready.path).view;
+	update.layout = vk::ImageLayout::eShaderReadOnlyOptimal;
+
+	descriptor_updates.push(update);
+
+	return true;
+}
+
 void ViewportRenderGroup::texture_loader_worker()
 {
 	while (true) {
-		if (!work.size()) {
-			// TODO: sleep
+		if (!work.size())
 			continue;
-		}
-
+		
 		auto unit = work.pop();
 
 		auto &kd = unit.material.kd;
-		auto &drc = unit.drc;
 
-		if (kd.is <vulkan::UnloadedTexture> ()) {
-			auto &unloaded = kd.as <vulkan::UnloadedTexture> ();
-
-			auto &texture = core::Texture::from(unit.host_bank, unloaded.path);
-
-			unit.device_bank.upload(drc.allocator(),
-				littlevk::bind(drc.device, texture_loading_pool, drc.graphics_queue),
-				unloaded.path,
-				texture,
-				unit.extra);
-			
-			kd = vulkan::ReadyTexture({}, unloaded.path, false);
-			
-			// Always going to be processed again
-			pending.push(unit);
-		} else if (kd.is <vulkan::ReadyTexture> ()) {
-			auto &ready = kd.as <vulkan::ReadyTexture> ();
-
-			fmt::println("texture ready: {}", ready.path);
-
-			if (ready.updated) {
-				unit.descriptor = ready.newer;
-			} else {
-				std::vector <vk::DescriptorSetLayoutBinding> bindings {
-					vk::DescriptorSetLayoutBinding {
-						0, vk::DescriptorType::eCombinedImageSampler,
-						1, vk::ShaderStageFlagBits::eFragment
-					}
-				};
-
-				// TODO: destroy old descriptor set
-				ready.newer = littlevk::bind(drc.device, drc.descriptor_pool)
-					.allocate_descriptor_sets(*unit.ppl.dsl)
-					.front();
-
-				// Push update
-				ImageDescriptorBinding update;
-				update.descriptor = ready.newer;
-				update.binding = 0;
-				update.count = 1;
-				update.sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
-				update.view = unit.device_bank.at(ready.path).view;
-				update.layout = vk::ImageLayout::eShaderReadOnlyOptimal;
-
-				descriptor_updates.push(update);
-
-				ready.updated = true;
+		auto ftn = [&](auto &x) {
+			if (handle_texture_state(unit, x))
 				pending.push(unit);
-			}
+		};
+
+		std::visit(ftn, kd);
+	}
+}
+
+// Handling descriptor updates
+void ViewportRenderGroup::process_descriptor_set_updates(const vk::Device &device)
+{
+	std::lock_guard guard(descriptor_updates.lock);
+
+	std::list <vk::DescriptorImageInfo> image_infos;
+	std::vector <vk::WriteDescriptorSet> writes;
+
+	while (descriptor_updates.size_locked()) {
+		auto update = descriptor_updates.pop_locked();
+
+		// TODO: put the common data into the variant...
+		if (auto img_update = update.get <ImageDescriptorBinding> ()) {
+			image_infos.emplace_back(img_update->sampler, img_update->view, img_update->layout);
+
+			auto write = vk::WriteDescriptorSet()
+				.setDstSet(img_update->descriptor)
+				.setDstBinding(img_update->binding)
+				.setDescriptorCount(img_update->count)
+				.setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
+				.setImageInfo(image_infos.back());
+
+			writes.emplace_back(write);
+		} else if (auto buf_update = update.get <BufferDescriptorBinding> ()) {
+			MODULE(viewport-render-group-render);
+			JVL_ABORT("unfinished implementation");
 		}
 	}
+
+	device.updateDescriptorSets(writes, nullptr);
 }
 
 // Rendering
@@ -312,40 +188,15 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 	auto &scene = info.device_scene;
 
 	// Process descriptor set updates
-	{
-		std::lock_guard guard(descriptor_updates.lock);
+	process_descriptor_set_updates(drc.device);
 
-		std::list <vk::DescriptorImageInfo> image_infos;
-		std::vector <vk::WriteDescriptorSet> writes;
-		while (descriptor_updates.size_locked()) {
-			auto update = descriptor_updates.pop_locked();
-
-			// TODO: put the common into the variant...
-			if (auto img_update = update.get <ImageDescriptorBinding> ()) {
-				image_infos.emplace_back(img_update->sampler, img_update->view, img_update->layout);
-
-				auto write = vk::WriteDescriptorSet()
-					.setDstSet(img_update->descriptor)
-					.setDstBinding(img_update->binding)
-					.setDescriptorCount(img_update->count)
-					.setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
-					.setImageInfo(image_infos.back());
-
-				writes.emplace_back(write);
-			} else if (auto buf_update = update.get <BufferDescriptorBinding> ()) {
-				MODULE(viewport-render-group-render);
-				JVL_ABORT("unfinished implementation");
-			}
-		}
-
-		drc.device.updateDescriptorSets(writes, nullptr);
-	}
+	// Handle mouse input from the window
+	viewport.handle_input(info.window);
 
 	// Configure the rendering extent
 	littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(viewport.extent));
 
-	viewport.handle_input(info.window);
-
+	// Start the render pass
 	littlevk::RenderPassBeginInfo(2)
 		.with_render_pass(render_pass)
 		.with_framebuffer(viewport.framebuffers[info.operation.index])
@@ -354,6 +205,7 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 		.clear_depth(1, 1)
 		.begin(cmd);
 
+	// Common camera information
 	solid_t <MVP> mvp;
 
 	auto m_model = uniform_field(MVP, model);
@@ -365,18 +217,8 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 	mvp[m_proj] = jvl::core::perspective(viewport.aperature);
 	mvp[m_view] = viewport.transform.to_view_matrix();
 
-	if (viewport.mode == eAlbedo) {
-		if (!active_workers.contains(eTextureLoader)) {
-			auto ftn = std::bind(&ViewportRenderGroup::texture_loader_worker, this);
-			auto queue_family = littlevk::find_queue_families(drc.phdev, drc.surface);
-
-			active_workers[eTextureLoader] = std::thread(ftn);
-
-			texture_loading_pool = littlevk::command_pool(drc.device,
-				vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-				queue_family.graphics).unwrap(drc.dal);
-		}
-
+	// Pre-rendering actions
+	if (viewport.mode == ViewportMode::eAlbedo) {
 		for (size_t i = 0; i < scene.uuids.size(); i++) {
 			auto &mesh = scene.meshes[i];
 			for (auto i : mesh.material_usage) {
@@ -388,7 +230,7 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 				// This only depends on the diffuse texture
 				bool texture = enabled(material.flags, vulkan::MaterialFlags::eAlbedoSampler);
 
-				PipelineEncoding encoding(eAlbedo, texture);
+				PipelineEncoding encoding(ViewportMode::eAlbedo, texture);
 
 				if (!pipelines.contains(encoding)) {
 					fmt::println("compiling pipeline for Albedo ({:08b})", encoding.specialization);
@@ -513,7 +355,7 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 		}
 	}
 
-	if (viewport.mode == eAlbedo) {
+	if (viewport.mode == ViewportMode::eAlbedo) {
 		for (size_t i = 0; i < scene.uuids.size(); i++) {
 			auto &mesh = scene.meshes[i];
 			mvp[m_id] = scene.uuids[i];
@@ -524,7 +366,7 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 			auto &material = scene.materials[mid];
 
 			bool texture = enabled(material.flags, vulkan::MaterialFlags::eAlbedoSampler);
-			auto encoding = PipelineEncoding(eAlbedo, texture);
+			auto encoding = PipelineEncoding(ViewportMode::eAlbedo, texture);
 			
 			auto &ppl = pipelines[encoding];
 

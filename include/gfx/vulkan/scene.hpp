@@ -11,19 +11,28 @@
 
 namespace jvl::gfx::vulkan {
 
+enum class SceneFlags : uint32_t {
+	eDefault,		// Fine for most formats
+	eOneMaterialPerMesh,	// Required for albedo texturing, etc.
+};
+
 struct Scene {
 	std::vector <int64_t> uuids;
 	std::vector <TriangleMesh> meshes;
 	std::vector <Material> materials;
+	SceneFlags flags;
 
 	static Scene from(core::DeviceResourceCollection &drc,
 			  core::TextureBank &bank,
 			  TextureBank &device_bank,
 			  const cpu::Scene &other) {
+
 		Scene result;
+		result.flags = SceneFlags::eDefault;
 		result.uuids = other.uuids;
 		
 		for (auto &m : other.meshes) {
+			// TODO: split the mesh for each material if needed
 			auto vkm = TriangleMesh::from(drc.allocator(), m).value();
 			result.meshes.push_back(vkm);
 		}

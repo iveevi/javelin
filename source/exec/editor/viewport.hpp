@@ -16,7 +16,7 @@ using namespace jvl;
 using namespace jvl::core;
 
 // Available viewport modes
-enum ViewportMode : int32_t {
+enum class ViewportMode : int32_t {
 	eAlbedo,
 	eNormal,
 	eTextureCoordinates,
@@ -34,7 +34,7 @@ static constexpr const char *tbl_viewport_mode[] = {
 	"__end",
 };
 
-static_assert(eCount + 1 == sizeof(tbl_viewport_mode)/sizeof(const char *));
+static_assert(uint32_t(ViewportMode::eCount) + 1 == sizeof(tbl_viewport_mode)/sizeof(const char *));
 
 // Separated from ViewportRenderGroup because we can have
 // multiple viewports using the exact same render pass and pipelines
@@ -49,7 +49,7 @@ struct Viewport {
 	// Viewing information
 	int64_t selected;
 
-	ViewportMode mode = eNormal;
+	ViewportMode mode = ViewportMode::eNormal;
 
 	// Input handling information
 	bool active = false;

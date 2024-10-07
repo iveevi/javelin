@@ -94,9 +94,20 @@ public:
 	ViewportRenderGroup() = default;
 	ViewportRenderGroup(DeviceResourceCollection &);
 
+	// Deferred texture loading
+	template <typename T>
+	bool handle_texture_state(LoadingWork &, T &) {
+		return false;
+	}
+
 	void texture_loader_worker();
 
+	// Processing descriptor set updates
+	void process_descriptor_set_updates(const vk::Device &);
+
+	// Rendering
 	void render(const RenderingInfo &, Viewport &);
 
+	// Post-frame actions
 	void post_render();
 };
