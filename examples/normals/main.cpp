@@ -169,11 +169,8 @@ int main(int argc, char *argv[])
 	scene.add(asset);
 
 	// Prepare host and device scenes
-	core::TextureBank bank;
-	gfx::vulkan::TextureBank device_bank;
-
 	auto host_scene = gfx::cpu::Scene::from(scene);
-	auto vk_scene = gfx::vulkan::Scene::from(drc, bank, device_bank, host_scene);
+	auto vk_scene = gfx::vulkan::Scene::from(drc, host_scene);
 
 	// Create the render pass and generate the pipelines
 	vk::RenderPass render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)

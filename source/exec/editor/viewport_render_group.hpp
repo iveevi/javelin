@@ -82,17 +82,19 @@ public:
 	};
 
 	std::map <Worker, std::thread> active_workers;
+	std::map <Worker, std::atomic <bool>> active_workers_flags;
 
 	// Deferred texture loading
 	vk::CommandPool texture_loading_pool;
 	wrapped::thread_safe_queue <LoadingWork> work;
 	wrapped::thread_safe_queue <LoadingWork> pending;
-
 	wrapped::thread_safe_queue <GenericDescriptorBinding> descriptor_updates;
 
 	// Constructors
-	ViewportRenderGroup() = default;
 	ViewportRenderGroup(DeviceResourceCollection &);
+
+	// Cleaning up
+	~ViewportRenderGroup();
 
 	// Deferred texture loading
 	template <typename T>

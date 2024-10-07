@@ -22,10 +22,7 @@ struct Scene {
 	std::vector <Material> materials;
 	SceneFlags flags;
 
-	static Scene from(core::DeviceResourceCollection &drc,
-			  core::TextureBank &bank,
-			  TextureBank &device_bank,
-			  const cpu::Scene &other) {
+	static Scene from(core::DeviceResourceCollection &drc, const cpu::Scene &other) {
 
 		Scene result;
 		result.flags = SceneFlags::eDefault;
@@ -38,7 +35,7 @@ struct Scene {
 		}
 
 		for (auto &m : other.materials) {
-			auto vkm = Material::from(drc, bank, device_bank, m).value();
+			auto vkm = Material::from(drc, m).value();
 			result.materials.push_back(vkm);
 		}
 

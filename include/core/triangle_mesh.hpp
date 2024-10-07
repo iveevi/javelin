@@ -16,7 +16,7 @@ struct TriangleMesh {
 	buffer <int> materials;
 	std::set <int> material_usage;
 
-	static std::optional<TriangleMesh> from(const Mesh &m) {
+	static std::optional <TriangleMesh> from(const Mesh &m) {
 		TriangleMesh tm;
 
 		auto &vprops = m.vertex_properties;

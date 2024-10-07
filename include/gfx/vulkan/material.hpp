@@ -52,10 +52,7 @@ struct Material {
 
 	transitional_material_property <float3> kd;
 
-	static std::optional <Material> from(core::DeviceResourceCollection &,
-		core::TextureBank &,
-		TextureBank &,
-		const core::Material &);
+	static std::optional <Material> from(core::DeviceResourceCollection &, const core::Material &);
 };
 
 } // namespace jvl::gfx::vulkan

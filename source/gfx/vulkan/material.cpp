@@ -6,10 +6,7 @@ namespace jvl::gfx::vulkan {
 
 MODULE(vulkan-material);
 
-std::optional <Material> Material::from(core::DeviceResourceCollection &drc,
-					core::TextureBank &bank,
-					TextureBank &device_bank,
-					const core::Material &material)
+std::optional <Material> Material::from(core::DeviceResourceCollection &drc, const core::Material &material)
 {
 	Material result;
 

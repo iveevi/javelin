@@ -18,11 +18,25 @@ ViewportRenderGroup::ViewportRenderGroup(DeviceResourceCollection &drc)
 	auto queue_family = littlevk::find_queue_families(drc.phdev, drc.surface);
 
 	active_workers[eTextureLoader] = std::thread(ftn);
+	active_workers_flags[eTextureLoader] = true;
 
 	texture_loading_pool = littlevk::command_pool(drc.device,
 		vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
 		queue_family.graphics
 	).unwrap(drc.dal);
+}
+
+// Cleaning up
+ViewportRenderGroup::~ViewportRenderGroup()
+{
+	for (auto &[_, f] : active_workers_flags)
+		f = false;
+
+	for (auto &[_, t] : active_workers)
+		t.join();
+
+	active_workers.clear();
+	active_workers_flags.clear();
 }
 
 // Configuration
@@ -131,7 +145,7 @@ bool ViewportRenderGroup::handle_texture_state
 
 void ViewportRenderGroup::texture_loader_worker()
 {
-	while (true) {
+	while (active_workers_flags[eTextureLoader]) {
 		if (!work.size())
 			continue;
 		
