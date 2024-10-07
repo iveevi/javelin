@@ -148,6 +148,12 @@ struct thread_safe_queue : private std::deque <T> {
 		for (auto &v : tsq)
 			this->push_back(v);
 	}
+	
+	void push_front(const T &v) {
+		std::lock_guard guard(lock);
+
+		std::deque <T> ::push_front(v);
+	}
 
 	void push_locked(const T &v) {
 		this->push_back(v);

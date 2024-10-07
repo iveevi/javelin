@@ -9,34 +9,37 @@
 
 struct Editor {
 	// Fundamental Vulkan resources
-	DeviceResourceCollection	drc;
+	DeviceResourceCollection drc;
 
 	// Unique render groups
-	ImGuiRenderGroup		rg_imgui;
-	ViewportRenderGroup		rg_viewport;
+	ImGuiRenderGroup rg_imgui;
+	ViewportRenderGroup rg_viewport;
 
 	// Resource caches
-	TextureBank			texture_bank;
-	vulkan::TextureBank		device_texture_bank;
+	TextureBank texture_bank;
+	vulkan::TextureBank device_texture_bank;
 
 	// Scene management
-	core::Scene			scene;
-	vulkan::Scene			vk_scene;
+	core::Scene scene;
+	vulkan::Scene vk_scene;
 
 	// ImGui rendering callbacks
-	imgui_callback_list		imgui_callbacks;
+	imgui_callback_list imgui_callbacks;
 
 	// Viewports
-	std::list <Viewport>		viewports;
+	std::list <Viewport> viewports;
 	
 	// Host raytracers
-	std::list <RaytracerCPU>	host_raytracers;
+	std::list <RaytracerCPU> host_raytracers;
 
 	// Miscellaneous
-	SceneInspector			inspector;
+	SceneInspector inspector;
 
 	// Systems
-	MessageSystem			message_system;
+	MessageSystem message_system;
+
+	// Additional commands
+	wrapped::thread_safe_queue <vk::CommandBuffer> extra;
 
 	// Constructor
 	// TODO: pass command line options later...

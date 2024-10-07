@@ -237,6 +237,74 @@ void ViewportRenderGroup::configure_pipelines(DeviceResourceCollection &drc)
 	}
 }
 
+#include <thread>
+
+struct LoadingWork {
+	vulkan::Material &material;
+	vk::DescriptorSet &descriptor;
+	TextureBank &host_bank;
+	vulkan::TextureBank &device_bank;
+	DeviceResourceCollection &drc;
+	wrapped::thread_safe_queue <vk::CommandBuffer> &extra;
+	littlevk::Pipeline &ppl;
+};
+
+vk::CommandPool texture_loading_pool;
+wrapped::thread_safe_queue <LoadingWork> work;
+wrapped::thread_safe_queue <LoadingWork> pending;
+
+std::thread *texture_loader = nullptr;
+
+void texture_loader_worker()
+{
+	while (true) {
+		if (!work.size()) {
+			// TODO: sleep
+			continue;
+		}
+
+		auto unit = work.pop();
+
+		auto &kd = unit.material.kd;
+		auto &drc = unit.drc;
+
+		if (auto unloaded = kd.get <vulkan::UnloadedTexture> ()) {
+			auto &texture = core::Texture::from(unit.host_bank, unloaded->path);
+
+			unit.device_bank.upload(drc.allocator(),
+				littlevk::bind(drc.device, texture_loading_pool, drc.graphics_queue),
+				unloaded->path,
+				texture,
+				unit.extra);
+
+			kd = vulkan::ReadyTexture(unloaded->path);
+
+			pending.push(unit);
+		} else if (auto ready = kd.get <vulkan::ReadyTexture> ()) {
+			std::vector <vk::DescriptorSetLayoutBinding> binding {
+				vk::DescriptorSetLayoutBinding {
+					0, vk::DescriptorType::eCombinedImageSampler,
+					1, vk::ShaderStageFlagBits::eFragment
+				}
+			};
+
+			// TODO: destroy old descriptor set
+			unit.descriptor = littlevk::bind(drc.device, drc.descriptor_pool)
+				.allocate_descriptor_sets(*unit.ppl.dsl).front();
+			
+			auto binder = littlevk::bind(drc.device, unit.descriptor, binding);
+			
+			auto sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
+
+			auto &image = unit.device_bank[ready->path];
+			binder.queue_update(0, 0, sampler,
+				image.view,
+				vk::ImageLayout::eShaderReadOnlyOptimal);
+			binder.finalize();
+		}
+	}
+}
+
 // Rendering
 void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 {
@@ -269,7 +337,16 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 	mvp[m_view] = viewport.transform.to_view_matrix();
 
 	if (viewport.mode == eAlbedo) {
-		// auto allocator = littlevk::bind(drc.device, drc.descriptor_pool);
+		if (!texture_loader) {
+			texture_loader = new std::thread(texture_loader_worker);
+
+			auto queue_family = littlevk::find_queue_families(drc.phdev, drc.surface);
+
+			texture_loading_pool = littlevk::command_pool(drc.device,
+				vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+				queue_family.graphics).unwrap(drc.dal);
+		}
+
 		for (size_t i = 0; i < scene.uuids.size(); i++) {
 			auto &mesh = scene.meshes[i];
 			for (auto i : mesh.material_usage) {
@@ -363,7 +440,7 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 
 				if (texture) {
 					// TODO: generate from compilation
-					std::array <vk::DescriptorSetLayoutBinding, 1> binding {
+					std::vector <vk::DescriptorSetLayoutBinding> binding {
 						vk::DescriptorSetLayoutBinding {
 							0, vk::DescriptorType::eCombinedImageSampler,
 							1, vk::ShaderStageFlagBits::eFragment
@@ -372,17 +449,35 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 
 					auto &ppl = pipelines[encoding];
 
-					vk::DescriptorSet descriptor = littlevk::bind(drc.device, drc.descriptor_pool)
+					descriptors[material.uuid.global] = littlevk::bind(drc.device, drc.descriptor_pool)
 						.allocate_descriptor_sets(*ppl.dsl).front();
 
-					auto sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
-					littlevk::bind(drc.device, descriptor, binding)
-						.queue_update(0, 0, sampler,
-							material.kd.as <littlevk::Image> ().view,
-							vk::ImageLayout::eShaderReadOnlyOptimal)
-						.finalize();
+					auto &descriptor = descriptors[material.uuid.global];
 
-					descriptors[material.uuid.global] = descriptor;
+					auto sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
+
+					auto binder = littlevk::bind(drc.device, descriptor, binding);
+					if (material.kd.is <vulkan::UnloadedTexture> ()) {
+						auto &image = info.device_texture_bank["$checkerboard"];
+						binder.queue_update(0, 0, sampler, image.view, vk::ImageLayout::eShaderReadOnlyOptimal);
+
+						work.push(LoadingWork {
+							material,
+							descriptor,
+							info.texture_bank,
+							info.device_texture_bank,
+							drc,
+							info.extra,
+							ppl,
+						});
+					} else {
+						auto &image = material.kd.as <vulkan::LoadedTexture> ();
+						binder.queue_update(0, 0, sampler,
+							image.view,
+							vk::ImageLayout::eShaderReadOnlyOptimal);
+					}
+
+					binder.finalize();
 				}
 			}
 		}
@@ -457,4 +552,11 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 	littlevk::transition(info.cmd, viewport.targets[info.operation.index],
 		vk::ImageLayout::ePresentSrcKHR,
 		vk::ImageLayout::eShaderReadOnlyOptimal);
+
+	// Transfer all pending work to the current work
+	while (pending.size()) {
+		auto cmd = pending.pop();
+		work.push(cmd);
+		// TODO: push to the front so that already processed items are prioritized
+	}
 }

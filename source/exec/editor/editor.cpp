@@ -66,6 +66,14 @@ Editor::Editor()
 	// Configure event system(s)
 	glfwSetMouseButtonCallback(drc.window.handle, glfw_button_callback);
 	glfwSetCursorPosCallback(drc.window.handle, glfw_cursor_callback);
+
+	// Populate boilerplate textures
+	auto checkerboard = core::Texture::from("resources/textures/checkerboard.png");
+	texture_bank["$checkerboard"] = checkerboard;
+	device_texture_bank.upload(drc.allocator(),
+		drc.commander(),
+		"$checkerboard",
+		checkerboard);
 }
 
 // Adding a new viewport
@@ -115,6 +123,9 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 
 		// Systems
 		.message_system = message_system,
+
+		// Additional command buffers
+		.extra = extra,
 	};
 
 	// Render all the viewports
@@ -134,9 +145,16 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 	// Submit command buffer while signaling the semaphore
 	constexpr vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
+	std::vector <vk::CommandBuffer> commands { cmd };
+	// fmt::println("# of extra commands: {}", extra.size());
+	while (extra.size()) {
+		auto cmd = extra.pop();
+		commands.push_back(cmd);
+	}
+
 	vk::SubmitInfo submit_info {
 		sync_frame.image_available,
-		wait_stage, cmd,
+		wait_stage, commands,
 		sync_frame.render_finished
 	};
 

@@ -22,49 +22,7 @@ std::optional <Material> Material::from(core::DeviceResourceCollection &drc,
 	auto kd = material.values.get(core::Material::diffuse_key).value();
 	if (kd.is <std::string> ()) {
 		result.flags = result.flags | MaterialFlags::eAlbedoSampler;
-
-		std::string path = kd.as <std::string> ();
-		if (!device_bank.contains(path)) {
-			fmt::println("uploading texture {} to device", path);
-
-			auto &texture = core::Texture::from(bank, path);
-
-			littlevk::ImageCreateInfo image_info {
-				uint32_t(texture.width),
-				uint32_t(texture.height),
-				vk::Format::eR8G8B8A8Unorm,
-				vk::ImageUsageFlagBits::eSampled
-				| vk::ImageUsageFlagBits::eTransferDst,
-				vk::ImageAspectFlagBits::eColor,
-				vk::ImageType::e2D,
-				vk::ImageViewType::e2D
-			};
-
-			littlevk::Buffer staging;
-
-			std::tie(staging, result.kd) = drc.allocator()
-				.buffer(texture.data,
-					4 * texture.width * texture.height * sizeof(uint8_t),
-					vk::BufferUsageFlagBits::eTransferDst
-					| vk::BufferUsageFlagBits::eTransferSrc)
-				.image(image_info);
-
-			auto &image = result.kd.as <littlevk::Image> ();
-			drc.commander().submit_and_wait([&](const vk::CommandBuffer &cmd) {
-				image.transition(cmd, vk::ImageLayout::eTransferDstOptimal);
-
-				littlevk::copy_buffer_to_image(cmd,
-					image,
-					staging,
-					vk::ImageLayout::eTransferDstOptimal);
-
-				image.transition(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
-			});
-
-			device_bank[path] = image;
-		} else {
-			result.kd = device_bank[path];
-		}
+		result.kd = UnloadedTexture(kd.as <std::string> ());
 	} else {
 		result.kd = kd.as <float3> ();
 	}

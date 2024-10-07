@@ -28,4 +28,7 @@ struct RenderingInfo {
 
 	// Messaging system
 	MessageSystem &message_system;
+
+	// Additional command buffers for the frame
+	wrapped::thread_safe_queue <vk::CommandBuffer> &extra;
 };

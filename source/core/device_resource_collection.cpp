@@ -20,7 +20,7 @@ littlevk::LinkedCommandQueue DeviceResourceCollection::commander()
 
 void DeviceResourceCollection::configure_device(const std::vector <const char *> &EXTENSIONS)
 {
-	littlevk::QueueFamilyIndices queue_family = littlevk::find_queue_families(phdev, surface);
+	auto queue_family = littlevk::find_queue_families(phdev, surface);
 
 	memory_properties = phdev.getMemoryProperties();
 	device = littlevk::device(phdev, queue_family, EXTENSIONS);

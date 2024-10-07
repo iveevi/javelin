@@ -9,6 +9,29 @@
 
 namespace jvl::gfx::vulkan {
 
+// Potential texture states
+struct UnloadedTexture {
+	std::string path;
+};
+
+struct ReadyTexture {
+	std::string path;
+};
+
+struct LoadedTexture : littlevk::Image {
+	std::string path;
+
+	LoadedTexture(const littlevk::Image &image, const std::string &path_)
+		: littlevk::Image(image), path(path_) {}
+};
+
+template <typename T>
+using transitional_material_property = wrapped::variant <T,
+	UnloadedTexture,	// Texture has not been loaded
+	ReadyTexture,		// Texture is loaded but not bound
+	LoadedTexture		// Texture is loaded and bound to the material
+>;
+
 // Device-side material structure
 struct Material {
 	core::UUID uuid;
@@ -25,8 +48,7 @@ struct Material {
 	littlevk::Buffer uber;
 	littlevk::Buffer specialized;
 
-	// TODO: some deferred strategy
-	wrapped::variant <float3, littlevk::Image> kd;
+	transitional_material_property <float3> kd;
 
 	static std::optional <Material> from(core::DeviceResourceCollection &,
 		core::TextureBank &,
