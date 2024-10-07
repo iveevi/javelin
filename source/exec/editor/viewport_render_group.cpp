@@ -237,25 +237,8 @@ void ViewportRenderGroup::configure_pipelines(DeviceResourceCollection &drc)
 	}
 }
 
-#include <thread>
-
-struct LoadingWork {
-	vulkan::Material &material;
-	vk::DescriptorSet &descriptor;
-	TextureBank &host_bank;
-	vulkan::TextureBank &device_bank;
-	DeviceResourceCollection &drc;
-	wrapped::thread_safe_queue <vk::CommandBuffer> &extra;
-	littlevk::Pipeline &ppl;
-};
-
-vk::CommandPool texture_loading_pool;
-wrapped::thread_safe_queue <LoadingWork> work;
-wrapped::thread_safe_queue <LoadingWork> pending;
-
-std::thread *texture_loader = nullptr;
-
-void texture_loader_worker()
+// Texture loading thread
+void ViewportRenderGroup::texture_loader_worker()
 {
 	while (true) {
 		if (!work.size()) {
@@ -268,39 +251,55 @@ void texture_loader_worker()
 		auto &kd = unit.material.kd;
 		auto &drc = unit.drc;
 
-		if (auto unloaded = kd.get <vulkan::UnloadedTexture> ()) {
-			auto &texture = core::Texture::from(unit.host_bank, unloaded->path);
+		if (kd.is <vulkan::UnloadedTexture> ()) {
+			auto &unloaded = kd.as <vulkan::UnloadedTexture> ();
+
+			auto &texture = core::Texture::from(unit.host_bank, unloaded.path);
 
 			unit.device_bank.upload(drc.allocator(),
 				littlevk::bind(drc.device, texture_loading_pool, drc.graphics_queue),
-				unloaded->path,
+				unloaded.path,
 				texture,
 				unit.extra);
-
-			kd = vulkan::ReadyTexture(unloaded->path);
-
+			
+			kd = vulkan::ReadyTexture({}, unloaded.path, false);
+			
+			// Always going to be processed again
 			pending.push(unit);
-		} else if (auto ready = kd.get <vulkan::ReadyTexture> ()) {
-			std::vector <vk::DescriptorSetLayoutBinding> binding {
-				vk::DescriptorSetLayoutBinding {
-					0, vk::DescriptorType::eCombinedImageSampler,
-					1, vk::ShaderStageFlagBits::eFragment
-				}
-			};
+		} else if (kd.is <vulkan::ReadyTexture> ()) {
+			auto &ready = kd.as <vulkan::ReadyTexture> ();
 
-			// TODO: destroy old descriptor set
-			unit.descriptor = littlevk::bind(drc.device, drc.descriptor_pool)
-				.allocate_descriptor_sets(*unit.ppl.dsl).front();
-			
-			auto binder = littlevk::bind(drc.device, unit.descriptor, binding);
-			
-			auto sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
+			fmt::println("texture ready: {}", ready.path);
 
-			auto &image = unit.device_bank[ready->path];
-			binder.queue_update(0, 0, sampler,
-				image.view,
-				vk::ImageLayout::eShaderReadOnlyOptimal);
-			binder.finalize();
+			if (ready.updated) {
+				unit.descriptor = ready.newer;
+			} else {
+				std::vector <vk::DescriptorSetLayoutBinding> bindings {
+					vk::DescriptorSetLayoutBinding {
+						0, vk::DescriptorType::eCombinedImageSampler,
+						1, vk::ShaderStageFlagBits::eFragment
+					}
+				};
+
+				// TODO: destroy old descriptor set
+				ready.newer = littlevk::bind(drc.device, drc.descriptor_pool)
+					.allocate_descriptor_sets(*unit.ppl.dsl)
+					.front();
+
+				// Push update
+				ImageDescriptorBinding update;
+				update.descriptor = ready.newer;
+				update.binding = 0;
+				update.count = 1;
+				update.sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
+				update.view = unit.device_bank.at(ready.path).view;
+				update.layout = vk::ImageLayout::eShaderReadOnlyOptimal;
+
+				descriptor_updates.push(update);
+
+				ready.updated = true;
+				pending.push(unit);
+			}
 		}
 	}
 }
@@ -311,6 +310,36 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 	auto &cmd = info.cmd;
 	auto &drc = info.drc;
 	auto &scene = info.device_scene;
+
+	// Process descriptor set updates
+	{
+		std::lock_guard guard(descriptor_updates.lock);
+
+		std::list <vk::DescriptorImageInfo> image_infos;
+		std::vector <vk::WriteDescriptorSet> writes;
+		while (descriptor_updates.size_locked()) {
+			auto update = descriptor_updates.pop_locked();
+
+			// TODO: put the common into the variant...
+			if (auto img_update = update.get <ImageDescriptorBinding> ()) {
+				image_infos.emplace_back(img_update->sampler, img_update->view, img_update->layout);
+
+				auto write = vk::WriteDescriptorSet()
+					.setDstSet(img_update->descriptor)
+					.setDstBinding(img_update->binding)
+					.setDescriptorCount(img_update->count)
+					.setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
+					.setImageInfo(image_infos.back());
+
+				writes.emplace_back(write);
+			} else if (auto buf_update = update.get <BufferDescriptorBinding> ()) {
+				MODULE(viewport-render-group-render);
+				JVL_ABORT("unfinished implementation");
+			}
+		}
+
+		drc.device.updateDescriptorSets(writes, nullptr);
+	}
 
 	// Configure the rendering extent
 	littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(viewport.extent));
@@ -337,10 +366,11 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 	mvp[m_view] = viewport.transform.to_view_matrix();
 
 	if (viewport.mode == eAlbedo) {
-		if (!texture_loader) {
-			texture_loader = new std::thread(texture_loader_worker);
-
+		if (!active_workers.contains(eTextureLoader)) {
+			auto ftn = std::bind(&ViewportRenderGroup::texture_loader_worker, this);
 			auto queue_family = littlevk::find_queue_families(drc.phdev, drc.surface);
+
+			active_workers[eTextureLoader] = std::thread(ftn);
 
 			texture_loading_pool = littlevk::command_pool(drc.device,
 				vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
@@ -552,11 +582,13 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 	littlevk::transition(info.cmd, viewport.targets[info.operation.index],
 		vk::ImageLayout::ePresentSrcKHR,
 		vk::ImageLayout::eShaderReadOnlyOptimal);
+}
 
+void ViewportRenderGroup::post_render()
+{
 	// Transfer all pending work to the current work
 	while (pending.size()) {
 		auto cmd = pending.pop();
-		work.push(cmd);
-		// TODO: push to the front so that already processed items are prioritized
+		work.push_front(cmd);
 	}
 }

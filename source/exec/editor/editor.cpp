@@ -61,7 +61,7 @@ Editor::Editor()
 	configure_imgui(drc, rg_imgui.render_pass);
 
 	// Other render groups		
-	rg_viewport = ViewportRenderGroup(drc);
+	rg_viewport = std::make_unique <ViewportRenderGroup> (drc);
 
 	// Configure event system(s)
 	glfwSetMouseButtonCallback(drc.window.handle, glfw_button_callback);
@@ -79,7 +79,7 @@ Editor::Editor()
 // Adding a new viewport
 void Editor::add_viewport()
 {
-	viewports.emplace_back(drc, rg_viewport.render_pass);
+	viewports.emplace_back(drc, rg_viewport->render_pass);
 
 	auto &viewport = viewports.back();
 	imgui_callbacks.push_back(viewport.callback_display());
@@ -130,7 +130,7 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 
 	// Render all the viewports
 	for (auto &viewport : viewports)
-		rg_viewport.render(info, viewport);
+		rg_viewport->render(info, viewport);
 
 	// Refresh any host raytracers
 	for (auto &raytracer : host_raytracers)
@@ -164,6 +164,9 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 	sop = littlevk::present_image(drc.present_queue, drc.swapchain.swapchain, sync_frame, sop.index);
 	if (sop.status == littlevk::SurfaceOperation::eResize)
 		resize();
+
+	// Post rendering actions
+	rg_viewport->post_render();
 }
 
 // Main menu bar

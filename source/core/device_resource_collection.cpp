@@ -46,7 +46,7 @@ void DeviceResourceCollection::configure_device(const std::vector <const char *>
 	descriptor_pool = littlevk::descriptor_pool(device,
 		vk::DescriptorPoolCreateInfo {
 			vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-			1000,
+			1 << 20,
 			sizes
 		}).unwrap(dal);
 }

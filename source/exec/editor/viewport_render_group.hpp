@@ -31,6 +31,37 @@ struct PipelineEncoding {
 	}
 };
 
+// Deferred texture loading
+struct LoadingWork {
+	vulkan::Material &material;
+	vk::DescriptorSet &descriptor;
+	TextureBank &host_bank;
+	vulkan::TextureBank &device_bank;
+	DeviceResourceCollection &drc;
+	wrapped::thread_safe_queue <vk::CommandBuffer> &extra;
+	littlevk::Pipeline &ppl;
+};
+
+struct DescriptorBinding {
+	vk::DescriptorSet descriptor;
+	uint32_t binding;
+	uint32_t count;
+};
+
+struct ImageDescriptorBinding : DescriptorBinding {
+	vk::Sampler sampler;
+	vk::ImageView view;
+	vk::ImageLayout layout;
+};
+
+struct BufferDescriptorBinding : DescriptorBinding {
+	vk::Buffer buffer;
+	uint32_t offset;
+	uint32_t range;
+};
+
+using GenericDescriptorBinding = wrapped::variant <BufferDescriptorBinding, ImageDescriptorBinding>;
+
 class ViewportRenderGroup {
 	void configure_render_pass(DeviceResourceCollection &);
 	void configure_pipeline_mode(DeviceResourceCollection &, ViewportMode);
@@ -45,9 +76,27 @@ public:
 	// Tracking descriptor sets
 	std::map <uint64_t, vk::DescriptorSet> descriptors;
 
+	// Thread workers to launch
+	enum Worker {
+		eTextureLoader,
+	};
+
+	std::map <Worker, std::thread> active_workers;
+
+	// Deferred texture loading
+	vk::CommandPool texture_loading_pool;
+	wrapped::thread_safe_queue <LoadingWork> work;
+	wrapped::thread_safe_queue <LoadingWork> pending;
+
+	wrapped::thread_safe_queue <GenericDescriptorBinding> descriptor_updates;
+
 	// Constructors
 	ViewportRenderGroup() = default;
 	ViewportRenderGroup(DeviceResourceCollection &);
 
+	void texture_loader_worker();
+
 	void render(const RenderingInfo &, Viewport &);
+
+	void post_render();
 };

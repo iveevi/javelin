@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <thread>
 
 #include <littlevk/littlevk.hpp>
 

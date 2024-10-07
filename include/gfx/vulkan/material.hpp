@@ -15,7 +15,9 @@ struct UnloadedTexture {
 };
 
 struct ReadyTexture {
+	vk::DescriptorSet newer;
 	std::string path;
+	bool updated;
 };
 
 struct LoadedTexture : littlevk::Image {

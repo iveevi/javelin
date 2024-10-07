@@ -13,7 +13,7 @@ struct Editor {
 
 	// Unique render groups
 	ImGuiRenderGroup rg_imgui;
-	ViewportRenderGroup rg_viewport;
+	std::unique_ptr <ViewportRenderGroup> rg_viewport;
 
 	// Resource caches
 	TextureBank texture_bank;
