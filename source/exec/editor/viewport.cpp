@@ -115,13 +115,25 @@ void Viewport::display_handle(const RenderingInfo &info)
 	ImGui::ImageButton(imgui_descriptors[info.frame], size, ImVec2(0, 0), ImVec2(1, 1), 0);
 
 	if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-		fmt::println("double click!");
 		ImVec2 mouse = ImGui::GetMousePos();
-		ImVec2 window = ImGui::GetItemRectMin();
+		ImVec2 min = ImGui::GetItemRectMin();
+		ImVec2 max = ImGui::GetItemRectMax();
 
-		int2 relative = int2(mouse.x - window.x, mouse.y - window.y);
+		float2 relative {
+			(mouse.x - min.x)/(max.x - min.x),
+			(mouse.y - min.y)/(max.y - min.y)
+		};
 
-		fmt::println("  relative position: {}, {}", relative.x, relative.y);
+		if (relative.x >= 0 && relative.x <= 1
+			&& relative.y >= 0 && relative.y <= 1) {
+			fmt::println("double click!");
+			fmt::println("  relative position: {}, {}", relative.x, relative.y);
+			int2 pixel {
+				int(extent.width * relative.x),
+				int(extent.height * relative.y)
+			};
+			fmt::println("  pixel position: {} {}", pixel.x, pixel.y);
+		}
 
 		Message message {
 			.type_id = uuid.type_id,

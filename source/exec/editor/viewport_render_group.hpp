@@ -1,8 +1,11 @@
 #pragma once
 
+#include <thread>
+
 #include <ire/core.hpp>
 
 #include "viewport.hpp"
+#include "shaders.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -107,6 +110,11 @@ public:
 	// Processing descriptor set updates
 	void process_descriptor_set_updates(const vk::Device &);
 
+	// Rendering specific groups of pipelines
+	void render_albedo(const RenderingInfo &, const Viewport &, const solid_t <MVP> &);
+	void render_objects(const RenderingInfo &, const Viewport &, const solid_t <MVP> &);
+	void render_default(const RenderingInfo &, const Viewport &, const solid_t <MVP> &);
+	
 	// Rendering
 	void render(const RenderingInfo &, Viewport &);
 

@@ -151,4 +151,7 @@ struct simplify <aggregate_storage <T>> {
 template <generic T>
 using solid_t = simplify <typename solid_builder <0, T> ::type> ::type;
 
+template <generic T>
+static constexpr size_t solid_size = sizeof(solid_t <T>);
+
 } // namespace jvl::ire

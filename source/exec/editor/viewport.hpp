@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <thread>
 
 #include <littlevk/littlevk.hpp>
 
@@ -21,6 +20,7 @@ enum class ViewportMode : int32_t {
 	eNormal,
 	eTextureCoordinates,
 	eTriangles,
+	eObject,
 	eDepth,
 	eCount,
 };
@@ -30,6 +30,7 @@ static constexpr const char *tbl_viewport_mode[] = {
 	"Normal",
 	"Texture Coordinates",
 	"Triangles",
+	"Object",
 	"Depth",
 	"__end",
 };
