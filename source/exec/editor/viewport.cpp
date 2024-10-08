@@ -83,8 +83,8 @@ void Viewport::display_handle(const RenderingInfo &info)
 	ImGui::Begin(main_title.c_str(), &open, ImGuiWindowFlags_MenuBar);
 	if (!open) {
 		Message message {
-			.type_id = uuid.type_id,
 			.global = uuid.global,
+			.type_id = uuid.type_id,
 			.kind = editor_remove_self,
 		};
 
@@ -134,14 +134,8 @@ void Viewport::display_handle(const RenderingInfo &info)
 			};
 			fmt::println("  pixel position: {} {}", pixel.x, pixel.y);
 
-			Message message {
-				.type_id = uuid.type_id,
-				.global = uuid.global,
-				.kind = editor_viewport_selection,
-				.value = pixel,
-			};
-
-			info.message_system.send_to_origin(message);
+			auto selection_message = message(editor_viewport_selection, pixel);
+			info.message_system.send_to_origin(selection_message);
 		}
 	}
 

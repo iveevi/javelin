@@ -304,13 +304,8 @@ void RaytracerCPU::display_handle(const RenderingInfo &info)
 	
 	ImGui::Begin(title.c_str(), &open, ImGuiWindowFlags_MenuBar);
 	if (!open) {
-		Message message {
-			.type_id = uuid.type_id,
-			.global = uuid.global,
-			.kind = editor_remove_self,
-		};
-
-		info.message_system.send_to_origin(message);
+		auto removal_message = message(editor_remove_self);
+		info.message_system.send_to_origin(removal_message);
 	}
 
 	if (ImGui::BeginMenuBar()) {

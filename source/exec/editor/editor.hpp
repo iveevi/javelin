@@ -58,6 +58,9 @@ struct Editor {
 	// Render loop iteration
 	void render(const vk::CommandBuffer &, const littlevk::PresentSyncronization::Frame &, int32_t);
 
+	// Message handling
+	void process_messages();
+
 	// User interface methods
 	void imgui_main_menu_bar(const RenderingInfo &);
 	void imgui_raytracer_popup(const RenderingInfo &);

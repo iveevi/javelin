@@ -125,6 +125,7 @@ add_executable(editor
 	source/exec/editor/imgui_render_group.cpp
 	source/exec/editor/main.cpp
 	source/exec/editor/raytracer_cpu.cpp
+	source/exec/editor/readable_framebuffer.cpp
 	source/exec/editor/scene_inspector.cpp
 	source/exec/editor/viewport.cpp
 	source/exec/editor/viewport_render_group.cpp)
