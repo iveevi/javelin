@@ -50,8 +50,11 @@ void SceneInspector::scene_hierarchy(const RenderingInfo &info)
 			if (result == NFD_OKAY) {
 				fmt::println("requested asset at: {}", path.get());
 				// TODO: background thread with loader...
+				// (to load the imported asset, then add a spinner while active)
+				// TODO: thread worker class with progress indicator and status
 				auto asset = engine::ImportedAsset::from(path.get()).value();
 				info.scene.add(asset);
+				// TODO: update method
 				info.device_scene = vulkan::Scene::from(info.drc,
 					cpu::Scene::from(info.scene),
 					vulkan::SceneFlags::eOneMaterialPerMesh);

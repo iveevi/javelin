@@ -132,6 +132,11 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 			}
 
 			int32_t mid = smesh.material_ids[f];
+
+			// TODO: reference the last one by default?
+			if (mid < 0)
+				mid = 0;
+
 			materials.push_back(mid);
 			referenced_materials.insert(mid);
 
@@ -212,7 +217,7 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 		m.values[Material::brdf_key] = "Phong";
 		m.values[Material::diffuse_key] = float3(1, 0, 1);
 		m.values[Material::specular_key] = float3(0, 0, 0);
-		m.values[Material::roughness_key] = 1;
+		m.values[Material::roughness_key] = 1.0f;
 
 		imported_asset.materials.push_back(m);
 	}

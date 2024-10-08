@@ -2,17 +2,18 @@
 #include <cassert>
 #include <fstream>
 #include <unordered_map>
-#include <unordered_set>
 
 #include <fmt/printf.h>
 
+#include "logging.hpp"
 #include "core/scene.hpp"
 #include "core/material.hpp"
-#include "core/messaging.hpp"
 #include "engine/imported_asset.hpp"
 #include "math_types.hpp"
 
 namespace jvl::core {
+
+MODULE(core-scene);
 
 void Scene::add(const Object &obj)
 {
@@ -41,11 +42,13 @@ void Scene::add(const engine::ImportedAsset &asset)
 			.as <buffer <int>> ();
 
 		// Find the unique materials
-		std::unordered_set <int> ref;
+		std::set <int> ref;
 		for (auto &i : mids) {
 			if (i >= 0)
 				ref.insert(i);
 		}
+
+		JVL_ASSERT_PLAIN(ref.size() > 0);
 
 		// Generate list of materials and the reindex map
 		std::map <int, int> reindex;
