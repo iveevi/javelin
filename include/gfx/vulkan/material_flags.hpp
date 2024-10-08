@@ -5,10 +5,10 @@
 namespace jvl::gfx::vulkan {
 
 enum class MaterialFlags : uint64_t {
-	eNone = 0x0,
-	eAlbedoSampler = 0x1,
-	eSpecularSampler = 0x10,
-	eRoughnessSampler = 0x100,
+	eNone = 0b0,
+	eAlbedoSampler = 0b1,
+	eSpecularSampler = 0b10,
+	eRoughnessSampler = 0b100,
 };
 
 [[gnu::always_inline]]

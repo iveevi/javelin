@@ -34,4 +34,6 @@ int main(int argc, char *argv[])
 
 	// Main loop
 	editor.loop();
+
+	// TODO: testing server version
 }

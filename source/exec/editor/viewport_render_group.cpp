@@ -88,6 +88,91 @@ void ViewportRenderGroup::configure_pipeline_mode(DeviceResourceCollection &drc,
 	pipelines[mode] = ppa;
 }
 
+void ViewportRenderGroup::configure_pipeline_albedo(DeviceResourceCollection &drc, bool texture)
+{
+	fmt::println("compiling pipeline for Albedo (texture={})", texture);
+
+	auto vertex = callable("main") << []() {
+		layout_in <vec3> position(0);
+		layout_in <vec2> uv(2);
+
+		layout_out <vec2> out_uv(2);
+
+		// Projection informations
+		push_constant <MVP> mvp;
+		gl_Position = mvp.project(position);
+		gl_Position.y = -gl_Position.y;
+
+		out_uv = uv;
+	};
+
+	// TODO: lambdas with capture...	
+	auto fragment = callable("main") << std::make_tuple(texture) << [](bool texture) {
+		layout_in <vec2> uv(2);
+
+		layout_out <vec4> fragment(0);
+
+		if (texture) {
+			sampler2D albedo(0);
+			
+			push_constant <u32> highlight(solid_size <MVP>);
+
+			fragment = albedo.sample(uv);
+			cond(fragment.w < 0.1f);
+				discard();
+			end();
+
+			fragment.w = 1.0f;
+
+			highlight_fragment(fragment, highlight);
+		} else {
+			constexpr size_t aligned_mvp_size = ((solid_size <MVP> + 16 - 1) / 16) * 16;
+
+			push_constant <Albedo> albedo(aligned_mvp_size);
+
+			fragment = vec4(albedo.color, 1.0);
+
+			highlight_fragment(fragment, albedo.highlight);
+		}
+	};
+	
+	auto vertex_layout = littlevk::VertexLayout <
+		littlevk::rgb32f,
+		littlevk::rgb32f,
+		littlevk::rg32f
+	> ();
+
+	std::string vertex_shader = link(vertex).generate_glsl();
+	std::string fragment_shader = link(fragment).generate_glsl();
+
+	auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
+		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
+		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
+
+	auto ppa = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
+		.with_render_pass(render_pass, 0)
+		.with_vertex_layout(vertex_layout)
+		.with_shader_bundle(bundle)
+		.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
+		.cull_mode(vk::CullModeFlagBits::eNone);
+	
+	if (texture) {
+		ppa.with_dsl_binding(0, vk::DescriptorType::eCombinedImageSampler,
+					1, vk::ShaderStageFlagBits::eFragment);
+
+		ppa.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, solid_size <MVP>);
+	} else {
+		constexpr size_t aligned_mvp_size = ((sizeof(solid_t <MVP>) + 16 - 1) / 16) * 16;
+
+		ppa.with_push_constant <solid_t <Albedo>> (vk::ShaderStageFlagBits::eFragment, aligned_mvp_size);
+	}
+
+	auto encoding = PipelineEncoding(ViewportMode::eAlbedo, texture);
+	pipelines[encoding] = ppa;
+
+	// TODO: auto pipeline construction
+}
+
 void ViewportRenderGroup::configure_pipelines(DeviceResourceCollection &drc)
 {
 	for (int32_t i = 0; i < uint32_t(ViewportMode::eCount); i++) {
@@ -201,6 +286,74 @@ void ViewportRenderGroup::process_descriptor_set_updates(const vk::Device &devic
 	device.updateDescriptorSets(writes, nullptr);
 }
 
+// Preparation for rendering
+void ViewportRenderGroup::prepare_albedo(const RenderingInfo &info)
+{
+	auto &drc = info.drc;
+	auto &scene = info.device_scene;
+
+	std::set <int> materials;
+	for (auto &mesh : scene.meshes) {
+		for (auto i : mesh.material_usage) {
+			materials.insert(i);
+		}
+	}
+
+	for (auto i : materials) {
+		JVL_ASSERT(i >= 0 && i < scene.materials.size(),
+			"material index ({}) is out of bounds ({} materials active)",
+			i, scene.materials.size());
+
+		auto &material = scene.materials[i];
+		if (descriptors.contains(material.id()))
+			continue;
+
+		// This only depends on the diffuse texture
+		bool texture = enabled(material.flags, vulkan::MaterialFlags::eAlbedoSampler);
+
+		PipelineEncoding encoding(ViewportMode::eAlbedo, texture);
+		if (!pipelines.contains(encoding))
+			configure_pipeline_albedo(drc, texture);
+
+		if (texture) {
+			auto &ppl = pipelines[encoding];
+
+			descriptors[material.uuid.global] = littlevk::bind(drc.device, drc.descriptor_pool)
+				.allocate_descriptor_sets(*ppl.dsl)
+				.front();
+
+			auto &descriptor = descriptors[material.uuid.global];
+
+			auto sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
+			auto binder = littlevk::DescriptorUpdateQueue(descriptor, ppl.bindings);
+
+			if (material.kd.is <vulkan::UnloadedTexture> ()) {
+				auto &image = info.device_texture_bank["$checkerboard"];
+				binder.queue_update(0, 0, sampler,
+					image.view,
+					vk::ImageLayout::eShaderReadOnlyOptimal);
+
+				work.push(LoadingWork {
+					material,
+					descriptor,
+					info.texture_bank,
+					info.device_texture_bank,
+					drc,
+					info.extra,
+					ppl,
+				});
+			} else {
+				auto &image = material.kd.as <vulkan::LoadedTexture> ();
+				binder.queue_update(0, 0, sampler,
+					image.view,
+					vk::ImageLayout::eShaderReadOnlyOptimal);
+			}
+
+			binder.apply(drc.device);
+		}
+	}
+}
+
 // Rendering specific pipelines
 void ViewportRenderGroup::render_albedo(const RenderingInfo &info,
 					const Viewport &viewport,
@@ -211,6 +364,11 @@ void ViewportRenderGroup::render_albedo(const RenderingInfo &info,
 
 	for (auto &mesh : scene.meshes) {
 		auto mid = *mesh.material_usage.begin();
+
+		JVL_ASSERT(mid >= 0 && mid < scene.materials.size(),
+			"mesh material index ({}) is out of bounds ({} materials active)",
+			mid, scene.materials.size());
+
 		auto &material = scene.materials[mid];
 
 		bool texture = enabled(material.flags, vulkan::MaterialFlags::eAlbedoSampler);
@@ -315,7 +473,6 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 {
 	auto &cmd = info.cmd;
 	auto &drc = info.drc;
-	auto &scene = info.device_scene;
 
 	// Process descriptor set updates
 	process_descriptor_set_updates(drc.device);
@@ -346,146 +503,19 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 	mvp[m_proj] = jvl::core::perspective(viewport.aperature);
 	mvp[m_view] = viewport.transform.to_view_matrix();
 
-	// Pre-rendering actions
-	if (viewport.mode == ViewportMode::eAlbedo) {
-		for (auto &mesh : scene.meshes) {
-			for (auto i : mesh.material_usage) {
-				auto &material = scene.materials[i];
-				if (descriptors.contains(material.id()))
-					continue;
-
-				// This only depends on the diffuse texture
-				bool texture = enabled(material.flags, vulkan::MaterialFlags::eAlbedoSampler);
-
-				PipelineEncoding encoding(ViewportMode::eAlbedo, texture);
-
-				if (!pipelines.contains(encoding)) {
-					fmt::println("compiling pipeline for Albedo ({:08b})", encoding.specialization);
-
-					auto vertex = callable("main") << []() {
-						layout_in <vec3> position(0);
-						layout_in <vec2> uv(2);
-
-						layout_out <vec2> out_uv(2);
-
-						// Projection informations
-						push_constant <MVP> mvp;
-						gl_Position = mvp.project(position);
-						gl_Position.y = -gl_Position.y;
-
-						out_uv = uv;
-					};
-					
-					auto fragment = callable("main") << std::make_tuple(texture) << [](bool texture) {
-						layout_in <vec2> uv(2);
-
-						layout_out <vec4> fragment(0);
-
-						if (texture) {
-							sampler2D albedo(0);
-							
-							push_constant <u32> highlight(solid_size <MVP>);
-
-							fragment = albedo.sample(uv);
-							cond(fragment.w < 0.1f);
-								discard();
-							end();
-
-							fragment.w = 1.0f;
-
-							highlight_fragment(fragment, highlight);
-						} else {
-							constexpr size_t aligned_mvp_size = ((solid_size <MVP> + 16 - 1) / 16) * 16;
-
-							push_constant <Albedo> albedo(aligned_mvp_size);
-
-							fragment = vec4(albedo.color, 1.0);
-
-							highlight_fragment(fragment, albedo.highlight);
-						}
-					};
-					
-					auto vertex_layout = littlevk::VertexLayout <
-						littlevk::rgb32f,
-						littlevk::rgb32f,
-						littlevk::rg32f
-					> ();
-	
-					std::string vertex_shader = link(vertex).generate_glsl();
-					std::string fragment_shader = link(fragment).generate_glsl();
-
-					auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
-						.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
-						.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
-
-					auto ppa = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
-						.with_render_pass(render_pass, 0)
-						.with_vertex_layout(vertex_layout)
-						.with_shader_bundle(bundle)
-						.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
-						.cull_mode(vk::CullModeFlagBits::eNone);
-					
-					if (texture) {
-						ppa.with_dsl_binding(0, vk::DescriptorType::eCombinedImageSampler,
-								     1, vk::ShaderStageFlagBits::eFragment);
-
-						ppa.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, solid_size <MVP>);
-					} else {
-						constexpr size_t aligned_mvp_size = ((sizeof(solid_t <MVP>) + 16 - 1) / 16) * 16;
-
-						ppa.with_push_constant <solid_t <Albedo>> (vk::ShaderStageFlagBits::eFragment, aligned_mvp_size);
-					}
-
-					pipelines[encoding] = ppa;
-
-					// TODO: auto pipeline construction
-				}
-
-				if (texture) {
-					auto &ppl = pipelines[encoding];
-
-					descriptors[material.uuid.global] = littlevk::bind(drc.device, drc.descriptor_pool)
-						.allocate_descriptor_sets(*ppl.dsl).front();
-
-					auto &descriptor = descriptors[material.uuid.global];
-
-					auto sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
-					auto binder = littlevk::DescriptorUpdateQueue(descriptor, ppl.bindings);
-
-					if (material.kd.is <vulkan::UnloadedTexture> ()) {
-						auto &image = info.device_texture_bank["$checkerboard"];
-						binder.queue_update(0, 0, sampler,
-							image.view,
-							vk::ImageLayout::eShaderReadOnlyOptimal);
-
-						work.push(LoadingWork {
-							material,
-							descriptor,
-							info.texture_bank,
-							info.device_texture_bank,
-							drc,
-							info.extra,
-							ppl,
-						});
-					} else {
-						auto &image = material.kd.as <vulkan::LoadedTexture> ();
-						binder.queue_update(0, 0, sampler,
-							image.view,
-							vk::ImageLayout::eShaderReadOnlyOptimal);
-					}
-
-					binder.apply(drc.device);
-				}
-			}
-		}
-	}
-
-	if (viewport.mode == ViewportMode::eAlbedo)
+	// Rendering pipelines
+	switch (viewport.mode) {
+	case ViewportMode::eAlbedo:
+		prepare_albedo(info);
 		render_albedo(info, viewport, mvp);
-	else if (viewport.mode == ViewportMode::eObject)
+		break;
+	case ViewportMode::eObject:
 		render_objects(info, viewport, mvp);
-	else
+		break;
+	default:
 		render_default(info, viewport, mvp);
+		break;
+	}
 
 	cmd.endRenderPass();
 

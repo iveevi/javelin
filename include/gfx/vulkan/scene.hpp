@@ -22,6 +22,8 @@ struct Scene {
 	// Tracking correspondances from this scene to the original (disk)
 	core::Equivalence <TriangleMesh, core::Scene::Object> mesh_to_object;
 
+	// TODO: explicit update method... skips things already in the equivalence (which arent dirty)
+
 	static Scene from(core::DeviceResourceCollection &, const cpu::Scene &, SceneFlags);
 };
 

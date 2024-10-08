@@ -68,8 +68,27 @@ using GenericDescriptorBinding = wrapped::variant <BufferDescriptorBinding, Imag
 class ViewportRenderGroup {
 	void configure_render_pass(DeviceResourceCollection &);
 	void configure_pipeline_mode(DeviceResourceCollection &, ViewportMode);
-	void configure_pipeline_albedo(DeviceResourceCollection &, vulkan::MaterialFlags);
+	void configure_pipeline_albedo(DeviceResourceCollection &, bool);
 	void configure_pipelines(DeviceResourceCollection &);
+
+	// Deferred texture loading
+	template <typename T>
+	bool handle_texture_state(LoadingWork &, T &) {
+		return false;
+	}
+
+	void texture_loader_worker();
+
+	// Processing descriptor set updates
+	void process_descriptor_set_updates(const vk::Device &);
+
+	// Preparations for rendering pipelines
+	void prepare_albedo(const RenderingInfo &);
+
+	// Rendering specific groups of pipelines
+	void render_albedo(const RenderingInfo &, const Viewport &, const solid_t <MVP> &);
+	void render_objects(const RenderingInfo &, const Viewport &, const solid_t <MVP> &);
+	void render_default(const RenderingInfo &, const Viewport &, const solid_t <MVP> &);
 public:
 	vk::RenderPass render_pass;
 
@@ -98,22 +117,6 @@ public:
 
 	// Cleaning up
 	~ViewportRenderGroup();
-
-	// Deferred texture loading
-	template <typename T>
-	bool handle_texture_state(LoadingWork &, T &) {
-		return false;
-	}
-
-	void texture_loader_worker();
-
-	// Processing descriptor set updates
-	void process_descriptor_set_updates(const vk::Device &);
-
-	// Rendering specific groups of pipelines
-	void render_albedo(const RenderingInfo &, const Viewport &, const solid_t <MVP> &);
-	void render_objects(const RenderingInfo &, const Viewport &, const solid_t <MVP> &);
-	void render_default(const RenderingInfo &, const Viewport &, const solid_t <MVP> &);
 	
 	// Rendering
 	void render(const RenderingInfo &, Viewport &);

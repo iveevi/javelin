@@ -6,7 +6,6 @@
 #include <fmt/printf.h>
 #include <fmt/std.h>
 
-#include "core/texture.hpp"
 #include "engine/imported_asset.hpp"
 
 template <>
@@ -54,6 +53,8 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 
 	auto &attrib = reader.GetAttrib();
 	auto &shapes = reader.GetShapes();
+
+	std::set <int32_t> referenced_materials;
 
 	for (size_t s = 0; s < shapes.size(); s++) {
 		buffer <float3> positions;
@@ -110,7 +111,7 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 					tinyobj::real_t nx = attrib.normals[3 * size_t(idx.normal_index) + 0];
 					tinyobj::real_t ny = attrib.normals[3 * size_t(idx.normal_index) + 1];
 					tinyobj::real_t nz = attrib.normals[3 * size_t(idx.normal_index) + 2];
-					normals.push_back({nx, ny, nz});
+					normals.push_back({ nx, ny, nz });
 				}
 
 				// Check if `texcoord_index` is zero or
@@ -118,7 +119,7 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 				if (idx.texcoord_index >= 0) {
 					tinyobj::real_t tx = attrib.texcoords[2 * size_t(idx.texcoord_index) + 0];
 					tinyobj::real_t ty = attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
-					uvs.push_back({tx, ty});
+					uvs.push_back({ tx, ty });
 				}
 			}
 
@@ -130,7 +131,9 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 				quadrilaterals.push_back(f);
 			}
 
-			materials.push_back(smesh.material_ids[f]);
+			int32_t mid = smesh.material_ids[f];
+			materials.push_back(mid);
+			referenced_materials.insert(mid);
 
 			index_offset += fv;
 		}
@@ -198,6 +201,18 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 		float3 emission = to_float3(material.emission);
 		if (length(emission) > 0)
 			m.values[Material::emission_key] = emission;
+
+		imported_asset.materials.push_back(m);
+	}
+
+	// Fill the rest with a default material
+	while (imported_asset.materials.size() < referenced_materials.size()) {
+		// TODO: default_phong()
+		Material m;
+		m.values[Material::brdf_key] = "Phong";
+		m.values[Material::diffuse_key] = float3(1, 0, 1);
+		m.values[Material::specular_key] = float3(0, 0, 0);
+		m.values[Material::roughness_key] = 1;
 
 		imported_asset.materials.push_back(m);
 	}

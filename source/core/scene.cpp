@@ -29,7 +29,6 @@ void Scene::add_root(const Object &obj)
 void Scene::add(const engine::ImportedAsset &asset)
 {
 	Object top;
-	top.uuid = new_uuid <Object> ();
 	top.name = asset.path.stem();
 
 	// Each geometry is its own object
@@ -49,7 +48,7 @@ void Scene::add(const engine::ImportedAsset &asset)
 		}
 
 		// Generate list of materials and the reindex map
-		std::unordered_map <int, int> reindex;
+		std::map <int, int> reindex;
 
 		std::vector <Material> materials;
 		for (auto i : ref) {
@@ -61,17 +60,14 @@ void Scene::add(const engine::ImportedAsset &asset)
 			i = reindex[i];
 
 		// Add the object
-		UUID uuid = new_uuid <Object> ();
-
 		Object obj;
-		obj.uuid = uuid;
 		obj.name = name;
 		obj.geometry = geometry;
 		obj.materials = materials;
 
 		add(obj);
 
-		top.children.insert(uuid.global);
+		top.children.insert(obj.id());
 	}
 
 	add_root(top);

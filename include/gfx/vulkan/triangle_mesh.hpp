@@ -5,30 +5,16 @@
 #include "../../core/messaging.hpp"
 #include "../../core/triangle_mesh.hpp"
 #include "../../types.hpp"
+#include "vertex_flags.hpp"
 
 namespace jvl::gfx::vulkan {
 
-enum class VertexFlags : uint64_t {
-	eNone		= 0x0,
-	ePosition	= 0x1,
-	eNormal		= 0x10,
-	eUV		= 0x100,
-	eAll		= ePosition | eNormal | eUV
+struct InterleaveResult {
+	buffer <float> buffer;
+	VertexFlags enabled;
 };
 
-[[gnu::always_inline]]
-inline bool enabled(VertexFlags one, VertexFlags two)
-{
-	return (uint64_t(one) & uint64_t(two)) == uint64_t(two);
-}
-
-[[gnu::always_inline]]
-inline VertexFlags operator|(VertexFlags one, VertexFlags two)
-{
-	return VertexFlags(uint64_t(one) | uint64_t(two));
-}
-
-inline buffer <float> interleave(const core::TriangleMesh &tmesh, const VertexFlags &flags)
+inline InterleaveResult interleave(const core::TriangleMesh &tmesh, VertexFlags flags)
 {
 	buffer <float> bf;
 
@@ -37,6 +23,9 @@ inline buffer <float> interleave(const core::TriangleMesh &tmesh, const VertexFl
 	auto &positions = tmesh.positions;
 	auto &normals = tmesh.normals;
 	auto &uvs = tmesh.uvs;
+
+	bool skip_normals = normals.empty();
+	bool skip_uvs = uvs.empty();
 
 	for (size_t i = 0; i < size; i++) {
 		if (enabled(flags, VertexFlags::ePosition)) {
@@ -48,7 +37,7 @@ inline buffer <float> interleave(const core::TriangleMesh &tmesh, const VertexFl
 			bf.push_back(p.z);
 		}
 
-		if (enabled(flags, VertexFlags::eNormal)) {
+		if (!skip_normals && enabled(flags, VertexFlags::eNormal)) {
 			assert(i < normals.size());
 
 			auto &n = normals[i];
@@ -57,7 +46,7 @@ inline buffer <float> interleave(const core::TriangleMesh &tmesh, const VertexFl
 			bf.push_back(n.z);
 		}
 		
-		if (enabled(flags, VertexFlags::eUV)) {
+		if (!skip_uvs && enabled(flags, VertexFlags::eUV)) {
 			assert(i < uvs.size());
 
 			auto &t = uvs[i];
@@ -66,29 +55,41 @@ inline buffer <float> interleave(const core::TriangleMesh &tmesh, const VertexFl
 		}
 	}
 
-	return bf;
+	if (skip_normals)
+		flags = flags - VertexFlags::eNormal;
+	
+	if (skip_uvs)
+		flags = flags - VertexFlags::eUV;
+
+	return InterleaveResult(bf, flags);
 }
 
 struct TriangleMesh : core::Unique {
+	VertexFlags flags;
 	littlevk::Buffer vertices;
-	littlevk::Buffer triangles;
+	
 	size_t count;
+	littlevk::Buffer triangles;
 	
 	std::set <int> material_usage;
 
-	VertexFlags flags;
-
 	static std::optional <TriangleMesh> from(littlevk::LinkedDeviceAllocator <> allocator,
 						 const core::TriangleMesh &tmesh,
-						 const VertexFlags &flags = VertexFlags::eAll) {
+						 const VertexFlags &maximal_flags = VertexFlags::eAll) {
 		TriangleMesh vmesh;
 
+		auto result = interleave(tmesh, maximal_flags);
+
+		// fmt::println("result of interleaving: {} -- {:08b}",
+		// 	result.buffer.size(),
+		// 	int32_t(result.enabled));
+
 		vmesh.uuid = core::new_uuid <TriangleMesh> ();
-		vmesh.flags = flags;
+		vmesh.flags = result.enabled;
 		vmesh.count = 3 * tmesh.triangles.size();
 
 		std::tie(vmesh.vertices, vmesh.triangles) = allocator
-			.buffer(interleave(tmesh, flags),
+			.buffer(result.buffer,
 				vk::BufferUsageFlagBits::eTransferDst
 				| vk::BufferUsageFlagBits::eVertexBuffer)
 			.buffer(tmesh.triangles,

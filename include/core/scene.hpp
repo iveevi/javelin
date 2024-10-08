@@ -22,6 +22,8 @@ namespace jvl::core {
 struct Scene {
 	// Element of a scene
 	struct Object : Unique {
+		// TODO: dirty flag (top level)
+
 		// Identifier for the object
 		std::string name;
 
@@ -34,6 +36,9 @@ struct Scene {
 
 		// Children
 		std::set <int64_t> children;
+
+		// Construct initialized the IDs
+		Object() : Unique(new_uuid <Object> ()) {}
 	};
 
 	std::set <int64_t> root;

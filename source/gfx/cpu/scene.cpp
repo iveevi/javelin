@@ -13,6 +13,7 @@ Scene Scene::from(const core::Scene &scene)
 	for (auto &[_, obj] : scene.objects) {
 		if (obj.geometry) {
 			auto g = obj.geometry.value();
+
 			auto &mids = g.face_properties
 					.at(core::Mesh::material_key)
 					.as <buffer <int>> ();
@@ -24,7 +25,6 @@ Scene Scene::from(const core::Scene &scene)
 			auto tmesh = core::TriangleMesh::from(g).value();
 			result.meshes.push_back(tmesh);
 
-			// result.mesh_to_object[tmesh] = obj;
 			result.mesh_to_object.add(tmesh, obj);
 		}
 

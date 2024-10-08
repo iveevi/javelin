@@ -22,9 +22,9 @@ Scene Scene::from(core::DeviceResourceCollection &drc, const cpu::Scene &other, 
 				triangles[mid].push_back(m.triangles[i]);
 			}
 
-			fmt::println("# of triangles for each material...");
-			for (auto &[mid, tris] : triangles)
-				fmt::println("  {} -> {}", mid, tris.size());
+			// fmt::println("# of triangles for each material...");
+			// for (auto &[mid, tris] : triangles)
+			// 	fmt::println("  {} -> {}", mid, tris.size());
 
 			std::vector <core::TriangleMesh> split;
 			for (auto &[mid, tris] : triangles) {
