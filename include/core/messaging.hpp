@@ -96,7 +96,8 @@ struct Equivalence {
 enum MessageKind : int64_t {
 	editor_remove_self,
 	editor_viewport_selection,
-	editor_update_selected,
+	editor_viewport_update_selected,
+	editor_update_selected_object,
 };
 
 struct Message {

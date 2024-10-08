@@ -4,7 +4,7 @@
 #include "imgui.h"
 
 Viewport::Viewport(DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
-		: uuid(new_uuid <Viewport> ()), controller(transform, engine::CameraControllerSettings())
+		: Unique(new_uuid <Viewport> ()), controller(transform, engine::CameraControllerSettings())
 {
 	extent = drc.window.extent;
 	resize(drc, render_pass);
@@ -133,16 +133,16 @@ void Viewport::display_handle(const RenderingInfo &info)
 				int(extent.height * relative.y)
 			};
 			fmt::println("  pixel position: {} {}", pixel.x, pixel.y);
+
+			Message message {
+				.type_id = uuid.type_id,
+				.global = uuid.global,
+				.kind = editor_viewport_selection,
+				.value = pixel,
+			};
+
+			info.message_system.send_to_origin(message);
 		}
-
-		Message message {
-			.type_id = uuid.type_id,
-			.global = uuid.global,
-			.kind = editor_viewport_selection,
-			.value = relative
-		};
-
-		info.message_system.send_to_origin(message);
 	}
 
 	size = ImGui::GetItemRectSize();

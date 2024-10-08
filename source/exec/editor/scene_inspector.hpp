@@ -10,9 +10,7 @@
 using namespace jvl;
 using namespace jvl::core;
 
-struct SceneInspector {
-	UUID uuid;
-
+struct SceneInspector : Unique {
 	int64_t selected = -1;
 
 	SceneInspector();

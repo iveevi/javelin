@@ -21,9 +21,7 @@ using namespace jvl::core;
 using namespace jvl::gfx;
 
 // Host raytracing context for a fixed resolution, aperature, transform, etc.
-struct RaytracerCPU {
-	UUID uuid;
-
+struct RaytracerCPU : Unique {
 	// Types
 	struct Extra {
 		int accumulated;

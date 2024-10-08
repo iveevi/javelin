@@ -33,6 +33,17 @@ struct aligned_bool : std::array <bool, A / sizeof(bool)> {
 };
 
 template <size_t A>
+struct aligned_int32_t : std::array <int32_t, A / sizeof(int32_t)> {
+	aligned_int32_t(int32_t x = 0) {
+		this->operator[](0) = x;
+	}
+
+	operator int32_t() const {
+		return this->operator[](0);
+	}
+};
+
+template <size_t A>
 struct aligned_uint32_t : std::array <uint32_t, A / sizeof(uint32_t)> {
 	aligned_uint32_t(uint32_t x = 0) {
 		this->operator[](0) = x;
@@ -89,6 +100,14 @@ struct solid_builder <Offset, boolean, Args...> {
 	static constexpr size_t pad = 0;
 	using rest = solid_builder <Offset + 4, Args...>;
 	using elem = std::conditional_t <rest::pad == 0, bool, aligned_bool <16>>;
+	using type = aggregate_insert <elem, typename rest::type> ::type;
+};
+
+template <size_t Offset, typename ... Args>
+struct solid_builder <Offset, i32, Args...> {
+	static constexpr size_t pad = 0;
+	using rest = solid_builder <Offset + 4, Args...>;
+	using elem = std::conditional_t <rest::pad == 0, int32_t, aligned_int32_t <16>>;
 	using type = aggregate_insert <elem, typename rest::type> ::type;
 };
 

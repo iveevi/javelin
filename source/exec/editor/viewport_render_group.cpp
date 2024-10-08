@@ -43,12 +43,12 @@ ViewportRenderGroup::~ViewportRenderGroup()
 void ViewportRenderGroup::configure_render_pass(DeviceResourceCollection &drc)
 {
 	render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
-	.add_attachment(littlevk::default_color_attachment(drc.swapchain.format))
-	.add_attachment(littlevk::default_depth_attachment())
-	.add_subpass(vk::PipelineBindPoint::eGraphics)
-		.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
-		.depth_attachment(1, vk::ImageLayout::eDepthStencilAttachmentOptimal)
-		.done();
+		.add_attachment(littlevk::default_color_attachment(drc.swapchain.format))
+		.add_attachment(littlevk::default_depth_attachment())
+		.add_subpass(vk::PipelineBindPoint::eGraphics)
+			.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
+			.depth_attachment(1, vk::ImageLayout::eDepthStencilAttachmentOptimal)
+			.done();
 }
 
 void ViewportRenderGroup::configure_pipeline_mode(DeviceResourceCollection &drc, ViewportMode mode)

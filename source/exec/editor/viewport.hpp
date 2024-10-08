@@ -39,9 +39,7 @@ static_assert(uint32_t(ViewportMode::eCount) + 1 == sizeof(tbl_viewport_mode)/si
 
 // Separated from ViewportRenderGroup because we can have
 // multiple viewports using the exact same render pass and pipelines
-struct Viewport {
-	UUID uuid;
-
+struct Viewport : Unique {
 	// Viewing angle
 	Aperature aperature;
 	Transform transform;

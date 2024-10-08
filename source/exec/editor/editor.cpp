@@ -140,13 +140,16 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 	auto current_callbacks = imgui_callbacks;
 	rg_imgui.render(info, current_callbacks);
 
+	// Process any readable framebuffers
+	for (auto &rf : readable_framebuffers)
+		rf.go(info);
+
 	cmd.end();
 
 	// Submit command buffer while signaling the semaphore
 	constexpr vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
 	std::vector <vk::CommandBuffer> commands { cmd };
-	// fmt::println("# of extra commands: {}", extra.size());
 	while (extra.size()) {
 		auto cmd = extra.pop();
 		commands.push_back(cmd);
@@ -298,16 +301,17 @@ void Editor::loop()
 
 			case editor_remove_self:
 			{
-				if (msg.type_id == type_id_of <Viewport> ()) {
-					fmt::println("Viewport wants to be removed...");
+				static const std::set <int64_t> quick_fetch {
+					type_id_of <Viewport> (),
+					type_id_of <RaytracerCPU> (),
+					type_id_of <ReadableFramebuffer> (),
+				};
+
+				if (quick_fetch.contains(msg.type_id))
 					removal_set.insert(msg.global);
-				} else if (msg.type_id == type_id_of <RaytracerCPU> ()) {
-					fmt::println("RaytracerCPU wants to be removed...");
-					removal_set.insert(msg.global);
-				}
 			} break;
 
-			case editor_update_selected:
+			case editor_viewport_update_selected:
 			{
 				JVL_ASSERT_PLAIN(msg.type_id == type_id_of <SceneInspector> ());
 
@@ -318,15 +322,49 @@ void Editor::loop()
 					viewport.selected = selected;
 			} break;
 
+			case editor_viewport_selection:
+			{
+				// Find the corresponding viewport
+				auto it = std::find_if(viewports.begin(), viewports.end(),
+					[&](const Viewport &viewport) {
+						return msg.global == viewport.id();
+					});
+
+				fmt::println("creating a readable framebuffer for rendering object ids: {} x {}",
+						it->extent.width, it->extent.height);
+
+				ReadableFramebuffer::ObjectSelection request;
+				request.pixel = msg.value.as <int2> ();
+				
+				readable_framebuffers.emplace_back(drc,
+					*it,
+					vk::Format::eR32Sint,
+					it->extent);
+
+				readable_framebuffers.back()
+					.apply_request(request);
+			} break;
+
+			case editor_update_selected_object:
+			{
+				int id = msg.value.as <int64_t> ();
+				fmt::println("updating to id: {}", id);
+
+				// TODO: method
+				inspector.selected = id;
+				for (auto &viewport : viewports)
+					viewport.selected = id;
+			} break;
+
 			default:
 				break;
 			}
 		}
 
 		// Removing items as requested
-		// TODO: separate function
 		remove_items(viewports, removal_set);
 		remove_items(host_raytracers, removal_set);
+		remove_items(readable_framebuffers, removal_set);
 
 		{
 			// Callbacks

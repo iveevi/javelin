@@ -6,6 +6,7 @@
 #include "scene_inspector.hpp"
 #include "viewport.hpp"
 #include "viewport_render_group.hpp"
+#include "readable_framebuffer.hpp"
 
 struct Editor {
 	// Fundamental Vulkan resources
@@ -28,6 +29,9 @@ struct Editor {
 
 	// Viewports
 	std::list <Viewport> viewports;
+
+	// Auxiliary framebuffers
+	std::list <ReadableFramebuffer> readable_framebuffers;
 	
 	// Host raytracers
 	std::list <RaytracerCPU> host_raytracers;

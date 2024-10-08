@@ -5,7 +5,7 @@
 #include "scene_inspector.hpp"
 #include "core/messaging.hpp"
 
-SceneInspector::SceneInspector() : uuid(new_uuid <SceneInspector> ()) {}
+SceneInspector::SceneInspector() : Unique(new_uuid <SceneInspector> ()) {}
 
 void SceneInspector::scene_hierarchy_object(const Scene &scene, const Scene::Object &obj)
 {
@@ -73,7 +73,7 @@ void SceneInspector::scene_hierarchy(const RenderingInfo &info)
 	Message message {
 		.type_id = uuid.type_id,
 		.global = uuid.global,
-		.kind = editor_update_selected,
+		.kind = editor_viewport_update_selected,
 		.value = selected,
 	};
 

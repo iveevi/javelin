@@ -149,7 +149,7 @@ RaytracerCPU::RaytracerCPU(DeviceResourceCollection &drc,
 			   const core::Scene &scene_,
 			   const vk::Extent2D &extent_,
 			   int32_t samples_)
-		: uuid(new_uuid <RaytracerCPU> ()),
+		: Unique(new_uuid <RaytracerCPU> ()),
 		extent(extent_),
 		samples(samples_),
 		thread_pool(8, kernel_callback())
