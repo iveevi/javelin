@@ -65,7 +65,7 @@ struct Albedo {
 	u32 highlight;
 
 	auto layout() const {
-		return uniform_layout("MVP",
+		return uniform_layout("Albedo",
 			named_field(color),
 			named_field(highlight));
 	}

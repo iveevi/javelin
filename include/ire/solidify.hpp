@@ -8,49 +8,7 @@
 
 namespace jvl::ire {
 
-// Holds the concrete native type for a given IRE generic type
-struct default_undefined_solid {};
-
-template <typename T>
-struct solid_base_t {
-	using type = default_undefined_solid;
-};
-
-// Alias to skip the explicit lookup
-template <typename T>
-using solid_t = solid_base_t <T> ::type;
-
-template <typename T>
-concept solidifiable = !std::same_as <solid_t <T>, default_undefined_solid>;
-
-// Specializations for each acceptable type
-template <>
-struct solid_base_t <f32> {
-	using type = float;
-};
-
-template <>
-struct solid_base_t <i32> {
-	using type = int32_t;
-};
-
-template <>
-struct solid_base_t <u32> {
-	using type = int32_t;
-};
-
-template <>
-struct solid_base_t <boolean> {
-	using type = bool;
-};
-
-// Vector types
-template <typename T, size_t N>
-struct solid_base_t <vec <T, N>> {
-	using type = vector <T, N>;
-};
-
-// Aligning 32-bit 3-vector types according to the GLSL specification
+// Forcing fields to be aligned
 struct alignas(16) aligned_float3 : float3 {
 	using float3::float3;
 
@@ -63,52 +21,134 @@ struct alignas(16) aligned_int3 : int3 {
 	aligned_int3(const int3 &v) : int3(v) {}
 };
 
-template <>
-struct solid_base_t <vec <float, 3>> {
-	using type = aligned_float3;
+template <size_t A>
+struct aligned_bool : std::array <bool, A / sizeof(bool)> {
+	aligned_bool(bool x = 0) {
+		this->operator[](0) = x;
+	}
+
+	operator bool() const {
+		return this->operator[](0);
+	}
 };
 
-template <>
-struct solid_base_t <vec <int, 3>> {
-	using type = aligned_int3;
+template <size_t A>
+struct aligned_uint32_t : std::array <uint32_t, A / sizeof(uint32_t)> {
+	aligned_uint32_t(uint32_t x = 0) {
+		this->operator[](0) = x;
+	}
+
+	operator uint32_t() const {
+		return this->operator[](0);
+	}
 };
 
-static_assert(std::same_as <solid_base_t <ivec2> ::type, int2>);
-static_assert(std::same_as <solid_base_t <ivec3> ::type, aligned_int3>);
-static_assert(std::same_as <solid_base_t <ivec4> ::type, int4>);
+template <size_t A>
+struct aligned_float : std::array <uint32_t, A / sizeof(float)> {
+	aligned_float(uint32_t x = 0) {
+		this->operator[](0) = x;
+	}
 
-static_assert(std::same_as <solid_base_t <vec2> ::type, float2>);
-static_assert(std::same_as <solid_base_t <vec3> ::type, aligned_float3>);
-static_assert(std::same_as <solid_base_t <vec4> ::type, float4>);
-
-// Matrix types
-template <>
-struct solid_base_t <mat4> {
-	using type = float4x4;
+	operator float() const {
+		return this->operator[](0);
+	}
 };
 
-// Generating ABI compliant structures from uniform compatible types
-template <typename ... Args>
-struct solid_base_t <const_uniform_layout_t <Args...>> {
-	using type = aggregate_storage <typename solid_base_t <Args> ::type...>;
+// Concatenating aggregates
+template <typename T, typename A>
+struct aggregate_insert {};
+
+template <typename T, typename ... Args>
+struct aggregate_insert <T, aggregate_storage <Args...>> {
+	using type = aggregate_storage <T, Args...>;
 };
 
-template <string_literal_group group, typename ... Args>
-struct solid_base_t <higher_const_uniform_layout_t <group, Args...>> {
-	using type = aggregate_storage <typename solid_base_t <Args> ::type...>;
+// Building aggregates recursively
+template <size_t Offset, typename ... Args>
+struct solid_builder {};
+
+template <size_t Offset>
+struct solid_builder <Offset> {
+	static constexpr size_t pad = 0;
+	using type = aggregate_storage <>;
 };
 
-template <aggregate T>
-struct solid_base_t <T> {
-	using layout_t = decltype(T().layout());
-	using type = solid_base_t <layout_t> ::type;
-};
-
-// User-defined structs with a value_type
 template <typename T>
-requires (!std::same_as <typename T::ire_value_type, default_undefined_solid>)
-struct solid_base_t <T> {
-	using type = T::ire_value_type;
+struct error_solid {
+	static_assert(false, "Solidifying the current type is currently unsupported");
 };
+
+template <size_t Offset, typename T, typename ... Args>
+struct solid_builder <Offset, T, Args...> {
+	static constexpr error_solid <T> error;
+	using type = aggregate_storage <>;
+};
+
+template <size_t Offset, typename ... Args>
+struct solid_builder <Offset, boolean, Args...> {
+	static constexpr size_t pad = 0;
+	using rest = solid_builder <Offset + 4, Args...>;
+	using elem = std::conditional_t <rest::pad == 0, bool, aligned_bool <16>>;
+	using type = aggregate_insert <elem, typename rest::type> ::type;
+};
+
+template <size_t Offset, typename ... Args>
+struct solid_builder <Offset, u32, Args...> {
+	static constexpr size_t pad = 0;
+	using rest = solid_builder <Offset + 4, Args...>;
+	using elem = std::conditional_t <rest::pad == 0, uint32_t, aligned_uint32_t <16>>;
+	using type = aggregate_insert <elem, typename rest::type> ::type;
+};
+
+template <size_t Offset, typename ... Args>
+struct solid_builder <Offset, f32, Args...> {
+	static constexpr size_t pad = 0;
+	using rest = solid_builder <Offset + 4, Args...>;
+	using elem = std::conditional_t <rest::pad == 0, float, aligned_float <16>>;
+	using type = aggregate_insert <elem, typename rest::type> ::type;
+};
+
+template <size_t Offset, typename ... Args>
+struct solid_builder <Offset, vec3, Args...> {
+	static constexpr size_t rounded = ((Offset + 16 - 1) / 16) * 16;
+	static constexpr size_t pad = (Offset % 16 == 0) ? 0 : (rounded - Offset);
+	using rest = solid_builder <rounded + 12, Args...>;
+	using elem = std::conditional_t <rest::pad == 0, float3, aligned_float3>;
+	using type = aggregate_insert <elem, typename rest::type> ::type;
+};
+
+template <size_t Offset, typename ... Args>
+struct solid_builder <Offset, mat4, Args...> {
+	static constexpr size_t rounded = ((Offset +  64 - 1) / 64) * 64;
+	static constexpr size_t pad = (Offset % 16 == 0) ? 0 : (rounded - Offset);
+	using rest = solid_builder <rounded + 64, Args...>;
+	using type = aggregate_insert <float4x4, typename rest::type> ::type;
+};
+
+template <size_t Offset, string_literal_group group, typename ... Args>
+struct solid_builder <Offset, higher_const_uniform_layout_t <group, Args...>> {
+	using type = solid_builder <Offset, Args...> ::type;
+};
+
+template <size_t Offset, aggregate T>
+struct solid_builder <Offset, T> {
+	using layout_t = decltype(T().layout());
+	using type = solid_builder <Offset, layout_t> ::type;
+};
+
+// Additional simplification
+template <typename T>
+struct simplify {
+	using type = T;
+};
+
+template <typename T>
+struct simplify <aggregate_storage <T>> {
+	using type = T;
+};
+
+// Alias
+template <generic T>
+using solid_t = simplify <typename solid_builder <0, T> ::type> ::type;
 
 } // namespace jvl::ire

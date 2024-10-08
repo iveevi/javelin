@@ -280,9 +280,7 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 								fragment = mix(fragment, vec4(1, 1, 0, 1), 0.8f);
 							end();
 						} else {
-							constexpr size_t mvp_size = sizeof(solid_t <MVP>);
-							constexpr size_t vec3_size = sizeof(solid_t <vec3>);
-							constexpr size_t aligned_mvp_size = ((mvp_size / vec3_size) + 1) * vec3_size;
+							constexpr size_t aligned_mvp_size = ((sizeof(solid_t <MVP>) + 16 - 1) / 16) * 16;
 
 							push_constant <Albedo> albedo(aligned_mvp_size);
 
@@ -320,9 +318,7 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 
 						ppa.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t <MVP>));
 					} else {
-						constexpr size_t mvp_size = sizeof(solid_t <MVP>);
-						constexpr size_t vec3_size = sizeof(solid_t <vec3>);
-						constexpr size_t aligned_mvp_size = ((mvp_size / vec3_size) + 1) * vec3_size;
+						constexpr size_t aligned_mvp_size = ((sizeof(solid_t <MVP>) + 16 - 1) / 16) * 16;
 
 						ppa.with_push_constant <solid_t <Albedo>> (vk::ShaderStageFlagBits::eFragment, aligned_mvp_size);
 					}
@@ -387,9 +383,7 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 				vk::ShaderStageFlagBits::eVertex,
 				0, mvp);
 			
-			constexpr size_t mvp_size = sizeof(solid_t <MVP>);
-			constexpr size_t vec3_size = sizeof(solid_t <vec3>);
-			constexpr size_t aligned_mvp_size = ((mvp_size / vec3_size) + 1) * vec3_size;
+			constexpr size_t aligned_mvp_size = ((sizeof(solid_t <MVP>) + 16 - 1) / 16) * 16;
 
 			if (texture) {
 				cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
@@ -405,6 +399,8 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 					float3 kd;
 					uint32_t highlight;
 				};
+
+				// static_assert(sizeof(SolidAlbedo) == sizeof(solid_t <Albedo>));
 
 				// TODO: fix this...
 				// solid_t <Albedo> albedo;

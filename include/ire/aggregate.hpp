@@ -84,4 +84,8 @@ struct aggregate_storage : corrected_aggregate <Args...> {
 	}
 };
 
+// For completeness, add the empty version
+template <>
+struct aggregate_storage <> {};
+
 } // namespace jvl::ire
