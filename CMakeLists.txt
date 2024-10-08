@@ -169,10 +169,11 @@ target_link_libraries(lang-features PRIVATE
 add_executable(test
 	source/test/ire_callable.cpp
 	source/test/ire_emitter.cpp
+	source/test/ire_ggx_brdf.cpp
 	source/test/ire_jit_gcc_material.cpp
+	source/test/ire_solidification.cpp
 	source/test/ire_synthesize_cpp.cpp
 	source/test/ire_synthesize_glsl.cpp
-	source/test/ire_ggx_brdf.cpp
 	source/test/math_matrix.cpp
 	thirdparty/glad/src/gl.c)
 
