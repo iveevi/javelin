@@ -62,7 +62,7 @@ TEST(ire_callable, returns)
 		returns(a / b);
 	};
 
-	auto F = procedure <f32> ("arithmetic") << ftn;
+	auto F = procedure <eCallable, f32> ("arithmetic") << ftn;
 	auto glsl = link(F).generate_glsl();
 	
 	// fmt::println("{}", glsl);

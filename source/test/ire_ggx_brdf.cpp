@@ -85,7 +85,7 @@ auto ggx_ndf = procedure("ggx_ndf") << [](Material mat, vec3 n, vec3 h)
 };
 
 // Smith shadow-masking function (single)
-auto G1 = procedure <f32> ("G1") << [](Material mat, vec3 n, vec3 v)
+auto G1 = procedure <eCallable, f32> ("G1") << [](Material mat, vec3 n, vec3 v)
 {
 	cond(dot(v, n) <= 0.0f);
 		returns(0.0f);
@@ -114,7 +114,7 @@ auto ggx_fresnel = procedure("ggx_fresnel") << [](Material mat, vec3 wi, vec3 h)
 };
 
 // GGX specular brdf
-auto ggx_brdf = procedure <vec3> ("ggx_brdf") << [](Material mat, vec3 n, vec3 wi, vec3 wo)
+auto ggx_brdf = procedure <eCallable, vec3> ("ggx_brdf") << [](Material mat, vec3 n, vec3 wi, vec3 wo)
 {
 	cond(dot(wi, n) <= 0.0f || dot(wo, n) <= 0.0f);
 		returns(vec3(0.0f));
@@ -133,7 +133,7 @@ auto ggx_brdf = procedure <vec3> ("ggx_brdf") << [](Material mat, vec3 n, vec3 w
 };
 
 // GGX PDF
-auto ggx_pdf = procedure <f32> ("ggx_pdf") << [](Material mat, vec3 n, vec3 wi, vec3 wo)
+auto ggx_pdf = procedure <eCallable, f32> ("ggx_pdf") << [](Material mat, vec3 n, vec3 wi, vec3 wo)
 {
 	cond(dot(wi, n) <= 0.0f || dot(wo, n) < 0.0f);
 		returns(0.0f);
@@ -156,7 +156,7 @@ auto ggx_pdf = procedure <f32> ("ggx_pdf") << [](Material mat, vec3 n, vec3 wi, 
 };
 
 // TODO: qualifiers
-auto ggx_sample = procedure <f32> ("ggx_sample") << [](Material mat, vec3 n, vec3 wo, /* inout */ vec3 seed)
+auto ggx_sample = procedure <eCallable, f32> ("ggx_sample") << [](Material mat, vec3 n, vec3 wo, /* inout */ vec3 seed)
 {
 	f32 avg_Kd = (mat.diffuse.x + mat.diffuse.y + mat.diffuse.z) / 3.0f;
 	f32 avg_Ks = (mat.specular.x + mat.specular.y + mat.specular.z) / 3.0f;
