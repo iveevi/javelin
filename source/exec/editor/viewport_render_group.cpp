@@ -63,6 +63,8 @@ void ViewportRenderGroup::configure_pipeline_mode(DeviceResourceCollection &drc,
 		littlevk::rg32f
 	> ();
 
+	auto encoding = PipelineEncoding(mode, vulkan::VertexFlags::eAll);
+
 	auto vs_callable = callable("main") << mode << vertex;
 	auto fs_callable = callable("main") << mode << fragment;
 
@@ -85,7 +87,7 @@ void ViewportRenderGroup::configure_pipeline_mode(DeviceResourceCollection &drc,
 	else
 		ppa.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, solid_size <MVP>);
 
-	pipelines[mode] = ppa;
+	pipelines[encoding] = ppa;
 }
 
 void ViewportRenderGroup::configure_pipeline_albedo(DeviceResourceCollection &drc, bool texture)
@@ -141,6 +143,8 @@ void ViewportRenderGroup::configure_pipeline_albedo(DeviceResourceCollection &dr
 		littlevk::rgb32f,
 		littlevk::rg32f
 	> ();
+	
+	auto encoding = PipelineEncoding(ViewportMode::eAlbedo, vulkan::VertexFlags::eAll, texture);
 
 	std::string vertex_shader = link(vertex).generate_glsl();
 	std::string fragment_shader = link(fragment).generate_glsl();
@@ -167,16 +171,93 @@ void ViewportRenderGroup::configure_pipeline_albedo(DeviceResourceCollection &dr
 		ppa.with_push_constant <solid_t <Albedo>> (vk::ShaderStageFlagBits::eFragment, aligned_mvp_size);
 	}
 
-	auto encoding = PipelineEncoding(ViewportMode::eAlbedo, texture);
 	pipelines[encoding] = ppa;
 
 	// TODO: auto pipeline construction
 }
 
+void ViewportRenderGroup::configure_pipeline_backup(DeviceResourceCollection &drc, vulkan::VertexFlags flags)
+{
+	auto encoding = PipelineEncoding(ViewportMode::eBackup, flags);
+
+	// TODO: method to convert vertex flags
+	uint32_t offset = 0;
+
+	JVL_ASSERT_PLAIN(enabled(flags, vulkan::VertexFlags::ePosition));
+
+	std::vector <vk::VertexInputAttributeDescription> attributes;
+
+	if (enabled(flags, vulkan::VertexFlags::ePosition)) {
+		attributes.emplace_back(0, 0, vk::Format::eR32G32B32Sfloat, offset);
+		flags = flags - vulkan::VertexFlags::ePosition;
+		offset += sizeof(float3);
+	}
+
+	JVL_ASSERT(flags == vulkan::VertexFlags::eNone,
+		"unhandled flags in vertex layout: {:08b}",
+		uint32_t(flags));
+
+	vk::VertexInputBindingDescription binding {
+		0, offset, vk::VertexInputRate::eVertex
+	};
+
+	auto vs_callable = callable("main") << []() {
+		layout_in <vec3> position(0);
+		// TODO: optimize out unused vertex inputs...
+		
+		// Projection informations
+		push_constant <MVP> mvp;
+		gl_Position = mvp.project(position);
+		gl_Position.y = -gl_Position.y;
+		
+		// Regurgitate vertex positions
+		layout_out <vec3> out_position(0);
+
+		out_position = position;
+	};
+
+	auto fs_callable = callable("main") << []() {
+		layout_out <vec4> fragment(0);
+
+		// Position from vertex shader
+		layout_in <vec3> position(0);
+		
+		// TODO: casting
+		f32 modded = mod(floor(position.x) + floor(position.y) + floor(position.z), 2.0f);
+		vec3 color(modded);
+
+		fragment = vec4(color, 1);
+
+		// Highlighting the selected object
+		push_constant <u32> highlight(sizeof(solid_t <MVP>));
+
+		highlight_fragment(fragment, highlight);
+	};
+
+	std::string vertex_shader = link(vs_callable).generate_glsl();
+	std::string fragment_shader = link(fs_callable).generate_glsl();
+
+	auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
+		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
+		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
+
+	auto ppa = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
+		.with_render_pass(render_pass, 0)
+		.with_vertex_binding(binding)
+		.with_vertex_attributes(attributes)
+		.with_shader_bundle(bundle)
+		.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
+		.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, solid_size <MVP>)
+		.cull_mode(vk::CullModeFlagBits::eNone);
+
+	pipelines[encoding] = ppa;
+}
+
 void ViewportRenderGroup::configure_pipelines(DeviceResourceCollection &drc)
 {
 	for (int32_t i = 0; i < uint32_t(ViewportMode::eCount); i++) {
-		if (i != uint32_t(ViewportMode::eAlbedo))
+		if (i != uint32_t(ViewportMode::eAlbedo)
+			&& i != uint32_t(ViewportMode::eBackup))
 			configure_pipeline_mode(drc, (ViewportMode) i);
 	}
 }
@@ -311,7 +392,8 @@ void ViewportRenderGroup::prepare_albedo(const RenderingInfo &info)
 		// This only depends on the diffuse texture
 		bool texture = enabled(material.flags, vulkan::MaterialFlags::eAlbedoSampler);
 
-		PipelineEncoding encoding(ViewportMode::eAlbedo, texture);
+		PipelineEncoding encoding(ViewportMode::eAlbedo, vulkan::VertexFlags::eAll, texture);
+
 		if (!pipelines.contains(encoding))
 			configure_pipeline_albedo(drc, texture);
 
@@ -372,7 +454,7 @@ void ViewportRenderGroup::render_albedo(const RenderingInfo &info,
 		auto &material = scene.materials[mid];
 
 		bool texture = enabled(material.flags, vulkan::MaterialFlags::eAlbedoSampler);
-		auto encoding = PipelineEncoding(ViewportMode::eAlbedo, texture);
+		auto encoding = PipelineEncoding(ViewportMode::eAlbedo, vulkan::VertexFlags::eAll, texture);
 		
 		auto &ppl = pipelines[encoding];
 
@@ -416,9 +498,11 @@ void ViewportRenderGroup::render_objects(const RenderingInfo &info,
 					 const Viewport &viewport,
 					 const solid_t <MVP> &mvp)
 {
+	auto encoding = PipelineEncoding(ViewportMode::eObject, vulkan::VertexFlags::eAll);
+
 	auto &cmd = info.cmd;
 	auto &scene = info.device_scene;
-	auto &ppl = pipelines[ViewportMode::eObject];
+	auto &ppl = pipelines[encoding];
 
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
 
@@ -446,13 +530,33 @@ void ViewportRenderGroup::render_default(const RenderingInfo &info,
 					 const Viewport &viewport,
 					 const solid_t <MVP> &mvp)
 {
+	auto encoding = PipelineEncoding(viewport.mode, vulkan::VertexFlags::eAll);
+
 	auto &cmd = info.cmd;
 	auto &scene = info.device_scene;
-	auto &ppl = pipelines[viewport.mode];
 
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
+	auto fetch_pipeline = [&](const vulkan::TriangleMesh &mesh) -> littlevk::Pipeline & {
+		if (!vulkan::enabled(mesh.flags, encoding.vertex_flags)) {
+			// Try to find the backup pipeline, and create it if not found
+			auto encoding = PipelineEncoding(ViewportMode::eBackup, mesh.flags);
+			if (!pipelines.contains(encoding)) {
+				fmt::println("no backup pipeline found, need to recompile...");
+				configure_pipeline_backup(info.drc, mesh.flags);
+			}
+			
+			return pipelines.at(encoding);
+		}
+
+		return pipelines.at(encoding);
+	};
 
 	for (auto &mesh : scene.meshes) {
+		// TODO: extend pipeline to one that has uuid, then check if we need to swap?
+		// or use the handle itself...
+		auto &ppl = fetch_pipeline(mesh);
+
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
+
 		cmd.pushConstants <solid_t <MVP>> (ppl.layout,
 			vk::ShaderStageFlagBits::eVertex,
 			0, mvp);

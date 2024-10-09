@@ -192,6 +192,11 @@ void Editor::imgui_main_menu_bar(const RenderingInfo &)
 		ImGui::EndMenu();
 	}
 
+	if (ImGui::BeginMenu("Debug")) {
+		// TODO: showing all viewport pipelines in a table
+		ImGui::EndMenu();
+	}
+
 	ImGui::EndMainMenuBar();
 
 	// Handle the popups

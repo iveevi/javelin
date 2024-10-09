@@ -200,7 +200,14 @@ public:
 	swizzle_element <T, self, thunder::SwizzleCode::y> y;
 	swizzle_element <T, self, thunder::SwizzleCode::z> z;
 
-	explicit swizzle_base(T x_ = T(0), T y_ = T(0), T z_ = T(0))
+	explicit swizzle_base(T v_ = T(0))
+			: x(this), y(this), z(this) {
+		initial[0] = v_;
+		initial[1] = v_;
+		initial[2] = v_;
+	}
+	
+	swizzle_base(T x_ , T y_, T z_)
 			: x(this), y(this), z(this) {
 		initial[0] = x_;
 		initial[1] = y_;
@@ -383,6 +390,11 @@ struct vec : swizzle_base <T, N> {
 	MIXED_PRIMITIVE_OP(-, subtraction);
 	MIXED_PRIMITIVE_OP(*, multiplication);
 	MIXED_PRIMITIVE_OP(/, division);
+
+	// Modulus operator
+	friend vec operator%(const vec &a, const native_t <T> &b) {
+		return operation_from_args <vec> (thunder::modulus, a, b);
+	}
 
 	// Common intrinsic functions
 	friend vec fract(const vec &a) {

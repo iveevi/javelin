@@ -63,6 +63,9 @@ concept native = requires(const T &t) {
 template <typename T>
 concept integral_native = native <T> && std::is_integral_v <T>;
 
+template <typename T>
+concept floating_native = native <T> && std::is_floating_point_v <T>;
+
 template <native T>
 struct native_t : tagged {
 	using tagged::tagged;
@@ -301,16 +304,16 @@ concept builtin_arithmetic = builtin <T>
 template <typename T>
 concept arithmetic = native <T> || builtin_arithmetic <T>;
 
-template <builtin_arithmetic A>
-inline auto underlying(const A &a)
-{
-	return typename A::arithmetic_type(a);
-}
-
 template <native A>
 inline auto underlying(const A &a)
 {
 	return native_t <A> (a);
+}
+
+template <builtin_arithmetic A>
+inline auto underlying(const A &a)
+{
+	return typename A::arithmetic_type(a);
 }
 
 template <arithmetic T>

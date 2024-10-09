@@ -47,6 +47,7 @@
 ## Engine
 
 - [x] Texture caching to avoid duplicate texture loading
+- [ ] Back-up pipelines for incompatible vertex layouts
 
 ## Examples
 
@@ -54,3 +55,4 @@
 - [x] Custom color palette rendering of meshes with HSV
 - [ ] Specialized glyph rendering through runtime shader generation
 	- Parallelized version as well, compiling multiple shaders at the same time
+- [ ] Barnes-Hutt simulation for N-body particle simulation

@@ -302,6 +302,7 @@ enum IntrinsicOperation : uint16_t {
 	log,
 
 	// Limiting functions
+	abs,
 	clamp,
 	min,
 	max,
@@ -316,6 +317,7 @@ enum IntrinsicOperation : uint16_t {
 	reflect,
 
 	// Miscellaneous operations
+	mod,
 	mix,
 
 	// GLSL image and sampler operations
@@ -353,6 +355,7 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"pow",
 	"log",
 
+	"abs",
 	"clamp",
 	"min",
 	"max",
@@ -365,6 +368,7 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"normalize",
 	"reflect",
 
+	"mod",
 	"mix",
 
 	"texture",
@@ -375,10 +379,10 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"dFdxFine",
 	"dFdyFine",
 
-	"glsl_floatBitsToInt",
-	"glsl_floatBitsToUint",
-	"glsl_intBitsToFloat",
-	"glsl_uintBitsToFloat",
+	"floatBitsToInt",
+	"floatBitsToUint",
+	"intBitsToFloat",
+	"uintBitsToFloat",
 
 	"__end"
 };

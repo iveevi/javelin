@@ -8,6 +8,8 @@
 using namespace jvl;
 using namespace jvl::ire;
 
+// TODO: move as much to source files
+
 // Function to generate an HSV color palette in shader code
 template <thunder::index_t N>
 array <vec3> hsv_palette(float saturation, float lightness)
@@ -107,6 +109,7 @@ inline void vertex(ViewportMode mode)
 	// Auxiliary vertex shader outputs depending on the mode
 	switch (mode) {
 	case ViewportMode::eNormal:
+	case ViewportMode::eBackup:
 	{
 		// Regurgitate vertex positions
 		layout_out <vec3> out_position(0);
@@ -195,6 +198,16 @@ inline void fragment(ViewportMode mode)
 		linearized = ire::log(linearized/250.0f + 1);
 
 		fragment = vec4(vec3(linearized), 1);
+	} break;
+
+	case ViewportMode::eBackup:
+	{
+		// Position from vertex shader
+		layout_in <vec3> position(0);
+		// TODO: casting
+		f32 modded = mod(floor(position.x) + floor(position.y) + floor(position.z), 2.0f);
+		vec3 color(modded);
+		fragment = vec4(color, 1);
 	} break;
 
 	default:

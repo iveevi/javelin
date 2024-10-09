@@ -23,6 +23,12 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
                 { log, { overload::from(f32, f32) } },
 
 		// Limiting functions
+		{ abs, {
+			overload::from(i32, i32),
+			overload::from(u32, u32),
+			overload::from(f32, f32),
+		} },
+
                 { clamp, {
                         overload::from(f32, f32, f32, f32)
                 } },
@@ -36,6 +42,20 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
                 } },
 		
 		{ fract, {
+                        overload::from(f32, f32),
+                        overload::from(vec2, vec2),
+                        overload::from(vec3, vec3),
+                        overload::from(vec4, vec4),
+                } },
+		
+		{ floor, {
+                        overload::from(f32, f32),
+                        overload::from(vec2, vec2),
+                        overload::from(vec3, vec3),
+                        overload::from(vec4, vec4),
+                } },
+		
+		{ ceil, {
                         overload::from(f32, f32),
                         overload::from(vec2, vec2),
                         overload::from(vec3, vec3),
@@ -70,6 +90,13 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
                 } },
 
 		// Miscellaneous operations
+		{ mod, {
+			overload::from(f32, f32, f32),
+			overload::from(vec2, vec2, f32),
+			overload::from(vec3, vec3, f32),
+			overload::from(vec4, vec4, f32),
+		} },
+
 		{ mix, {
 			overload::from(vec2, vec2, vec2, f32),
 			overload::from(vec3, vec3, vec3, f32),

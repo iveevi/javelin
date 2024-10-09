@@ -164,6 +164,9 @@ void Viewport::display_handle(const RenderingInfo &info)
 	if (ImGui::BeginPopup(view_mode_popup_title.c_str())) {
 		bool selected = false;
 		for (int32_t i = 0; i < uint32_t(ViewportMode::eCount); i++) {
+			if (i == uint32_t(ViewportMode::eBackup))
+				continue;
+
 			if (ImGui::Selectable(tbl_viewport_mode[i])) {
 				mode = (ViewportMode) i;
 				selected = true;

@@ -7,6 +7,13 @@
 
 namespace jvl::ire {
 
+template <arithmetic T>
+auto abs(const T &a)
+{
+	using result = decltype(underlying(a));
+	return platform_intrinsic_from_args <result> (thunder::abs, a);
+}
+
 template <native T, typename U>
 requires std::is_convertible_v <U, native_t <T>>
 native_t <T> max(const native_t <T> &a, const U &b)
@@ -40,6 +47,20 @@ native_t <T> clamp(const native_t <T> &x, const U &min, const V &max)
 	auto pmin = native_t <T> (min);
 	auto pmax = native_t <T> (max);
 	return platform_intrinsic_from_args <native_t <T>> (thunder::clamp, x, pmin, pmax);
+}
+
+template <floating_arithmetic T>
+auto floor(const T &a)
+{
+	using result = decltype(underlying(a));
+	return platform_intrinsic_from_args <result> (thunder::floor, a);
+}
+
+template <floating_arithmetic T>
+auto ceil(const T &a)
+{
+	using result = decltype(underlying(a));
+	return platform_intrinsic_from_args <result> (thunder::ceil, a);
 }
 
 template <native T>

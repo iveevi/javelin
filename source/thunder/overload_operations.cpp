@@ -81,6 +81,14 @@ QualifiedType lookup_operation_overload(const OperationCode &key, const std::vec
 			// TODO: legalize floating point modulus?
 			overload::from(i32, i32, i32),
 			overload::from(u32, u32, u32),
+			
+			overload::from(ivec2, ivec2, i32),
+			overload::from(ivec3, ivec3, i32),
+			overload::from(ivec4, ivec4, i32),
+			
+			overload::from(uvec2, uvec2, u32),
+			overload::from(uvec3, uvec3, u32),
+			overload::from(uvec4, uvec4, u32),
 		} },
 
 		{ bool_or, { overload::from(boolean, boolean, boolean) } },

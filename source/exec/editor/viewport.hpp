@@ -15,6 +15,7 @@ using namespace jvl;
 using namespace jvl::core;
 
 // Available viewport modes
+// TODO: refactor to render mode
 enum class ViewportMode : int32_t {
 	eAlbedo,
 	eNormal,
@@ -22,6 +23,7 @@ enum class ViewportMode : int32_t {
 	eTriangles,
 	eObject,
 	eDepth,
+	eBackup,
 	eCount,
 };
 
@@ -32,6 +34,7 @@ static constexpr const char *tbl_viewport_mode[] = {
 	"Triangles",
 	"Object",
 	"Depth",
+	"Backup",
 	"__end",
 };
 
