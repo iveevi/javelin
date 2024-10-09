@@ -10,35 +10,10 @@
 
 #include "imgui_render_group.hpp"
 #include "rendering_info.hpp"
+#include "render_mode.hpp"
 
 using namespace jvl;
 using namespace jvl::core;
-
-// Available viewport modes
-// TODO: refactor to render mode
-enum class ViewportMode : int32_t {
-	eAlbedo,
-	eNormal,
-	eTextureCoordinates,
-	eTriangles,
-	eObject,
-	eDepth,
-	eBackup,
-	eCount,
-};
-
-static constexpr const char *tbl_viewport_mode[] = {
-	"Albedo",
-	"Normal",
-	"Texture Coordinates",
-	"Triangles",
-	"Object",
-	"Depth",
-	"Backup",
-	"__end",
-};
-
-static_assert(uint32_t(ViewportMode::eCount) + 1 == sizeof(tbl_viewport_mode)/sizeof(const char *));
 
 // Separated from ViewportRenderGroup because we can have
 // multiple viewports using the exact same render pass and pipelines
@@ -51,7 +26,7 @@ struct Viewport : Unique {
 	// Viewing information
 	int64_t selected;
 
-	ViewportMode mode = ViewportMode::eNormal;
+	RenderMode mode = RenderMode::eNormalSmooth;
 
 	// Input handling information
 	bool active = false;

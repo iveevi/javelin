@@ -44,7 +44,7 @@ using GenericDescriptorBinding = wrapped::variant <BufferDescriptorBinding, Imag
 
 class ViewportRenderGroup {
 	void configure_render_pass(DeviceResourceCollection &);
-	void configure_pipeline_mode(DeviceResourceCollection &, ViewportMode);
+	void configure_pipeline_mode(DeviceResourceCollection &, RenderMode);
 	void configure_pipeline_albedo(DeviceResourceCollection &, bool);
 	void configure_pipeline_backup(DeviceResourceCollection &, vulkan::VertexFlags);
 	void configure_pipelines(DeviceResourceCollection &);

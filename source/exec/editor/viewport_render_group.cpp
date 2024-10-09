@@ -51,11 +51,11 @@ void ViewportRenderGroup::configure_render_pass(DeviceResourceCollection &drc)
 			.done();
 }
 
-void ViewportRenderGroup::configure_pipeline_mode(DeviceResourceCollection &drc, ViewportMode mode)
+void ViewportRenderGroup::configure_pipeline_mode(DeviceResourceCollection &drc, RenderMode mode)
 {
-	JVL_ASSERT_PLAIN(mode != ViewportMode::eAlbedo);
+	JVL_ASSERT_PLAIN(mode != RenderMode::eAlbedo);
 
-	JVL_INFO("compiling pipeline for view mode: {}", tbl_viewport_mode[uint32_t(mode)]);
+	JVL_INFO("compiling pipeline for view mode: {}", tbl_render_mode[uint32_t(mode)]);
 
 	auto vertex_layout = littlevk::VertexLayout <
 		littlevk::rgb32f,
@@ -82,7 +82,7 @@ void ViewportRenderGroup::configure_pipeline_mode(DeviceResourceCollection &drc,
 		.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
 		.cull_mode(vk::CullModeFlagBits::eNone);
 
-	if (mode == ViewportMode::eObject)
+	if (mode == RenderMode::eObject)
 		ppa.with_push_constant <solid_t <ObjectInfo>> (vk::ShaderStageFlagBits::eFragment, solid_size <MVP>);
 	else
 		ppa.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, solid_size <MVP>);
@@ -144,7 +144,7 @@ void ViewportRenderGroup::configure_pipeline_albedo(DeviceResourceCollection &dr
 		littlevk::rg32f
 	> ();
 	
-	auto encoding = PipelineEncoding(ViewportMode::eAlbedo, vulkan::VertexFlags::eAll, texture);
+	auto encoding = PipelineEncoding(RenderMode::eAlbedo, vulkan::VertexFlags::eAll, texture);
 
 	std::string vertex_shader = link(vertex).generate_glsl();
 	std::string fragment_shader = link(fragment).generate_glsl();
@@ -178,19 +178,32 @@ void ViewportRenderGroup::configure_pipeline_albedo(DeviceResourceCollection &dr
 
 void ViewportRenderGroup::configure_pipeline_backup(DeviceResourceCollection &drc, vulkan::VertexFlags flags)
 {
-	auto encoding = PipelineEncoding(ViewportMode::eBackup, flags);
+	auto encoding = PipelineEncoding(RenderMode::eBackup, flags);
 
 	// TODO: method to convert vertex flags
 	uint32_t offset = 0;
+	uint32_t index = 0;
 
 	JVL_ASSERT_PLAIN(enabled(flags, vulkan::VertexFlags::ePosition));
 
 	std::vector <vk::VertexInputAttributeDescription> attributes;
 
 	if (enabled(flags, vulkan::VertexFlags::ePosition)) {
-		attributes.emplace_back(0, 0, vk::Format::eR32G32B32Sfloat, offset);
+		attributes.emplace_back(index++, 0, vk::Format::eR32G32B32Sfloat, offset);
 		flags = flags - vulkan::VertexFlags::ePosition;
 		offset += sizeof(float3);
+	}
+	
+	if (enabled(flags, vulkan::VertexFlags::eNormal)) {
+		attributes.emplace_back(index++, 0, vk::Format::eR32G32B32Sfloat, offset);
+		flags = flags - vulkan::VertexFlags::eNormal;
+		offset += sizeof(float3);
+	}
+	
+	if (enabled(flags, vulkan::VertexFlags::eUV)) {
+		attributes.emplace_back(index++, 0, vk::Format::eR32G32Sfloat, offset);
+		flags = flags - vulkan::VertexFlags::eUV;
+		offset += sizeof(float2);
 	}
 
 	JVL_ASSERT(flags == vulkan::VertexFlags::eNone,
@@ -255,10 +268,10 @@ void ViewportRenderGroup::configure_pipeline_backup(DeviceResourceCollection &dr
 
 void ViewportRenderGroup::configure_pipelines(DeviceResourceCollection &drc)
 {
-	for (int32_t i = 0; i < uint32_t(ViewportMode::eCount); i++) {
-		if (i != uint32_t(ViewportMode::eAlbedo)
-			&& i != uint32_t(ViewportMode::eBackup))
-			configure_pipeline_mode(drc, (ViewportMode) i);
+	for (int32_t i = 0; i < uint32_t(RenderMode::eCount); i++) {
+		if (i != uint32_t(RenderMode::eAlbedo)
+			&& i != uint32_t(RenderMode::eBackup))
+			configure_pipeline_mode(drc, (RenderMode) i);
 	}
 }
 
@@ -392,7 +405,7 @@ void ViewportRenderGroup::prepare_albedo(const RenderingInfo &info)
 		// This only depends on the diffuse texture
 		bool texture = enabled(material.flags, vulkan::MaterialFlags::eAlbedoSampler);
 
-		PipelineEncoding encoding(ViewportMode::eAlbedo, vulkan::VertexFlags::eAll, texture);
+		PipelineEncoding encoding(RenderMode::eAlbedo, vulkan::VertexFlags::eAll, texture);
 
 		if (!pipelines.contains(encoding))
 			configure_pipeline_albedo(drc, texture);
@@ -454,7 +467,7 @@ void ViewportRenderGroup::render_albedo(const RenderingInfo &info,
 		auto &material = scene.materials[mid];
 
 		bool texture = enabled(material.flags, vulkan::MaterialFlags::eAlbedoSampler);
-		auto encoding = PipelineEncoding(ViewportMode::eAlbedo, vulkan::VertexFlags::eAll, texture);
+		auto encoding = PipelineEncoding(RenderMode::eAlbedo, vulkan::VertexFlags::eAll, texture);
 		
 		auto &ppl = pipelines[encoding];
 
@@ -498,7 +511,7 @@ void ViewportRenderGroup::render_objects(const RenderingInfo &info,
 					 const Viewport &viewport,
 					 const solid_t <MVP> &mvp)
 {
-	auto encoding = PipelineEncoding(ViewportMode::eObject, vulkan::VertexFlags::eAll);
+	auto encoding = PipelineEncoding(RenderMode::eObject, vulkan::VertexFlags::eAll);
 
 	auto &cmd = info.cmd;
 	auto &scene = info.device_scene;
@@ -538,7 +551,7 @@ void ViewportRenderGroup::render_default(const RenderingInfo &info,
 	auto fetch_pipeline = [&](const vulkan::TriangleMesh &mesh) -> littlevk::Pipeline & {
 		if (!vulkan::enabled(mesh.flags, encoding.vertex_flags)) {
 			// Try to find the backup pipeline, and create it if not found
-			auto encoding = PipelineEncoding(ViewportMode::eBackup, mesh.flags);
+			auto encoding = PipelineEncoding(RenderMode::eBackup, mesh.flags);
 			if (!pipelines.contains(encoding)) {
 				fmt::println("no backup pipeline found, need to recompile...");
 				configure_pipeline_backup(info.drc, mesh.flags);
@@ -609,11 +622,11 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 
 	// Rendering pipelines
 	switch (viewport.mode) {
-	case ViewportMode::eAlbedo:
+	case RenderMode::eAlbedo:
 		prepare_albedo(info);
 		render_albedo(info, viewport, mvp);
 		break;
-	case ViewportMode::eObject:
+	case RenderMode::eObject:
 		render_objects(info, viewport, mvp);
 		break;
 	default:
@@ -662,7 +675,7 @@ void ViewportRenderGroup::popup_debug_pipelines(const RenderingInfo &)
 			ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, (row++) % 2 ? color0 : color1);
 
 			ImGui::TableNextColumn();
-			ImGui::Text("%s", tbl_viewport_mode[uint32_t(k.mode)]);
+			ImGui::Text("%s", tbl_render_mode[uint32_t(k.mode)]);
 			
 			ImGui::TableNextColumn();
 

@@ -27,7 +27,8 @@
 - [x] Push constants with offsets
 - [ ] Casting operations
 - [ ] Partial evaluation of callables
-- [ ] Duplicate bindings with DEC optimization
+- [ ] Duplicate bindings with dead code elimination
+- [ ] Lambdas with capture
 
 ## Pipeline Generation
 

@@ -4,7 +4,7 @@
 
 // Pipeline encoding
 struct PipelineEncoding {
-	ViewportMode mode;
+	RenderMode mode;
 
 	// Vertex flags required for the pipeline
 	vulkan::VertexFlags vertex_flags;
@@ -12,7 +12,7 @@ struct PipelineEncoding {
 	// For albedo, this indicates the material flags
 	uint64_t specialization;
 
-	PipelineEncoding(const ViewportMode &mode_,
+	PipelineEncoding(const RenderMode &mode_,
 			 const vulkan::VertexFlags &flags,
 			 const uint64_t &specialization_ = 0)
 		: mode(mode_), vertex_flags(flags), specialization(specialization_) {}
