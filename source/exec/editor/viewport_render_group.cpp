@@ -65,8 +65,8 @@ void ViewportRenderGroup::configure_pipeline_mode(DeviceResourceCollection &drc,
 
 	auto encoding = PipelineEncoding(mode, vulkan::VertexFlags::eAll);
 
-	auto vs_callable = callable("main") << mode << vertex;
-	auto fs_callable = callable("main") << mode << fragment;
+	auto vs_callable = procedure("main") << mode << vertex;
+	auto fs_callable = procedure("main") << mode << fragment;
 
 	std::string vertex_shader = link(vs_callable).generate_glsl();
 	std::string fragment_shader = link(fs_callable).generate_glsl();
@@ -94,7 +94,7 @@ void ViewportRenderGroup::configure_pipeline_albedo(DeviceResourceCollection &dr
 {
 	fmt::println("compiling pipeline for Albedo (texture={})", texture);
 
-	auto vertex = callable("main") << []() {
+	auto vertex = procedure("main") << []() {
 		layout_in <vec3> position(0);
 		layout_in <vec2> uv(2);
 
@@ -108,7 +108,7 @@ void ViewportRenderGroup::configure_pipeline_albedo(DeviceResourceCollection &dr
 		out_uv = uv;
 	};
 
-	auto fragment = callable("main") << [&]() {
+	auto fragment = procedure("main") << [&]() {
 		layout_in <vec2> uv(2);
 
 		layout_out <vec4> fragment(0);
@@ -213,7 +213,7 @@ void ViewportRenderGroup::configure_pipeline_backup(DeviceResourceCollection &dr
 		0, offset, vk::VertexInputRate::eVertex
 	};
 
-	auto vs_callable = callable("main") << []() {
+	auto vs_callable = procedure("main") << []() {
 		layout_in <vec3> position(0);
 		// TODO: optimize out unused vertex inputs...
 		
@@ -228,7 +228,7 @@ void ViewportRenderGroup::configure_pipeline_backup(DeviceResourceCollection &dr
 		out_position = position;
 	};
 
-	auto fs_callable = callable("main") << []() {
+	auto fs_callable = procedure("main") << []() {
 		layout_out <vec4> fragment(0);
 
 		// Position from vertex shader

@@ -83,8 +83,8 @@ littlevk::Pipeline configure_pipeline(core::DeviceResourceCollection &drc,
 {
 	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
 
-	auto vs_callable = callable("main") << vertex;
-	auto fs_callable = callable("main") << fragment;
+	auto vs_callable = procedure("main") << vertex;
+	auto fs_callable = procedure("main") << fragment;
 
 	std::string vertex_shader = link(vs_callable).generate_glsl();
 	std::string fragment_shader = link(fs_callable).generate_glsl();

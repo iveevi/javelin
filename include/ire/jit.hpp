@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../thunder/linkage_unit.hpp"
-#include "callable.hpp"
+#include "procedure.hpp"
 #include "solidify.hpp"
 
 namespace jvl::ire {
@@ -21,7 +21,7 @@ namespace jvl::ire {
 // }
 
 template <typename R, typename ... Args>
-auto jit(const Callable <R, Args...> &callable)
+auto jit(const Procedure <R, Args...> &callable)
 {
 	// jit_check_return <R> ();
 	// jit_check_arguments <Args...> ();

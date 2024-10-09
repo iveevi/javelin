@@ -24,6 +24,9 @@ FetchContent_MakeAvailable(fmt)
 # Native File Dialog (extended)
 add_subdirectory(thirdparty/nativefiledialog-extended)
 
+# FreeType2 for font loading
+add_subdirectory(thirdparty/freetype)
+
 # Include directories
 include_directories(.
 	include
@@ -31,6 +34,7 @@ include_directories(.
 	thirdparty/imgui
 	thirdparty/tinyobjloader
 	thirdparty/glad/include
+	thirdparty/freetype/include
 	thirdparty/nativefiledialog-extended/src/include)
 
 # Bundle Vulkan necessities

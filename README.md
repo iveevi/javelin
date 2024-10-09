@@ -68,12 +68,12 @@ void fragment(float3 color)
 The corresponding GLSL source code can be generated as follows:
 
 ```cpp
-auto vs_callable = callable("main") // Name of the kernel
+auto vs_callable = procedure("main") // Name of the kernel
 	<< vertex;
 
 // Instantiate a fragment shader that colors the surface RED
-auto fs_callable = callable("main") // Name of the kernel
-	<< std::make_tuple(float3(1, 0, 0))
+auto fs_callable = procedure("main")
+	<< std::make_tuple(float3(1, 0, 0)) // Pass arguments to the fragment function
 	<< fragment;
 
 std::string vertex_shader = link(vs_callable).generate_glsl();

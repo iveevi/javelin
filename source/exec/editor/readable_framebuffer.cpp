@@ -54,14 +54,14 @@ ReadableFramebuffer::ReadableFramebuffer(DeviceResourceCollection &drc,
 
 	framebuffer = generator.unpack().front();
 
-	auto vs = callable("main") << []() {
+	auto vs = procedure("main") << []() {
 		push_constant <MVP> mvp;
 		layout_in <vec3> position(0);
 		gl_Position = mvp.project(position);
 		gl_Position.y = -gl_Position.y;
 	};
 
-	auto fs = callable("main") << []() {
+	auto fs = procedure("main") << []() {
 		push_constant <i32> id(solid_size <MVP>);
 		layout_out <i32> obj(0);
 		obj = id;

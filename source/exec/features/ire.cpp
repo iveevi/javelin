@@ -23,7 +23,7 @@ int main()
 {
 	int degrees = 5;
 
-	auto sh_manual = callable("sh_manual")
+	auto sh_manual = procedure("sh_manual")
 		<< std::make_tuple(i32(), degrees)
 		<< [](i32 x, int32_t constant)
 	{
@@ -40,7 +40,7 @@ int main()
 
 	fmt::println("{}", link(sh_manual).generate_glsl());
 
-	auto sh_closure = callable("sh_closure") << [&](i32 x) {
+	auto sh_closure = procedure("sh_closure") << [&](i32 x) {
 		i32 sum = 0;
 		auto var = loop(range <i32> (0, degrees));
 			sum = (sum + var) * x;

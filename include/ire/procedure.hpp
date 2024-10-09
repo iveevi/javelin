@@ -10,9 +10,9 @@
 
 namespace jvl::ire {
 
-// Internal construction of callables
+// Internal construction of procedures
 template <non_trivial_generic_or_void R, typename ... Args>
-struct Callable : thunder::TrackedBuffer {
+struct Procedure : thunder::TrackedBuffer {
 	template <size_t index>
 	void __fill_parameter_references(std::tuple <Args...> &tpl)
 	requires (sizeof...(Args) > 0) {
@@ -109,10 +109,10 @@ struct signature_pair {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;
 
-	using callable = Callable <R, std::decay_t <Args>...>;
+	using callable = Procedure <R, std::decay_t <Args>...>;
 
 	template <typename RR>
-	using manual_callable = Callable <RR, std::decay_t <Args>...>;
+	using manual_callable = Procedure <RR, std::decay_t <Args>...>;
 };
 
 template <non_trivial_generic_or_void R>
@@ -120,10 +120,10 @@ struct signature_pair <R> {
 	using return_t = R;
 	using args_t = std::nullopt_t;
 
-	using callable = Callable <R>;
+	using callable = Procedure <R>;
 
 	template <typename RR>
-	using manual_callable = Callable <RR>;
+	using manual_callable = Procedure <RR>;
 };
 
 template <typename R, typename ... Args>
@@ -159,48 +159,48 @@ struct signature <R (Args...)> {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;
 
-	using callable = Callable <R, std::decay_t <Args>...>;
+	using callable = Procedure <R, std::decay_t <Args>...>;
 
 	template <typename RR>
-	using manual_callable = Callable <RR, std::decay_t <Args>...>;
+	using manual_callable = Procedure <RR, std::decay_t <Args>...>;
 };
 
 }
 
 // Interface for constructing callables from functions
 template <non_trivial_generic_or_void R = void>
-struct callable {
+struct procedure {
 	std::string name;
 
-	callable(const std::string &name_)
+	procedure(const std::string &name_)
 		: name(name_) {}
 };
 
 template <non_trivial_generic_or_void R, typename ... Args>
-struct callable_args : callable <R> {
+struct procedure_with_args : procedure <R> {
 	std::tuple <Args...> args;
 
-	callable_args(const std::string &name_,
+	procedure_with_args(const std::string &name_,
 		      const std::tuple <Args...> &args_)
-		: callable <R> (name_), args(args_) {}
+		: procedure <R> (name_), args(args_) {}
 };
 
 template <non_trivial_generic_or_void R, typename ... Args>
-auto operator<<(const callable <R> &C, const std::tuple <Args...> &args)
+auto operator<<(const procedure <R> &C, const std::tuple <Args...> &args)
 {
-	return callable_args <R, Args...> (C.name, args);
+	return procedure_with_args <R, Args...> (C.name, args);
 }
 
 template <non_trivial_generic_or_void R, typename T>
 requires (!detail::acceptable_callable <T>)
-auto operator<<(const callable <R> &C, const T &arg)
+auto operator<<(const procedure <R> &C, const T &arg)
 {
-	return callable_args <R, T> (C.name, std::make_tuple(arg));
+	return procedure_with_args <R, T> (C.name, std::make_tuple(arg));
 }
 
 template <non_trivial_generic_or_void R, detail::acceptable_callable F, typename ... Args>
 requires (!std::same_as <typename detail::signature <F> ::return_t, void>)
-auto operator<<(const callable_args <R, Args...> &C, F ftn)
+auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 {
 	using S = detail::signature <F>;
 
@@ -233,7 +233,7 @@ auto operator<<(const callable_args <R, Args...> &C, F ftn)
 // Void functions are presumbed to contain returns(...) statements already
 template <non_trivial_generic_or_void R, detail::acceptable_callable F, typename ... Args>
 requires (std::same_as <typename detail::signature <F> ::return_t, void>)
-auto operator<<(const callable_args <R, Args...> &C, F ftn)
+auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 {
 	using S = detail::signature <F>;
 	
@@ -265,9 +265,9 @@ auto operator<<(const callable_args <R, Args...> &C, F ftn)
 
 template <non_trivial_generic_or_void R, typename F>
 requires detail::acceptable_callable <F>
-auto operator<<(const callable <R> &C, F ftn)
+auto operator<<(const procedure <R> &C, F ftn)
 {
-	return callable_args <R> (C.name, {}) << ftn;
+	return procedure_with_args <R> (C.name, {}) << ftn;
 }
 
 } // namespace jvl::ire

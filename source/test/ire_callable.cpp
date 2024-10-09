@@ -21,7 +21,7 @@ TEST(ire_callable, sum)
 		return x + y;
 	};
 
-	auto F = callable("sum") << ftn;
+	auto F = procedure("sum") << ftn;
 	auto glsl = link(F).generate_glsl();
 
 	// fmt::println("{}", glsl);
@@ -46,7 +46,7 @@ TEST(ire_callable, arithmetic)
 		return a / b;
 	};
 
-	auto F = callable("arithmetic") << ftn;
+	auto F = procedure("arithmetic") << ftn;
 	auto glsl = link(F).generate_glsl();
 	
 	// fmt::println("{}", glsl);
@@ -62,7 +62,7 @@ TEST(ire_callable, returns)
 		returns(a / b);
 	};
 
-	auto F = callable <f32> ("arithmetic") << ftn;
+	auto F = procedure <f32> ("arithmetic") << ftn;
 	auto glsl = link(F).generate_glsl();
 	
 	// fmt::println("{}", glsl);
@@ -97,7 +97,7 @@ TEST(ire_callable, conditional_returns)
 		return a;
 	};
 
-	auto cbl = callable("conditional") << ftn;
+	auto cbl = procedure("conditional") << ftn;
 	auto glsl = link(cbl).generate_glsl();
 
 	check_shader_sources(expected_conditional_returns_glsl, glsl);
@@ -147,7 +147,7 @@ TEST(ire_callable, struct_parameter)
 		return vh;
 	};
 
-	auto F = callable("project") << ftn;
+	auto F = procedure("project") << ftn;
 	auto glsl = link(F).generate_glsl();
 
 	// fmt::println("{}", glsl);
@@ -191,7 +191,7 @@ TEST(ire_callable, struct_return)
 		return Seed(a & b, b);
 	};
 
-	auto F = callable("shift_seed") << ftn;
+	auto F = procedure("shift_seed") << ftn;
 	auto glsl = link(F).generate_glsl();
 	
 	// fmt::println("{}", glsl);

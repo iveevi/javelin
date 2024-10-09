@@ -1,5 +1,4 @@
-#include "ire/callable.hpp"
-#include "ire/core.hpp"
+#include <ire/core.hpp>
 
 using namespace jvl::ire;
 
@@ -35,7 +34,7 @@ struct Material {
 };
 
 // Random number generation
-auto pcg3d = callable("pcg3d") << [](uvec3 v)
+auto pcg3d = procedure("pcg3d") << [](uvec3 v)
 {
 	v = v * 1664525u + 1013904223u;
 	v.x += v.y * v.z;
@@ -48,7 +47,7 @@ auto pcg3d = callable("pcg3d") << [](uvec3 v)
 	return v;
 };
 
-auto random3 = callable("random3") << [](/* inout */ vec3 seed)
+auto random3 = procedure("random3") << [](/* inout */ vec3 seed)
 {
 	seed = uintBitsToFloat(
 		(pcg3d(floatBitsToUint(seed)) & 0x007FFFFFu)
@@ -59,7 +58,7 @@ auto random3 = callable("random3") << [](/* inout */ vec3 seed)
 };
 
 // Rotate a vector to orient it along a given direction
-auto rotate = callable("rotate") << [](vec3 s, vec3 n)
+auto rotate = procedure("rotate") << [](vec3 s, vec3 n)
 {
 	vec3 w = n;
 	vec3 a = vec3(0.0f, 1.0f, 0.0f);
@@ -75,7 +74,7 @@ auto rotate = callable("rotate") << [](vec3 s, vec3 n)
 };
 
 // GGX microfacet distribution function
-auto ggx_ndf = callable("ggx_ndf") << [](Material mat, vec3 n, vec3 h)
+auto ggx_ndf = procedure("ggx_ndf") << [](Material mat, vec3 n, vec3 h)
 {
 	f32 alpha = mat.roughness;
 	f32 theta = acos(clamp(dot(n, h), 0.0f, 0.999f));
@@ -86,7 +85,7 @@ auto ggx_ndf = callable("ggx_ndf") << [](Material mat, vec3 n, vec3 h)
 };
 
 // Smith shadow-masking function (single)
-auto G1 = callable <f32> ("G1") << [](Material mat, vec3 n, vec3 v)
+auto G1 = procedure <f32> ("G1") << [](Material mat, vec3 n, vec3 v)
 {
 	cond(dot(v, n) <= 0.0f);
 		returns(0.0f);
@@ -102,20 +101,20 @@ auto G1 = callable <f32> ("G1") << [](Material mat, vec3 n, vec3 v)
 };
 
 // Smith shadow-masking function (double)
-auto G = callable("G") << [](Material mat, vec3 n, vec3 wi, vec3 wo)
+auto G = procedure("G") << [](Material mat, vec3 n, vec3 wi, vec3 wo)
 {
 	return G1(mat, n, wo) * G1(mat, n, wi);
 };
 
 // Shlicks approximation to the Fresnel reflectance
-auto ggx_fresnel = callable("ggx_fresnel") << [](Material mat, vec3 wi, vec3 h)
+auto ggx_fresnel = procedure("ggx_fresnel") << [](Material mat, vec3 wi, vec3 h)
 {
 	f32 k = pow(1.0f - dot(wi, h), 5);
 	return mat.specular + (1 - mat.specular) * k;
 };
 
 // GGX specular brdf
-auto ggx_brdf = callable <vec3> ("ggx_brdf") << [](Material mat, vec3 n, vec3 wi, vec3 wo)
+auto ggx_brdf = procedure <vec3> ("ggx_brdf") << [](Material mat, vec3 n, vec3 wi, vec3 wo)
 {
 	cond(dot(wi, n) <= 0.0f || dot(wo, n) <= 0.0f);
 		returns(vec3(0.0f));
@@ -134,7 +133,7 @@ auto ggx_brdf = callable <vec3> ("ggx_brdf") << [](Material mat, vec3 n, vec3 wi
 };
 
 // GGX PDF
-auto ggx_pdf = callable <f32> ("ggx_pdf") << [](Material mat, vec3 n, vec3 wi, vec3 wo)
+auto ggx_pdf = procedure <f32> ("ggx_pdf") << [](Material mat, vec3 n, vec3 wi, vec3 wo)
 {
 	cond(dot(wi, n) <= 0.0f || dot(wo, n) < 0.0f);
 		returns(0.0f);
@@ -157,7 +156,7 @@ auto ggx_pdf = callable <f32> ("ggx_pdf") << [](Material mat, vec3 n, vec3 wi, v
 };
 
 // TODO: qualifiers
-auto ggx_sample = callable <f32> ("ggx_sample") << [](Material mat, vec3 n, vec3 wo, /* inout */ vec3 seed)
+auto ggx_sample = procedure <f32> ("ggx_sample") << [](Material mat, vec3 n, vec3 wo, /* inout */ vec3 seed)
 {
 	f32 avg_Kd = (mat.diffuse.x + mat.diffuse.y + mat.diffuse.z) / 3.0f;
 	f32 avg_Ks = (mat.specular.x + mat.specular.y + mat.specular.z) / 3.0f;
