@@ -108,8 +108,7 @@ void ViewportRenderGroup::configure_pipeline_albedo(DeviceResourceCollection &dr
 		out_uv = uv;
 	};
 
-	// TODO: lambdas with capture...	
-	auto fragment = callable("main") << std::make_tuple(texture) << [](bool texture) {
+	auto fragment = callable("main") << [&]() {
 		layout_in <vec2> uv(2);
 
 		layout_out <vec4> fragment(0);

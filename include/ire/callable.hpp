@@ -138,9 +138,11 @@ auto function_signature(const F &ftn)
 	return function_signature_cast(std::function(ftn));
 }
 
+#define hacked(T) *reinterpret_cast <T *> ((void *) nullptr)
+
 template <acceptable_callable F>
 struct signature {
-	using pair = decltype(function_signature(F()));
+	using pair = decltype(function_signature(hacked(F)));
 
 	using return_t = pair::return_t;
 	using args_t = pair::args_t;

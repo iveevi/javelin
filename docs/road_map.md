@@ -28,7 +28,7 @@
 - [ ] Casting operations
 - [ ] Partial evaluation of callables
 - [ ] Duplicate bindings with dead code elimination
-- [ ] Lambdas with capture
+- [x] Lambdas with capture
 
 ## Pipeline Generation
 

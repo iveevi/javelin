@@ -19,41 +19,37 @@
 using namespace jvl;
 using namespace jvl::ire;
 
-MODULE(ire-features);
-
-struct Structure {
-	vec3	x;
-	u32	y;
-	vec3	z;
-
-	auto layout() const {
-		return uniform_layout("S",
-			named_field(u32()),
-			named_field(vec3()),
-			named_field(u32()));
-	}
-};
-
-template <typename T, size_t F>
-auto solid_offset()
-{
-	T A;
-	return ((std::intptr_t) &A.template get <F> () - (std::intptr_t) &A);
-}
-
 int main()
 {
-	// using SolidAlbedo = solid_t <Structure>;
-	using SolidAlbedo = solid_builder <0, Structure> ::type;
+	int degrees = 5;
+
+	auto sh_manual = callable("sh_manual")
+		<< std::make_tuple(i32(), degrees)
+		<< [](i32 x, int32_t constant)
+	{
+		// TODO: bug, this isnt being stored into...
+		i32 sum = 0;
+		auto var = loop(range <i32> (0, constant));
+			sum = (sum + var) * x;
+		end();
+		
+		return sum;
+	};
 	
-	// static_assert(std::same_as <SolidAlbedo, aggregate_storage <aligned_float3, float3, uint32_t>>);
-	// static_assert(std::same_as <SolidAlbedo, aggregate_storage <float3, uint32_t, float3>>);
-	// static_assert(std::same_as <SolidAlbedo, aggregate_storage <uint32_t, aligned_float3, float3>>);
-	static_assert(std::same_as <SolidAlbedo, aggregate_storage <aligned_uint32_t <16>, float3, uint32_t>>);
+	sh_manual.dump();
 
-	SolidAlbedo a;
+	fmt::println("{}", link(sh_manual).generate_glsl());
 
-	fmt::println("offset of f0 = {}", solid_offset <SolidAlbedo, 0> ());
-	fmt::println("offset of f1 = {}", solid_offset <SolidAlbedo, 1> ());
-	fmt::println("offset of f1 = {}", solid_offset <SolidAlbedo, 2> ());
+	auto sh_closure = callable("sh_closure") << [&](i32 x) {
+		i32 sum = 0;
+		auto var = loop(range <i32> (0, degrees));
+			sum = (sum + var) * x;
+		end();
+
+		return sum;
+	};
+
+	sh_closure.dump();
+	
+	fmt::println("{}", link(sh_closure).generate_glsl());
 }
