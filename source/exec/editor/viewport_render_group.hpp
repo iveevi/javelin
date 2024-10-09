@@ -101,4 +101,9 @@ public:
 
 	// Post-frame actions
 	void post_render();
+
+	// ImGui rendering
+	void popup_debug_pipelines(const RenderingInfo &);
+
+	imgui_callback callback_debug_pipelines();
 };

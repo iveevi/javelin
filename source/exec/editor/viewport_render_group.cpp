@@ -636,3 +636,71 @@ void ViewportRenderGroup::post_render()
 		work.push_front(cmd);
 	}
 }
+
+void ViewportRenderGroup::popup_debug_pipelines(const RenderingInfo &)
+{
+	if (!ImGui::BeginPopup("Render Pipelines"))
+		return;
+
+	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(10.0f, 5.0f));
+
+	if (ImGui::BeginTable("pipelines", 3)) {
+		// Header
+		ImGui::TableSetupColumn("Mode", ImGuiTableColumnFlags_None, 0.0f);
+		ImGui::TableSetupColumn("Vertex Flags", ImGuiTableColumnFlags_None, 0.0f);
+		ImGui::TableSetupColumn("Specialization", ImGuiTableColumnFlags_None, 0.0f);
+		ImGui::TableHeadersRow();
+
+		// Elements
+		int row = 0;
+
+		ImU32 color0 = ImGui::GetColorU32(ImVec4(1, 1, 1, 0.0f));
+		ImU32 color1 = ImGui::GetColorU32(ImVec4(1, 1, 1, 0.25f));
+
+		for (auto &[k, _] : pipelines) {
+			ImGui::TableNextRow();
+			ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, (row++) % 2 ? color0 : color1);
+
+			ImGui::TableNextColumn();
+			ImGui::Text("%s", tbl_viewport_mode[uint32_t(k.mode)]);
+			
+			ImGui::TableNextColumn();
+
+			auto flags = k.vertex_flags;
+
+			std::vector <std::string> enabled;
+			if (vulkan::enabled(flags, vulkan::VertexFlags::ePosition))
+				enabled.emplace_back("Vertex");
+			if (vulkan::enabled(flags, vulkan::VertexFlags::eNormal))
+				enabled.emplace_back("Normal");
+			if (vulkan::enabled(flags, vulkan::VertexFlags::eUV))
+				enabled.emplace_back("UV");
+
+			std::string enabled_joined;
+			for (size_t i = 0; i < enabled.size(); i++) {
+				enabled_joined += enabled[i];
+				if (i + 1 < enabled.size())
+					enabled_joined += ", ";
+			}
+
+			ImGui::Text("%s", enabled_joined.c_str());
+			
+			ImGui::TableNextColumn();
+			ImGui::Text("%ju", k.specialization);
+		}
+
+		ImGui::EndTable();
+	}
+
+	ImGui::PopStyleVar();
+
+	ImGui::EndPopup();
+}
+
+imgui_callback ViewportRenderGroup::callback_debug_pipelines()
+{
+	return {
+		-1,
+		std::bind(&ViewportRenderGroup::popup_debug_pipelines, this, std::placeholders::_1)
+	};
+}

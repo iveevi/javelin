@@ -104,7 +104,7 @@ void SceneInspector::object_inspector(const RenderingInfo &info)
 }
 
 // TODO: should be part of the editor...
-imgui_callback SceneInspector::scene_hierarchy_callback()
+imgui_callback SceneInspector::callback_scene_hierarchy()
 {
 	return {
 		-1,
@@ -112,7 +112,7 @@ imgui_callback SceneInspector::scene_hierarchy_callback()
 	};
 }
 
-imgui_callback SceneInspector::object_inspector_callback()
+imgui_callback SceneInspector::callback_object_inspector()
 {
 	return {
 		-1,

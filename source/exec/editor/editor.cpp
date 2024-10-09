@@ -177,6 +177,7 @@ void Editor::imgui_main_menu_bar(const RenderingInfo &)
 {
 	// Popup for configuring a raytracer
 	bool popup_raytracer = false;
+	bool popup_pipelines = false;
 
 	ImGui::BeginMainMenuBar();
 
@@ -193,7 +194,10 @@ void Editor::imgui_main_menu_bar(const RenderingInfo &)
 	}
 
 	if (ImGui::BeginMenu("Debug")) {
-		// TODO: showing all viewport pipelines in a table
+		if (ImGui::MenuItem("Render Pipelines")) {
+			popup_pipelines = true;
+		}
+
 		ImGui::EndMenu();
 	}
 
@@ -202,6 +206,9 @@ void Editor::imgui_main_menu_bar(const RenderingInfo &)
 	// Handle the popups
 	if (popup_raytracer)
 		ImGui::OpenPopup("Raytracer");
+	
+	if (popup_pipelines)
+		ImGui::OpenPopup("Render Pipelines");
 }
 
 void Editor::imgui_raytracer_popup(const RenderingInfo &)
@@ -348,6 +355,7 @@ void Editor::process_messages()
 
 	{
 		// Callbacks
+		// TODO: derive from unique
 		auto it = imgui_callbacks.begin();
 		auto end = imgui_callbacks.end();
 		while (it != end) {
@@ -373,8 +381,9 @@ void Editor::loop()
 	// Configure for startup
 	imgui_callbacks.emplace_back(callback_main_menu_bar());
 	imgui_callbacks.emplace_back(callback_raytracer_popup());
-	imgui_callbacks.emplace_back(inspector.scene_hierarchy_callback());
-	imgui_callbacks.emplace_back(inspector.object_inspector_callback());
+	imgui_callbacks.emplace_back(inspector.callback_scene_hierarchy());
+	imgui_callbacks.emplace_back(inspector.callback_object_inspector());
+	imgui_callbacks.emplace_back(rg_viewport->callback_debug_pipelines());
 	
 	add_viewport();
 

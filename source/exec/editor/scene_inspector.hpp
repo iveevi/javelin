@@ -18,6 +18,6 @@ struct SceneInspector : Unique {
 	void scene_hierarchy_object(const Scene &, const Scene::Object &);
 	void scene_hierarchy(const RenderingInfo &);
 	void object_inspector(const RenderingInfo &);
-	imgui_callback scene_hierarchy_callback();
-	imgui_callback object_inspector_callback();
+	imgui_callback callback_scene_hierarchy();
+	imgui_callback callback_object_inspector();
 };
