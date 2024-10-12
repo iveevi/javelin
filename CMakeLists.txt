@@ -158,6 +158,15 @@ set_property(TARGET ire-features PROPERTY ENABLE_EXPORTS ON)
 
 target_link_libraries(ire-features glfw fmt::fmt javelin-ire gccjit)
 
+# Experimental program for the TSG system
+add_executable(tsg-features
+	source/exec/features/tsg.cpp
+	thirdparty/glad/src/gl.c)
+
+set_property(TARGET tsg-features PROPERTY ENABLE_EXPORTS ON)
+
+target_link_libraries(tsg-features glfw fmt::fmt javelin-ire gccjit)
+
 # Experimental program for the JVL language
 add_executable(lang-features
 	source/exec/features/lang.cpp
