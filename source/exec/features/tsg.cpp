@@ -93,6 +93,28 @@ struct lift_argument <std::tuple <Args...>> {
 	using type = std::tuple <typename lift_argument <Args> ::type...>;
 };
 
+// Lifting shader outputs
+// TODO: parameterize by stage using a template class?
+template <typename T>
+struct lift_result {
+	using type = T;
+};
+
+template <>
+struct lift_result <position> {
+	using type = position;
+};
+
+template <generic T>
+struct lift_result <T> {
+	using type = ire::layout_out <T>;
+};
+
+template <typename ... Args>
+struct lift_result <std::tuple <Args...>> {
+	using type = std::tuple <typename lift_result <Args> ::type...>;
+};
+
 // Exporting the returns of a function based on the stage
 template <typename T, typename ... Args>
 void export_indexed(size_t I, T &current, Args &... args)
@@ -244,9 +266,137 @@ struct verify_classification {
 		"Shader program cannot use multiple stage intrinsics");
 };
 
+// Specifiers for a shader program
+// TODO: parameterize by stage flags
+template <generic T, size_t N>
+struct LayoutIn {};
+
+template <generic T, size_t N>
+struct LayoutOut {};
+
+// Concepts for layout inputs
+template <typename T>
+struct is_layout_in_type : std::false_type {};
+
+template <generic T, size_t N>
+struct is_layout_in_type <LayoutIn <T, N>> : std::true_type {};
+
+template <typename T>
+concept layout_input = is_layout_in_type <T> ::value;
+
+// Concepts for layout outputs
+template <typename T>
+struct is_layout_out_type : std::false_type {};
+
+template <generic T, size_t N>
+struct is_layout_out_type <LayoutOut <T, N>> : std::true_type {};
+
+template <typename T>
+concept layout_output = is_layout_out_type <T> ::value;
+
+// Set of all specifier types
+template <typename T>
+concept specifier = is_layout_in_type <T> ::value || is_layout_out_type <T> ::value;
+
+// Collection of the layout input dependencies of a program
+template <layout_input ... Args>
+struct LayoutInputSet {};
+
+template <layout_input T, typename ... Args>
+struct append_layout_input_set {
+	using type = LayoutInputSet <>;
+};
+
+template <layout_input T, layout_input ... Args>
+struct append_layout_input_set <T, LayoutInputSet <Args...>> {
+	using type = LayoutInputSet <T, Args...>;
+};
+
+// Constructing layout input dependencies
+template <size_t I, typename ... Args>
+struct layout_input_collector {
+	using type = LayoutInputSet <>;
+};
+
+template <size_t I, typename T, typename ... Args>
+struct layout_input_collector <I, T, Args...> {
+	using type = typename layout_input_collector <I, Args...> ::type;
+};
+
+template <size_t I, generic T, typename ... Args>
+struct layout_input_collector <I, ire::layout_in <T>, Args...> {
+	using next = typename layout_input_collector <I + 1, Args...> ::type;
+	using type = append_layout_input_set <LayoutIn <T, I>, next> ::type;
+};
+
+template <typename ... Args>
+struct layout_input_collector_args {};
+
+template <typename ... Args>
+struct layout_input_collector_args <std::tuple <Args...>> {
+	using base = layout_input_collector <0, Args...>;
+	using type = typename base::type;
+};
+
+// Collection of the layout outputs of a program
+template <layout_output ... Args>
+struct LayoutOutputSet {};
+
+template <layout_output T, typename ... Args>
+struct append_layout_output_set {
+	using type = LayoutOutputSet <>;
+};
+
+template <layout_output T, layout_output ... Args>
+struct append_layout_output_set <T, LayoutOutputSet <Args...>> {
+	using type = LayoutOutputSet <T, Args...>;
+};
+
+// Constructing layout input dependencies
+template <size_t I, typename ... Args>
+struct layout_output_collector {
+	using type = LayoutOutputSet <>;
+};
+
+template <size_t I, typename T, typename ... Args>
+struct layout_output_collector <I, T, Args...> {
+	using type = typename layout_output_collector <I, Args...> ::type;
+};
+
+template <size_t I, generic T, typename ... Args>
+struct layout_output_collector <I, ire::layout_out <T>, Args...> {
+	using next = typename layout_output_collector <I + 1, Args...> ::type;
+	using type = append_layout_output_set <LayoutOut <T, I>, next> ::type;
+};
+
+template <typename ... Args>
+struct layout_output_collector_args {
+	using base = layout_output_collector <0, Args...>;
+	using type = typename base::type;
+};
+
+template <typename ... Args>
+struct layout_output_collector_args <std::tuple <Args...>> {
+	using base = layout_output_collector <0, Args...>;
+	using type = typename base::type;
+};
+
 // Type-safe wrapper of a tracked buffer
-template <ShaderStageFlags>
+template <ShaderStageFlags, specifier ... Args>
 struct CompiledArtifact : thunder::TrackedBuffer {};
+
+template <ShaderStageFlags, typename ... Args>
+struct CompiledArtifactAssembler {
+	static_assert(false);
+};
+
+// TODO: constrain to layout types...
+template <ShaderStageFlags flags, layout_input ... Inputs, layout_output ... Outputs>
+struct CompiledArtifactAssembler <flags, LayoutInputSet <Inputs...>, LayoutOutputSet <Outputs...>> {
+	static auto get() {
+		return CompiledArtifact <flags, Inputs..., Outputs...> ();
+	}
+};
 
 // Full function compilation flow
 template <typename F>
@@ -257,6 +407,8 @@ auto compile_function(const std::string &name, const F &ftn)
 	using S = signature <typename T::base>;
 	using R = typename S::returns;
 	using Args = typename S::arguments;
+	using LiftedR = typename lift_result <R> ::type;
+	using LiftedArgs = typename lift_argument <Args> ::type;
 
 	constexpr auto status = classifier <Args> ::status();
 
@@ -265,16 +417,19 @@ auto compile_function(const std::string &name, const F &ftn)
 	
 	constexpr auto flags = classifier <Args> ::resolved;
 
-	// TODO: secondary check given the shader stage
+	// Secondary pass given the shader stage
+	// TODO: pass shader stage as template parameter
+	using Dependencies = typename layout_input_collector_args <LiftedArgs> ::type;
+	using Result = typename layout_output_collector_args <LiftedR> ::type;
 
 	// Begin code generation stage
-	CompiledArtifact <flags> buffer;
+	auto buffer = CompiledArtifactAssembler <flags, Dependencies, Result> ::get();
 	buffer.name = name;
 
 	auto &em = ire::Emitter::active;
 	em.push(buffer);
 
-	auto arguments = typename lift_argument <Args> ::type();
+	LiftedArgs arguments;
 	lift_initialize_arguments(arguments);
 	auto result = std::apply(ftn, arguments);
 	exporting(result);
@@ -305,9 +460,11 @@ auto fragment_shader(fragment_intrinsics, vec3 pos, vec2 normal) -> vec4
 // Shader linkage unit
 template <ShaderStageFlags flags = ShaderStageFlags::eNone>
 struct ShaderProgram {
-	template <ShaderStageFlags other>
-	friend ShaderProgram <flags> operator<<(const ShaderProgram &, const CompiledArtifact <other> &) {
-		return {};
+	thunder::TrackedBuffer ir_vertex;
+	thunder::TrackedBuffer ir_fragment;
+
+	template <ShaderStageFlags added>
+	friend ShaderProgram <flags + added> operator<<(const ShaderProgram &, const CompiledArtifact <added> &) {
 	}
 };
 
@@ -315,15 +472,33 @@ struct ShaderProgram {
 struct Pipline {
 
 };
+	
+using T = decltype(function_breakdown(vertex_shader));
+using S = signature <typename T::base>;
+using R = typename S::returns;
+using Args = typename S::arguments;
+using LiftedR = typename lift_result <R> ::type;
+using LiftedArgs = typename lift_argument <Args> ::type;
+using Dependencies = typename layout_input_collector_args <LiftedArgs> ::type;
+using Result = typename layout_output_collector_args <LiftedR> ::type;
 
 int main()
 {
+	using T = decltype(function_breakdown(vertex_shader));
+	using S = signature <typename T::base>;
+	using R = typename S::returns;
+	using Args = typename S::arguments;
+	using Lifted = typename lift_argument <Args> ::type;
+	using LayoutIns = typename layout_input_collector_args <Lifted> ::type;
+
 	auto vs = compile_function("main", vertex_shader);
 	auto fs = compile_function("main", fragment_shader);
 
-	auto unit = ShaderProgram() << vs << fs;
+	// auto fs = compile_function("main", fragment_shader);
+
+	// auto unit = ShaderProgram() << vs << fs;
 	
-	fmt::println("{}", ire::link(fs).generate_glsl());
+	// fmt::println("{}", ire::link(fs).generate_glsl());
 
 	// {
 	// 	auto buffer = compile_function("main", vertex_shader);
