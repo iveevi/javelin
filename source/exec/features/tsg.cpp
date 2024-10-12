@@ -46,6 +46,36 @@ struct noperspective;
 using namespace jvl;
 using namespace tsg;
 
+// Recursive initialization of lifted arguments
+template <typename T, typename ... Args>
+struct lift_initializer {
+	static void run(size_t binding, T &current, Args &...args) {
+		if constexpr (sizeof...(args))
+			return lift_initializer <Args...> ::run(binding, args...);
+	}
+};
+
+template <typename T, typename ... Args>
+struct lift_initializer <ire::layout_in <T>, Args...> {
+	static void run(size_t binding, ire::layout_in <T> &current, Args &... args) {	
+		current = ire::layout_in <T> (binding);
+		if constexpr (sizeof...(args))
+			return lift_initializer <Args...> ::run(binding + 1, args...);
+	}
+};
+
+template <typename ... Args>
+void lift_initialize_starter(Args &... args)
+{
+	return lift_initializer <Args...> ::run(0, args...);
+}
+
+template <typename ... Args>
+void lift_initialize_arguments(std::tuple <Args...> &args)
+{
+	return std::apply(lift_initialize_starter <Args...>, args);
+}
+
 // Lifting arguments
 // TODO: parameterize by stage using a template class?
 template <typename T>
@@ -215,6 +245,7 @@ struct verify_classification {
 };
 
 // Type-safe wrapper of a tracked buffer
+template <ShaderStageFlags>
 struct CompiledArtifact : thunder::TrackedBuffer {};
 
 // Full function compilation flow
@@ -237,23 +268,16 @@ auto compile_function(const std::string &name, const F &ftn)
 	// TODO: secondary check given the shader stage
 
 	// Begin code generation stage
-	CompiledArtifact buffer;
+	CompiledArtifact <flags> buffer;
 	buffer.name = name;
 
 	auto &em = ire::Emitter::active;
 	em.push(buffer);
 
-	if constexpr (has(flags, ShaderStageFlags::eVertex)) {
-		Args arguments = typename lift_argument <Args> ::type();
-		auto result = std::apply(ftn, arguments);
-		exporting(result);
-	}
-	
-	if constexpr (has(flags, ShaderStageFlags::eFragment)) {
-		auto arguments = typename lift_argument <Args> ::type();
-		auto result = std::apply(ftn, arguments);
-		exporting(result);
-	}
+	auto arguments = typename lift_argument <Args> ::type();
+	lift_initialize_arguments(arguments);
+	auto result = std::apply(ftn, arguments);
+	exporting(result);
 
 	// TODO: subroutine
 
@@ -273,25 +297,42 @@ auto vertex_shader(vertex_intrinsics, vec3 pos) -> std::tuple <position, vec3>
 }
 
 // TODO: deprecation warnings on unused layouts
-auto fragment_shader(fragment_intrinsics, vec3 pos) -> vec4
+auto fragment_shader(fragment_intrinsics, vec3 pos, vec2 normal) -> vec4
 {
 	return vec4(1, 0, 0, 0);
 }
 
-// TODO: vulkan linkage unit
+// Shader linkage unit
+template <ShaderStageFlags flags = ShaderStageFlags::eNone>
+struct ShaderProgram {
+	template <ShaderStageFlags other>
+	friend ShaderProgram <flags> operator<<(const ShaderProgram &, const CompiledArtifact <other> &) {
+		return {};
+	}
+};
+
+// Shader pipeline
+struct Pipline {
+
+};
 
 int main()
 {
-	// TODO: try forwarding tuple to another tuple constructor...
+	auto vs = compile_function("main", vertex_shader);
+	auto fs = compile_function("main", fragment_shader);
 
-	{
-		auto buffer = compile_function("main", vertex_shader);
-		thunder::opt_transform(buffer);
-		buffer.dump();
+	auto unit = ShaderProgram() << vs << fs;
+	
+	fmt::println("{}", ire::link(fs).generate_glsl());
 
-		auto s = ire::link(buffer).generate_glsl();
-		fmt::println("{}", s);
-	}
+	// {
+	// 	auto buffer = compile_function("main", vertex_shader);
+	// 	thunder::opt_transform(buffer);
+	// 	buffer.dump();
+
+	// 	auto s = ire::link(buffer).generate_glsl();
+	// 	fmt::println("{}", s);
+	// }
 	
 	// {
 	// 	auto buffer = compile_function("main", fragment_shader);

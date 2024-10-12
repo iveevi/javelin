@@ -59,7 +59,7 @@ template <native T, InterpolationKind kind>
 struct layout_in <T, kind> {
 	using arithmetic_type = native_t <T>;
 
-	const size_t binding;
+	size_t binding;
 
 	layout_in(size_t binding_ = 0) : binding(binding_) {}
 
@@ -79,7 +79,7 @@ struct layout_in <T, kind> {
 // Implementation for built-ins
 template <builtin T, InterpolationKind kind>
 struct layout_in <T, kind> : T {
-	const size_t binding;
+	size_t binding;
 
 	layout_in(size_t binding_ = 0) : binding(binding_) {
 		auto &em = Emitter::active;
@@ -97,7 +97,7 @@ struct layout_in <T, kind> : T {
 // Implementation for aggregate types
 template <aggregate T, InterpolationKind kind>
 struct layout_in <T, kind> : T {
-	const size_t binding;
+	size_t binding;
 
 	template <typename ... Args>
 	layout_in(size_t binding_, const Args &... args) : T(args...), binding(binding_) {
