@@ -4,8 +4,24 @@
 
 namespace jvl::tsg {
 
-using namespace jvl::ire;
+// Import declarations from the IRE
+using ire::generic;
 
+using ire::vec;
+
+using ire::i32;
+
+using ire::f32;
+using ire::vec2;
+using ire::vec3;
+using ire::vec4;
+
+using ire::end;
+using ire::cond;
+using ire::loop;
+
+// Shader stage intrinsics, used to indicate the
+// shader stage of a shader program metafunction
 struct vertex_intrinsics {};
 struct fragment_intrinsics {};
 // TODO: put discard here ^
@@ -15,42 +31,37 @@ struct position : vec4 {
 	position(const vec4 &other) : vec4(other.ref) {}
 };
 
-template <generic T, size_t B, InterpolationKind K = smooth>
-struct layout : layout_in <T, K> {
-	layout() : layout_in <T, K> (B) {}
-};
+// interpolation mode wrappers
+template <generic T>
+struct flat {};
+
+template <generic T>
+struct smooth {};
+
+template <generic T>
+struct noperspective;
 
 } // namespace jvl::tsg;
 
 using namespace jvl;
 using namespace tsg;
 
-// Injecting into function arguments based on the stage
-template <typename T, typename ... Args>
-void inject_indexed(size_t I, T &current, Args &... args)
-{
-	bool layout = false;
-	if constexpr (builtin <T>) {
-		current = layout_in <T> (I);
-		layout = true;
-	}
+// Lifting arguments
+// TODO: parameterize by stage using a template class?
+template <typename T>
+struct lift_argument {
+	using type = T;
+};
 
-	if constexpr (sizeof...(args))
-		return inject_indexed(I + layout, args...);
-}
-
-template <typename T, typename ... Args>
-void injecting(T &current, Args &... args)
-{
-	return inject_indexed(0, current, args...);
-}
+template <generic T>
+struct lift_argument <T> {
+	using type = ire::layout_in <T>;
+};
 
 template <typename ... Args>
-void injecting(std::tuple <Args...> &args)
-{
-	using ftn = void (Args &...);
-	return std::apply <ftn> (injecting <Args...>, args);
-}
+struct lift_argument <std::tuple <Args...>> {
+	using type = std::tuple <typename lift_argument <Args> ::type...>;
+};
 
 // Exporting the returns of a function based on the stage
 template <typename T, typename ... Args>
@@ -59,9 +70,9 @@ void export_indexed(size_t I, T &current, Args &... args)
 	bool layout = false;
 
 	if constexpr (std::same_as <T, position>) {
-		gl_Position = current;
-	} else if constexpr (builtin <T>) {
-		layout_out <T> lout(I);
+		ire::gl_Position = current;
+	} else if constexpr (ire::builtin <T>) {
+		ire::layout_out <T> lout(I);
 		lout = current;
 		layout = true;
 	}
@@ -112,7 +123,7 @@ struct signature <std::function <R (Args...)>> {
 	using arguments = std::tuple <std::decay_t <Args>...>;
 };
 
-enum class UsageFlags : uint16_t {
+enum class ShaderStageFlags : uint16_t {
 	eNone		= 0,
 	eVertex		= 1 << 0,
 	eFragment	= 1 << 1,
@@ -122,9 +133,11 @@ enum class UsageFlags : uint16_t {
 	eSubroutine	= 1 << 5,
 };
 
-enum class ErrorFlags : uint16_t {
+enum class ClassificationErrorFlags : uint16_t {
 	eOk			= 0,
 	eDuplicateVertex	= 1 << 0,
+	eDuplicateFragment	= 1 << 1,
+	eMultipleStages		= 1 << 2,
 };
 
 #define flag_operators(T, base)						\
@@ -137,30 +150,50 @@ enum class ErrorFlags : uint16_t {
 		return ((base(A) & base(B)) == base(B));		\
 	}
 
-flag_operators(UsageFlags, uint16_t)
-flag_operators(ErrorFlags, uint16_t)
+flag_operators(ShaderStageFlags, uint16_t)
+flag_operators(ClassificationErrorFlags, uint16_t)
 
 template <typename ... Args>
 struct classifier {
-	static constexpr UsageFlags flags = UsageFlags::eNone;
+	static constexpr ShaderStageFlags flags = ShaderStageFlags::eNone;
 	
 	// Only so that the default is a subroutine
-	static constexpr UsageFlags resolved = UsageFlags::eSubroutine;
+	static constexpr ShaderStageFlags resolved = ShaderStageFlags::eSubroutine;
 	
-	static constexpr ErrorFlags status() {
-		return ErrorFlags::eOk;
+	static constexpr ClassificationErrorFlags status() {
+		return ClassificationErrorFlags::eOk;
 	}
 };
 
 template <typename ... Args>
 struct classifier <vertex_intrinsics, Args...> {
 	using prev = classifier <Args...>;
-	static constexpr UsageFlags flags = UsageFlags::eVertex + prev::flags;
-	static constexpr UsageFlags resolved = flags;
+	static constexpr ShaderStageFlags flags = ShaderStageFlags::eVertex;
+	static constexpr ShaderStageFlags resolved = flags;
 	
-	static constexpr ErrorFlags status() {
-		if constexpr (has(prev::flags, UsageFlags::eVertex))
-			return prev::status() + ErrorFlags::eDuplicateVertex;
+	static constexpr ClassificationErrorFlags status() {
+		if constexpr (has(prev::flags, ShaderStageFlags::eVertex))
+			return prev::status() + ClassificationErrorFlags::eDuplicateVertex;
+
+		if constexpr (prev::flags != ShaderStageFlags::eNone)
+			return prev::status() + ClassificationErrorFlags::eMultipleStages;
+
+		return prev::status();
+	}
+};
+
+template <typename ... Args>
+struct classifier <fragment_intrinsics, Args...> {
+	using prev = classifier <Args...>;
+	static constexpr ShaderStageFlags flags = ShaderStageFlags::eFragment;
+	static constexpr ShaderStageFlags resolved = flags;
+	
+	static constexpr ClassificationErrorFlags status() {
+		if constexpr (has(prev::flags, ShaderStageFlags::eFragment))
+			return prev::status() + ClassificationErrorFlags::eDuplicateFragment;
+		
+		if constexpr (prev::flags != ShaderStageFlags::eNone)
+			return prev::status() + ClassificationErrorFlags::eMultipleStages;
 
 		return prev::status();
 	}
@@ -169,9 +202,16 @@ struct classifier <vertex_intrinsics, Args...> {
 template <typename ... Args>
 struct classifier <std::tuple <Args...>> : classifier <Args...> {};
 
-template <ErrorFlags F>
+template <ClassificationErrorFlags F>
 struct verify_classification {
-	static_assert(!has(F, ErrorFlags::eDuplicateVertex));
+	static_assert(!has(F, ClassificationErrorFlags::eDuplicateVertex),
+		"Vertexshader program must use a single stage intrinsic parameter");
+
+	static_assert(!has(F, ClassificationErrorFlags::eDuplicateFragment),
+		"Fragment shader program must use a single stage intrinsic parameter");
+
+	static_assert(!has(F, ClassificationErrorFlags::eMultipleStages),
+		"Shader program cannot use multiple stage intrinsics");
 };
 
 // Type-safe wrapper of a tracked buffer
@@ -200,18 +240,22 @@ auto compile_function(const std::string &name, const F &ftn)
 	CompiledArtifact buffer;
 	buffer.name = name;
 
-	auto &em = Emitter::active;
+	auto &em = ire::Emitter::active;
 	em.push(buffer);
 
-	if constexpr (has(flags, UsageFlags::eVertex)) {
-		auto arguments = Args();
-		
-		injecting(arguments);
-
+	if constexpr (has(flags, ShaderStageFlags::eVertex)) {
+		Args arguments = typename lift_argument <Args> ::type();
 		auto result = std::apply(ftn, arguments);
-
 		exporting(result);
 	}
+	
+	if constexpr (has(flags, ShaderStageFlags::eFragment)) {
+		auto arguments = typename lift_argument <Args> ::type();
+		auto result = std::apply(ftn, arguments);
+		exporting(result);
+	}
+
+	// TODO: subroutine
 
 	em.pop();
 
@@ -219,26 +263,42 @@ auto compile_function(const std::string &name, const F &ftn)
 }
 
 // Testing
-std::tuple <position, vec3> vertex_shader(vertex_intrinsics one, vec3 pos)
+auto vertex_shader(vertex_intrinsics, vec3 pos) -> std::tuple <position, vec3>
 {
 	cond(pos.x > 0.0f);
 		pos.y = 1.0f;
 	end();
 
-	cond(pos.z == 0.0f);
-		discard();
-	end();
-
 	return std::make_tuple(vec4(pos, 1), vec3());
 }
 
+// TODO: deprecation warnings on unused layouts
+auto fragment_shader(fragment_intrinsics, vec3 pos) -> vec4
+{
+	return vec4(1, 0, 0, 0);
+}
+
+// TODO: vulkan linkage unit
+
 int main()
 {
-	auto buffer = compile_function("main", vertex_shader);
-	thunder::opt_transform(buffer);
-	buffer.dump();
+	// TODO: try forwarding tuple to another tuple constructor...
 
-	auto s = link(buffer).generate_glsl();
+	{
+		auto buffer = compile_function("main", vertex_shader);
+		thunder::opt_transform(buffer);
+		buffer.dump();
 
-	fmt::println("{}", s);
+		auto s = ire::link(buffer).generate_glsl();
+		fmt::println("{}", s);
+	}
+	
+	// {
+	// 	auto buffer = compile_function("main", fragment_shader);
+	// 	thunder::opt_transform(buffer);
+	// 	buffer.dump();
+
+	// 	auto s = ire::link(buffer).generate_glsl();
+	// 	fmt::println("{}", s);
+	// }
 }

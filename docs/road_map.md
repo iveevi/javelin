@@ -29,11 +29,11 @@
 - [ ] Partial evaluation of callables
 - [ ] Duplicate bindings with dead code elimination
 - [x] Lambdas with capture
+- [x] Deferred declarations for runtime specialization
 
-## Pipeline Generation
+## Type Safe Graphics
 
-- [ ] Vertex layout inference
-	- Generating a buffer with this information from a variant mesh
+- [x] Layout input and output inference
 - [ ] Descriptor set layout binding generation
 
 ## Editor
