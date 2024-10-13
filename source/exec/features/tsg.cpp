@@ -492,10 +492,208 @@ struct ShaderProgram <ShaderStageFlags::eVertex, Specifiers...> {
 	}
 };
 
+// Indexing variadic arguments
+template <size_t I, typename ... Args>
+struct indexer {};
+
+template <typename T, typename ... Args>
+struct indexer <0, T, Args...> {
+	using type = T;
+};
+
+template <size_t I, typename ... Args>
+using type_at = indexer <I, Args...> ::type;
+
+// Filtering stage requirements (transformed)
+template <ShaderStageFlags F, generic T, size_t N>
+struct RequirementOut {};
+
+struct SatisfiedRequirement {};
+struct EmptyRequirement {};
+
+template <typename T>
+struct is_requirement_type : std::false_type {};
+
+template <ShaderStageFlags F, generic T, size_t N>
+struct is_requirement_type <RequirementOut <F, T, N>> : std::true_type {};
+
+template <>
+struct is_requirement_type <EmptyRequirement> : std::true_type {};
+
+template <>
+struct is_requirement_type <SatisfiedRequirement> : std::true_type {};
+
+template <typename T>
+concept requirement = is_requirement_type <T> ::value;
+
+template <requirement ... Requirements>
+struct RequirementVector {
+	using filtered = RequirementVector <Requirements...>;
+
+	template <requirement R>
+	using inserted = RequirementVector <R, Requirements...>;
+};
+
+template <requirement R, requirement ... Requirements>
+struct RequirementVector <R, Requirements...> {
+	using sub_filtered = RequirementVector <Requirements...> ::filtered;
+	using filtered = sub_filtered::template inserted <R>;
+	
+	template <requirement Rs>
+	using inserted = RequirementVector <Rs, R, Requirements...>;
+};
+
+template <requirement ... Requirements>
+struct RequirementVector <EmptyRequirement, Requirements...> {
+	using filtered = RequirementVector <Requirements...> ::filtered;
+	
+	template <requirement R>
+	using inserted = RequirementVector <R, EmptyRequirement, Requirements...>;
+};
+
+template <specifier S>
+struct layout_requirement {
+	using type = EmptyRequirement;
+};
+
+template <generic T, size_t N>
+struct layout_requirement <LayoutIn <ShaderStageFlags::eFragment, T, N>> {
+	using type = RequirementOut <ShaderStageFlags::eVertex, T, N>;
+};
+
+// Filtering out stage outputs
+template <ShaderStageFlags F, generic T, size_t N>
+struct StageOut {};
+
+// TODO: easier concept creation; e.g. type_accepter <...> but templates could be problematic -- template template parameters?
+template <typename T>
+struct is_stage_out_type : std::false_type {};
+
+template <ShaderStageFlags F, generic T, size_t N>
+struct is_stage_out_type <StageOut <F, T, N>> : std::true_type {};
+
+template <typename T>
+concept stage_output = is_stage_out_type <T> ::value;
+
+template <stage_output ... Outputs>
+struct StageOutputs {};
+
+template <typename Container, specifier ... Specifiers>
+struct append_stage_outputs {};
+
+template <stage_output ... Outputs, specifier ... Specifiers>
+struct append_stage_outputs <StageOutputs <Outputs...>, Specifiers...> {
+	using result = StageOutputs <Outputs...>;
+};
+
+template <stage_output ... Outputs, specifier S, specifier ... Specifiers>
+struct append_stage_outputs <StageOutputs <Outputs...>, S, Specifiers...> {
+	using current = StageOutputs <Outputs...>;
+	using result = typename append_stage_outputs <current, Specifiers...> ::result;
+};
+
+template <stage_output ... Outputs, ShaderStageFlags F, generic T, size_t N, specifier ... Specifiers>
+struct append_stage_outputs <StageOutputs <Outputs...>, LayoutOut <F, T, N>, Specifiers...> {
+	using current = StageOutputs <Outputs..., StageOut <F, T, N>>;
+	using result = typename append_stage_outputs <current, Specifiers...> ::result;
+};
+
+// Requirement satisfiability check
+template <requirement R, stage_output ... Outputs>
+struct satisfied {
+	using result = R;
+};
+
+template <requirement R, stage_output O, stage_output ... Outputs>
+struct satisfied <R, O, Outputs...> {
+	using result = satisfied <R, Outputs...> ::result;
+};
+
+template <ShaderStageFlags F, generic T, size_t N, stage_output ... Outputs>
+struct satisfied <RequirementOut <F, T, N>, StageOut <F, T, N>, Outputs...> {
+	using result = SatisfiedRequirement;
+};
+
+// TODO: replace with decltype
+template <typename Rs, typename Os>
+struct satisfied_mega {};
+
+template <requirement ... Requirements, stage_output ... Outputs>
+struct satisfied_mega <RequirementVector <Requirements...>, StageOutputs <Outputs...>> {
+	using result = RequirementVector <typename satisfied <Requirements, Outputs...> ::result...>;
+};
+
+// Error stage for requirements
+// TODO: array based approach
+template <requirement ... Requirements>
+struct requirement_error_report {};
+
+template <requirement R, requirement ... Requirements>
+struct requirement_error_report <R, Requirements...> {
+	using next = requirement_error_report <Requirements...>;
+	static constexpr next n;
+};
+
+template <ShaderStageFlags F, generic T, size_t N, requirement ... Requirements>
+struct requirement_error_report <RequirementOut <F, T, N>, Requirements...> {
+	static_assert(false, "shader stage is missing output...");
+	using next = requirement_error_report <Requirements...>;
+	static constexpr next n;
+};
+
+template <typename T>
+struct requirement_error_report_vector {};
+
+template <requirement ... Requirements>
+struct requirement_error_report_vector <RequirementVector <Requirements...>> {
+	using type = requirement_error_report <Requirements...>;
+};
+
+// Status
+template <requirement R>
+struct requirement_status {
+	static constexpr bool status = true;
+};
+
+template <ShaderStageFlags F, generic T, size_t N>
+struct requirement_status <RequirementOut <F, T, N>> {
+	static constexpr bool status = false;
+};
+
+template <requirement R, requirement ... Requirements>
+constexpr bool verification_status()
+{
+	using reporter = requirement_status <R>;
+	if constexpr (sizeof...(Requirements))
+		return reporter::status && verification_status <Requirements...> ();
+
+	return reporter::status;
+}
+
+template <requirement ... Requirements>
+constexpr bool verification_status(const RequirementVector <Requirements...> &reqs)
+{
+	if constexpr (sizeof...(Requirements))
+		return verification_status <Requirements...> ();
+
+	return true;
+}
+
+// Layout verification
+template <specifier ... Specifiers>
+struct verify_layouts {
+	using raw_requirements = RequirementVector <typename layout_requirement <Specifiers> ::type...>;
+	using requirements = typename raw_requirements::filtered;
+	using outputs = typename append_stage_outputs <StageOutputs <>, Specifiers...> ::result;
+	using satisfied = typename satisfied_mega <requirements, outputs> ::result;
+};
+
 template <specifier ... Specifiers>
 struct ShaderProgram <ShaderStageFlags::eVxF, Specifiers...> {
 	thunder::TrackedBuffer ir_vertex;
 	thunder::TrackedBuffer ir_fragment;
+
+	using VL = verify_layouts <Specifiers...>;
 };
 
 // Shader pipeline
@@ -521,6 +719,16 @@ int main()
 
 	auto unit = ShaderProgram();
 	auto next = unit << vs << fs;
+
+	using SP = decltype(next);
+	using VL = SP::VL;
+	using Reqs = VL::raw_requirements;
+	using FReqs = VL::requirements;
+	using Outs = VL::outputs;
+	using Sats = VL::satisfied;
+	using Errs = requirement_error_report_vector <Sats> ::type::next;
+
+	constexpr bool status = verification_status(Sats());
 
 	// auto fs = compile_function("main", fragment_shader);
 
