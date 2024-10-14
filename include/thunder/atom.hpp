@@ -172,12 +172,11 @@ static_assert(atom_instruction <List>);
 //
 //   type: type to construct
 //   args: reference to a List chain of arguments
-//   transient: whether the constructed item requires concrete storage
+//   mode: construction mode
 struct Construct {
 	index_t type = -1;
 	index_t args = -1;
-	bool transient = false;
-	// TODO: mode: normal, assign, transient
+	ConstructorMode mode = normal;
 
 	bool operator==(const Construct &) const;
 	Addresses addresses();

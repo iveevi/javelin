@@ -195,7 +195,7 @@ std::string c_like_generator_t::reference(index_t index) const
 	case Atom::type_index <Construct> ():
 	{
 		auto &constructor = atom.as <Construct> ();
-		if (constructor.transient)
+		if (constructor.mode == transient)
 			return inlined(constructor.type);
 	} break;
 
@@ -270,7 +270,7 @@ std::string c_like_generator_t::inlined(index_t index) const
 	case Atom::type_index <Construct> ():
 	{
 		auto &constructor = atom.as <Construct> ();
-		if (constructor.transient)
+		if (constructor.mode == transient)
 			return inlined(constructor.type);
 
 		auto t = type_to_string(types[index]);
@@ -428,7 +428,7 @@ void c_like_generator_t::generate(const Intrinsic &intrinsic, index_t index)
 template <>
 void c_like_generator_t::generate(const Construct &construct, index_t index)
 {
-	if (construct.transient)
+	if (construct.mode == transient)
 		return;
 
 	if (construct.args == -1)

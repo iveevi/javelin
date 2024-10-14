@@ -81,7 +81,7 @@ bool opt_transform_constructor_elision(Buffer &result)
 		// NOTE: this assumes that the constructor is a
 		// plain initializer list and that it is in order
 		Construct construct = atom.as <Construct> ();
-		if (construct.transient)
+		if (construct.mode == transient)
 			continue;
 
 		index_t arg = construct.args;

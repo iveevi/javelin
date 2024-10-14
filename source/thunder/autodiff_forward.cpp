@@ -239,7 +239,7 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 
 		index_t type = synthesize_dual_type(context.types[index]);
 		index_t args = em.emit_list_chain(primal, dual);
-		em.emit_construct(type, args, false);
+		em.emit_construct(type, args, normal);
 	} break;
 
 	case Atom::type_index <Intrinsic> ():

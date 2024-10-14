@@ -389,4 +389,22 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 
 static_assert(__io_end + 1 == sizeof(tbl_intrinsic_operation)/sizeof(const char *));
 
+///////////////////////
+// Constructor modes //
+///////////////////////
+
+enum ConstructorMode : uint8_t {
+	normal,
+	assignment,
+	transient,
+	__cm_end,
+};
+
+static constexpr const char *tbl_constructor_mode[] = {
+	"normal",
+	"assignment",
+	"transient",
+	"__end",
+};
+
 } // namespace jvl::thunder

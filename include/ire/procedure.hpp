@@ -26,7 +26,7 @@ struct Procedure : thunder::TrackedBuffer {
 			auto layout = x.layout().remove_const();
 			thunder::index_t t = type_field_from_args(layout).id;
 			thunder::index_t q = em.emit_qualifier(t, index, thunder::parameter);
-			thunder::index_t c = em.emit_construct(q, -1, true);
+			thunder::index_t c = em.emit_construct(q, -1, thunder::transient);
 			layout.ref_with(cache_index_t::from(c));
 		} else if constexpr (builtin <type_t>) {
 			auto &x = std::get <index> (tpl);
@@ -35,7 +35,7 @@ struct Procedure : thunder::TrackedBuffer {
 			
 			thunder::index_t t = type_field_from_args <T> ().id;
 			thunder::index_t q = em.emit_qualifier(t, index, thunder::parameter);
-			x.ref = em.emit_construct(q, -1, true);
+			x.ref = em.emit_construct(q, -1, thunder::transient);
 		} else {
 			// Otherwise treat it as a parameter for Type I partial specialization
 		}

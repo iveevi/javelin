@@ -21,7 +21,7 @@ struct array_base <T> : public tagged {
 		auto &em = Emitter::active;
 		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
 		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
-		this->ref = em.emit_construct(qualifier, -1, false);
+		this->ref = em.emit_construct(qualifier, -1, thunder::normal);
 	}
 
 	// TODO: zero initializing constructor
@@ -31,7 +31,7 @@ struct array_base <T> : public tagged {
 		thunder::index_t l = list_from_args(args...);
 		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
 		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
-		this->ref = em.emit_construct(qualifier, l, false);
+		this->ref = em.emit_construct(qualifier, l, thunder::normal);
 	}
 };
 
@@ -45,7 +45,7 @@ struct array_base <T> : public tagged {
 		auto &em = Emitter::active;
 		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
 		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
-		this->ref = em.emit_construct(qualifier, -1, false);
+		this->ref = em.emit_construct(qualifier, -1, thunder::normal);
 	}
 
 	// TODO: zero initializing constructor
@@ -55,7 +55,7 @@ struct array_base <T> : public tagged {
 		thunder::index_t l = list_from_args(args...);
 		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
 		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
-		this->ref = em.emit_construct(qualifier, l, false);
+		this->ref = em.emit_construct(qualifier, l, thunder::normal);
 	}
 
 	template <size_t N>
@@ -64,7 +64,7 @@ struct array_base <T> : public tagged {
 		thunder::index_t l = list_from_array(args);
 		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
 		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
-		this->ref = em.emit_construct(qualifier, l, false);
+		this->ref = em.emit_construct(qualifier, l, thunder::normal);
 	}
 	
 	array_base(const std::vector <T> &args) : length(args.size()) {
@@ -72,7 +72,7 @@ struct array_base <T> : public tagged {
 		thunder::index_t l = list_from_vector(args);
 		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
 		thunder::index_t qualifier = em.emit_qualifier(underlying, length, thunder::arrays);
-		this->ref = em.emit_construct(qualifier, l, false);
+		this->ref = em.emit_construct(qualifier, l, thunder::normal);
 	}
 };
 
@@ -87,7 +87,7 @@ struct array_base <T> : public tagged {
 		auto layout = T().layout();
 		thunder::index_t underlying = type_field_from_args(layout).id;
 		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
-		this->ref = em.emit_construct(qualifier, -1, false);
+		this->ref = em.emit_construct(qualifier, -1, thunder::normal);
 	}
 
 	// TODO: zero initializing constructor
@@ -98,7 +98,7 @@ struct array_base <T> : public tagged {
 		auto layout = T().layout();
 		thunder::index_t underlying = type_field_from_args(layout).id;
 		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
-		this->ref = em.emit_construct(qualifier, l, false);
+		this->ref = em.emit_construct(qualifier, l, thunder::normal);
 	}
 };
 

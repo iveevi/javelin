@@ -76,7 +76,7 @@ QualifiedType Buffer::classify(index_t i) const
 		auto &constructor = atom.as <Construct> ();
 
 		QualifiedType qt = classify(constructor.type);
-		if (constructor.transient || qt.is <PlainDataType> ())
+		if (constructor.mode == transient || qt.is <PlainDataType> ())
 			return qt;
 
 		return QualifiedType::concrete(constructor.type);

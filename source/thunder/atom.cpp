@@ -191,7 +191,7 @@ bool Construct::operator==(const Construct &other) const
 {
         return (type == other.type)
                 && (args == other.args)
-                && (transient == other.transient);
+                && (mode == other.mode);
 }
 
 Addresses Construct::addresses()
@@ -203,10 +203,11 @@ std::string Construct::to_string() const
 {
         std::string result;
 
-        if (transient)
-		return fmt::format("{:15} transient(%{})", "CONSTRUCT", type);
+        result += fmt::format("{:15} {}: type: %{} args: ",
+                "CONSTRUCT",
+                tbl_constructor_mode[mode],
+                type);
 
-        result += fmt::format("{:15} type: %{} args: ", "CONSTRUCT", type);
         if (args == -1)
 		result += "(nil)";
         else

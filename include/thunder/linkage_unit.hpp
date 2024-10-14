@@ -44,6 +44,7 @@ struct push_constant_info : local_layout_type {
 };
 
 struct LinkageUnit {
+	// TODO: dirty flag for caching
 	std::set <index_t> loaded;
 	std::vector <Function> functions;
 	std::vector <Aggregate> aggregates;
