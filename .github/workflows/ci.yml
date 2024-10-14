@@ -39,7 +39,7 @@ jobs:
         run: |
           export CC=${{ matrix.compiler.c }} CXX=${{ matrix.compiler.cxx }}
           cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build }} -DENABLE_COVERAGE=ON .
-          cmake --build build -j -t test
+          cmake --build build -j 4 -t test
       - name: test
         run: ./build/test
       - name: coverage
