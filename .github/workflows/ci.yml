@@ -31,6 +31,10 @@ jobs:
         with:
           submodules: 'true'
           fetch-depth: '0'
+      - name: configure
+        run: |
+          cd thirdparty/glslang
+          python update_glslang_sources.py
       - name: build
         run: |
           export CC=${{ matrix.compiler.c }} CXX=${{ matrix.compiler.cxx }}

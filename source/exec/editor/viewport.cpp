@@ -163,7 +163,7 @@ void Viewport::display_handle(const RenderingInfo &info)
 
 	if (ImGui::BeginPopup(view_mode_popup_title.c_str())) {
 		bool selected = false;
-		for (int32_t i = 0; i < uint32_t(RenderMode::eCount); i++) {
+		for (int32_t i = 0; i < int32_t(RenderMode::eCount); i++) {
 			if (i == uint32_t(RenderMode::eBackup))
 				continue;
 

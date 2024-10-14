@@ -267,7 +267,7 @@ void ViewportRenderGroup::configure_pipeline_backup(DeviceResourceCollection &dr
 
 void ViewportRenderGroup::configure_pipelines(DeviceResourceCollection &drc)
 {
-	for (int32_t i = 0; i < uint32_t(RenderMode::eCount); i++) {
+	for (int32_t i = 0; i < int32_t(RenderMode::eCount); i++) {
 		if (i != uint32_t(RenderMode::eAlbedo)
 			&& i != uint32_t(RenderMode::eBackup))
 			configure_pipeline_mode(drc, (RenderMode) i);
@@ -393,7 +393,7 @@ void ViewportRenderGroup::prepare_albedo(const RenderingInfo &info)
 	}
 
 	for (auto i : materials) {
-		JVL_ASSERT(i >= 0 && i < scene.materials.size(),
+		JVL_ASSERT(i >= 0 && i < int32_t(scene.materials.size()),
 			"material index ({}) is out of bounds ({} materials active)",
 			i, scene.materials.size());
 
@@ -459,7 +459,7 @@ void ViewportRenderGroup::render_albedo(const RenderingInfo &info,
 	for (auto &mesh : scene.meshes) {
 		auto mid = *mesh.material_usage.begin();
 
-		JVL_ASSERT(mid >= 0 && mid < scene.materials.size(),
+		JVL_ASSERT(mid >= 0 && mid < int32_t(scene.materials.size()),
 			"mesh material index ({}) is out of bounds ({} materials active)",
 			mid, scene.materials.size());
 

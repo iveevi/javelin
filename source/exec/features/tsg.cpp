@@ -647,7 +647,7 @@ struct dedicated_reporter {
 template <ShaderStageFlags S, ShaderStageFlags F, generic T, size_t N, requirement ... Requirements>
 struct requirement_error_report <RequirementOut <S, F, T, N>, Requirements...> {
 	static constexpr auto next = requirement_error_report <Requirements...>();
-	static constexpr dedicated_reporter <S, F, T, N> r;
+	static constexpr auto reporter = dedicated_reporter <S, F, T, N> ();
 };
 
 template <typename T>

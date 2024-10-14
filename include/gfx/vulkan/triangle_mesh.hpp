@@ -10,7 +10,7 @@
 namespace jvl::gfx::vulkan {
 
 struct InterleaveResult {
-	buffer <float> buffer;
+	buffer <float> data;
 	VertexFlags enabled;
 };
 
@@ -89,7 +89,7 @@ struct TriangleMesh : core::Unique {
 		vmesh.count = 3 * tmesh.triangles.size();
 
 		std::tie(vmesh.vertices, vmesh.triangles) = allocator
-			.buffer(result.buffer,
+			.buffer(result.data,
 				vk::BufferUsageFlagBits::eTransferDst
 				| vk::BufferUsageFlagBits::eVertexBuffer)
 			.buffer(tmesh.triangles,

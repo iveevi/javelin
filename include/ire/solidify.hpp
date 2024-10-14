@@ -91,7 +91,7 @@ struct error_solid {
 
 template <size_t Offset, typename T, typename ... Args>
 struct solid_builder <Offset, T, Args...> {
-	static constexpr error_solid <T> error;
+	static constexpr auto error = error_solid <T> ();
 	using type = aggregate_storage <>;
 };
 
