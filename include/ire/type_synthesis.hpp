@@ -15,7 +15,7 @@ template <typename T>
 constexpr thunder::PrimitiveType synthesize_primitive_type();
 
 // Automatically determining layout types
-template <string_literal name, non_trivial_generic T>
+template <string_literal name, non_native_generic T>
 inline auto field(const T &ref)
 {
 	return __field <name, T> (&static_cast <const tagged &> (ref));

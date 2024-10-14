@@ -11,7 +11,7 @@
 namespace jvl::ire {
 
 // Internal construction of procedures
-template <non_trivial_generic_or_void R, typename ... Args>
+template <void_or_non_native_generic R, typename ... Args>
 struct Procedure : thunder::TrackedBuffer {
 	template <size_t index>
 	void __fill_parameter_references(std::tuple <Args...> &tpl)
@@ -48,9 +48,9 @@ struct Procedure : thunder::TrackedBuffer {
 		Emitter::active.push(*this);
 	}
 
-	void call(std::tuple <Args...> &args)
-	requires (sizeof...(Args) > 0) {
-		__fill_parameter_references <0> (args);
+	void call(std::tuple <Args...> &args) {
+		if constexpr (sizeof...(Args))
+			__fill_parameter_references <0> (args);
 	}
 
 	void end() {
@@ -104,7 +104,7 @@ concept acceptable_callable = std::is_function_v <F> || requires(const F &ftn) {
 	{ std::function(ftn) };
 };
 
-template <non_trivial_generic_or_void R, typename ... Args>
+template <void_or_non_native_generic R, typename ... Args>
 struct signature_pair {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;
@@ -113,17 +113,6 @@ struct signature_pair {
 
 	template <typename RR>
 	using manual_procedure = Procedure <RR, std::decay_t <Args>...>;
-};
-
-template <non_trivial_generic_or_void R>
-struct signature_pair <R> {
-	using return_t = R;
-	using args_t = std::nullopt_t;
-
-	using procedure = Procedure <R>;
-
-	template <typename RR>
-	using manual_procedure = Procedure <RR>;
 };
 
 template <typename R, typename ... Args>
@@ -154,7 +143,7 @@ struct signature {
 };
 
 // Exception for real functions, which cannot be instantiated
-template <non_trivial_generic R, typename ... Args>
+template <non_native_generic R, typename ... Args>
 struct signature <R (Args...)> {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;
@@ -168,7 +157,7 @@ struct signature <R (Args...)> {
 }
 
 // Interface for constructing callables from functions
-template <non_trivial_generic_or_void R = void>
+template <void_or_non_native_generic R = void>
 struct procedure {
 	std::string name;
 
@@ -176,29 +165,29 @@ struct procedure {
 		: name(name_) {}
 };
 
-template <non_trivial_generic_or_void R, typename ... Args>
+template <void_or_non_native_generic R, typename ... Args>
 struct procedure_with_args : procedure <R> {
 	std::tuple <Args...> args;
-
+	
 	procedure_with_args(const std::string &name_,
 		      const std::tuple <Args...> &args_)
 		: procedure <R> (name_), args(args_) {}
 };
 
-template <non_trivial_generic_or_void R, typename ... Args>
+template <void_or_non_native_generic R, typename ... Args>
 auto operator<<(const procedure <R> &C, const std::tuple <Args...> &args)
 {
 	return procedure_with_args <R, Args...> (C.name, args);
 }
 
-template <non_trivial_generic_or_void R, typename T>
+template <void_or_non_native_generic R, typename T>
 requires (!detail::acceptable_callable <T>)
 auto operator<<(const procedure <R> &C, const T &arg)
 {
 	return procedure_with_args <R, T> (C.name, std::make_tuple(arg));
 }
 
-template <non_trivial_generic_or_void R, detail::acceptable_callable F, typename ... Args>
+template <void_or_non_native_generic R, detail::acceptable_callable F, typename ... Args>
 requires (!std::same_as <typename detail::signature <F> ::return_t, void>)
 auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 {
@@ -213,25 +202,20 @@ auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 
 	typename S::procedure cbl;
 	cbl.begin();
-		if constexpr (std::same_as <typename S::args_t, std::nullopt_t>) {
-			auto values = ftn();
-			returns(values);
-		} else {
-			auto args = typename S::args_t();
-			if constexpr (sizeof...(Args))
-				args = C.args;
+		auto args = typename S::args_t();
+		if constexpr (sizeof...(Args))
+			args = C.args;
 
-			cbl.call(args);
-			auto values = std::apply(ftn, args);
-			returns(values);
-		}
+		cbl.call(args);
+		auto values = std::apply(ftn, args);
+		returns(values);
 	cbl.end();
 
 	return cbl.named(C.name);
 }
 
 // Void functions are presumbed to contain returns(...) statements already
-template <non_trivial_generic_or_void R, detail::acceptable_callable F, typename ... Args>
+template <void_or_non_native_generic R, detail::acceptable_callable F, typename ... Args>
 requires (std::same_as <typename detail::signature <F> ::return_t, void>)
 auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 {
@@ -248,22 +232,18 @@ auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 
 	typename S::template manual_prodecure <R> cbl;
 	cbl.begin();
-		if constexpr (std::same_as <typename S::args_t, std::nullopt_t>) {
-			ftn();
-		} else {
-			auto args = typename S::args_t();
-			if constexpr (sizeof...(Args))
-				args = C.args;
+		auto args = typename S::args_t();
+		if constexpr (sizeof...(Args))
+			args = C.args;
 
-			cbl.call(args);
-			std::apply(ftn, args);
-		}
+		cbl.call(args);
+		std::apply(ftn, args);
 	cbl.end();
 
 	return cbl.named(C.name);
 }
 
-template <non_trivial_generic_or_void R, typename F>
+template <void_or_non_native_generic R, typename F>
 requires detail::acceptable_callable <F>
 auto operator<<(const procedure <R> &C, F ftn)
 {
