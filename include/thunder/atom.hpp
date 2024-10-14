@@ -177,6 +177,7 @@ struct Construct {
 	index_t type = -1;
 	index_t args = -1;
 	bool transient = false;
+	// TODO: mode: normal, assign, transient
 
 	bool operator==(const Construct &) const;
 	Addresses addresses();

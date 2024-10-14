@@ -27,6 +27,8 @@ add_subdirectory(thirdparty/nativefiledialog-extended)
 # FreeType2 for font loading
 add_subdirectory(thirdparty/freetype)
 
+add_subdirectory(thirdparty/glslang)
+
 # Include directories
 include_directories(.
 	include
@@ -78,6 +80,8 @@ target_compile_options(javelin-ire PRIVATE
 target_link_libraries(javelin-ire
 	fmt::fmt
 	gccjit
+	glslang::glslang
+	glslang::glslang-default-resource-limits
 	$<$<CONFIG:Debug>:--coverage>)
 
 target_compile_definitions(javelin-ire PRIVATE

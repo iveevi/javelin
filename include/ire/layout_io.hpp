@@ -88,6 +88,12 @@ struct layout_in <T, kind> : T {
 		thunder::index_t value = em.emit_construct(lin, -1, true);
 		this->ref = value;
 	}
+
+	layout_in &operator=(const layout_in &other) {
+		binding = other.binding;
+		this->ref = other.ref;
+		return *this;
+	}
 	
 	operator typename T::arithmetic_type() const {
 		return arithmetic_type(T::synthesize());

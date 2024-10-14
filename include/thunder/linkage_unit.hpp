@@ -3,6 +3,8 @@
 #include <map>
 #include <set>
 
+#include <vulkan/vulkan.hpp>
+
 #include "buffer.hpp"
 #include "tracked_buffer.hpp"
 
@@ -68,8 +70,13 @@ struct LinkageUnit {
 	
 	auto configure_generators() const;
 
+	// Generating code
 	std::string generate_glsl() const;
 	std::string generate_cpp() const;
+
+	// TODO: conditional guard for SPIRV support
+	std::vector <uint32_t> generate_spirv(const vk::ShaderStageFlagBits &) const;
+
 	void *jit() const;
 };
 

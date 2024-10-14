@@ -303,6 +303,10 @@ struct vec : swizzle_base <T, N> {
 	using swizzle_base <T, N> ::swizzle_base;
 
 	using arithmetic_type = vec <T, N>;
+	
+	vec(const vec &other) : vec() {
+		operator=(other);
+	}
 
 	vec &operator=(const vec &other) {
 		auto &em = Emitter::active;

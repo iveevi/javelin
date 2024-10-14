@@ -9,7 +9,7 @@
 	url = https://github.com/ocornut/imgui
 [submodule "thirdparty/glslang"]
 	path = thirdparty/glslang
-	url = https://github.com/KhronosGroup/glslang
+	url = https://github.com/KhronosGroup/glslang.git
 [submodule "thirdparty/stb"]
 	path = thirdparty/stb
 	url = https://github.com/nothings/stb.git
