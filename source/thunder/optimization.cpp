@@ -123,6 +123,24 @@ bool opt_transform_dce_exempt(const Atom &atom)
 		|| atom.is <Branch> ();
 }
 
+bool opt_transform_dce_override(const Atom &atom)
+{
+	// Even if the atom is exempt, it may be subject to removal
+	switch (atom.index()) {
+	variant_case(Atom, Store):
+	{
+		// Check for spurious no-op stores
+		auto &store = atom.as <Store> ();
+		return store.dst == store.src;
+	}
+
+	default:
+		break;	
+	}
+
+	return false;
+}
+
 bool opt_transform_dead_code_elimination(Buffer &result)
 {
 	usage_graph graph = usage(result);
@@ -152,14 +170,15 @@ bool opt_transform_dead_code_elimination(Buffer &result)
 			check_list.pop();
 
 			auto &atom = result.atoms[i];
+
 			bool exempt = opt_transform_dce_exempt(atom);
+			exempt &= !opt_transform_dce_override(atom);
+
 			if (graph[i].empty() && !exempt) {
 				include[i] = false;
 				erasure.insert(i);
 			}
 		}
-
-		// fmt::println("  DCE pass eliminated {} atoms", erasure.size());
 
 		std::unordered_set <index_t> reinsert;
 		for (auto i : erasure) {

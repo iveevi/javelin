@@ -29,7 +29,7 @@
 - [ ] Partial evaluation of callables
 - [ ] Duplicate bindings with dead code elimination
 - [x] Lambdas with capture
-- [x] Deferred declarations for runtime specialization
+- [ ] Deferred declarations for runtime specialization
 
 ## Type Safe Graphics
 
