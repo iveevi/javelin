@@ -19,7 +19,7 @@ struct classifier {
 };
 
 template <typename ... Args>
-struct classifier <vertex_intrinsics, Args...> {
+struct classifier <VertexIntrinsics, Args...> {
 	using prev = classifier <Args...>;
 	static constexpr ShaderStageFlags flags = ShaderStageFlags::eVertex;
 	static constexpr ShaderStageFlags resolved = flags;
@@ -36,7 +36,7 @@ struct classifier <vertex_intrinsics, Args...> {
 };
 
 template <typename ... Args>
-struct classifier <fragment_intrinsics, Args...> {
+struct classifier <FragmentIntrinsics, Args...> {
 	using prev = classifier <Args...>;
 	static constexpr ShaderStageFlags flags = ShaderStageFlags::eFragment;
 	static constexpr ShaderStageFlags resolved = flags;

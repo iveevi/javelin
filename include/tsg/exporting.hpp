@@ -14,7 +14,7 @@ void export_indexed(size_t I, T &current, Args &... args)
 {
 	bool layout = false;
 
-	if constexpr (std::same_as <T, position>) {
+	if constexpr (std::same_as <T, Position>) {
 		ire::gl_Position = current;
 	} else if constexpr (ire::builtin <T>) {
 		ire::layout_out <T> lout(I);

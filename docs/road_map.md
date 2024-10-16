@@ -34,6 +34,8 @@
 ## Type Safe Graphics
 
 - [x] Layout input and output inference
+- [x] Type and binding checking for layout inputs and outputs in adjacent stages
+- [x] Compiler warnings (via deprecation) for unused layout outputs
 - [ ] Descriptor set layout binding generation
 
 ## Editor

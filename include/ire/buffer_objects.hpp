@@ -78,6 +78,8 @@ struct push_constant : bound_buffer_object <T, thunder::push_constant> {
 	template <typename ... Args>
 	push_constant(size_t offset = 0, const Args &... args)
 			: bound_buffer_object <T, thunder::push_constant> (offset, args...) {}
+
+	push_constant(const push_constant &) = default;
 };
 
 template <generic T>

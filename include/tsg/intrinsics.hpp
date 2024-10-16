@@ -6,26 +6,33 @@ namespace jvl::tsg {
 
 // Shader stage intrinsics, used to indicate the
 // shader stage of a shader program metafunction
-struct vertex_intrinsics {};
-struct fragment_intrinsics {};
+struct VertexIntrinsics {};
+struct FragmentIntrinsics {};
 // TODO: put discard here ^
-struct compute_intrinsics {};
-
-// Result types for shaders
-struct position : vec4 {
-	using vec4::vec4;
-};
+struct ComputerIntrinsics {};
 
 // TODO: template structure for a result with mesh shaders...
 
 // Interpolation mode wrappers
 template <generic T>
-struct flat {};
+struct Flat {};
 
 template <generic T>
-struct smooth {};
+struct Smooth {};
 
 template <generic T>
-struct noperspective;
+struct NoPerspective;
+
+// Shader layout resources
+template <generic T>
+struct PushConstant : ire::push_constant <T> {
+	PushConstant(const ire::push_constant <T> &other)
+			: ire::push_constant <T> (other) {}
+};
+
+// Result types for shaders
+struct Position : vec4 {
+	using vec4::vec4;
+};
 
 } // namespace jvl::tsg

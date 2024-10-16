@@ -14,7 +14,7 @@ enum shader_compiler_error_kind : int32_t {
 
 struct shader_compiler_error {
 	shader_compiler_error_kind type;
-	int32_t expected_binding;
+	int32_t arg0;
 
 	static constexpr shader_compiler_error ok() {
 		return shader_compiler_error(eOk);
@@ -73,12 +73,12 @@ constexpr void assess_shader_compiler_error()
 			"unknown error while attempting to "
 			"validate completed shader program");
 	} else if constexpr (value.type == eIncompatibleLayouts) {
-		constexpr int32_t problematic_binding_in_vs = value.expected_binding;
+		constexpr int32_t problematic_binding_in_vs = value.arg0;
 		static_assert(problematic_binding_in_vs == -1,
 			"vertex shader produces a layout ouput of a different type "
 			"than what the fragment shader expects");
 	} else if constexpr (value.type == eUnusedOutputLayout) {
-		constexpr int32_t source_binding_in_vs = value.expected_binding;
+		constexpr int32_t source_binding_in_vs = value.arg0;
 		warn_unused_layout <source_binding_in_vs> ();
 	} else {
 		static_assert(value.type == eOk);

@@ -16,6 +16,11 @@ struct lift_argument <T> {
 	using type = ire::layout_in <T>;
 };
 
+template <generic T>
+struct lift_argument <PushConstant <T>> {
+	using type = ire::push_constant <T>;
+};
+
 template <typename ... Args>
 struct lift_argument <std::tuple <Args...>> {
 	using type = std::tuple <typename lift_argument <Args> ::type...>;
@@ -29,8 +34,8 @@ struct lift_result {
 };
 
 template <>
-struct lift_result <position> {
-	using single = position;
+struct lift_result <Position> {
+	using single = Position;
 	using type = std::tuple <single>;
 };
 
