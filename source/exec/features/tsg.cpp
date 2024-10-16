@@ -2,270 +2,18 @@
 #include <thunder/opt.hpp>
 #include <ire/core.hpp>
 
-namespace jvl::tsg {
-
-// Import declarations from the IRE
-using ire::generic;
-
-using ire::vec;
-
-using ire::i32;
-
-using ire::f32;
-using ire::vec2;
-using ire::vec3;
-using ire::vec4;
-
-using ire::end;
-using ire::cond;
-using ire::loop;
-
-// Shader stage intrinsics, used to indicate the
-// shader stage of a shader program metafunction
-struct vertex_intrinsics {};
-struct fragment_intrinsics {};
-// TODO: put discard here ^
-struct compute_intrinsics {};
-
-struct position : vec4 {
-	position(const vec4 &other) : vec4(other.ref) {}
-};
-
-// interpolation mode wrappers
-template <generic T>
-struct flat {};
-
-template <generic T>
-struct smooth {};
-
-template <generic T>
-struct noperspective;
-
-} // namespace jvl::tsg;
+#include <tsg/classify.hpp>
+#include <tsg/exporting.hpp>
+#include <tsg/flags.hpp>
+#include <tsg/imports.hpp>
+#include <tsg/initializer.hpp>
+#include <tsg/intrinsics.hpp>
+#include <tsg/lifting.hpp>
+#include <tsg/meta.hpp>
+#include <tsg/signature.hpp>
 
 using namespace jvl;
 using namespace tsg;
-
-// Recursive initialization of lifted arguments
-template <typename T, typename ... Args>
-struct lift_initializer {
-	static void run(size_t binding, T &current, Args &...args) {
-		if constexpr (sizeof...(args))
-			return lift_initializer <Args...> ::run(binding, args...);
-	}
-};
-
-template <typename T, typename ... Args>
-struct lift_initializer <ire::layout_in <T>, Args...> {
-	static void run(size_t binding, ire::layout_in <T> &current, Args &... args) {	
-		current = ire::layout_in <T> (binding);
-		if constexpr (sizeof...(args))
-			return lift_initializer <Args...> ::run(binding + 1, args...);
-	}
-};
-
-template <typename ... Args>
-void lift_initialize_starter(Args &... args)
-{
-	return lift_initializer <Args...> ::run(0, args...);
-}
-
-template <typename ... Args>
-void lift_initialize_arguments(std::tuple <Args...> &args)
-{
-	return std::apply(lift_initialize_starter <Args...>, args);
-}
-
-// Lifting arguments
-// TODO: parameterize by stage using a template class?
-template <typename T>
-struct lift_argument {
-	using type = T;
-};
-
-template <generic T>
-struct lift_argument <T> {
-	using type = ire::layout_in <T>;
-};
-
-template <typename ... Args>
-struct lift_argument <std::tuple <Args...>> {
-	using type = std::tuple <typename lift_argument <Args> ::type...>;
-};
-
-// Lifting shader outputs
-// TODO: parameterize by stage using a template class?
-template <typename T>
-struct lift_result {
-	using type = T;
-};
-
-template <>
-struct lift_result <position> {
-	using type = position;
-};
-
-template <generic T>
-struct lift_result <T> {
-	using type = ire::layout_out <T>;
-};
-
-template <typename ... Args>
-struct lift_result <std::tuple <Args...>> {
-	using type = std::tuple <typename lift_result <Args> ::type...>;
-};
-
-// Exporting the returns of a function based on the stage
-template <typename T, typename ... Args>
-void export_indexed(size_t I, T &current, Args &... args)
-{
-	bool layout = false;
-
-	if constexpr (std::same_as <T, position>) {
-		ire::gl_Position = current;
-	} else if constexpr (ire::builtin <T>) {
-		ire::layout_out <T> lout(I);
-		lout = current;
-		layout = true;
-	}
-
-	if constexpr (sizeof...(args))
-		return export_indexed(I + layout, args...);
-}
-
-template <typename T, typename ... Args>
-void exporting(T &current, Args &... args)
-{
-	return export_indexed(0, current, args...);
-}
-
-template <typename ... Args>
-void exporting(std::tuple <Args...> &args)
-{
-	using ftn = void (Args &...);
-	return std::apply <ftn> (exporting <Args...>, args);
-}
-
-// Resolving the function meta information
-#define hacked(T) *reinterpret_cast <T *> ((void *) nullptr)
-
-template <typename F>
-auto std_function(const F &ftn)
-{
-	return std::function(ftn);
-}
-
-template <typename F>
-struct function_type_breakdown {
-	using base = decltype(std_function(hacked(F)));
-};
-
-template <typename F>
-auto function_breakdown(const F &ftn)
-{
-	return function_type_breakdown <F> ();
-}
-
-template <typename F>
-struct signature {};
-
-template <typename R, typename ... Args>
-struct signature <std::function <R (Args...)>> {
-	using returns = R;
-	using arguments = std::tuple <std::decay_t <Args>...>;
-};
-
-enum class ShaderStageFlags : uint16_t {
-	eNone		= 0,
-	eVertex		= 1 << 0,
-	eFragment	= 1 << 1,
-	eVxF		= eVertex | eFragment,
-	eCompute	= 1 << 2,
-	eTask		= 1 << 3,
-	eMesh		= 1 << 4,
-	eSubroutine	= 1 << 5,
-};
-
-enum class ClassificationErrorFlags : uint16_t {
-	eOk			= 0,
-	eDuplicateVertex	= 1 << 0,
-	eDuplicateFragment	= 1 << 1,
-	eMultipleStages		= 1 << 2,
-};
-
-#define flag_operators(T, base)						\
-	constexpr T operator+(T A, T B)					\
-	{								\
-		return T(base(A) | base(B));				\
-	}								\
-	constexpr bool has(T A, T B)					\
-	{								\
-		return ((base(A) & base(B)) == base(B));		\
-	}
-
-flag_operators(ShaderStageFlags, uint16_t)
-flag_operators(ClassificationErrorFlags, uint16_t)
-
-template <typename ... Args>
-struct classifier {
-	static constexpr ShaderStageFlags flags = ShaderStageFlags::eNone;
-	
-	// Only so that the default is a subroutine
-	static constexpr ShaderStageFlags resolved = ShaderStageFlags::eSubroutine;
-	
-	static constexpr ClassificationErrorFlags status() {
-		return ClassificationErrorFlags::eOk;
-	}
-};
-
-template <typename ... Args>
-struct classifier <vertex_intrinsics, Args...> {
-	using prev = classifier <Args...>;
-	static constexpr ShaderStageFlags flags = ShaderStageFlags::eVertex;
-	static constexpr ShaderStageFlags resolved = flags;
-	
-	static constexpr ClassificationErrorFlags status() {
-		if constexpr (has(prev::flags, ShaderStageFlags::eVertex))
-			return prev::status() + ClassificationErrorFlags::eDuplicateVertex;
-
-		if constexpr (prev::flags != ShaderStageFlags::eNone)
-			return prev::status() + ClassificationErrorFlags::eMultipleStages;
-
-		return prev::status();
-	}
-};
-
-template <typename ... Args>
-struct classifier <fragment_intrinsics, Args...> {
-	using prev = classifier <Args...>;
-	static constexpr ShaderStageFlags flags = ShaderStageFlags::eFragment;
-	static constexpr ShaderStageFlags resolved = flags;
-	
-	static constexpr ClassificationErrorFlags status() {
-		if constexpr (has(prev::flags, ShaderStageFlags::eFragment))
-			return prev::status() + ClassificationErrorFlags::eDuplicateFragment;
-		
-		if constexpr (prev::flags != ShaderStageFlags::eNone)
-			return prev::status() + ClassificationErrorFlags::eMultipleStages;
-
-		return prev::status();
-	}
-};
-
-template <typename ... Args>
-struct classifier <std::tuple <Args...>> : classifier <Args...> {};
-
-template <ClassificationErrorFlags F>
-struct verify_classification {
-	static_assert(!has(F, ClassificationErrorFlags::eDuplicateVertex),
-		"Vertexshader program must use a single stage intrinsic parameter");
-
-	static_assert(!has(F, ClassificationErrorFlags::eDuplicateFragment),
-		"Fragment shader program must use a single stage intrinsic parameter");
-
-	static_assert(!has(F, ClassificationErrorFlags::eMultipleStages),
-		"Shader program cannot use multiple stage intrinsics");
-};
 
 // Specifiers for a shader program
 template <ShaderStageFlags F, generic T, size_t N>
@@ -274,29 +22,15 @@ struct LayoutIn {};
 template <ShaderStageFlags F, generic T, size_t N>
 struct LayoutOut {};
 
-// Concepts for layout inputs
 template <typename T>
-struct is_layout_in_type : std::false_type {};
-
-template <ShaderStageFlags F, generic T, size_t N>
-struct is_layout_in_type <LayoutIn <F, T, N>> : std::true_type {};
+concept layout_input = is_stage_meta_v <LayoutIn, T>;
 
 template <typename T>
-concept layout_input = is_layout_in_type <T> ::value;
-
-// Concepts for layout outputs
-template <typename T>
-struct is_layout_out_type : std::false_type {};
-
-template <ShaderStageFlags F, generic T, size_t N>
-struct is_layout_out_type <LayoutOut <F, T, N>> : std::true_type {};
-
-template <typename T>
-concept layout_output = is_layout_out_type <T> ::value;
+concept layout_output = is_stage_meta_v <LayoutOut, T>;
 
 // Set of all specifier types
 template <typename T>
-concept specifier = is_layout_in_type <T> ::value || is_layout_out_type <T> ::value;
+concept specifier = layout_input <T> || layout_output <T>;
 
 // Collection of the layout input dependencies of a program
 template <layout_input ... Args>
@@ -430,7 +164,7 @@ auto compile_function(const std::string &name, const F &ftn)
 	em.push(buffer);
 
 	LiftedArgs arguments;
-	lift_initialize_arguments(arguments);
+	shader_args_initializer(arguments);
 	auto result = std::apply(ftn, arguments);
 	exporting(result);
 
@@ -458,41 +192,6 @@ auto fragment_shader(fragment_intrinsics, vec3 pos, vec2 normal) -> vec4
 	return vec4(1, 0, 0, 0);
 }
 
-// Shader linkage unit
-template <ShaderStageFlags flags = ShaderStageFlags::eNone, typename ... Args>
-struct ShaderProgram {};
-
-// From zero
-template <>
-struct ShaderProgram <ShaderStageFlags::eNone> {
-	template <ShaderStageFlags added, specifier ... Specifiers>
-	friend auto operator<<(const ShaderProgram &program, const CompiledArtifact <added, Specifiers...> &compiled) {
-		ShaderProgram <added, Specifiers...> result {
-			static_cast <thunder::TrackedBuffer> (compiled)
-		};
-
-		return result;
-	}
-};
-
-// TODO: generalize order, with another structure to specify compatibility
-template <specifier ... Specifiers>
-struct ShaderProgram <ShaderStageFlags::eVertex, Specifiers...> {
-	thunder::TrackedBuffer ir_vertex;
-	
-	template <specifier ... AddedSpecifiers>
-	friend auto operator<<(const ShaderProgram &program, const CompiledArtifact <ShaderStageFlags::eFragment, AddedSpecifiers...> &compiled) {
-		ShaderProgram <ShaderStageFlags::eVxF,
-			       Specifiers...,
-			       AddedSpecifiers...> result {
-			program.ir_vertex,
-			static_cast <thunder::TrackedBuffer> (compiled)
-		};
-
-		return result;
-	}
-};
-
 // Indexing variadic arguments
 template <size_t I, typename ... Args>
 struct indexer {};
@@ -507,28 +206,19 @@ using type_at = indexer <I, Args...> ::type;
 
 // Filtering stage requirements (transformed)
 template <ShaderStageFlags	RequiredBy,
-	  ShaderStageFlags	RequiredFrom,
 	  generic		Type,
+	  ShaderStageFlags	RequiredFrom,
 	  size_t		Binding>
 struct RequirementOut {};
 
 struct SatisfiedRequirement {};
+
 struct EmptyRequirement {};
 
 template <typename T>
-struct is_requirement_type : std::false_type {};
-
-template <ShaderStageFlags S, ShaderStageFlags F, generic T, size_t N>
-struct is_requirement_type <RequirementOut <S, F, T, N>> : std::true_type {};
-
-template <>
-struct is_requirement_type <EmptyRequirement> : std::true_type {};
-
-template <>
-struct is_requirement_type <SatisfiedRequirement> : std::true_type {};
-
-template <typename T>
-concept requirement = is_requirement_type <T> ::value;
+concept requirement = is_stage_meta_v <RequirementOut, T>
+	|| std::is_same_v <T, SatisfiedRequirement>
+	|| std::is_same_v <T, EmptyRequirement>;
 
 template <requirement ... Requirements>
 struct RequirementVector {
@@ -542,7 +232,7 @@ template <requirement R, requirement ... Requirements>
 struct RequirementVector <R, Requirements...> {
 	using sub_filtered = RequirementVector <Requirements...> ::filtered;
 	using filtered = sub_filtered::template inserted <R>;
-	
+
 	template <requirement Rs>
 	using inserted = RequirementVector <Rs, R, Requirements...>;
 };
@@ -550,7 +240,7 @@ struct RequirementVector <R, Requirements...> {
 template <requirement ... Requirements>
 struct RequirementVector <EmptyRequirement, Requirements...> {
 	using filtered = RequirementVector <Requirements...> ::filtered;
-	
+
 	template <requirement R>
 	using inserted = RequirementVector <R, EmptyRequirement, Requirements...>;
 };
@@ -562,9 +252,8 @@ struct layout_requirement {
 
 template <generic T, size_t N>
 struct layout_requirement <LayoutIn <ShaderStageFlags::eFragment, T, N>> {
-	using type = RequirementOut <ShaderStageFlags::eFragment,
-				     ShaderStageFlags::eVertex,
-				     T, N>;
+	using type = RequirementOut <ShaderStageFlags::eFragment, T,
+				     ShaderStageFlags::eVertex, N>;
 };
 
 // Filtering out stage outputs
@@ -615,8 +304,8 @@ struct satisfied <R, O, Outputs...> {
 	using result = satisfied <R, Outputs...> ::result;
 };
 
-template <ShaderStageFlags S, ShaderStageFlags F, generic T, size_t N, stage_output ... Outputs>
-struct satisfied <RequirementOut <S, F, T, N>, StageOut <F, T, N>, Outputs...> {
+template <ShaderStageFlags S, generic T, ShaderStageFlags F, size_t N, stage_output ... Outputs>
+struct satisfied <RequirementOut <S, T, F, N>, StageOut <F, T, N>, Outputs...> {
 	using result = SatisfiedRequirement;
 };
 
@@ -639,15 +328,15 @@ struct requirement_error_report <R, Requirements...> {
 	static constexpr auto next = requirement_error_report <Requirements...>();
 };
 
-template <ShaderStageFlags S, ShaderStageFlags F, generic T, size_t N>
+template <ShaderStageFlags S, generic T, ShaderStageFlags F, size_t N>
 struct dedicated_reporter {
 	static_assert(false, "shader dependency is unsatisfied");
 };
 
-template <ShaderStageFlags S, ShaderStageFlags F, generic T, size_t N, requirement ... Requirements>
-struct requirement_error_report <RequirementOut <S, F, T, N>, Requirements...> {
+template <ShaderStageFlags S, generic T, ShaderStageFlags F, size_t N, requirement ... Requirements>
+struct requirement_error_report <RequirementOut <S, T, F, N>, Requirements...> {
 	static constexpr auto next = requirement_error_report <Requirements...>();
-	static constexpr auto reporter = dedicated_reporter <S, F, T, N> ();
+	static constexpr auto reporter = dedicated_reporter <S, T, F, N> ();
 };
 
 template <typename T>
@@ -664,8 +353,8 @@ struct requirement_status {
 	static constexpr bool status = true;
 };
 
-template <ShaderStageFlags S, ShaderStageFlags F, generic T, size_t N>
-struct requirement_status <RequirementOut <S, F, T, N>> {
+template <ShaderStageFlags S, generic T, ShaderStageFlags F, size_t N>
+struct requirement_status <RequirementOut <S, T, F, N>> {
 	static constexpr bool status = false;
 };
 
@@ -688,12 +377,49 @@ constexpr bool verification_status(const RequirementVector <Requirements...> &re
 	return true;
 }
 
-// Layout verification
+// Shader linkage unit
+template <ShaderStageFlags flags = ShaderStageFlags::eNone, typename ... Args>
+struct ShaderProgram {};
+
+// From zero
+template <>
+struct ShaderProgram <ShaderStageFlags::eNone> {
+	template <ShaderStageFlags added, specifier ... Specifiers>
+	friend auto operator<<(const ShaderProgram &program,
+			       const CompiledArtifact <added, Specifiers...> &compiled) {
+		ShaderProgram <added, Specifiers...> result {
+			static_cast <thunder::TrackedBuffer> (compiled)
+		};
+
+		return result;
+	}
+};
+
+// TODO: generalize order, with another structure to specify compatibility
+template <specifier ... Specifiers>
+struct ShaderProgram <ShaderStageFlags::eVertex, Specifiers...> {
+	thunder::TrackedBuffer ir_vertex;
+
+	template <specifier ... AddedSpecifiers>
+	friend auto operator<<(const ShaderProgram &program,
+			       const CompiledArtifact <ShaderStageFlags::eFragment, AddedSpecifiers...> &compiled) {
+		ShaderProgram <ShaderStageFlags::eVxF,
+			       Specifiers...,
+			       AddedSpecifiers...> result {
+			program.ir_vertex,
+			static_cast <thunder::TrackedBuffer> (compiled)
+		};
+
+		return result;
+	}
+};
+
 template <specifier ... Specifiers>
 struct ShaderProgram <ShaderStageFlags::eVxF, Specifiers...> {
 	thunder::TrackedBuffer ir_vertex;
 	thunder::TrackedBuffer ir_fragment;
-	
+
+	// Layout verification
 	using raw_requirements = RequirementVector <typename layout_requirement <Specifiers> ::type...>;
 	using requirements = typename raw_requirements::filtered;
 	using outputs = typename append_stage_outputs <StageOutputs <>, Specifiers...> ::result;
@@ -702,7 +428,7 @@ struct ShaderProgram <ShaderStageFlags::eVxF, Specifiers...> {
 	static constexpr auto errors = typename requirement_error_report_vector <satisfied> ::type();
 	static constexpr bool valid = verification_status(satisfied());
 
-	// TODO: extract descriptor set latyout
+	// TODO: extract descriptor set layout
 };
 
 // Shader pipeline
@@ -724,7 +450,7 @@ int main()
 	vunit.add(next.ir_vertex);
 	fmt::println("{}", vunit.generate_glsl());
 	auto vspirv = vunit.generate_spirv(vk::ShaderStageFlagBits::eVertex);
-	
+
 	thunder::opt_transform(next.ir_fragment);
 	next.ir_fragment.dump();
 	auto funit = thunder::LinkageUnit();

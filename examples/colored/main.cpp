@@ -289,11 +289,14 @@ int main(int argc, char *argv[])
 	
 		// Submit command buffer while signaling the semaphore
 		vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-		drc.graphics_queue.submit(vk::SubmitInfo {
-				sync_frame.image_available,
-				wait_stage, cmd,
-				sync_frame.render_finished
-			}, sync_frame.in_flight);
+	
+		vk::SubmitInfo submit_info {
+			sync_frame.image_available,
+			wait_stage, cmd,
+			sync_frame.render_finished
+		};
+
+		drc.graphics_queue.submit(submit_info, sync_frame.in_flight);
 	
 		// Advance to the next frame
 		frame = 1 - frame;
