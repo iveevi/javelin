@@ -13,7 +13,7 @@ struct compute_intrinsics {};
 
 // Result types for shaders
 struct position : vec4 {
-	position(const vec4 &other) : vec4(other.ref) {}
+	using vec4::vec4;
 };
 
 // TODO: template structure for a result with mesh shaders...

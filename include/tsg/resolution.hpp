@@ -1,5 +1,6 @@
 #pragma once
 
+#include "outputs.hpp"
 #include "requirement.hpp"
 
 namespace jvl::tsg {

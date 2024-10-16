@@ -1,6 +1,12 @@
 #pragma once
 
+#include "artifact.hpp"
 #include "classify.hpp"
+#include "exporting.hpp"
+#include "initializer.hpp"
+#include "layouts.hpp"
+#include "lifting.hpp"
+#include "signature.hpp"
 
 namespace jvl::tsg {
 

@@ -2,6 +2,8 @@
 
 #include "flags.hpp"
 #include "meta.hpp"
+#include "imports.hpp"
+#include "artifact.hpp"
 
 namespace jvl::tsg {
 
