@@ -8,11 +8,12 @@
 namespace jvl::tsg {
 
 // Filtering stage requirements (transformed)
-template <ShaderStageFlags	RequiredBy,
-	  generic		Type,
-	  ShaderStageFlags	RequiredFrom,
-	  size_t		Binding>
+template <ShaderStageFlags RequiredBy, generic Type, ShaderStageFlags RequiredFrom, size_t Binding>
 struct RequirementCompatibleLayout {};
+
+// For later checks to see if an output layout is used
+template <ShaderStageFlags From, generic Type, ShaderStageFlags To, size_t Binding>
+struct RequirementOutputUsage {};
 
 // Post-resolution stage requirement "variants"
 struct RequirementSatisfied {};
@@ -20,6 +21,7 @@ struct RequirementNull {};
 
 template <typename T>
 concept requirement = is_stage_meta_v <RequirementCompatibleLayout, T>
+	|| is_stage_meta_v <RequirementOutputUsage, T>
 	|| std::is_same_v <T, RequirementSatisfied>
 	|| std::is_same_v <T, RequirementNull>;
 
@@ -58,7 +60,13 @@ struct requirement_for {
 template <generic T, size_t N>
 struct requirement_for <LayoutIn <ShaderStageFlags::eFragment, T, N>> {
 	using type = RequirementCompatibleLayout <ShaderStageFlags::eFragment, T,
-				     ShaderStageFlags::eVertex, N>;
+						  ShaderStageFlags::eVertex, N>;
+};
+
+template <generic T, size_t N>
+struct requirement_for <LayoutOut <ShaderStageFlags::eVertex, T, N>> {
+	using type = RequirementOutputUsage <ShaderStageFlags::eVertex, T,
+					     ShaderStageFlags::eFragment, N>;
 };
 
 } // namespace jvl::tsg

@@ -14,7 +14,7 @@ struct Pipline {
 };
 
 // Testing
-auto vertex_shader(vertex_intrinsics, const vec3 pos)
+auto vertex_shader(vertex_intrinsics, vec3 pos)
 {
 	vec3 p = pos;
 	cond(p.x > 0.0f);
@@ -25,7 +25,7 @@ auto vertex_shader(vertex_intrinsics, const vec3 pos)
 }
 
 // TODO: deprecation warnings on unused layouts
-auto fragment_shader(fragment_intrinsics, vec3 pos, vec2 normal)
+auto fragment_shader(fragment_intrinsics, vec3 pos)
 {
 	return vec4(1, 0, 0, 0);
 }

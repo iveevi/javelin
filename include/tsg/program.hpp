@@ -65,8 +65,7 @@ struct Program <ShaderStageFlags::eVxF, Specifiers...> {
 	// Layout compatibility verification
 	using raw_requirements = RequirementVector <typename requirement_for <Specifiers> ::type...>;
 	using requirements = typename raw_requirements::filtered;
-	using outputs = typename collector <StageOutputs <>, Specifiers...> ::result;
-	using satisfied = typename resolve_requirement_vector <requirements, outputs> ::result;
+	using satisfied = typename resolve_requirement_vector <requirements, Specifiers...> ::result;
 
 	// TODO: extract descriptor set layout
 };
