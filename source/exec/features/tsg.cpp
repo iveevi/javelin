@@ -718,7 +718,6 @@ int main()
 	auto unit = ShaderProgram();
 	auto next = unit << vs << fs;
 
-	next.ir_vertex.dump();
 	thunder::opt_transform(next.ir_vertex);
 	next.ir_vertex.dump();
 	auto vunit = thunder::LinkageUnit();

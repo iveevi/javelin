@@ -203,26 +203,12 @@ auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 	typename S::procedure proc;
 	proc.begin();
 	{
-		fmt::println("before args instantiation");
-		Emitter::active.dump();
-
 		auto args = typename S::args_t();
 		if constexpr (sizeof...(Args))
 			args = C.args;
 		
-		fmt::println("after args instantiation");
-		Emitter::active.dump();
-
 		proc.call(args);
-		
-		fmt::println("after call");
-		Emitter::active.dump();
-
 		auto values = std::apply(ftn, args);
-		
-		fmt::println("after apply");
-		Emitter::active.dump();
-
 		returns(values);
 	}
 	proc.end();

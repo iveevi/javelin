@@ -50,13 +50,12 @@ bool opt_transform_constructor_elision(Buffer &result)
 	// then it will be removed during dead code elimination
 
 	auto graph = usage(result);
-	bool shortened = false;
 
 	auto constructor_elision = [&](const std::vector <index_t> &fields,
 				       index_t idx,
-				       index_t user) {
+				       index_t user) -> bool {
 		if (idx == -1)
-			return;
+			return false;
 
 		usage_set loaders = graph[user];
 		wrapped::reindex <index_t> relocation;
@@ -68,9 +67,10 @@ bool opt_transform_constructor_elision(Buffer &result)
 		for (auto i : loaders)
 			result.atoms[i].reindex(relocation);
 
-		shortened = true;
+		return true;
 	};
 
+	bool shortened = false;
 	for (size_t i = 0; i < result.pointer; i++) {
 		// Find all the construct calls
 		auto &atom = result.atoms[i];
@@ -98,14 +98,14 @@ bool opt_transform_constructor_elision(Buffer &result)
 			arg = list.next;
 		}
 
-		usage_set users = graph[i];
+		// TODO: need to check for stores that happen in between...
 
-		for (auto user : users) {
+		for (auto user : graph[i]) {
 			auto &atom = result.atoms[user];
 			if (atom.is <Load> ())
-				constructor_elision(fields, atom.as <Load> ().idx, user);
+				shortened |= constructor_elision(fields, atom.as <Load> ().idx, user);
 			if (atom.is <Swizzle> ())
-				constructor_elision(fields, atom.as <Swizzle> ().code, user);
+				shortened |= constructor_elision(fields, atom.as <Swizzle> ().code, user);
 
 			// TODO: if we get a store instruction,
 			// we should stop...
@@ -225,7 +225,10 @@ void opt_transform(Buffer &result)
 
 		// Relinking steps, will not elimination code
 		thunder::opt_transform_compact(result);
-		thunder::opt_transform_constructor_elision(result);
+
+		// Disable due to incorrectness
+		// thunder::opt_transform_constructor_elision(result);
+		// TODO: constant propagation
 
 		// Eliminate unused code
 		changed = thunder::opt_transform_dead_code_elimination(result);

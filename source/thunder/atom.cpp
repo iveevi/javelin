@@ -310,9 +310,9 @@ std::string Branch::to_string() const
                 return "END";
 
         if (cond >= 0)
-                return fmt::format("{:15} %{} ({}) -> %{}", "BRANCH", cond, tbl_branch_kind[kind], failto);
+                return fmt::format("{:15} on %{} ({}) fails to %{}", "BRANCH", cond, tbl_branch_kind[kind], failto);
 
-        return fmt::format("{:15} (nil) ({}) -> %{}", "BRANCH", tbl_branch_kind[kind], failto);
+        return fmt::format("{:15} (nil) ({}) fails to %{}", "BRANCH", tbl_branch_kind[kind], failto);
 }
 
 // Returns

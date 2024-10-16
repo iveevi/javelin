@@ -173,6 +173,17 @@ public:
 		thunder::index_t args = list_from_args(x_, y_);
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
+	
+	swizzle_base(const swizzle_base &other)
+			: swizzle_base() {
+		if (other.cached()) {
+			auto &em = Emitter::active;
+			thunder::index_t type = type_field_from_args <vec <T, 2>> ().id;
+			thunder::index_t args = em.emit_list(other.ref.id, -1);
+			// TODO: use assignment constructor (then pass the id only instead of the list args)
+			ref = em.emit_construct(type, args, thunder::normal);
+		}
+	}
 
 	swizzle_base(cache_index_t cit) : tagged(cit), x(this), y(this) {}
 
@@ -234,11 +245,13 @@ public:
 	
 	swizzle_base(const swizzle_base &other)
 			: swizzle_base() {
-		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <vec <T, 3>> ().id;
-		thunder::index_t args = em.emit_list(other.ref.id, -1);
-		// TODO: use assignment constructor (then pass the id only instead of the list args)
-		ref = em.emit_construct(type, args, thunder::normal);
+		if (other.cached()) {
+			auto &em = Emitter::active;
+			thunder::index_t type = type_field_from_args <vec <T, 3>> ().id;
+			thunder::index_t args = em.emit_list(other.ref.id, -1);
+			// TODO: use assignment constructor (then pass the id only instead of the list args)
+			ref = em.emit_construct(type, args, thunder::normal);
+		}
 	}
 
 	swizzle_base(cache_index_t cit) : tagged(cit), x(this), y(this), z(this) {}
@@ -290,6 +303,17 @@ public:
 		thunder::index_t type = type_field_from_args <vec <T, 4>> ().id;
 		thunder::index_t args = list_from_args(v, x_);
 		ref = em.emit_construct(type, args, thunder::normal);
+	}
+	
+	swizzle_base(const swizzle_base &other)
+			: swizzle_base() {
+		if (other.cached()) {
+			auto &em = Emitter::active;
+			thunder::index_t type = type_field_from_args <vec <T, 4>> ().id;
+			thunder::index_t args = em.emit_list(other.ref.id, -1);
+			// TODO: use assignment constructor (then pass the id only instead of the list args)
+			ref = em.emit_construct(type, args, thunder::normal);
+		}
 	}
 
 	swizzle_base(cache_index_t cit) : tagged(cit), x(this), y(this), z(this), w(this) {}
