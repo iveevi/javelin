@@ -48,6 +48,20 @@ struct Material {
 	}
 };
 
+static_assert(std::same_as <
+	solid_t <Material>,
+	aggregate_storage <
+		aligned_float3,
+		aligned_float3,
+		aligned_float3,
+		float3,
+		float,
+		float,
+		bool,
+		bool
+	>
+>);
+
 struct ReferenceMaterial {
 	aligned_float3 diffuse;
 	aligned_float3 specular;
@@ -84,7 +98,8 @@ auto ref = [](ReferenceMaterial mat, aligned_float3 n, aligned_float3 h)
 int main()
 {
 	thunder::legalize_for_cc(ftn);
-	thunder::opt_transform(ftn);
+	// thunder::opt_transform(ftn);
+	ftn.dump();
 	auto compiled = jit(ftn);
 
 	auto m_diffuse = uniform_field(Material, diffuse);
@@ -104,7 +119,7 @@ int main()
 	input[m_ambient] = float3(10, 11, 12);
 	input[m_shininess] = 13;
 	input[m_roughness] = 14;
-	input[m_has_albedo] = true;
+	input[m_has_albedo] = false;
 	input[m_has_normal] = true;
 
 	auto output = compiled(input, float3(0, 1, 0), float3(0, 1, 0));
@@ -117,7 +132,7 @@ int main()
 	reference_input.ambient = float3(10, 11, 12);
 	reference_input.shininess = 13;
 	reference_input.roughness = 14;
-	reference_input.has_albedo = true;
+	reference_input.has_albedo = false;
 	reference_input.has_normal = true;
 
 	auto reference_output = ref(reference_input, float3(0, 1, 0), float3(0, 1, 0));

@@ -200,18 +200,34 @@ auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 		static_assert(std::same_as <required, provided>);
 	}
 
-	typename S::procedure cbl;
-	cbl.begin();
+	typename S::procedure proc;
+	proc.begin();
+	{
+		fmt::println("before args instantiation");
+		Emitter::active.dump();
+
 		auto args = typename S::args_t();
 		if constexpr (sizeof...(Args))
 			args = C.args;
+		
+		fmt::println("after args instantiation");
+		Emitter::active.dump();
 
-		cbl.call(args);
+		proc.call(args);
+		
+		fmt::println("after call");
+		Emitter::active.dump();
+
 		auto values = std::apply(ftn, args);
-		returns(values);
-	cbl.end();
+		
+		fmt::println("after apply");
+		Emitter::active.dump();
 
-	return cbl.named(C.name);
+		returns(values);
+	}
+	proc.end();
+
+	return proc.named(C.name);
 }
 
 // Void functions are presumbed to contain returns(...) statements already
@@ -230,17 +246,19 @@ auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 			"must match the arguments of the function");
 	}
 
-	typename S::template manual_prodecure <R> cbl;
-	cbl.begin();
+	typename S::template manual_prodecure <R> proc;
+	proc.begin();
+	{
 		auto args = typename S::args_t();
 		if constexpr (sizeof...(Args))
 			args = C.args;
 
-		cbl.call(args);
+		proc.call(args);
 		std::apply(ftn, args);
-	cbl.end();
+	}
+	proc.end();
 
-	return cbl.named(C.name);
+	return proc.named(C.name);
 }
 
 template <void_or_non_native_generic R, typename F>

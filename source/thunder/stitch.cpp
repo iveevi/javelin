@@ -65,6 +65,8 @@ void stitch_mapped_instructions(Buffer &result, std::vector <mapped_instruction_
 		auto &m = mapped[i];
 		auto &g = mapped[i].refs;
 
+
+
 		for (auto &r : g) {
 			auto &&addrs = m[r.index].addresses();
 			if (addrs.a0 != -1 && (r.mask & 0b01) == 0b01)
@@ -75,7 +77,11 @@ void stitch_mapped_instructions(Buffer &result, std::vector <mapped_instruction_
 	}
 
 	// Stitch the independent scratches
+	fmt::println("stitch mapping blocks:");
 	for (auto &m : mapped) {
+		fmt::println("|---------->>");
+		m.dump();
+
 		for (size_t i = 0; i < m.pointer; i++) {
 			// Sanity check to ensure addresses point backwards
 			auto &&addrs = m[i].addresses();

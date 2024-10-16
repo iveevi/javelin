@@ -6,6 +6,13 @@
 
 namespace jvl::thunder::detail {
 
+// Type information with size and alignment info
+struct gcc_type_info {
+	gcc_jit_type *real = nullptr;
+	uint32_t size = 0;
+	uint32_t align = 0;
+};
+
 struct gcc_jit_function_generator_t : Buffer {
 	gcc_jit_context *const context;
 	gcc_jit_function *function;
@@ -14,12 +21,12 @@ struct gcc_jit_function_generator_t : Buffer {
 	std::vector <gcc_jit_param *> parameters;
 
 	wrapped::hash_table <index_t, gcc_jit_object *> values;
-	wrapped::hash_table <QualifiedType, gcc_jit_type *> mapped_types;
+	wrapped::hash_table <QualifiedType, gcc_type_info> mapped_types;
 
 	gcc_jit_function_generator_t(gcc_jit_context *const , const Buffer &);
 
 	// Generating types
-	gcc_jit_type *jitify_type(QualifiedType);
+	gcc_type_info jitify_type(QualifiedType);
 
 	// Expanding list chains
 	struct expanded_list_chain {

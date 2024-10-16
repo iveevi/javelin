@@ -16,7 +16,7 @@ QualifiedType Buffer::classify(index_t i) const
 	if (types[i])
 		return types[i];
 
-	Atom atom = atoms[i];
+	auto &atom = atoms[i];
 
 	switch (atom.index()) {
 

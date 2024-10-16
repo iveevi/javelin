@@ -222,11 +222,22 @@ public:
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
 
-	swizzle_base(const native_t <T> &x_, const native_t <T> &y_, const native_t <T> &z_)
+	swizzle_base(const native_t <T> &x_,
+		     const native_t <T> &y_,
+		     const native_t <T> &z_)
 			: swizzle_base() {
 		auto &em = Emitter::active;
 		thunder::index_t type = type_field_from_args <vec <T, 3>> ().id;
 		thunder::index_t args = list_from_args(x_, y_, z_);
+		ref = em.emit_construct(type, args, thunder::normal);
+	}
+	
+	swizzle_base(const swizzle_base &other)
+			: swizzle_base() {
+		auto &em = Emitter::active;
+		thunder::index_t type = type_field_from_args <vec <T, 3>> ().id;
+		thunder::index_t args = em.emit_list(other.ref.id, -1);
+		// TODO: use assignment constructor (then pass the id only instead of the list args)
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
 
@@ -303,10 +314,6 @@ struct vec : swizzle_base <T, N> {
 	using swizzle_base <T, N> ::swizzle_base;
 
 	using arithmetic_type = vec <T, N>;
-	
-	vec(const vec &other) : vec() {
-		operator=(other);
-	}
 
 	vec &operator=(const vec &other) {
 		auto &em = Emitter::active;

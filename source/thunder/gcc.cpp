@@ -24,17 +24,33 @@ MODULE(gcc-jit);
 
 #define LOCATION(context) gcc_jit_context_new_location(context, __FILE__, __LINE__, 0)
 
-gcc_jit_type *generate_primitive_scalar_type(gcc_jit_context *const context, PrimitiveType item)
+gcc_type_info generate_primitive_scalar_type(gcc_jit_context *const context, PrimitiveType item)
 {
 	switch (item) {
 	case boolean:
-		return gcc_jit_context_get_type(context, GCC_JIT_TYPE_BOOL);
+		return {
+			.real = gcc_jit_context_get_type(context, GCC_JIT_TYPE_BOOL),
+			.size = 4,
+			.align = 4,
+		};
 	case i32:
-		return gcc_jit_context_get_type(context, GCC_JIT_TYPE_INT32_T);
+		return {
+			.real = gcc_jit_context_get_type(context, GCC_JIT_TYPE_INT32_T),
+			.size = 4,
+			.align = 4,
+		};
 	case u32:
-		return gcc_jit_context_get_type(context, GCC_JIT_TYPE_UINT32_T);
+		return {
+			.real = gcc_jit_context_get_type(context, GCC_JIT_TYPE_UINT32_T),
+			.size = 4,
+			.align = 4,
+		};
 	case f32:
-		return gcc_jit_context_get_type(context, GCC_JIT_TYPE_FLOAT);
+		return {
+			.real = gcc_jit_context_get_type(context, GCC_JIT_TYPE_FLOAT),
+			.size = 4,
+			.align = 4,
+		};
 	default:
 		break;
 	}
@@ -43,11 +59,10 @@ gcc_jit_type *generate_primitive_scalar_type(gcc_jit_context *const context, Pri
 		tbl_primitive_types[item], __FUNCTION__);
 }
 
-gcc_jit_type *generate_primitive_vector_type(gcc_jit_context *context,
-					const char *name,
-					PrimitiveType item,
-					size_t components,
-					bool align)
+gcc_type_info generate_primitive_vector_type(gcc_jit_context *context,
+					     const char *name,
+					     PrimitiveType item,
+					     uint32_t components)
 {
 	static constexpr const char *component_names[] = { "x", "y", "z", "w" };
 
@@ -61,16 +76,9 @@ gcc_jit_type *generate_primitive_vector_type(gcc_jit_context *context,
 	std::vector <gcc_jit_field *> fields(components);
 	for (size_t i = 0; i < components; i++) {
 		fields[i] = gcc_jit_context_new_field(context,
-			nullptr, element, component_names[i]);
-	}
-
-	if (align) {
-		fmt::println("requires alignment, padding with an extra element");
-
-		gcc_jit_field *extra = gcc_jit_context_new_field(context,
-			LOCATION(context), element, "_align");
-
-		fields.push_back(extra);
+			nullptr,
+			element.real,
+			component_names[i]);
 	}
 
 	gcc_jit_struct *vector = gcc_jit_context_new_struct_type(context,
@@ -80,14 +88,18 @@ gcc_jit_type *generate_primitive_vector_type(gcc_jit_context *context,
 		fields.data());
 
 	JVL_INFO("created struct for vector "
-		"primitive type {}x{} (align={})",
-		tbl_primitive_types[item], components,
-		align);
+		"primitive type {}x{}",
+		tbl_primitive_types[item], components);
 
-	return gcc_jit_struct_as_type(vector);
+	// TODO: generalize
+	return {
+		.real = gcc_jit_struct_as_type(vector),
+		.size = components * element.size,
+		.align = (components == 3) ? 4 * element.size : components * element.size
+	};
 }
 
-gcc_jit_type *generate_primitive_type(gcc_jit_context *const context, PrimitiveType item)
+gcc_type_info generate_primitive_type(gcc_jit_context *const context, PrimitiveType item)
 {
 	switch (item) {
 
@@ -100,27 +112,27 @@ gcc_jit_type *generate_primitive_type(gcc_jit_context *const context, PrimitiveT
 
 	// Integer vector types
 	case ivec2:
-		return generate_primitive_vector_type(context, "ivec2", i32, 2, false);
+		return generate_primitive_vector_type(context, "ivec2", i32, 2);
 	case ivec3:
-		return generate_primitive_vector_type(context, "ivec3", i32, 3, true);
+		return generate_primitive_vector_type(context, "ivec3", i32, 3);
 	case ivec4:
-		return generate_primitive_vector_type(context, "ivec4", i32, 4, false);
+		return generate_primitive_vector_type(context, "ivec4", i32, 4);
 
 	// Unsigned integer vector types
 	case uvec2:
-		return generate_primitive_vector_type(context, "uvec2", u32, 2, false);
+		return generate_primitive_vector_type(context, "uvec2", u32, 2);
 	case uvec3:
-		return generate_primitive_vector_type(context, "uvec3", u32, 3, true);
+		return generate_primitive_vector_type(context, "uvec3", u32, 3);
 	case uvec4:
-		return generate_primitive_vector_type(context, "uvec4", u32, 4, false);
+		return generate_primitive_vector_type(context, "uvec4", u32, 4);
 
 	// Floating-point vector types
 	case vec2:
-		return generate_primitive_vector_type(context, "vec2", f32, 2, false);
+		return generate_primitive_vector_type(context, "vec2", f32, 2);
 	case vec3:
-		return generate_primitive_vector_type(context, "vec3", f32, 3, true);
+		return generate_primitive_vector_type(context, "vec3", f32, 3);
 	case vec4:
-		return generate_primitive_vector_type(context, "vec4", f32, 4, false);
+		return generate_primitive_vector_type(context, "vec4", f32, 4);
 
 	default:
 		break;
@@ -132,7 +144,7 @@ gcc_jit_type *generate_primitive_type(gcc_jit_context *const context, PrimitiveT
 
 gcc_jit_object *generate_primitive(gcc_jit_context *const context, const Primitive &primitive)
 {
-	auto scalar_type = generate_primitive_scalar_type(context, primitive.type);
+	auto scalar_type = generate_primitive_scalar_type(context, primitive.type).real;
 
 	switch (primitive.type) {
 
@@ -282,7 +294,7 @@ gcc_jit_function_generator_t::gcc_jit_function_generator_t(gcc_jit_context *cons
 		: Buffer(buffer_), context(context_) {}
 
 // Generating types
-gcc_jit_type *gcc_jit_function_generator_t::jitify_type(QualifiedType qt)
+gcc_type_info gcc_jit_function_generator_t::jitify_type(QualifiedType qt)
 {
 	auto original = qt;
 
@@ -308,37 +320,101 @@ gcc_jit_type *gcc_jit_function_generator_t::jitify_type(QualifiedType qt)
 
 	variant_case(QualifiedType, StructFieldType):
 	{
-		std::vector <gcc_jit_field *> fields;
+		std::vector <gcc_type_info> field_infos;
+			
+		fmt::println("creating new structure...");
 
-		index_t f = 0;
 		while (!qt.is <NilType> ()) {
-			gcc_jit_type *type = nullptr;
+			fmt::println("field: {}", qt);
+
+			gcc_type_info info;
 			if (qt.is <StructFieldType> ()) {
 				auto &sft = qt.as <StructFieldType> ();
-				type = jitify_type(sft.base());
+				info = jitify_type(sft.base());
 
 				index_t next = qt.as <StructFieldType> ().next;
 				qt = types[next];
 			} else {
-				type = jitify_type(qt);
+				info = jitify_type(qt);
 
 				qt = QualifiedType::nil();
 			}
 
-			std::string name = fmt::format("f{}", f++);
+			fmt::println("  size of resulting field: {}", info.size);
+			fmt::println("  align of resulting field: {}", info.align);
+
+			field_infos.push_back(info);
+		}
+
+		auto aligned = [](uint32_t offset, uint32_t bytes) {
+			return bytes * ((offset + bytes - 1) / bytes);
+		};
+
+		uint32_t offset = 0;
+		for (size_t i = 0; i < field_infos.size(); i++) {
+			auto &current = field_infos[i];
+
+			fmt::println("adding field (size={}, align={}, offset={})",
+				current.size,
+				current.align,
+				offset);
+
+			if (offset % current.align) {
+				fmt::println("  aligning to {} bytes", current.align);
+				current.real = gcc_jit_type_get_aligned(current.real, current.align);
+				offset = aligned(offset, current.align) + current.size;
+			} else {
+				// Keep the alignment
+				offset += current.size;
+			}
+
+			// offset += current.size;
+			// // Now check with the alignment of the next field
+			// if (i + 1 < field_infos.size()) {
+			// 	auto &next = field_infos[i + 1];
+
+			// 	uint32_t rounded = aligned(offset, next.align);
+			// 	fmt::println("  rounded size: {} vs offset: {}", rounded, offset);
+			// 	if (rounded != offset) {
+			// 		fmt::println("  aligning to {} bytes", next.align);
+			// 		current.real = gcc_jit_type_get_aligned(current.real, next.align);
+			// 	}
+			// }
+		}
+
+		std::vector <gcc_jit_field *> fields;
+		for (size_t i = 0; i < field_infos.size(); i++) {
+			auto &current = field_infos[i];
+
+			std::string name = fmt::format("f{}", i);
 			auto field = gcc_jit_context_new_field(context,
-				LOCATION(context), type, name.c_str());
+				LOCATION(context),
+				current.real,
+				name.c_str());
 
 			fields.push_back(field);
 		}
 
-		std::string name = fmt::format("aggr{}", mapped_types.size());
-		auto aggregate_struct = gcc_jit_context_new_struct_type(context,
-			LOCATION(context), name.c_str(), fields.size(), fields.data());
+		fmt::println("total # of fields: {}", fields.size());
 
-		auto aggregate_type = gcc_jit_struct_as_type(aggregate_struct);
-		mapped_types[original] = aggregate_type;
-		return aggregate_type;
+		std::string name = fmt::format("s{}", mapped_types.size());
+		auto structure = gcc_jit_context_new_struct_type(context,
+			LOCATION(context),
+			name.c_str(),
+			fields.size(),
+			fields.data());
+
+		auto type = gcc_jit_struct_as_type(structure);
+		auto info = gcc_type_info {
+			.real = type,
+			.size = offset,
+			// TODO: this is hard coded
+			.align = 16
+		};
+
+		mapped_types[original] = info;
+
+		return info;
 	}
 
 	default:
@@ -432,21 +508,36 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const Construct &construc
 	// Regular constructors
 	auto args = expand_list_chain(constructor.args);
 
-	fmt::println("regular constructor: {} args", args.rvalues.size());
+	auto info = jitify_type(types[index]);
 
-	gcc_jit_type *type = jitify_type(types[index]);
-	gcc_jit_struct *aggregate = reinterpret_cast <gcc_jit_struct *> (type);
+	fmt::println("regular constructor: {} args", args.rvalues.size());
+	fmt::println("  struct size: {}", info.size);
+
+	gcc_jit_type *type = info.real;
+	gcc_jit_struct *structure = reinterpret_cast <gcc_jit_struct *> (type);
+
+	uint32_t count = gcc_jit_struct_get_field_count(structure);
+
+	JVL_ASSERT(count == args.rvalues.size(),
+		"mismatch in construct arguments (got {}, expected {}), "
+		"did you legalize the instructions for GCC JIT?",
+		args.rvalues.size(), count);
 	
-	// Assuming a one-to-one mapping from args to fields
+	// Requires a one-to-one mapping from args to fields
 	std::vector <gcc_jit_field *> fields;
 	for (size_t i = 0; i < args.rvalues.size(); i++) {
-		auto field = gcc_jit_struct_get_field(aggregate, i);
+		auto field = gcc_jit_struct_get_field(structure, i);
 		fields.emplace_back(field);
 	}
 
 	gcc_jit_rvalue *constructed = gcc_jit_context_new_struct_constructor(context,
-		LOCATION(context), type, args.rvalues.size(),
-		fields.data(), args.rvalues.data());
+		LOCATION(context),
+		type,
+		args.rvalues.size(),
+		fields.data(),
+		args.rvalues.data());
+
+	JVL_ASSERT_PLAIN(constructed);
 
 	return gcc_jit_rvalue_as_object(constructed);
 }
@@ -461,7 +552,7 @@ gcc_jit_object *gcc_jit_function_generator_t::load_field(index_t src, index_t in
 	// TODO: double check that it is indeed a struct
 
 	auto type = jitify_type(original);
-	auto struct_type = reinterpret_cast <gcc_jit_struct*> (type);
+	auto struct_type = reinterpret_cast <gcc_jit_struct*> (type.real);
 	auto field = gcc_jit_struct_get_field(struct_type, index);
 
 	auto v = values.at(src);
@@ -475,6 +566,15 @@ template <>
 gcc_jit_object *gcc_jit_function_generator_t::generate(const Swizzle &swizzle, index_t index)
 {
 	return load_field(swizzle.src, swizzle.code, false);
+}
+
+template <>
+gcc_jit_object *gcc_jit_function_generator_t::generate(const Store &store, index_t index)
+{
+	auto dst = reinterpret_cast <gcc_jit_lvalue *> (values.at(store.dst));
+	auto src = reinterpret_cast <gcc_jit_rvalue *> (values.at(store.src));
+	gcc_jit_block_add_assignment(block, LOCATION(context), dst, src);
+	return nullptr;
 }
 
 template <>
@@ -496,7 +596,7 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const Operation &operatio
 	auto one = reinterpret_cast <gcc_jit_rvalue *> (values.at(operation.a));
 	auto two = reinterpret_cast <gcc_jit_rvalue *> (values.at(operation.b));
 
-	return generate_operation(context, operation.code, type, one, two);
+	return generate_operation(context, operation.code, type.real, one, two);
 }
 
 template <>
@@ -510,7 +610,7 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const Intrinsic &intrinsi
 	auto info = intrinsic_lookup_info {
 		.opn = intrinsic.opn,
 		.types = args.types,
-		.returns = type
+		.returns = type.real
 	};
 
 	auto ftn = intrinsic_lookup(context, info);
@@ -586,7 +686,7 @@ void gcc_jit_function_generator_t::begin_function()
 		if (auto qualifier = atom.get <Qualifier> ()) {
 			if (qualifier->kind == parameter) {
 				index_t underlying = qualifier->underlying;
-				gcc_jit_type *type = jitify_type(types[underlying]);
+				gcc_jit_type *type = jitify_type(types[underlying]).real;
 
 				size_t loc = qualifier->numerical;
 				size_t size = std::max(parameters.size(), loc + 1);
@@ -600,7 +700,7 @@ void gcc_jit_function_generator_t::begin_function()
 		}
 
 		if (auto returns = atom.get <Returns> ())
-			return_type = jitify_type(types[i]);
+			return_type = jitify_type(types[i]).real;
 	}
 
 	function = gcc_jit_context_new_function(context,

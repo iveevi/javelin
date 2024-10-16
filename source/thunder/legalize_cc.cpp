@@ -116,11 +116,13 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 	em.pop();
 }
 
-void legalize_for_cc_vector_constructor(mapped_instruction_t &mapped,
+bool legalize_for_cc_vector_constructor(mapped_instruction_t &mapped,
 					PrimitiveType type_to_construct,
 					const std::vector <index_t> &args,
 					const std::vector <PrimitiveType> &types)
 {
+	bool transformed = false;
+
 	// For now assume only one argument when constructing heterogenously
 	JVL_ASSERT(args.size() == 1, "vector constructor legalization currently requires exactly one argument");
 	
@@ -143,7 +145,9 @@ void legalize_for_cc_vector_constructor(mapped_instruction_t &mapped,
 
 		index_t l = em.emit_list_chain(components);
 		index_t t = em.emit(TypeInformation(-1, -1, type_to_construct));
-		em.emit(Construct(t, l));
+		em.emit_construct(t, l, normal);
+
+		transformed = true;
 	} else {
 		JVL_ABORT("unsupported argument {} when legalizing constructor for {}",
 			tbl_primitive_types[type_a],
@@ -151,13 +155,17 @@ void legalize_for_cc_vector_constructor(mapped_instruction_t &mapped,
 	}
 
 	em.pop();
+
+	return transformed;
 }
 
-void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
+bool legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 			       IntrinsicOperation opn,
 			       const std::vector <index_t> &args,
 			       const std::vector <PrimitiveType> &types)
 {
+	bool transformed = false;
+
 	// Intrinsics which can be successfully legalized
 	static const std::unordered_set <IntrinsicOperation> legalizable {
 		clamp,
@@ -209,7 +217,11 @@ void legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 			top = em.emit_operation(top, products[i + 1], addition);
 
 		em.pop();
+
+		transformed = true;
 	}
+
+	return transformed;
 }
 
 // TODO: legalization context...
@@ -279,7 +291,10 @@ void legalize_for_cc(Buffer &buffer)
 					types.push_back(ptype);
 				}
 
-				legalize_for_cc_vector_constructor(mapped[i], ptype, args, types);
+				if (types.size() == 1) {
+					if (legalize_for_cc_vector_constructor(mapped[i], ptype, args, types))
+						transformed = true;
+				}
 			}
 		}
 
@@ -293,12 +308,23 @@ void legalize_for_cc(Buffer &buffer)
 				types.push_back(ptype);
 			}
 
-			legalize_for_cc_intrinsic(mapped[i], intrinsic->opn, args, types);
+			if (legalize_for_cc_intrinsic(mapped[i], intrinsic->opn, args, types))
+				transformed = true;
 		}
 
 		if (!transformed)
 			mapped[i].track(0);
 	}
+
+	// TODO: debug flag
+	// fmt::println("stitch mapped blocks:");
+	// for (size_t i = 0; i < mapped.size(); i++) {
+	// 	fmt::println("--------------->> ({})", i);
+	// 	fmt::println("masks:");
+	// 	for (auto &m : mapped[i].refs)
+	// 		fmt::println("  > ({}, {:02b})", m.index, m.mask);
+	// 	mapped[i].dump();
+	// }
 
 	buffer = Buffer();
 	stitch_mapped_instructions(buffer, mapped);
