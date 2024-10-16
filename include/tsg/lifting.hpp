@@ -24,22 +24,25 @@ struct lift_argument <std::tuple <Args...>> {
 // Lifting shader outputs
 template <typename T>
 struct lift_result {
-	using type = T;
+	using single = T;
+	using type = std::tuple <single>;
 };
 
 template <>
 struct lift_result <position> {
-	using type = position;
+	using single = position;
+	using type = std::tuple <single>;
 };
 
 template <generic T>
 struct lift_result <T> {
-	using type = ire::layout_out <T>;
+	using single = ire::layout_out <T>;
+	using type = std::tuple <single>;
 };
 
 template <typename ... Args>
 struct lift_result <std::tuple <Args...>> {
-	using type = std::tuple <typename lift_result <Args> ::type...>;
+	using type = std::tuple <typename lift_result <Args> ::single...>;
 };
 
 } // namespace jvl::tsg

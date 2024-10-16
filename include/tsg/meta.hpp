@@ -20,5 +20,11 @@ struct is_stage_meta <Meta, Meta <A, B, Args...>> : std::true_type {};
 template <template <ShaderStageFlags, typename, auto ...> typename Meta, typename T>
 constexpr bool is_stage_meta_v = is_stage_meta <Meta, T> ::value;
 
+// Filtering types into a "container" template type
+template <typename Container, typename ... Specifiers>
+struct collector {
+	// It is not valid to actually instantiate this one...
+	static_assert(false);
+};
 
 } // namespace jvl::tsg
