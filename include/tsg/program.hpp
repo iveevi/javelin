@@ -3,8 +3,7 @@
 #include "artifact.hpp"
 #include "error.hpp"
 #include "flags.hpp"
-#include "requirement.hpp"
-#include "resolution.hpp"
+#include "verification.hpp"
 
 namespace jvl::tsg {
 
@@ -30,8 +29,8 @@ struct Program <ShaderStageFlags::eVertex, Specifiers...> {
 
 	template <specifier ... AddedSpecifiers>
 	friend auto operator<<(const Program &program, const CompiledArtifact <ShaderStageFlags::eFragment, AddedSpecifiers...> &compiled) {
-		using result_program = Program <ShaderStageFlags::eVxF, Specifiers..., AddedSpecifiers...>;
-		static constexpr auto value = verify_requirements_resolution <typename result_program::satisfied> ::value;
+		using specifier_pack = std::tuple <Specifiers..., AddedSpecifiers...>;
+		static constexpr auto value = verify_specifiers <specifier_pack> ::value;
 		assess_shader_compiler_error <value> ();
 		return Program <ShaderStageFlags::eVxF, Specifiers..., AddedSpecifiers...> {
 			program.ir_vertex,
@@ -46,10 +45,10 @@ struct Program <ShaderStageFlags::eFragment, Specifiers...> {
 
 	template <specifier ... AddedSpecifiers>
 	friend auto operator<<(const Program &program, const CompiledArtifact <ShaderStageFlags::eVertex, AddedSpecifiers...> &compiled) {
-		using result_program = Program <ShaderStageFlags::eVxF, Specifiers..., AddedSpecifiers...>;
-		static constexpr auto value = verify_requirements_resolution <typename result_program::satisfied> ::value;
+		using specifier_pack = std::tuple <Specifiers..., AddedSpecifiers...>;
+		static constexpr auto value = verify_specifiers <specifier_pack> ::value;
 		assess_shader_compiler_error <value> ();
-		return result_program {
+		return Program <ShaderStageFlags::eVxF, Specifiers..., AddedSpecifiers...> {
 			static_cast <thunder::TrackedBuffer> (compiled),
 			program.ir_fragment,
 		};
@@ -61,11 +60,6 @@ template <specifier ... Specifiers>
 struct Program <ShaderStageFlags::eVxF, Specifiers...> {
 	thunder::TrackedBuffer ir_vertex;
 	thunder::TrackedBuffer ir_fragment;
-		
-	// Layout compatibility verification
-	using raw_requirements = RequirementVector <typename requirement_for <Specifiers> ::type...>;
-	using requirements = typename raw_requirements::filtered;
-	using satisfied = typename resolve_requirement_vector <requirements, Specifiers...> ::result;
 
 	// TODO: extract descriptor set layout
 };

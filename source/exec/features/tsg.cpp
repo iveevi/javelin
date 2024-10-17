@@ -44,24 +44,15 @@ auto vertex_shader(VertexIntrinsics, PushConstant <MVP> mvp, vec3 pos)
 
 	vec4 pp = mvp.project(p);
 
-	return std::make_tuple(Position(pp), vec3());
+	return std::make_tuple(Position(pp), vec3(), vec3());
 }
 
 // TODO: deprecation warnings on unused layouts
 // TODO: solid_alignment <...> and restrictions for offset based on that...
-auto fragment_shader(FragmentIntrinsics, PushConstant <vec3, ire::solid_size <MVP> - 16> color, vec3 pos)
+auto fragment_shader(FragmentIntrinsics, PushConstant <vec3, ire::solid_size <MVP> - 16> color, vec3 pos, vec3)
 {
 	return vec4(color, 0);
 }
-	
-using T = decltype(function_breakdown(vertex_shader));
-using S = signature <typename T::base>;
-using R = typename S::returns;
-using Args = typename S::arguments;
-
-// Secondary pass given the shader stage
-using lifted_results = lift_result <R> ::type;
-using lifted_args = lift_argument <Args> ::type;
 
 int main()
 {

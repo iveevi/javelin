@@ -38,6 +38,7 @@ struct collector <ProxyResourceCollection <F, Inputs...>, S, Args...> {
 template <ShaderStageFlags F, resource ... Inputs, generic T, size_t Offset, typename ... Specifiers>
 struct collector <ProxyResourceCollection <F, Inputs...>, PushConstant <T, Offset>, Specifiers...> {
 	static constexpr size_t I = sizeof...(Inputs);
+	// TODO: need to account for the aligned version
 	static constexpr size_t end = Offset + ire::solid_size <T>;
 	using current = ProxyResourceCollection <F, PushConstantRange <F, T, Offset, end>, Inputs...>;
 	using result = typename collector <current, Specifiers...> ::result;

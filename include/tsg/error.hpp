@@ -1,49 +1,22 @@
 #pragma once
 
-#include "requirement.hpp"
+#include <cstdint>
 
 namespace jvl::tsg {
 
 enum shader_compiler_error_kind : int32_t {
 	eOk,
 	eUnknown,
-	eIncompatibleLayouts,
+	eIncompatibleLayout,
+	eMissingLayout,
 	eUnusedOutputLayout,
 	eMultiplePushConstants,
-	// TODO: missing layout...
 };
 
 struct shader_compiler_error {
 	shader_compiler_error_kind type;
 	int32_t arg0;
 };
-
-template <typename Rs>
-struct verify_requirements_resolution {
-	static constexpr auto value = shader_compiler_error(eOk);
-};
-
-template <requirement R, requirement ... Requirements>
-struct verify_requirements_resolution <RequirementVector <R, Requirements...>> {
-	static constexpr auto value = shader_compiler_error(eUnknown);
-};
-
-template <requirement ... Requirements>
-struct verify_requirements_resolution <RequirementVector <RequirementSatisfied, Requirements...>> {
-	using next = RequirementVector <Requirements...>;
-	static constexpr auto value = verify_requirements_resolution <next> ::value;
-};
-
-template <ShaderStageFlags F, generic T, ShaderStageFlags B, size_t N, requirement ... Requirements>
-struct verify_requirements_resolution <RequirementVector <RequirementCompatibleLayout <F, T, B, N>, Requirements...>> {
-	static constexpr auto value = shader_compiler_error(eIncompatibleLayouts, N);
-};
-
-template <ShaderStageFlags From, generic T, ShaderStageFlags To, size_t N, requirement ... Requirements>
-struct verify_requirements_resolution <RequirementVector <RequirementOutputUsage <From, T, To, N>, Requirements...>> {
-	static constexpr auto value = shader_compiler_error(eUnusedOutputLayout, N);
-};
-
 
 template <int32_t binding_in_vertex_shader>
 [[deprecated("vertex shader produces a layout ouput that is not consumed by the fragment shader")]]
@@ -57,11 +30,16 @@ consteval void assess_shader_compiler_error()
 		static_assert(0,
 			"unknown error while attempting to "
 			"validate completed shader program");
-	} else if constexpr (value.type == eIncompatibleLayouts) {
+	} else if constexpr (value.type == eIncompatibleLayout) {
 		constexpr int32_t problematic_binding_in_vs = value.arg0;
 		static_assert(problematic_binding_in_vs == -1,
 			"vertex shader produces a layout ouput of a different type "
 			"than what the fragment shader expects");
+	} else if constexpr (value.type == eMissingLayout) {
+		constexpr int32_t missing_binding_from_fs = value.arg0;
+		static_assert(missing_binding_from_fs == -1,
+			"fragment shader takes a layout input which is "
+			"missing from the vertex shader");
 	} else if constexpr (value.type == eUnusedOutputLayout) {
 		constexpr int32_t source_binding_in_vs = value.arg0;
 		warn_unused_layout <source_binding_in_vs> ();
