@@ -169,7 +169,13 @@ add_executable(tsg-features
 
 set_property(TARGET tsg-features PROPERTY ENABLE_EXPORTS ON)
 
-target_link_libraries(tsg-features glfw fmt::fmt javelin-ire gccjit)
+target_link_libraries(tsg-features
+	glfw
+	fmt::fmt
+	javelin-ire
+	javelin-gfx
+	gccjit
+	${VULKAN_LIBRARY_SET})
 
 # Experimental program for the JVL language
 add_executable(lang-features
