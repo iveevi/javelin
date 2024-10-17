@@ -44,13 +44,14 @@ auto vertex_shader(VertexIntrinsics, PushConstant <MVP> mvp, vec3 pos)
 
 	vec4 pp = mvp.project(p);
 
-	return std::make_tuple(Position(pp), vec3(), vec3());
+	return std::make_tuple(Position(pp), vec3());
 }
 
 // TODO: deprecation warnings on unused layouts
-auto fragment_shader(FragmentIntrinsics, vec3 pos)
+// TODO: solid_alignment <...> and restrictions for offset based on that...
+auto fragment_shader(FragmentIntrinsics, PushConstant <vec3, 100> color, vec3 pos)
 {
-	return vec4(1, 0, 0, 0);
+	return vec4(color, 0);
 }
 	
 using T = decltype(function_breakdown(vertex_shader));
@@ -65,27 +66,22 @@ using lifted_args = lift_argument <Args> ::type;
 int main()
 {
 	auto vs = compile_function("main", vertex_shader);
+	auto fs = compile_function("main", fragment_shader);
 
-	// thunder::opt_transform(vs);
+	auto unit = Program();
+	auto next = unit << vs << fs;
 
-	fmt::println("{}", link(vs).generate_glsl());
+	thunder::opt_transform(next.ir_vertex);
+	next.ir_vertex.dump();
+	auto vunit = thunder::LinkageUnit();
+	vunit.add(next.ir_vertex);
+	fmt::println("{}", vunit.generate_glsl());
+	auto vspirv = vunit.generate_spirv(vk::ShaderStageFlagBits::eVertex);
 
-	// auto fs = compile_function("main", fragment_shader);
-
-	// auto unit = Program();
-	// auto next = unit << vs << fs;
-
-	// thunder::opt_transform(next.ir_vertex);
-	// next.ir_vertex.dump();
-	// auto vunit = thunder::LinkageUnit();
-	// vunit.add(next.ir_vertex);
-	// fmt::println("{}", vunit.generate_glsl());
-	// auto vspirv = vunit.generate_spirv(vk::ShaderStageFlagBits::eVertex);
-
-	// thunder::opt_transform(next.ir_fragment);
-	// next.ir_fragment.dump();
-	// auto funit = thunder::LinkageUnit();
-	// funit.add(next.ir_fragment);
-	// fmt::println("{}", funit.generate_glsl());
-	// auto fspirv = funit.generate_spirv(vk::ShaderStageFlagBits::eFragment);
+	thunder::opt_transform(next.ir_fragment);
+	next.ir_fragment.dump();
+	auto funit = thunder::LinkageUnit();
+	funit.add(next.ir_fragment);
+	fmt::println("{}", funit.generate_glsl());
+	auto fspirv = funit.generate_spirv(vk::ShaderStageFlagBits::eFragment);
 }

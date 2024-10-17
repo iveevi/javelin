@@ -37,9 +37,10 @@ struct local_layout_type {
 
 struct push_constant_info : local_layout_type {
 	size_t offset;
+	index_t underlying;
 
 	static push_constant_info from() {
-		return { { 0, -1, thunder::push_constant }, 0 };
+		return { { 0, -1, thunder::push_constant }, 0, -1 };
 	}
 };
 

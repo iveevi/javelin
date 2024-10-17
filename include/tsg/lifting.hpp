@@ -16,8 +16,8 @@ struct lift_argument <T> {
 	using type = ire::layout_in <T>;
 };
 
-template <generic T>
-struct lift_argument <PushConstant <T>> {
+template <generic T, size_t Offset>
+struct lift_argument <PushConstant <T, Offset>> {
 	using type = ire::push_constant <T>;
 };
 

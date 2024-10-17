@@ -72,13 +72,17 @@ void LinkageUnit::process_function_qualifier(Function &function, index_t index, 
 
 	case push_constant:
 	{
-		JVL_ASSERT(globals.push_constant.index == -1, "multiple push constants used in a single shader stage");
-
 		push_constant_info info;
 		info.index = i;
 		info.function = index;
 		info.kind = thunder::push_constant;
 		info.offset = qualifier.numerical;
+		info.underlying = qualifier.underlying;
+		
+		JVL_ASSERT(globals.push_constant.underlying == -1
+			|| globals.push_constant.underlying == qualifier.underlying,
+			"multiple push constants used in "
+			"a single shader stage");
 
 		globals.push_constant = info;
 	} break;

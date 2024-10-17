@@ -24,8 +24,9 @@ template <generic T>
 struct NoPerspective;
 
 // Shader layout resources
-template <generic T>
+template <generic T, size_t Offset = 0>
 struct PushConstant : ire::push_constant <T> {
+	PushConstant() = default;
 	PushConstant(const ire::push_constant <T> &other)
 			: ire::push_constant <T> (other) {}
 };

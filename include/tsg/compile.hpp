@@ -100,7 +100,7 @@ auto compile_function(const std::string &name, const F &ftn)
 	em.push(buffer);
 
 	lifted_args arguments;
-	shader_args_initializer(arguments);
+	shader_args_initializer(Args(), arguments);
 	auto result = std::apply(ftn, arguments);
 	exporting(result);
 
