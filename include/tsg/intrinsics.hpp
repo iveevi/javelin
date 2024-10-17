@@ -33,6 +33,8 @@ struct PushConstant : ire::push_constant <T> {
 // Result types for shaders
 struct Position : vec4 {
 	using vec4::vec4;
+
+	Position(const vec4 &other) : vec4(other.ref) {}
 };
 
 } // namespace jvl::tsg

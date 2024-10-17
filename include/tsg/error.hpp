@@ -9,54 +9,39 @@ enum shader_compiler_error_kind : int32_t {
 	eUnknown,
 	eIncompatibleLayouts,
 	eUnusedOutputLayout,
+	eMultiplePushConstants,
 	// TODO: missing layout...
 };
 
 struct shader_compiler_error {
 	shader_compiler_error_kind type;
 	int32_t arg0;
-
-	static constexpr shader_compiler_error ok() {
-		return shader_compiler_error(eOk);
-	}
-	
-	static constexpr shader_compiler_error unknown() {
-		return shader_compiler_error(eUnknown);
-	}
-	
-	static constexpr shader_compiler_error bad_layout(int32_t x) {
-		return shader_compiler_error(eIncompatibleLayouts, x);
-	}
-	
-	static constexpr shader_compiler_error unused_layout(int32_t x) {
-		return shader_compiler_error(eUnusedOutputLayout, x);
-	}
 };
 
 template <typename Rs>
-struct requirement_vector_error {
-	static constexpr auto value = shader_compiler_error::ok();
+struct verify_requirements_resolution {
+	static constexpr auto value = shader_compiler_error(eOk);
 };
 
 template <requirement R, requirement ... Requirements>
-struct requirement_vector_error <RequirementVector <R, Requirements...>> {
-	static constexpr auto value = shader_compiler_error::unknown();
+struct verify_requirements_resolution <RequirementVector <R, Requirements...>> {
+	static constexpr auto value = shader_compiler_error(eUnknown);
 };
 
 template <requirement ... Requirements>
-struct requirement_vector_error <RequirementVector <RequirementSatisfied, Requirements...>> {
+struct verify_requirements_resolution <RequirementVector <RequirementSatisfied, Requirements...>> {
 	using next = RequirementVector <Requirements...>;
-	static constexpr auto value = requirement_vector_error <next> ::value;
+	static constexpr auto value = verify_requirements_resolution <next> ::value;
 };
 
 template <ShaderStageFlags F, generic T, ShaderStageFlags B, size_t N, requirement ... Requirements>
-struct requirement_vector_error <RequirementVector <RequirementCompatibleLayout <F, T, B, N>, Requirements...>> {
-	static constexpr auto value = shader_compiler_error::bad_layout(N);
+struct verify_requirements_resolution <RequirementVector <RequirementCompatibleLayout <F, T, B, N>, Requirements...>> {
+	static constexpr auto value = shader_compiler_error(eIncompatibleLayouts, N);
 };
 
 template <ShaderStageFlags From, generic T, ShaderStageFlags To, size_t N, requirement ... Requirements>
-struct requirement_vector_error <RequirementVector <RequirementOutputUsage <From, T, To, N>, Requirements...>> {
-	static constexpr auto value = shader_compiler_error::unused_layout(N);
+struct verify_requirements_resolution <RequirementVector <RequirementOutputUsage <From, T, To, N>, Requirements...>> {
+	static constexpr auto value = shader_compiler_error(eUnusedOutputLayout, N);
 };
 
 
@@ -66,7 +51,7 @@ constexpr void warn_unused_layout() {}
 
 // Trigger static asserts conditionally
 template <shader_compiler_error value>
-constexpr void assess_shader_compiler_error()
+consteval void assess_shader_compiler_error()
 {
 	if constexpr (value.type == eUnknown) {
 		static_assert(0,
@@ -80,6 +65,9 @@ constexpr void assess_shader_compiler_error()
 	} else if constexpr (value.type == eUnusedOutputLayout) {
 		constexpr int32_t source_binding_in_vs = value.arg0;
 		warn_unused_layout <source_binding_in_vs> ();
+	} else if constexpr (value.type == eMultiplePushConstants) {
+		static_assert(false, "shader functions can have at most "
+			"one push constant uniform");
 	} else {
 		static_assert(value.type == eOk);
 	}

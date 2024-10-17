@@ -38,13 +38,13 @@ struct MVP {
 auto vertex_shader(VertexIntrinsics, PushConstant <MVP> mvp, vec3 pos)
 {
 	vec3 p = pos;
-	cond(p.x > 0.0f);
-		p.y = 1.0f;
-	end();
+	// cond(p.x > 0.0f);
+	// 	p.y = second;
+	// end();
 
 	vec4 pp = mvp.project(p);
 
-	return std::make_tuple(Position(pp.ref), vec3(), vec3());
+	return std::make_tuple(Position(pp), vec3(), vec3());
 }
 
 // TODO: deprecation warnings on unused layouts
@@ -65,6 +65,8 @@ using lifted_args = lift_argument <Args> ::type;
 int main()
 {
 	auto vs = compile_function("main", vertex_shader);
+
+	// thunder::opt_transform(vs);
 
 	fmt::println("{}", link(vs).generate_glsl());
 

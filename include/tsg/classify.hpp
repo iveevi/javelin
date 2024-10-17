@@ -7,7 +7,7 @@ namespace jvl::tsg {
 
 // Determine the shader stage based on the signature, and record any errors
 template <typename ... Args>
-struct classifier {
+struct shader_stage_classifier {
 	static constexpr ShaderStageFlags flags = ShaderStageFlags::eNone;
 
 	// Only so that the default is a subroutine
@@ -19,8 +19,8 @@ struct classifier {
 };
 
 template <typename ... Args>
-struct classifier <VertexIntrinsics, Args...> {
-	using prev = classifier <Args...>;
+struct shader_stage_classifier <VertexIntrinsics, Args...> {
+	using prev = shader_stage_classifier <Args...>;
 	static constexpr ShaderStageFlags flags = ShaderStageFlags::eVertex;
 	static constexpr ShaderStageFlags resolved = flags;
 
@@ -36,8 +36,8 @@ struct classifier <VertexIntrinsics, Args...> {
 };
 
 template <typename ... Args>
-struct classifier <FragmentIntrinsics, Args...> {
-	using prev = classifier <Args...>;
+struct shader_stage_classifier <FragmentIntrinsics, Args...> {
+	using prev = shader_stage_classifier <Args...>;
 	static constexpr ShaderStageFlags flags = ShaderStageFlags::eFragment;
 	static constexpr ShaderStageFlags resolved = flags;
 
@@ -53,11 +53,11 @@ struct classifier <FragmentIntrinsics, Args...> {
 };
 
 template <typename ... Args>
-struct classifier <std::tuple <Args...>> : classifier <Args...> {};
+struct shader_stage_classifier <std::tuple <Args...>> : shader_stage_classifier <Args...> {};
 
 // Reporting errors through instantiation of the type
 template <ClassificationErrorFlags F>
-struct verify_classification {
+struct verify_shader_stage_classification {
 	static_assert(!has(F, ClassificationErrorFlags::eDuplicateVertex),
 		"Vertexshader program must use a single stage intrinsic parameter");
 

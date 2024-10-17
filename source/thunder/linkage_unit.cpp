@@ -72,6 +72,8 @@ void LinkageUnit::process_function_qualifier(Function &function, index_t index, 
 
 	case push_constant:
 	{
+		JVL_ASSERT(globals.push_constant.index == -1, "multiple push constants used in a single shader stage");
+
 		push_constant_info info;
 		info.index = i;
 		info.function = index;
