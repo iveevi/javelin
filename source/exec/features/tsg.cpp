@@ -49,7 +49,7 @@ auto vertex_shader(VertexIntrinsics, PushConstant <MVP> mvp, vec3 pos)
 
 // TODO: deprecation warnings on unused layouts
 // TODO: solid_alignment <...> and restrictions for offset based on that...
-auto fragment_shader(FragmentIntrinsics, PushConstant <vec3, ire::solid_size <MVP>> color, vec3 pos)
+auto fragment_shader(FragmentIntrinsics, PushConstant <vec3, ire::solid_size <MVP> - 16> color, vec3 pos)
 {
 	return vec4(color, 0);
 }

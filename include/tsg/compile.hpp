@@ -2,12 +2,13 @@
 
 #include "artifact.hpp"
 #include "classify.hpp"
+#include "error.hpp"
 #include "exporting.hpp"
 #include "initializer.hpp"
 #include "layouts.hpp"
 #include "lifting.hpp"
+#include "resources.hpp"
 #include "signature.hpp"
-#include "error.hpp"
 
 namespace jvl::tsg {
 
@@ -86,15 +87,23 @@ auto compile_function(const std::string &name, const F &ftn)
 	assess_shader_compiler_error <value> ();
 
 	// Secondary pass given the shader stage
-	using lifted_results = lift_result <R> ::type;
 	using lifted_args = lift_argument <Args> ::type;
+	using lifted_results = lift_result <R> ::type;
+
 	using dependencies = collect_layout_inputs <flags, lifted_args> ::type;
-	using results = collect_layout_outputs<flags, lifted_results> ::type;
+	using results = collect_layout_outputs <flags, lifted_results> ::type;
+	using resources = collect_resources <flags, Args> ::type;
 
 	// Begin code generation stage
 	auto &em = ire::Emitter::active;
 	
-	auto buffer = compiled_artifact_assembler <flags, dependencies, results> ::make();
+	auto buffer = compiled_artifact_assembler <
+		flags,
+		dependencies,
+		results,
+		resources
+	> ::make();
+
 	buffer.name = name;
 
 	em.push(buffer);

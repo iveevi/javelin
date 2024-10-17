@@ -5,7 +5,10 @@
 
 namespace jvl::tsg {
 
-// Lifting shader arguments
+//////////////////////////////
+// Lifting shader arguments //
+//////////////////////////////
+
 template <typename T>
 struct lift_argument {
 	using type = T;
@@ -26,7 +29,10 @@ struct lift_argument <std::tuple <Args...>> {
 	using type = std::tuple <typename lift_argument <Args> ::type...>;
 };
 
-// Lifting shader outputs
+////////////////////////////
+// Lifting shader outputs //
+////////////////////////////
+
 template <typename T>
 struct lift_result {
 	using single = T;
