@@ -32,7 +32,7 @@ struct Program <ShaderStageFlags::eVertex, Specifiers...> {
 		using specifier_pack = std::tuple <Specifiers..., AddedSpecifiers...>;
 		static constexpr auto value = verify_specifiers <specifier_pack> ::value;
 		diagnose_shader_compiler_error <value> ();
-		return Program <ShaderStageFlags::eVxF, Specifiers..., AddedSpecifiers...> {
+		return Program <ShaderStageFlags::eGraphicsVertexFragment, Specifiers..., AddedSpecifiers...> {
 			program.ir_vertex,
 			static_cast <thunder::TrackedBuffer> (compiled)
 		};
@@ -48,7 +48,7 @@ struct Program <ShaderStageFlags::eFragment, Specifiers...> {
 		using specifier_pack = std::tuple <Specifiers..., AddedSpecifiers...>;
 		static constexpr auto value = verify_specifiers <specifier_pack> ::value;
 		diagnose_shader_compiler_error <value> ();
-		return Program <ShaderStageFlags::eVxF, Specifiers..., AddedSpecifiers...> {
+		return Program <ShaderStageFlags::eGraphicsVertexFragment, Specifiers..., AddedSpecifiers...> {
 			static_cast <thunder::TrackedBuffer> (compiled),
 			program.ir_fragment,
 		};
@@ -57,11 +57,12 @@ struct Program <ShaderStageFlags::eFragment, Specifiers...> {
 
 // Complete vertex -> fragment shader program
 template <specifier ... Specifiers>
-struct Program <ShaderStageFlags::eVxF, Specifiers...> {
+struct Program <ShaderStageFlags::eGraphicsVertexFragment, Specifiers...> {
 	thunder::TrackedBuffer ir_vertex;
 	thunder::TrackedBuffer ir_fragment;
 
-	// TODO: extract descriptor set layout
+	template <template <typename...> typename Filter>
+	using filter = Filter <Specifiers...>;
 };
 
 } // namespace jvl::tsg

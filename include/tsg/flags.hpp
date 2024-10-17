@@ -27,7 +27,7 @@ enum class ShaderStageFlags : uint16_t {
 	eSubroutine	= 1 << 5,
 	
 	// Composites
-	eVxF		= eVertex | eFragment,
+	eGraphicsVertexFragment	= eVertex | eFragment,
 };
 
 flag_operators(ShaderStageFlags, uint16_t)

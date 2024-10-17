@@ -4,6 +4,7 @@
 
 #include <tsg/compile.hpp>
 #include <tsg/program.hpp>
+#include <tsg/filters.hpp>
 
 #include <core/device_resource_collection.hpp>
 
@@ -51,10 +52,6 @@ auto fragment_shader(FragmentIntrinsics, PushConstant <vec3, ire::solid_size <MV
 	return vec4(color, 0);
 }
 
-// Shader pipeline
-struct Pipline {
-};
-
 // Device extensions
 std::vector <const char *> VK_EXTENSIONS {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -84,6 +81,9 @@ int main()
 	auto unit = Program();
 	auto next = unit << vs << fs;
 
+	using ProgramType = decltype(next);
+	using FilterPushConstants = ProgramType::filter <filter_push_constants>;
+
 	// Compile the vertex program
 	thunder::opt_transform(next.ir_vertex);
 	// next.ir_vertex.dump();
@@ -105,24 +105,24 @@ int main()
 	fmt::println("fspirv: {} bytes", sizeof(uint32_t) * fspirv.size());
 
 	// Construct a render pass
-	vk::AttachmentDescription color_attachment;
-	color_attachment.setFormat(drc.swapchain.format);
-	color_attachment.setLoadOp(vk::AttachmentLoadOp::eClear);
-	color_attachment.setStoreOp(vk::AttachmentStoreOp::eStore);
-	color_attachment.setInitialLayout(vk::ImageLayout::eUndefined);
-	color_attachment.setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
+	auto color_attachment = vk::AttachmentDescription()
+		.setFormat(drc.swapchain.format)
+		.setLoadOp(vk::AttachmentLoadOp::eClear)
+		.setStoreOp(vk::AttachmentStoreOp::eStore)
+		.setInitialLayout(vk::ImageLayout::eUndefined)
+		.setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
 
-	vk::AttachmentReference color_attachment_reference;
-	color_attachment_reference.setLayout(vk::ImageLayout::eColorAttachmentOptimal);
-	color_attachment_reference.setAttachment(0);
+	auto color_attachment_reference = vk::AttachmentReference()
+		.setLayout(vk::ImageLayout::eColorAttachmentOptimal)
+		.setAttachment(0);
 
-	vk::SubpassDescription subpass;
-	subpass.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics);
-	subpass.setColorAttachments(color_attachment_reference);
+	auto subpass = vk::SubpassDescription()
+		.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
+		.setColorAttachments(color_attachment_reference);
 
-	vk::RenderPassCreateInfo render_pass_info;
-	render_pass_info.setSubpasses(subpass);
-	render_pass_info.setAttachments(color_attachment);
+	auto render_pass_info = vk::RenderPassCreateInfo()
+		.setSubpasses(subpass)
+		.setAttachments(color_attachment);
 
 	auto render_pass = drc.device.createRenderPass(render_pass_info);
 
@@ -130,87 +130,72 @@ int main()
 	std::vector <vk::PipelineShaderStageCreateInfo> shaders;
 
 	// Vertex shader stage
-	vk::ShaderModuleCreateInfo vertex_module_info;
-	vertex_module_info.setCode(vspirv);
-	vertex_module_info.setCodeSize(sizeof(uint32_t) * vspirv.size());
+	auto vertex_module_info = vk::ShaderModuleCreateInfo()
+		.setCode(vspirv)
+		.setCodeSize(sizeof(uint32_t) * vspirv.size());
 
 	auto vertex_module = drc.device.createShaderModule(vertex_module_info);
 
-	vk::PipelineShaderStageCreateInfo vertex_stage_info;
-	vertex_stage_info.setStage(vk::ShaderStageFlagBits::eVertex);
-	vertex_stage_info.setModule(vertex_module);
-	vertex_stage_info.setPName("main");
+	auto vertex_stage_info = vk::PipelineShaderStageCreateInfo()
+		.setStage(vk::ShaderStageFlagBits::eVertex)
+		.setModule(vertex_module)
+		.setPName("main");
 
 	// Fragment shader stage	
-	vk::ShaderModuleCreateInfo fragment_module_info;
-	fragment_module_info.setCode(fspirv);
-	fragment_module_info.setCodeSize(sizeof(uint32_t) * fspirv.size());
+	auto fragment_module_info = vk::ShaderModuleCreateInfo()
+		.setCode(fspirv)
+		.setCodeSize(sizeof(uint32_t) * fspirv.size());
 
 	auto fragment_module = drc.device.createShaderModule(fragment_module_info);
 
-	vk::PipelineShaderStageCreateInfo fragment_stage_info;
-	fragment_stage_info.setStage(vk::ShaderStageFlagBits::eFragment);
-	fragment_stage_info.setModule(fragment_module);
-	fragment_stage_info.setPName("main");
+	auto fragment_stage_info = vk::PipelineShaderStageCreateInfo()
+		.setStage(vk::ShaderStageFlagBits::eFragment)
+		.setModule(fragment_module)
+		.setPName("main");
 
 	// Vertex input state
-	vk::VertexInputBindingDescription vertex_binding;
-	vertex_binding.setBinding(0);
-	vertex_binding.setInputRate(vk::VertexInputRate::eVertex);
-	vertex_binding.setStride(sizeof(float3));
+	auto vertex_binding = vk::VertexInputBindingDescription()
+		.setBinding(0)
+		.setInputRate(vk::VertexInputRate::eVertex)
+		.setStride(sizeof(float3));
 
-	vk::VertexInputAttributeDescription vertex_attributes;
-	vertex_attributes.setBinding(0);
-	vertex_attributes.setLocation(0);
-	vertex_attributes.setFormat(vk::Format::eR32G32B32Sfloat);
-	vertex_attributes.setOffset(0);
+	auto vertex_attributes = vk::VertexInputAttributeDescription()
+		.setBinding(0)
+		.setLocation(0)
+		.setFormat(vk::Format::eR32G32B32Sfloat)
+		.setOffset(0);
 
-	vk::PipelineVertexInputStateCreateInfo vertex_input_info;
-	vertex_input_info.setVertexBindingDescriptions(vertex_binding);
-	vertex_input_info.setVertexAttributeDescriptions(vertex_attributes);
+	auto vertex_input_info = vk::PipelineVertexInputStateCreateInfo()
+		.setVertexBindingDescriptions(vertex_binding)
+		.setVertexAttributeDescriptions(vertex_attributes);
 
 	// Vertex input assembly
-	vk::PipelineInputAssemblyStateCreateInfo vertex_assembly;
-	vertex_assembly.setTopology(vk::PrimitiveTopology::eTriangleList);
+	auto vertex_assembly = vk::PipelineInputAssemblyStateCreateInfo()
+		.setTopology(vk::PrimitiveTopology::eTriangleList);
 
 	// Pipeline layout
-	vk::PushConstantRange vertex_range;
-	vertex_range.setOffset(0);
-	vertex_range.setSize(ire::solid_size <MVP>);
-	vertex_range.setStageFlags(vk::ShaderStageFlagBits::eVertex);
-	
-	vk::PushConstantRange fragment_range;
-	fragment_range.setOffset(ire::solid_size <MVP>);
-	fragment_range.setSize(ire::solid_size <vec3>);
-	fragment_range.setStageFlags(vk::ShaderStageFlagBits::eFragment);
-
-	std::array <vk::PushConstantRange, 2> push_constants {
-		vertex_range,
-		fragment_range
-	};
-
-	vk::PipelineLayoutCreateInfo layout_info;
-	layout_info.setSetLayouts({});
-	layout_info.setPushConstantRanges(push_constants);
+	auto layout_info = vk::PipelineLayoutCreateInfo()
+		.setSetLayouts({})
+		.setPushConstantRanges(FilterPushConstants::result);
 
 	auto layout = drc.device.createPipelineLayout(layout_info);
 
 	// Multi-sampling state
-	vk::PipelineMultisampleStateCreateInfo multisampling_info;
-	multisampling_info.setRasterizationSamples(vk::SampleCountFlagBits::e1);
+	auto multisampling_info = vk::PipelineMultisampleStateCreateInfo()
+		.setRasterizationSamples(vk::SampleCountFlagBits::e1);
 
 	// Color blending state
-	vk::PipelineColorBlendAttachmentState color_blending_info;
-	color_blending_info.setColorBlendOp(vk::BlendOp::eAdd);
+	auto color_blending_info = vk::PipelineColorBlendAttachmentState()
+		.setColorBlendOp(vk::BlendOp::eAdd);
 
-	vk::PipelineColorBlendStateCreateInfo blending_info;
-	blending_info.setAttachments(color_blending_info);
+	auto blending_info = vk::PipelineColorBlendStateCreateInfo()
+		.setAttachments(color_blending_info);
 
 	// Rasterization state
-	vk::PipelineRasterizationStateCreateInfo rasterization_info;
-	rasterization_info.setCullMode(vk::CullModeFlagBits::eNone);
-	rasterization_info.setPolygonMode(vk::PolygonMode::eFill);
-	rasterization_info.setLineWidth(1.0f);
+	auto rasterization_info = vk::PipelineRasterizationStateCreateInfo()
+		.setCullMode(vk::CullModeFlagBits::eNone)
+		.setPolygonMode(vk::PolygonMode::eFill)
+		.setLineWidth(1.0f);
 	
 	// Dynamic viewport state
 	std::array <vk::DynamicState, 2> dynamic_states {
@@ -218,13 +203,13 @@ int main()
 		vk::DynamicState::eScissor
 	};
 		
-	vk::PipelineDynamicStateCreateInfo dynamic_info;
-	dynamic_info.setDynamicStates(dynamic_states);
+	auto dynamic_info = vk::PipelineDynamicStateCreateInfo()
+		.setDynamicStates(dynamic_states);
 
 	// Viewport state
-	vk::PipelineViewportStateCreateInfo viewport_info;
-	viewport_info.setViewportCount(1);
-	viewport_info.setScissorCount(1);
+	auto viewport_info = vk::PipelineViewportStateCreateInfo()
+		.setViewportCount(1)
+		.setScissorCount(1);
 
 	// Construct the final graphics pipeline
 	std::array <vk::PipelineShaderStageCreateInfo, 2> shader_stages {
@@ -232,17 +217,17 @@ int main()
 		fragment_stage_info
 	};
 
-	vk::GraphicsPipelineCreateInfo pipeline_info;
-	pipeline_info.setLayout(layout);
-	pipeline_info.setPInputAssemblyState(&vertex_assembly);
-	pipeline_info.setPMultisampleState(&multisampling_info);
-	pipeline_info.setPVertexInputState(&vertex_input_info);
-	pipeline_info.setPRasterizationState(&rasterization_info);
-	pipeline_info.setPDynamicState(&dynamic_info);
-	pipeline_info.setPColorBlendState(&blending_info);
-	pipeline_info.setPViewportState(&viewport_info);
-	pipeline_info.setRenderPass(render_pass);
-	pipeline_info.setStages(shader_stages);
+	auto pipeline_info = vk::GraphicsPipelineCreateInfo()
+		.setLayout(layout)
+		.setPInputAssemblyState(&vertex_assembly)
+		.setPMultisampleState(&multisampling_info)
+		.setPVertexInputState(&vertex_input_info)
+		.setPRasterizationState(&rasterization_info)
+		.setPDynamicState(&dynamic_info)
+		.setPColorBlendState(&blending_info)
+		.setPViewportState(&viewport_info)
+		.setRenderPass(render_pass)
+		.setStages(shader_stages);
 
 	auto pipeline = drc.device.createGraphicsPipelines(nullptr, pipeline_info).value.front();
 }
