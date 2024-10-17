@@ -60,6 +60,10 @@ void LinkageUnit::process_function_qualifier(Function &function, index_t index, 
 		globals.samplers[binding] = qualifier.kind;
 	}
 
+	// Qualifier behaviour; the final type,
+	// offset, etc. for a qualified type is
+	// that which is specified by the last
+	// instruction referring to it
 	switch (qualifier.kind) {
 
 	case parameter:
@@ -78,11 +82,6 @@ void LinkageUnit::process_function_qualifier(Function &function, index_t index, 
 		info.kind = thunder::push_constant;
 		info.offset = qualifier.numerical;
 		info.underlying = qualifier.underlying;
-		
-		JVL_ASSERT(globals.push_constant.underlying == -1
-			|| globals.push_constant.underlying == qualifier.underlying,
-			"multiple push constants used in "
-			"a single shader stage");
 
 		globals.push_constant = info;
 	} break;

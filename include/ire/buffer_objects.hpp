@@ -80,6 +80,11 @@ struct push_constant : bound_buffer_object <T, thunder::push_constant> {
 			: bound_buffer_object <T, thunder::push_constant> (offset, args...) {}
 
 	push_constant(const push_constant &) = default;
+
+	// Override the assignment operator (from arithmetic types) to be a no-op
+	push_constant &operator=(const push_constant &) {
+		return *this;
+	}
 };
 
 template <generic T>
