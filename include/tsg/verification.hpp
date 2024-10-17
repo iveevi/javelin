@@ -33,11 +33,67 @@ struct verify_specifier_atom <LayoutIn <ShaderStageFlags::eFragment, T, N>,
 	static constexpr auto value = shader_compiler_error(eIncompatibleLayout, N);
 };
 
+// Vertex layout inputs are not expected to be resolved
 template <generic T, size_t N>
 struct verify_specifier_atom <LayoutIn <ShaderStageFlags::eFragment, T, N>> {
 	static constexpr auto value = shader_compiler_error(eMissingLayout, N);
 };
 
+// Specializations for push constants
+template <ShaderStageFlags F,
+	  generic T, size_t Begin, size_t End,
+	  specifier S,
+	  specifier ... Specifiers>
+struct verify_specifier_atom <PushConstantRange <F, T, Begin, End>, S, Specifiers...> {
+	static constexpr auto value = verify_specifier_atom <PushConstantRange <F, T, Begin, End>, Specifiers...> ::value;
+};
+
+// Handle the self case early
+template <ShaderStageFlags F,
+	  generic T, size_t Begin, size_t End,
+	  specifier ... Specifiers>
+struct verify_specifier_atom <PushConstantRange <F, T, Begin, End>,
+			      PushConstantRange <F, T, Begin, End>,
+			      Specifiers...> {
+	static constexpr auto value = verify_specifier_atom <PushConstantRange <F, T, Begin, End>, Specifiers...> ::value;
+};
+
+// Conflicting push constants
+template <ShaderStageFlags F,
+	  generic T, size_t Begin0, size_t End0,
+	  generic U, size_t Begin1, size_t End1,
+	  specifier ... Specifiers>
+struct verify_specifier_atom <PushConstantRange <F, T, Begin0, End0>,
+			      PushConstantRange <F, U, Begin1, End1>,
+			      Specifiers...> {
+	static constexpr auto value = shader_compiler_error(eMultiplePushConstants);
+};
+
+// Overlapping ranging from two different stages;
+// for now only checks between the vertex and fragment stages
+template <generic T, size_t Begin0, size_t End0,
+	  generic U, size_t Begin1, size_t End1,
+	  specifier ... Specifiers>
+struct verify_specifier_atom <PushConstantRange <ShaderStageFlags::eVertex, T, Begin0, End0>,
+			      PushConstantRange <ShaderStageFlags::eFragment, U, Begin1, End1>,
+			      Specifiers...> {
+	static constexpr auto B0 = Begin0;
+	static constexpr auto B1 = Begin1;
+
+	static constexpr auto assess() {
+		constexpr auto overlapping = false
+			|| (Begin0 < Begin1 && End0 > Begin1)
+			|| (Begin1 < Begin0 && End1 > Begin0);
+		if (overlapping)
+			return shader_compiler_error(eOverlappingPushConstants);
+
+		return verify_specifier_atom <PushConstantRange <ShaderStageFlags::eVertex, T, Begin0, End0>, Specifiers...> ::value;
+	}
+
+	static constexpr auto value = assess();
+};
+
+// Tuple acceptor
 template <typename T>
 struct verify_specifiers {
 	static constexpr auto value = shader_compiler_error(eUnknown);
@@ -46,11 +102,6 @@ struct verify_specifiers {
 // Evaluating error matrix for each 
 template <specifier ... Specifiers>
 struct verify_specifiers <std::tuple <Specifiers...>> {
-	static constexpr size_t N = sizeof...(Specifiers);
-	static constexpr std::array <shader_compiler_error, N> status {
-		verify_specifier_atom <Specifiers, Specifiers...> ::value...
-	};
-
 	static constexpr shader_compiler_error assess() {
 		constexpr size_t N = sizeof...(Specifiers);
 

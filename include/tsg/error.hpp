@@ -11,6 +11,7 @@ enum shader_compiler_error_kind : int32_t {
 	eMissingLayout,
 	eUnusedOutputLayout,
 	eMultiplePushConstants,
+	eOverlappingPushConstants,
 };
 
 struct shader_compiler_error {
@@ -24,7 +25,7 @@ constexpr void warn_unused_layout() {}
 
 // Trigger static asserts conditionally
 template <shader_compiler_error value>
-consteval void assess_shader_compiler_error()
+consteval void diagnose_shader_compiler_error()
 {
 	if constexpr (value.type == eUnknown) {
 		static_assert(0,
@@ -46,6 +47,9 @@ consteval void assess_shader_compiler_error()
 	} else if constexpr (value.type == eMultiplePushConstants) {
 		static_assert(false, "shader functions can have at most "
 			"one push constant uniform");
+	} else if constexpr (value.type == eOverlappingPushConstants) {
+		static_assert(false, "shader program contains stages that "
+			"define push constants with overlapping ranges");
 	} else {
 		static_assert(value.type == eOk);
 	}

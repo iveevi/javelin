@@ -31,7 +31,7 @@ struct Program <ShaderStageFlags::eVertex, Specifiers...> {
 	friend auto operator<<(const Program &program, const CompiledArtifact <ShaderStageFlags::eFragment, AddedSpecifiers...> &compiled) {
 		using specifier_pack = std::tuple <Specifiers..., AddedSpecifiers...>;
 		static constexpr auto value = verify_specifiers <specifier_pack> ::value;
-		assess_shader_compiler_error <value> ();
+		diagnose_shader_compiler_error <value> ();
 		return Program <ShaderStageFlags::eVxF, Specifiers..., AddedSpecifiers...> {
 			program.ir_vertex,
 			static_cast <thunder::TrackedBuffer> (compiled)
@@ -47,7 +47,7 @@ struct Program <ShaderStageFlags::eFragment, Specifiers...> {
 	friend auto operator<<(const Program &program, const CompiledArtifact <ShaderStageFlags::eVertex, AddedSpecifiers...> &compiled) {
 		using specifier_pack = std::tuple <Specifiers..., AddedSpecifiers...>;
 		static constexpr auto value = verify_specifiers <specifier_pack> ::value;
-		assess_shader_compiler_error <value> ();
+		diagnose_shader_compiler_error <value> ();
 		return Program <ShaderStageFlags::eVxF, Specifiers..., AddedSpecifiers...> {
 			static_cast <thunder::TrackedBuffer> (compiled),
 			program.ir_fragment,

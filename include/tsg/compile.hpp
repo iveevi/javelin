@@ -84,7 +84,7 @@ auto compile_function(const std::string &name, const F &ftn)
 
 	// Check for duplicate arguments types (e.g. push constants, bindings, etc.)
 	constexpr auto value = verify_argument_structure <Args> ::value;
-	assess_shader_compiler_error <value> ();
+	diagnose_shader_compiler_error <value> ();
 
 	// Secondary pass given the shader stage
 	using lifted_args = lift_argument <Args> ::type;
