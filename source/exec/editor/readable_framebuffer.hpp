@@ -23,11 +23,19 @@ struct ReadableFramebuffer : Unique {
 
 	littlevk::Image image;
 	littlevk::Buffer staging;
-	littlevk::Pipeline pipeline;
 	vk::Extent2D extent;
 
 	vk::RenderPass render_pass;
 	vk::Framebuffer framebuffer;
+	
+	// Cached shaders
+	littlevk::ShaderStageBundle shaders;
+
+	// Cached pipeline assembler
+	littlevk::PipelineAssembler <littlevk::eGraphics> assembler;
+
+	// Pipelines for each vertex layout	
+	std::map <vulkan::VertexFlags, littlevk::Pipeline> pipelines;
 
 	// Requests
 	struct ObjectSelection {
@@ -49,8 +57,9 @@ struct ReadableFramebuffer : Unique {
 
 	ReadableFramebuffer(DeviceResourceCollection &,
 			    const Viewport &,
-			    const vk::Format &,
-			    const vk::Extent2D &);
+			    const vk::Format &);
+
+	void configure_pipeline(const vulkan::VertexFlags &);
 
 	void apply_request(const ObjectSelection &r);
 

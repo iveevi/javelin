@@ -323,13 +323,8 @@ void Editor::process_messages()
 			ReadableFramebuffer::ObjectSelection request;
 			request.pixel = msg.value.as <int2> ();
 			
-			readable_framebuffers.emplace_back(drc,
-				*it,
-				vk::Format::eR32Sint,
-				it->extent);
-
-			readable_framebuffers.back()
-				.apply_request(request);
+			readable_framebuffers.emplace_back(drc, *it, vk::Format::eR32Sint);
+			readable_framebuffers.back().apply_request(request);
 		} break;
 
 		case editor_update_selected_object:

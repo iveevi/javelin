@@ -5,13 +5,15 @@ MODULE(readable-framebuffer);
 	
 ReadableFramebuffer::ReadableFramebuffer(DeviceResourceCollection &drc,
 					 const Viewport &viewport,
-					 const vk::Format &format,
-					 const vk::Extent2D &extent_)
+					 const vk::Format &format)
 		: Unique(new_uuid <ReadableFramebuffer> ()),
 		aperature(viewport.aperature),
 		transform(viewport.transform),
-		extent(extent_)
+		extent(viewport.extent),
+		shaders(drc.device, drc.dal),
+		assembler(drc.device, drc.window, drc.dal)
 {
+	// TODO: constexpr function
 	static const std::map <vk::Format, FormatInfo> format_infos {
 		{ vk::Format::eR32Sint, { 4, 1 } }
 	};
@@ -67,27 +69,33 @@ ReadableFramebuffer::ReadableFramebuffer(DeviceResourceCollection &drc,
 		obj = id;
 	};
 
-	auto vertex_layout = littlevk::VertexLayout <
-		littlevk::rgb32f,
-		littlevk::rgb32f,
-		littlevk::rg32f
-	> ();
-
 	std::string vertex_shader = link(vs).generate_glsl();
 	std::string fragment_shader = link(fs).generate_glsl();
 
-	auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
+	shaders // ...
 		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
 		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
-
-	pipeline = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
+	
+	assembler // ...
 		.with_render_pass(render_pass, 0)
-		.with_vertex_layout(vertex_layout)
-		.with_shader_bundle(bundle)
+		.with_shader_bundle(shaders)
 		.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
 		.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, solid_size <MVP>)
 		.cull_mode(vk::CullModeFlagBits::eNone)
 		.alpha_blending(false);
+}
+
+// TODO: should use the viewport render group
+void ReadableFramebuffer::configure_pipeline(const vulkan::VertexFlags &flags)
+{
+	if (pipelines.contains(flags))
+		return;
+
+	auto [binding, attributes] = vulkan::binding_and_attributes(flags);
+
+	pipelines[flags] = assembler // ...
+		.with_vertex_binding(binding)
+		.with_vertex_attributes(attributes);
 }
 
 void ReadableFramebuffer::apply_request(const ObjectSelection &r)
@@ -108,6 +116,8 @@ void ReadableFramebuffer::go(const RenderingInfo &info, Null)
 		.clear_color(0, std::array <int32_t, 4> { -1, -1, -1, -1 })
 		.clear_depth(1, 1)
 		.begin(cmd);
+	
+	littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(extent));
 
 	// Common camera information
 	solid_t <MVP> mvp;
@@ -121,9 +131,15 @@ void ReadableFramebuffer::go(const RenderingInfo &info, Null)
 	mvp[m_view] = transform.to_view_matrix();
 
 	// Render
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.handle);
-
 	for (auto &mesh : scene.meshes) {
+		configure_pipeline(mesh.flags);
+
+		JVL_ASSERT_PLAIN(pipelines.contains(mesh.flags));
+
+		auto &pipeline = pipelines[mesh.flags];
+
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.handle);
+
 		cmd.pushConstants <solid_t <MVP>> (pipeline.layout,
 			vk::ShaderStageFlagBits::eVertex,
 			0, mvp);

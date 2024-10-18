@@ -124,9 +124,11 @@ void Viewport::display_handle(const RenderingInfo &info)
 			(mouse.y - min.y)/(max.y - min.y)
 		};
 
+
 		if (relative.x >= 0 && relative.x <= 1
 			&& relative.y >= 0 && relative.y <= 1) {
 			fmt::println("double click!");
+			fmt::println("min/max = ({}, {})/({}, {})", min.x, min.y, max.x, max.y);
 			fmt::println("  relative position: {}, {}", relative.x, relative.y);
 			int2 pixel {
 				int(extent.width * relative.x),

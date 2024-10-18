@@ -42,14 +42,18 @@ struct MVP {
 };
 
 // Testing
-auto vertex_shader(VertexIntrinsics, PushConstant <MVP> mvp, vec3 position)
+auto vertex_shader(VertexIntrinsics,
+		   PushConstant <MVP> mvp,
+		   vec3 position)
 {
 	return std::make_tuple(Position(mvp.project(position)), position);
 }
 
 // TODO: deprecation warnings on unused layouts
 // TODO: solid_alignment <...> and restrictions for offset based on that...
-auto fragment_shader(FragmentIntrinsics, PushConstant <vec3, solid_size <MVP>> tint, vec3 position)
+auto fragment_shader(FragmentIntrinsics,
+		     PushConstant <vec3, solid_size <MVP>> tint,
+		     vec3 position)
 {
 	vec3 dU = ire::dFdx(position);
 	vec3 dV = ire::dFdy(position);
@@ -226,6 +230,7 @@ int main(int argc, char *argv[])
 	auto pipeline = drc.device.createGraphicsPipelines(nullptr, pipeline_info).value.front();
 
 	// Allocate a depth buffer
+	// TODO: TSG variant to allocate in accordance with render pass attachments
 	littlevk::ImageCreateInfo info {
 		drc.window.extent.width,
 		drc.window.extent.height,

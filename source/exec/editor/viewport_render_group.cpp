@@ -179,39 +179,7 @@ void ViewportRenderGroup::configure_pipeline_backup(DeviceResourceCollection &dr
 {
 	auto encoding = PipelineEncoding(RenderMode::eBackup, flags);
 
-	// TODO: method to convert vertex flags
-	uint32_t offset = 0;
-	uint32_t index = 0;
-
-	JVL_ASSERT_PLAIN(enabled(flags, vulkan::VertexFlags::ePosition));
-
-	std::vector <vk::VertexInputAttributeDescription> attributes;
-
-	if (enabled(flags, vulkan::VertexFlags::ePosition)) {
-		attributes.emplace_back(index++, 0, vk::Format::eR32G32B32Sfloat, offset);
-		flags = flags - vulkan::VertexFlags::ePosition;
-		offset += sizeof(float3);
-	}
-	
-	if (enabled(flags, vulkan::VertexFlags::eNormal)) {
-		attributes.emplace_back(index++, 0, vk::Format::eR32G32B32Sfloat, offset);
-		flags = flags - vulkan::VertexFlags::eNormal;
-		offset += sizeof(float3);
-	}
-	
-	if (enabled(flags, vulkan::VertexFlags::eUV)) {
-		attributes.emplace_back(index++, 0, vk::Format::eR32G32Sfloat, offset);
-		flags = flags - vulkan::VertexFlags::eUV;
-		offset += sizeof(float2);
-	}
-
-	JVL_ASSERT(flags == vulkan::VertexFlags::eNone,
-		"unhandled flags in vertex layout: {:08b}",
-		uint32_t(flags));
-
-	vk::VertexInputBindingDescription binding {
-		0, offset, vk::VertexInputRate::eVertex
-	};
+	auto [binding, attributes] = vulkan::binding_and_attributes(flags);
 
 	auto vs_callable = procedure("main") << []() {
 		layout_in <vec3> position(0);
