@@ -177,6 +177,9 @@ target_link_libraries(tsg-features
 	gccjit
 	${VULKAN_LIBRARY_SET})
 
+target_compile_definitions(tsg-features PRIVATE
+	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
+
 # Experimental program for the JVL language
 add_executable(lang-features
 	source/exec/features/lang.cpp

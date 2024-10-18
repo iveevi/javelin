@@ -97,7 +97,7 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 {
 	// Grab the next image
 	littlevk::SurfaceOperation sop;
-	sop = littlevk::acquire_image(drc.device, drc.swapchain.swapchain, sync_frame);
+	sop = littlevk::acquire_image(drc.device, drc.swapchain.handle, sync_frame);
 	if (sop.status == littlevk::SurfaceOperation::eResize)
 		return resize();
 
@@ -164,7 +164,7 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 	drc.graphics_queue.submit(submit_info, sync_frame.in_flight);
 
 	// Present to the window
-	sop = littlevk::present_image(drc.present_queue, drc.swapchain.swapchain, sync_frame, sop.index);
+	sop = littlevk::present_image(drc.present_queue, drc.swapchain.handle, sync_frame, sop.index);
 	if (sop.status == littlevk::SurfaceOperation::eResize)
 		resize();
 

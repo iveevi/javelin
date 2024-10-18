@@ -32,4 +32,7 @@ using ire::end;
 using ire::cond;
 using ire::loop;
 
+using ire::solid_t;
+using ire::solid_size;
+
 } // namespace jvl::tsg

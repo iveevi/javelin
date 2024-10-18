@@ -184,6 +184,6 @@ constexpr auto uniform_field_index()
 		return aggregate_index <i> ();
 }
 
-#define uniform_field(T, name) uniform_field_index <T, #name> ()
+#define uniform_field(T, name) jvl::ire::uniform_field_index <T, #name> ()
 
 } // namespace jvl::ire

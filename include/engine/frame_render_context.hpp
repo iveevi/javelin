@@ -17,14 +17,14 @@ struct FrameRenderContext {
 			   const littlevk::PresentSyncronization::Frame &sync_frame_,
 			   const std::function <void ()> &resizer_)
 		: drc(drc_), cmd(cmd_), sync_frame(sync_frame_), resizer(resizer_) {
-		sop = littlevk::acquire_image(drc.device, drc.swapchain.swapchain, sync_frame);
+		sop = littlevk::acquire_image(drc.device, drc.swapchain.handle, sync_frame);
 		if (sop.status == littlevk::SurfaceOperation::eResize)
 			resizer();
 	}
 
 	~FrameRenderContext() {
 		// Present to the window
-		sop = littlevk::present_image(drc.present_queue, drc.swapchain.swapchain, sync_frame, sop.index);
+		sop = littlevk::present_image(drc.present_queue, drc.swapchain.handle, sync_frame, sop.index);
 		if (sop.status == littlevk::SurfaceOperation::eResize)
 			resizer();
 	}

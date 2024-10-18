@@ -83,8 +83,7 @@ struct Program <ShaderStageFlags::eGraphicsVertexFragment, Specifiers...> {
 		
 		// Vertex shader stage
 		auto vertex_module_info = vk::ShaderModuleCreateInfo()
-			.setCode(spv_vertex)
-			.setCodeSize(sizeof(uint32_t) * spv_vertex.size());
+			.setCode(spv_vertex);
 
 		auto vertex_module = device.createShaderModule(vertex_module_info);
 
@@ -95,8 +94,7 @@ struct Program <ShaderStageFlags::eGraphicsVertexFragment, Specifiers...> {
 
 		// Fragment shader stage	
 		auto fragment_module_info = vk::ShaderModuleCreateInfo()
-			.setCode(spv_fragment)
-			.setCodeSize(sizeof(uint32_t) * spv_fragment.size());
+			.setCode(spv_fragment);
 
 		auto fragment_module = device.createShaderModule(fragment_module_info);
 
