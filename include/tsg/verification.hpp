@@ -13,7 +13,10 @@ struct verify_specifier_atom {
 	static constexpr auto value = shader_compiler_error(eOk);
 };
 
-// Specializations for layout inputs
+///////////////////////////////////////
+// Specializations for layout inputs //
+///////////////////////////////////////
+
 template <ShaderStageFlags F, generic T, size_t N, specifier S, specifier ... Specifiers>
 struct verify_specifier_atom <LayoutIn <F, T, N>, S, Specifiers...> {
 	static constexpr auto value = verify_specifier_atom <LayoutIn <F, T, N>, Specifiers...> ::value;
@@ -39,7 +42,32 @@ struct verify_specifier_atom <LayoutIn <ShaderStageFlags::eFragment, T, N>> {
 	static constexpr auto value = shader_compiler_error(eMissingLayout, N);
 };
 
-// Specializations for push constants
+////////////////////////////////////////
+// Specializations for layout outputs //
+////////////////////////////////////////
+
+template <ShaderStageFlags F, generic T, size_t N, specifier S, specifier ... Specifiers>
+struct verify_specifier_atom <LayoutOut <F, T, N>, S, Specifiers...> {
+	static constexpr auto value = verify_specifier_atom <LayoutOut  <F, T, N>, Specifiers...> ::value;
+};
+
+template <generic T, size_t N, specifier ... Specifiers>
+struct verify_specifier_atom <LayoutOut <ShaderStageFlags::eVertex, T, N>,
+			      LayoutIn <ShaderStageFlags::eFragment, T, N>,
+			      Specifiers...> {
+	static constexpr auto value = shader_compiler_error(eOk);
+};
+
+// Ignore this for fragment shader outputs
+template <generic T, size_t N>
+struct verify_specifier_atom <LayoutOut <ShaderStageFlags::eVertex, T, N>> {
+	static constexpr auto value = shader_compiler_error(eUnusedOutputLayout, N);
+};
+
+////////////////////////////////////////
+// Specializations for push constants //
+////////////////////////////////////////
+
 template <ShaderStageFlags F,
 	  generic T, size_t Begin, size_t End,
 	  specifier S,
@@ -111,6 +139,7 @@ struct verify_specifiers <std::tuple <Specifiers...>> {
 		};
 		
 		// Get the first problem if any
+		// TODO: check for errors first...
 		for (size_t i = 0; i < N; i++) {
 			if (status[i].type != eOk)
 				return status[i];

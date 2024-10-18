@@ -2,9 +2,10 @@
 #include <thunder/opt.hpp>
 #include <ire/core.hpp>
 
+#include <tsg/assembler.hpp>
 #include <tsg/compile.hpp>
-#include <tsg/program.hpp>
 #include <tsg/filters.hpp>
+#include <tsg/program.hpp>
 
 #include <core/device_resource_collection.hpp>
 
@@ -32,7 +33,6 @@ struct MVP {
 };
 
 // Testing
-// TODO: check for duplicate push constants
 auto vertex_shader(VertexIntrinsics, PushConstant <MVP> mvp, vec3 pos)
 {
 	vec3 p = pos;
@@ -42,12 +42,12 @@ auto vertex_shader(VertexIntrinsics, PushConstant <MVP> mvp, vec3 pos)
 
 	vec4 pp = mvp.project(p);
 
-	return std::make_tuple(Position(pp), vec3(), vec3());
+	return std::make_tuple(Position(pp));
 }
 
 // TODO: deprecation warnings on unused layouts
 // TODO: solid_alignment <...> and restrictions for offset based on that...
-auto fragment_shader(FragmentIntrinsics, PushConstant <vec3, ire::solid_size <MVP>> color, vec3 pos, vec3)
+auto fragment_shader(FragmentIntrinsics, PushConstant <vec3, ire::solid_size <MVP>> color)
 {
 	return vec4(color, 0);
 }
@@ -65,44 +65,21 @@ int main()
 	};
 
 	// Configure the resource collection
-	core::DeviceResourceCollectionInfo info {
+	core::DeviceResourceCollectionInfo drc_info {
 		.phdev = littlevk::pick_physical_device(predicate),
 		.title = "Editor",
 		.extent = vk::Extent2D(1920, 1080),
 		.extensions = VK_EXTENSIONS,
 	};
 	
-	auto drc = core::DeviceResourceCollection::from(info);
+	auto drc = core::DeviceResourceCollection::from(drc_info);
 
 	// Shader compilation
 	auto vs = compile_function("main", vertex_shader);
 	auto fs = compile_function("main", fragment_shader);
 
-	auto unit = Program();
-	auto next = unit << vs << fs;
-
-	using ProgramType = decltype(next);
-	using FilterPushConstants = ProgramType::filter <filter_push_constants>;
-
-	// Compile the vertex program
-	thunder::opt_transform(next.ir_vertex);
-	// next.ir_vertex.dump();
-	auto vunit = thunder::LinkageUnit();
-	vunit.add(next.ir_vertex);
-	fmt::println("{}", vunit.generate_glsl());
-	auto vspirv = vunit.generate_spirv(vk::ShaderStageFlagBits::eVertex);
-
-	fmt::println("vspirv: {} bytes", sizeof(uint32_t) * vspirv.size());
-
-	// Compile the fragment program
-	thunder::opt_transform(next.ir_fragment);
-	// next.ir_fragment.dump();
-	auto funit = thunder::LinkageUnit();
-	funit.add(next.ir_fragment);
-	fmt::println("{}", funit.generate_glsl());
-	auto fspirv = funit.generate_spirv(vk::ShaderStageFlagBits::eFragment);
-	
-	fmt::println("fspirv: {} bytes", sizeof(uint32_t) * fspirv.size());
+	auto program = Program() << vs << fs;
+	auto assembler = PipelineAssembler(drc.device) << program;
 
 	// Construct a render pass
 	auto color_attachment = vk::AttachmentDescription()
@@ -126,33 +103,6 @@ int main()
 
 	auto render_pass = drc.device.createRenderPass(render_pass_info);
 
-	// Building shader stages for Vulkan
-	std::vector <vk::PipelineShaderStageCreateInfo> shaders;
-
-	// Vertex shader stage
-	auto vertex_module_info = vk::ShaderModuleCreateInfo()
-		.setCode(vspirv)
-		.setCodeSize(sizeof(uint32_t) * vspirv.size());
-
-	auto vertex_module = drc.device.createShaderModule(vertex_module_info);
-
-	auto vertex_stage_info = vk::PipelineShaderStageCreateInfo()
-		.setStage(vk::ShaderStageFlagBits::eVertex)
-		.setModule(vertex_module)
-		.setPName("main");
-
-	// Fragment shader stage	
-	auto fragment_module_info = vk::ShaderModuleCreateInfo()
-		.setCode(fspirv)
-		.setCodeSize(sizeof(uint32_t) * fspirv.size());
-
-	auto fragment_module = drc.device.createShaderModule(fragment_module_info);
-
-	auto fragment_stage_info = vk::PipelineShaderStageCreateInfo()
-		.setStage(vk::ShaderStageFlagBits::eFragment)
-		.setModule(fragment_module)
-		.setPName("main");
-
 	// Vertex input state
 	auto vertex_binding = vk::VertexInputBindingDescription()
 		.setBinding(0)
@@ -172,13 +122,6 @@ int main()
 	// Vertex input assembly
 	auto vertex_assembly = vk::PipelineInputAssemblyStateCreateInfo()
 		.setTopology(vk::PrimitiveTopology::eTriangleList);
-
-	// Pipeline layout
-	auto layout_info = vk::PipelineLayoutCreateInfo()
-		.setSetLayouts({})
-		.setPushConstantRanges(FilterPushConstants::result);
-
-	auto layout = drc.device.createPipelineLayout(layout_info);
 
 	// Multi-sampling state
 	auto multisampling_info = vk::PipelineMultisampleStateCreateInfo()
@@ -212,13 +155,7 @@ int main()
 		.setScissorCount(1);
 
 	// Construct the final graphics pipeline
-	std::array <vk::PipelineShaderStageCreateInfo, 2> shader_stages {
-		vertex_stage_info,
-		fragment_stage_info
-	};
-
-	auto pipeline_info = vk::GraphicsPipelineCreateInfo()
-		.setLayout(layout)
+	auto pipeline_info = assembler.info
 		.setPInputAssemblyState(&vertex_assembly)
 		.setPMultisampleState(&multisampling_info)
 		.setPVertexInputState(&vertex_input_info)
@@ -226,8 +163,7 @@ int main()
 		.setPDynamicState(&dynamic_info)
 		.setPColorBlendState(&blending_info)
 		.setPViewportState(&viewport_info)
-		.setRenderPass(render_pass)
-		.setStages(shader_stages);
+		.setRenderPass(render_pass);
 
 	auto pipeline = drc.device.createGraphicsPipelines(nullptr, pipeline_info).value.front();
 }
