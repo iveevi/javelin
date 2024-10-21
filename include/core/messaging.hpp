@@ -65,6 +65,7 @@ enum MessageKind : int64_t {
 	editor_viewport_selection,
 	editor_viewport_update_selected,
 	editor_update_selected_object,
+	editor_open_material_inspector,
 };
 
 using MessageValue = wrapped::variant <
@@ -101,6 +102,9 @@ public:
 // Easier entrace into the UUID system
 struct Unique {
 	core::UUID uuid;
+
+	// Require that the ID be initialized
+	Unique(const core::UUID &uuid_) : uuid(uuid_) {}
 
 	// Global ID
 	int64_t id() const {

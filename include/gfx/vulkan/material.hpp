@@ -48,6 +48,8 @@ struct Material : core::Unique {
 
 	transitional_material_property <float3> kd;
 
+	Material() : core::Unique(core::new_uuid <Material> ()) {}
+
 	static std::optional <Material> from(core::DeviceResourceCollection &, const core::Material &);
 };
 

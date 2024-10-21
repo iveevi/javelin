@@ -171,7 +171,8 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 
 	auto &materials = reader.GetMaterials();
 	for (auto &material : materials) {
-		Material m;
+		Material m(material.name);
+
 		// TODO: check for textures
 		m.values[Material::brdf_key] = "default";
 
@@ -213,7 +214,7 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 	// Fill the rest with a default material
 	while (imported_asset.materials.size() < referenced_materials.size()) {
 		// TODO: default_phong()
-		Material m;
+		Material m("default");
 		m.values[Material::brdf_key] = "Phong";
 		m.values[Material::diffuse_key] = float3(1, 0, 1);
 		m.values[Material::specular_key] = float3(0, 0, 0);

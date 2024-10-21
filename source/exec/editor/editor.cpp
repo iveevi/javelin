@@ -338,6 +338,11 @@ void Editor::process_messages()
 				viewport.selected = id;
 		} break;
 
+		case editor_open_material_inspector:
+		{
+
+		} break;
+
 		default:
 			break;
 		}

@@ -17,6 +17,8 @@ struct TriangleMesh : core::Unique {
 	buffer <int> materials;
 	std::set <int> material_usage;
 
+	TriangleMesh() : core::Unique(new_uuid <TriangleMesh> ()) {}
+
 	static std::optional <TriangleMesh> from(const Mesh &m) {
 		TriangleMesh tm;
 

@@ -10,9 +10,12 @@ Scene Scene::from(const core::Scene &scene)
 {
 	Scene result;
 
-	for (auto &[_, obj] : scene.objects) {
-		if (obj.geometry) {
-			auto g = obj.geometry.value();
+	// TODO: filter through all objects with geometry
+	for (auto &[id, _] : scene.mapping) {
+		auto &obj = scene[id];
+
+		if (obj.has_geometry()) {
+			auto g = obj.get_geometry();
 
 			auto &mids = g.face_properties
 					.at(core::Mesh::material_key)
@@ -28,8 +31,8 @@ Scene Scene::from(const core::Scene &scene)
 			result.mesh_to_object.add(tmesh, obj);
 		}
 
-		for (auto &material : obj.materials)
-			result.materials.push_back(material);
+		for (auto &i : obj.materials)
+			result.materials.push_back(obj.get_material(i));
 	}
 
 	return result;

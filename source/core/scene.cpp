@@ -15,21 +15,26 @@ namespace jvl::core {
 
 MODULE(core-scene);
 
-void Scene::add(const Object &obj)
+Scene::Object &Scene::add()
 {
-	objects[obj.id()] = obj;
+	auto uuid = new_uuid <Object> ();
+	mapping[uuid.global] = objects.size();
+	objects.emplace_back(uuid, this);
+	return objects.back();
 }
 
-void Scene::add_root(const Object &obj)
+Scene::Object &Scene::add_root()
 {
-	int64_t global = obj.id();
-	objects[global] = obj;
-	root.insert(global);
+	auto uuid = new_uuid <Object> ();
+	mapping[uuid.global] = objects.size();
+	root.insert(uuid.global);
+	objects.emplace_back(uuid, this);
+	return objects.back();
 }
 
 void Scene::add(const engine::ImportedAsset &asset)
 {
-	Object top;
+	Object &top = add_root();
 	top.name = asset.path.stem();
 
 	// Each geometry is its own object
@@ -53,9 +58,11 @@ void Scene::add(const engine::ImportedAsset &asset)
 		// Generate list of materials and the reindex map
 		std::map <int, int> reindex;
 
-		std::vector <Material> materials;
+		std::vector <int64_t> local_materials;
 		for (auto i : ref) {
-			reindex[i] = materials.size();
+			int64_t index = materials.size();
+			reindex[i] = local_materials.size();
+			local_materials.push_back(index);
 			materials.push_back(asset.materials[i]);
 		}
 
@@ -63,27 +70,35 @@ void Scene::add(const engine::ImportedAsset &asset)
 			i = reindex[i];
 
 		// Add the object
-		Object obj;
+		Object &obj = add();
 		obj.name = name;
-		obj.geometry = geometry;
-		obj.materials = materials;
-
-		add(obj);
+		obj.geometry = geometries.size();
+		obj.materials = local_materials;
 
 		top.children.insert(obj.id());
-	}
 
-	add_root(top);
+		geometries.emplace_back(geometry);
+	}
 }
 
 Scene::Object &Scene::operator[](int64_t id)
 {
-	return objects[id];
+	int64_t index = mapping[id];
+	auto it = objects.begin();
+	while (index-- > 0)
+		it++;
+
+	return *it;
 }
 
 const Scene::Object &Scene::operator[](int64_t id) const
 {
-	return objects.at(id);
+	int64_t index = mapping.at(id);
+	auto it = objects.begin();
+	while (index-- > 0)
+		it++;
+
+	return *it;
 }
 
 // Serializing to a file

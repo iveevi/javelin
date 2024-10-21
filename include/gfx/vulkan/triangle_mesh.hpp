@@ -73,6 +73,8 @@ struct TriangleMesh : core::Unique {
 	
 	std::set <int> material_usage;
 
+	TriangleMesh() : core::Unique(core::new_uuid <TriangleMesh> ()) {}
+
 	static std::optional <TriangleMesh> from(littlevk::LinkedDeviceAllocator <> allocator,
 						 const core::TriangleMesh &tmesh,
 						 const VertexFlags &maximal_flags = VertexFlags::eAll) {

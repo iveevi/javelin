@@ -84,19 +84,28 @@ void SceneInspector::object_inspector(const RenderingInfo &info)
 		auto &obj = info.scene[selected];
 		ImGui::Text("%s", obj.name.c_str());
 
-		if (ImGui::CollapsingHeader("Mesh")) {
-			if (obj.geometry) {
-				auto &g = obj.geometry.value();
-				// TODO: separate method to list all properties
-				ImGui::Text("# of vertices: %lu", g.vertex_count);
+		if (obj.has_geometry() && ImGui::CollapsingHeader("Mesh")) {
+			auto &g = obj.get_geometry();
 
-				auto &triangles = g.face_properties.at(Mesh::triangle_key);
-				ImGui::Text("# of triangles: %lu", typed_buffer_size(triangles));
-			}
+			// TODO: separate method to list all properties
+			ImGui::Text("# of vertices: %lu", g.vertex_count);
+
+			auto &triangles = g.face_properties.at(Mesh::triangle_key);
+			ImGui::Text("# of triangles: %lu", typed_buffer_size(triangles));
 		}
 		
-		if (ImGui::CollapsingHeader("Materials")) {
-			ImGui::Text("Count: %lu", obj.materials.size());
+		if (obj.materials.size() && ImGui::CollapsingHeader("Materials")) {
+			for (auto &i : obj.materials) {
+				auto &material = obj.get_material(i);
+				if (ImGui::Selectable(material.name.c_str())) {
+					auto open_message = message(editor_open_material_inspector, i);
+					info.message_system.send_to_origin(open_message);
+				}
+			}
+		}
+
+		if (ImGui::Selectable("Add Component")) {
+			// ...
 		}
 	}
 
