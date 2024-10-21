@@ -128,7 +128,7 @@ target_compile_definitions(javelin-gfx PRIVATE
 	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
 
 # Javelin editor
-add_executable(editor
+add_executable(javelin-editor
 	source/exec/editor/editor.cpp
 	source/exec/editor/imgui_render_group.cpp
 	source/exec/editor/main.cpp
@@ -139,18 +139,18 @@ add_executable(editor
 	source/exec/editor/viewport.cpp
 	source/exec/editor/viewport_render_group.cpp)
 
-target_compile_options(editor PRIVATE
+target_compile_options(javelin-editor PRIVATE
 	-fno-rtti
 	$<$<CONFIG:Debug>:-Wall;-Werror;${COVERAGE_FLAGS}>)
 
-target_link_libraries(editor PRIVATE
+target_link_libraries(javelin-editor PRIVATE
 	nfd
 	fmt::fmt
 	javelin-ire
 	javelin-gfx
 	$<$<CONFIG:Debug>:--coverage>)
 
-target_compile_definitions(editor PRIVATE
+target_compile_definitions(javelin-editor PRIVATE
 	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
 
 # Experimental program for the IRE system
