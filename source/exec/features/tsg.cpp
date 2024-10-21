@@ -86,6 +86,19 @@ void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 	controller->handle_cursor(float2(x, y));
 }
 
+template <typename ... Args>
+struct RenderPass {};
+
+enum CommandState {
+	eReady,
+	ePipelineBound
+};
+
+template <CommandState C = eReady, typename ... Args>
+struct CommandBuffer : vk::CommandBuffer {
+	CommandBuffer(const vk::CommandBuffer &cmd) : vk::CommandBuffer(cmd) {}
+};
+
 int main(int argc, char *argv[])
 {
 	JVL_ASSERT_PLAIN(argc == 2);
@@ -110,7 +123,6 @@ int main(int argc, char *argv[])
 	auto fs = compile_function("main", fragment_shader);
 
 	auto program = Program() << vs << fs;
-	auto assembler = PipelineAssembler(drc.device) << program;
 
 	// Construct a render pass
 	std::array <vk::AttachmentDescription, 2> attachments;
@@ -147,87 +159,10 @@ int main(int argc, char *argv[])
 		.setAttachments(attachments);
 
 	auto render_pass = drc.device.createRenderPass(render_pass_info);
-
-	// Vertex input state
-	// TODO: TSG vertex input layout?
-	auto vertex_binding = vk::VertexInputBindingDescription()
-		.setBinding(0)
-		.setInputRate(vk::VertexInputRate::eVertex)
-		.setStride(sizeof(float3));
-
-	auto vertex_attributes = vk::VertexInputAttributeDescription()
-		.setBinding(0)
-		.setLocation(0)
-		.setFormat(vk::Format::eR32G32B32Sfloat)
-		.setOffset(0);
-
-	auto vertex_input_info = vk::PipelineVertexInputStateCreateInfo()
-		.setVertexBindingDescriptions(vertex_binding)
-		.setVertexAttributeDescriptions(vertex_attributes);
-
-	// Vertex input assembly
-	auto vertex_assembly = vk::PipelineInputAssemblyStateCreateInfo()
-		.setTopology(vk::PrimitiveTopology::eTriangleList);
-
-	// Multi-sampling state
-	auto multisampling_info = vk::PipelineMultisampleStateCreateInfo()
-		.setRasterizationSamples(vk::SampleCountFlagBits::e1);
-
-	// Color blending state
-	auto color_blending_info = vk::PipelineColorBlendAttachmentState()
-		.setColorWriteMask(vk::ColorComponentFlagBits::eR
-			| vk::ColorComponentFlagBits::eG
-			| vk::ColorComponentFlagBits::eB)
-		.setBlendEnable(false);
-
-	auto blending_info = vk::PipelineColorBlendStateCreateInfo()
-		.setLogicOpEnable(false)
-		.setAttachments(color_blending_info);
-
-	// Rasterization state
-	auto rasterization_info = vk::PipelineRasterizationStateCreateInfo()
-		.setCullMode(vk::CullModeFlagBits::eNone)
-		.setFrontFace(vk::FrontFace::eClockwise)
-		.setPolygonMode(vk::PolygonMode::eFill)
-		.setDepthBiasEnable(false)
-		.setRasterizerDiscardEnable(false)
-		.setLineWidth(1.0f);
 	
-	// Dynamic viewport state
-	std::array <vk::DynamicState, 2> dynamic_states {
-		vk::DynamicState::eViewport,
-		vk::DynamicState::eScissor
-	};
-		
-	auto dynamic_info = vk::PipelineDynamicStateCreateInfo()
-		.setDynamicStates(dynamic_states);
-
-	// Viewport state
-	auto viewport_info = vk::PipelineViewportStateCreateInfo()
-		.setViewportCount(1)
-		.setScissorCount(1);
-
-	// Depth stencil
-	auto depth_info = vk::PipelineDepthStencilStateCreateInfo()
-		.setDepthCompareOp(vk::CompareOp::eLess)
-		.setDepthTestEnable(true)
-		.setDepthWriteEnable(true)
-		.setDepthBoundsTestEnable(false);
-
-	// Construct the final graphics pipeline
-	auto pipeline_info = assembler.info
-		.setPInputAssemblyState(&vertex_assembly)
-		.setPDepthStencilState(&depth_info)
-		.setPMultisampleState(&multisampling_info)
-		.setPVertexInputState(&vertex_input_info)
-		.setPRasterizationState(&rasterization_info)
-		.setPDynamicState(&dynamic_info)
-		.setPColorBlendState(&blending_info)
-		.setPViewportState(&viewport_info)
-		.setSubpass(0)
-		.setRenderPass(render_pass);
-
-	auto pipeline = drc.device.createGraphicsPipelines(nullptr, pipeline_info).value.front();
+	// Pipeline assemblers
+	auto assembler = PipelineAssembler(drc.device, render_pass) << program;
+	auto pipeline = assembler.compile();
 
 	// Allocate a depth buffer
 	// TODO: TSG variant to allocate in accordance with render pass attachments
@@ -325,7 +260,7 @@ int main(int argc, char *argv[])
 			sync[frame]);
 
 		// Rendering commands	
-		auto &cmd = commands[frame];
+		CommandBuffer <eReady> cmd = commands[frame];
 
 		vk::CommandBufferBeginInfo begin_info;
 
