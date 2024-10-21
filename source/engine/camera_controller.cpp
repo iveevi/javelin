@@ -7,10 +7,10 @@ CameraController::CameraController(core::Transform &transform_,
 				   const CameraControllerSettings &binding_)
 		: transform(transform_), settings(binding_) {}
 
-void CameraController::handle_cursor(float2 mouse)
+bool CameraController::handle_cursor(float2 mouse)
 {
 	if (!dragging)
-		return;
+		return false;
 
 	if (voided) {
 		last_x = mouse.x;
@@ -34,6 +34,8 @@ void CameraController::handle_cursor(float2 mouse)
 	last_y = mouse.y;
 
 	transform.rotation = fquat::euler_angles(yaw, pitch, 0);
+
+	return std::abs(dx) > 0 or std::abs(dy) > 0;
 }
 
 void CameraController::handle_movement(const core::InteractiveWindow &window)

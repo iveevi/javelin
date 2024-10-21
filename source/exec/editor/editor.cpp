@@ -340,7 +340,8 @@ void Editor::process_messages()
 
 		case editor_open_material_inspector:
 		{
-
+			fmt::println("opening material inspector for material with id: {}",
+				msg.value.as <int64_t> ());
 		} break;
 
 		default:

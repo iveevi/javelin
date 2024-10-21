@@ -124,7 +124,6 @@ void Viewport::display_handle(const RenderingInfo &info)
 			(mouse.y - min.y)/(max.y - min.y)
 		};
 
-
 		if (relative.x >= 0 && relative.x <= 1
 			&& relative.y >= 0 && relative.y <= 1) {
 			fmt::println("double click!");
@@ -148,9 +147,20 @@ void Viewport::display_handle(const RenderingInfo &info)
 	if (ImGui::IsWindowFocused() && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
 		ImVec2 mouse = ImGui::GetMousePos();
 
+		bool previous = controller.dragging;
 		controller.dragging = true;
 		controller.handle_cursor(float2(mouse.x, mouse.y));
+		
+		if (!previous) {
+			fmt::println("initial dragging");
+			glfwSetInputMode(info.drc.window.handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		}
 	} else {
+		if (controller.dragging) {
+			fmt::println("finished dragging");
+			glfwSetInputMode(info.drc.window.handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		}
+		
 		controller.voided = true;
 		controller.dragging = false;
 	}
