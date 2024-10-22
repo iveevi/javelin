@@ -3,15 +3,9 @@
 #include "flags.hpp"
 #include "program.hpp"
 #include "filters.hpp"
+#include "pipeline.hpp"
 
 namespace jvl::tsg {
-
-// Resulting pipeline type
-template <ShaderStageFlags Flags, specifier ... Specifiers>
-struct Pipeline {
-	vk::Pipeline handle;
-	vk::PipelineLayout layout;
-};
 
 // Pipeline assemblers
 template <ShaderStageFlags F = ShaderStageFlags::eNone, specifier ... Specifiers>

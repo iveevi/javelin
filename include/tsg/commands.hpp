@@ -3,6 +3,8 @@
 #include <vulkan/vulkan.hpp>
 
 #include "artifact.hpp"
+#include "pipeline.hpp"
+#include "filters.hpp"
 
 namespace jvl::tsg {
 
@@ -80,7 +82,7 @@ struct CommandBuffer <eGraphicsPipelineBound, Args...> : CommandBufferBase {
 	CommandBuffer(const CommandBufferBase &other, const vk::PipelineLayout &layout_)
 			: CommandBufferBase(other), layout(layout_) {}
 
-	~CommandBuffer() {}
+	// ~CommandBuffer() = delete;
 
 	// TODO: fetch vertex push constants...
 	auto &pushConstantsVertex(const solid_t <typename VertexPushConstants::type> &value)

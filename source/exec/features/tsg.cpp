@@ -87,8 +87,92 @@ void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 	controller->handle_cursor(float2(x, y));
 }
 
+// Attachment description without format
+struct AttachmentForm {
+	vk::AttachmentLoadOp load = vk::AttachmentLoadOp::eClear;
+	vk::AttachmentStoreOp store = vk::AttachmentStoreOp::eDontCare;
+	vk::ImageLayout initial = vk::ImageLayout::eUndefined;
+	vk::ImageLayout final = vk::ImageLayout::ePresentSrcKHR;
+
+	constexpr AttachmentForm() = default;
+
+	constexpr AttachmentForm setLoadOp(vk::AttachmentLoadOp load) const {
+		auto current = *this;
+		current.load = load;
+		return current;
+	}
+	
+	constexpr AttachmentForm setStoreOp(vk::AttachmentStoreOp store) const {
+		auto current = *this;
+		current.store = store;
+		return current;
+	}
+	
+	constexpr AttachmentForm setFinalLayout(vk::ImageLayout layout) const {
+		auto current = *this;
+		current.final = layout;
+		return current;
+	}
+
+	constexpr operator vk::AttachmentDescription() const {
+		return vk::AttachmentDescription()
+			.setFinalLayout(final)
+			.setInitialLayout(initial)
+			.setLoadOp(load)
+			.setStoreOp(store);
+	}
+
+	// TODO: Check compatibility of requested layout
+	template <vk::ImageLayout L>
+	vk::AttachmentReference ref(size_t i) const {
+		return vk::AttachmentReference()
+			.setAttachment(i)
+			.setLayout(L);
+	}
+};
+
+template <AttachmentForm ... forms>
+struct AttachmentDescriptions : std::array <vk::AttachmentDescription, sizeof...(forms)> {
+	static constexpr size_t N = sizeof...(forms);
+	static constexpr std::array <AttachmentForm, sizeof...(forms)> structured {
+		forms...
+	};
+
+	constexpr AttachmentDescriptions() : std::array <vk::AttachmentDescription, N>
+	{
+		(vk::AttachmentDescription) forms ...
+	} {}
+
+	template <vk::ImageLayout L>
+	vk::AttachmentReference ref(size_t i) const {
+		return structured[i].template ref <L> (i);
+	}
+};
+
+template <AttachmentForm ... forms>
+struct AttachmentArray {
+	static constexpr size_t N = sizeof...(forms);
+
+	template <typename ... Args>
+	auto formats(const Args &... args) {
+		static constexpr size_t N = sizeof...(Args);
+
+		auto result = AttachmentDescriptions <forms...> ();
+
+		std::array <vk::Format, N> formats { args... };
+		for (size_t i = 0; i < N; i++)
+			result[i].setFormat(formats[i]);
+
+		return result;
+	}
+};
+
 template <typename ... Args>
 struct RenderPass {};
+
+template <typename ... Args>
+struct Framebuffer {
+};
 
 int main(int argc, char *argv[])
 {
@@ -116,29 +200,16 @@ int main(int argc, char *argv[])
 	auto program = Program() << vs << fs;
 
 	// Construct a render pass
-	std::array <vk::AttachmentDescription, 2> attachments;
+	using enum vk::ImageLayout;
 
-	attachments[0] = vk::AttachmentDescription()
-		.setFormat(drc.swapchain.format)
-		.setLoadOp(vk::AttachmentLoadOp::eClear)
-		.setStoreOp(vk::AttachmentStoreOp::eStore)
-		.setInitialLayout(vk::ImageLayout::eUndefined)
-		.setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
-	
-	attachments[1] = vk::AttachmentDescription()
-		.setFormat(vk::Format::eD32Sfloat)
-		.setLoadOp(vk::AttachmentLoadOp::eClear)
-		.setStoreOp(vk::AttachmentStoreOp::eDontCare)
-		.setInitialLayout(vk::ImageLayout::eUndefined)
-		.setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+	constexpr auto presentation = AttachmentForm().setStoreOp(vk::AttachmentStoreOp::eStore);
+	constexpr auto depth_buffer = AttachmentForm().setFinalLayout(eDepthStencilAttachmentOptimal);
 
-	auto color_attachment_reference = vk::AttachmentReference()
-		.setLayout(vk::ImageLayout::eColorAttachmentOptimal)
-		.setAttachment(0);
+	AttachmentArray <presentation, depth_buffer> array;
 
-	auto depth_attachment_reference = vk::AttachmentReference()
-		.setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal)
-		.setAttachment(1);
+	auto descriptions = array.formats(drc.swapchain.format, vk::Format::eD32Sfloat);
+	auto color_attachment_reference = descriptions.ref <eColorAttachmentOptimal> (0);
+	auto depth_attachment_reference = descriptions.ref <eDepthAttachmentOptimal> (0);
 
 	auto subpass = vk::SubpassDescription()
 		.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
@@ -147,7 +218,7 @@ int main(int argc, char *argv[])
 
 	auto render_pass_info = vk::RenderPassCreateInfo()
 		.setSubpasses(subpass)
-		.setAttachments(attachments);
+		.setAttachments(descriptions);
 
 	auto render_pass = drc.device.createRenderPass(render_pass_info);
 	
