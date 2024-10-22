@@ -6,6 +6,13 @@
 
 namespace jvl::tsg {
 
+// Resulting pipeline type
+template <ShaderStageFlags Flags, specifier ... Specifiers>
+struct Pipeline {
+	vk::Pipeline handle;
+	vk::PipelineLayout layout;
+};
+
 // Pipeline assemblers
 template <ShaderStageFlags F = ShaderStageFlags::eNone, specifier ... Specifiers>
 struct PipelineAssembler {
@@ -26,7 +33,7 @@ struct PipelineAssembler <ShaderStageFlags::eNone> {
 
 template <specifier ... Specifiers>
 struct PipelineAssembler <ShaderStageFlags::eGraphicsVertexFragment, Specifiers...> {
-	static constexpr auto Flag = ShaderStageFlags::eGraphicsVertexFragment;
+	static constexpr auto Flags = ShaderStageFlags::eGraphicsVertexFragment;
 
 	const vk::Device &device;
 	const vk::RenderPass &render_pass;
@@ -58,7 +65,7 @@ struct PipelineAssembler <ShaderStageFlags::eGraphicsVertexFragment, Specifiers.
 	// TODO: pass the render pass
 	PipelineAssembler(const vk::Device &device_,
 			  const vk::RenderPass &render_pass_,
-			  const Program <Flag, Specifiers...> &program)
+			  const Program <Flags, Specifiers...> &program)
 			: device(device_), render_pass(render_pass_) {
 		// Do as much at this stage...
 
@@ -145,7 +152,7 @@ struct PipelineAssembler <ShaderStageFlags::eGraphicsVertexFragment, Specifiers.
 			.setDepthBoundsTestEnable(false);
 	}
 
-	vk::Pipeline compile() {	
+	auto compile() {	
 		// Transfer the defaults
 		info.setPInputAssemblyState(&assembly_info)
 			.setPDepthStencilState(&depth_stencil_info)
@@ -158,7 +165,9 @@ struct PipelineAssembler <ShaderStageFlags::eGraphicsVertexFragment, Specifiers.
 			.setSubpass(0)
 			.setRenderPass(render_pass);
 
-		return device.createGraphicsPipelines(nullptr, info).value.front();
+		auto handle = device.createGraphicsPipelines(nullptr, info).value.front();
+
+		return Pipeline <Flags, Specifiers...> (handle, layout);
 	}
 };
 

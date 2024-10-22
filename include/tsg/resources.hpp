@@ -7,7 +7,11 @@
 namespace jvl::tsg {
 
 template <ShaderStageFlags F, generic T, size_t Begin, size_t End>
-struct PushConstantRange {};
+struct PushConstantRange {
+	using type = T;
+
+	static constexpr size_t offset = Begin;
+};
 
 // TODO: samplers, buffers, etc.
 

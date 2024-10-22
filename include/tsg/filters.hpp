@@ -75,4 +75,30 @@ struct filter_push_constants {
 	static constexpr auto result = filter_push_constants_impl <Specifiers...> ::result(in);
 };
 
+/////////////////////////////////////////////
+// Filtering stage-specific push constants //
+/////////////////////////////////////////////
+
+struct NullPushConstants {};
+
+template <ShaderStageFlags Stage, specifier ... Specifiers>
+struct filter_stage_push_constants_impl {
+	using result = NullPushConstants();
+};
+
+template <ShaderStageFlags Stage, specifier S, specifier ... Specifiers>
+struct filter_stage_push_constants_impl <Stage, S, Specifiers...> {
+	using result = filter_stage_push_constants_impl <Stage, Specifiers...> ::result;
+};
+
+template <ShaderStageFlags Stage, generic T, size_t Begin, size_t End, specifier ... Specifiers>
+struct filter_stage_push_constants_impl <Stage, PushConstantRange <Stage, T, Begin, End>, Specifiers...> {
+	using result = PushConstantRange <Stage, T, Begin, End>;
+};
+
+template <ShaderStageFlags Stage, specifier ... Specifiers>
+struct filter_stage_push_constants {
+	using result = filter_stage_push_constants_impl <Stage, Specifiers...> ::result;
+};
+
 } // namespace jvl::tsg

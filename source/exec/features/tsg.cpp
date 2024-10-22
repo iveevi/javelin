@@ -6,6 +6,7 @@
 #include <tsg/compile.hpp>
 #include <tsg/filters.hpp>
 #include <tsg/program.hpp>
+#include <tsg/commands.hpp>
 
 #include <core/aperature.hpp>
 #include <core/device_resource_collection.hpp>
@@ -88,16 +89,6 @@ void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 
 template <typename ... Args>
 struct RenderPass {};
-
-enum CommandState {
-	eReady,
-	ePipelineBound
-};
-
-template <CommandState C = eReady, typename ... Args>
-struct CommandBuffer : vk::CommandBuffer {
-	CommandBuffer(const vk::CommandBuffer &cmd) : vk::CommandBuffer(cmd) {}
-};
 
 int main(int argc, char *argv[])
 {
@@ -259,13 +250,10 @@ int main(int argc, char *argv[])
 			drc.swapchain.handle,
 			sync[frame]);
 
-		// Rendering commands	
-		CommandBuffer <eReady> cmd = commands[frame];
-
-		vk::CommandBufferBeginInfo begin_info;
-
-		cmd.begin(begin_info);
+		// Rendering commands
 		{
+			CommandBuffer cmd = commands[frame];
+
 			// Configure render pass
 			auto area = vk::Rect2D()
 				.setOffset(vk::Offset2D(0, 0))
@@ -275,16 +263,15 @@ int main(int argc, char *argv[])
 			clear_values[0] = vk::ClearColorValue(1.0f, 1.0f, 1.0f, 1.0f);
 			clear_values[1] = vk::ClearDepthStencilValue(1.0f);
 
-			// TODO: return TSG command buffer from here
 			auto begin_info = vk::RenderPassBeginInfo()
 				.setRenderPass(render_pass)
 				.setFramebuffer(framebuffers[operation.index])
 				.setClearValues(clear_values)
 				.setRenderArea(area);
 	
-			// TODO: return TSG command buffer from here
-			cmd.beginRenderPass(begin_info, vk::SubpassContents::eInline);
 			{
+				auto cmd_rp = cmd.beginRenderPass(begin_info);
+
 				// Rendering area
 				auto viewport = vk::Viewport()
 					.setMaxDepth(1.0f)
@@ -298,8 +285,9 @@ int main(int argc, char *argv[])
 					.setOffset(vk::Offset2D(0, 0))
 					.setExtent(extent);
 
-				cmd.setViewport(0, viewport);
-				cmd.setScissor(0, scissor);
+				cmd_rp // ...
+					.setViewport(viewport)
+					.setScissor(scissor);
 
 				// Configure push constants
 				solid_t <MVP> mvp;
@@ -313,35 +301,27 @@ int main(int argc, char *argv[])
 				solid_t <vec3> color = float3(0.5, 0.5, 1.0);
 
 				// Run the pipeline
-				cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
-
-				cmd.pushConstants <solid_t <vec3>> (assembler.layout,
-					vk::ShaderStageFlagBits::eFragment,
-					solid_size <MVP>, color);
+				auto cmd_ppl = cmd_rp.bindPipeline(pipeline);
 
 				// Render all the meshes
 				for (auto &mesh : device_scene.meshes) {
 					int mid = *mesh.material_usage.begin();
-
-					cmd.pushConstants <solid_t <MVP>> (assembler.layout,
-						vk::ShaderStageFlagBits::eVertex,
-						0, mvp);
-
-					cmd.bindVertexBuffers(0, mesh.vertices.buffer, { 0 });
-					cmd.bindIndexBuffer(mesh.triangles.buffer, 0, vk::IndexType::eUint32);
-					cmd.drawIndexed(mesh.count, 1, 0, 0, 0);
+					cmd_ppl // ...
+						.pushConstantsVertex(mvp)
+						.pushConstantsFragment(color)
+						.draw(*mesh.triangles, *mesh.vertices, mesh.count);
 				}
+
+				// TODO: How to force a return to the original state?
 			}
-			cmd.endRenderPass();
 		}
-		cmd.end();
 	
 		// Submit rendering commands
 		vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
 		vk::SubmitInfo submit_info {
 			sync[frame].image_available,
-			wait_stage, cmd,
+			wait_stage, commands[frame],
 			sync[frame].render_finished
 		};
 
