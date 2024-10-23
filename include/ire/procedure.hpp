@@ -4,7 +4,7 @@
 
 #include "../thunder/tracked_buffer.hpp"
 #include "control_flow.hpp"
-#include "ire/tagged.hpp"
+#include "tagged.hpp"
 #include "type_synthesis.hpp"
 #include "uniform_layout.hpp"
 

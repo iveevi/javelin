@@ -1,5 +1,6 @@
 #include "material_viewer.hpp"
 
+// Material viewer interface
 MaterialViewer::MaterialViewer(const Archetype <Material> ::Reference &material_)
 		: Unique(new_uuid <MaterialViewer> ()),
 		material(material_)
@@ -60,4 +61,17 @@ imgui_callback MaterialViewer::callback_display()
 		uuid.global,
 		std::bind(&MaterialViewer::display_handle, this, std::placeholders::_1)
 	};
+}
+
+// Material viewer rendering
+MaterialRenderGroup::MaterialRenderGroup(DeviceResourceCollection &drc)
+{
+	// Only a primary pass
+	render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
+		.add_attachment(littlevk::default_color_attachment(drc.swapchain.format))
+		.add_subpass(vk::PipelineBindPoint::eGraphics)
+			.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
+			.done();
+
+	// TODO: identical vertex shader program...
 }

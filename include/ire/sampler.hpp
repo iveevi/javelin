@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ire/native.hpp"
-#include "thunder/enumerations.hpp"
+#include "../thunder/enumerations.hpp"
+#include "native.hpp"
 #include "vector.hpp"
 
 namespace jvl::ire {

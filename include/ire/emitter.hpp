@@ -7,7 +7,6 @@
 #include "../thunder/buffer.hpp"
 #include "../thunder/atom.hpp"
 #include "../thunder/enumerations.hpp"
-#include "thunder/qualified_type.hpp"
 
 namespace jvl::ire {
 

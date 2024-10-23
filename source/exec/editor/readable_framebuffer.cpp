@@ -3,11 +3,10 @@
 	
 MODULE(readable-framebuffer);
 	
-ReadableFramebuffer::ReadableFramebuffer(DeviceResourceCollection &drc_,
+ReadableFramebuffer::ReadableFramebuffer(DeviceResourceCollection &drc,
 					 const Viewport &viewport,
 					 const vk::Format &format)
 		: Unique(new_uuid <ReadableFramebuffer> ()),
-		drc(drc_),
 		aperature(viewport.aperature),
 		transform(viewport.transform),
 		extent(viewport.extent)
@@ -57,7 +56,7 @@ ReadableFramebuffer::ReadableFramebuffer(DeviceResourceCollection &drc_,
 }
 
 // TODO: should use the viewport render group
-void ReadableFramebuffer::configure_pipeline(const vulkan::VertexFlags &flags)
+void ReadableFramebuffer::configure_pipeline(DeviceResourceCollection &drc, const vulkan::VertexFlags &flags)
 {
 	if (pipelines.contains(flags))
 		return;
@@ -129,7 +128,7 @@ void ReadableFramebuffer::go(const RenderingInfo &info, Null)
 
 	// Render
 	for (auto &mesh : scene.meshes) {
-		configure_pipeline(mesh.flags);
+		configure_pipeline(info.drc, mesh.flags);
 
 		JVL_ASSERT_PLAIN(pipelines.contains(mesh.flags));
 

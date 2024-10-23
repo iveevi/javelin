@@ -4,7 +4,7 @@
 
 #include "emitter.hpp"
 #include "tagged.hpp"
-#include "thunder/enumerations.hpp"
+#include "../thunder/enumerations.hpp"
 
 namespace jvl::ire {
 

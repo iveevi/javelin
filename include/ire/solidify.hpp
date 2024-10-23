@@ -3,8 +3,8 @@
 #include "../math_types.hpp"
 #include "aggregate.hpp"
 #include "aliases.hpp"
-#include "ire/string_literal.hpp"
-#include "ire/uniform_layout.hpp"
+#include "string_literal.hpp"
+#include "uniform_layout.hpp"
 
 namespace jvl::ire {
 

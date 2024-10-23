@@ -17,8 +17,6 @@ struct FormatInfo {
 };
 
 struct ReadableFramebuffer : Unique {
-	DeviceResourceCollection &drc;
-
 	Aperature aperature;
 	Transform transform;
 
@@ -54,7 +52,7 @@ struct ReadableFramebuffer : Unique {
 			    const Viewport &,
 			    const vk::Format &);
 
-	void configure_pipeline(const vulkan::VertexFlags &);
+	void configure_pipeline(DeviceResourceCollection &, const vulkan::VertexFlags &);
 
 	void apply_request(const ObjectSelection &r);
 

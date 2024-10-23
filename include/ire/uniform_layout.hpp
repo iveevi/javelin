@@ -1,10 +1,8 @@
 #pragma once
 
-#include <array>
-
 #include "../logging.hpp"
 #include "../thunder/atom.hpp"
-#include "ire/aggregate.hpp"
+#include "aggregate.hpp"
 #include "tagged.hpp"
 #include "emitter.hpp"
 #include "string_literal.hpp"

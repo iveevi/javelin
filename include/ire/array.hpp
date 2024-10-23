@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ire/native.hpp"
+#include "native.hpp"
 #include "type_synthesis.hpp"
 
 namespace jvl::ire {

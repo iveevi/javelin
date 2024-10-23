@@ -11,7 +11,7 @@ MODULE(viewport-render-group);
 ViewportRenderGroup::ViewportRenderGroup(DeviceResourceCollection &drc)
 {
 	configure_render_pass(drc);
-	configure_pipelines(drc);
+	configure_pipelines(drc); // TODO: do at runtime...
 
 	// Configure thread workers		
 	auto ftn = std::bind(&ViewportRenderGroup::texture_loader_worker, this);
