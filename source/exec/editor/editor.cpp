@@ -351,8 +351,8 @@ void Editor::process_messages()
 				fmt::println("opening new material inspector for material with id: {}", id);
 
 				int64_t index = msg.value.as <int64_t> ();
-				auto &material = scene.materials[index];
-				material_viewers.emplace_back(material);
+				auto ref = scene.materials[index];
+				material_viewers.emplace_back(ref);
 				
 				auto &viewer = material_viewers.back();
 				imgui_callbacks.push_back(viewer.callback_display());

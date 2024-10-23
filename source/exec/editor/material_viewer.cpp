@@ -1,10 +1,10 @@
 #include "material_viewer.hpp"
 
-MaterialViewer::MaterialViewer(Material &material)
+MaterialViewer::MaterialViewer(const Archetype <Material> ::Reference &material_)
 		: Unique(new_uuid <MaterialViewer> ()),
-		material(material)
+		material(material_)
 {
-	main_title = fmt::format("Material Viewer: {}##{}", material.name, material.id());
+	main_title = fmt::format("Material Viewer: {}##{}", material->name, material->id());
 }
 
 void MaterialViewer::display_handle(const RenderingInfo &info)
@@ -17,7 +17,7 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 	}
 
 	bool modified = false;
-	for (auto &[k, v] : material.values) {
+	for (auto &[k, v] : material->values) {
 		ImGui::Text("%s", k.c_str());
 		ImGui::SameLine();
 

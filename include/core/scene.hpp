@@ -9,6 +9,7 @@
 #include "mesh.hpp"
 #include "material.hpp"
 #include "messaging.hpp"
+#include "archetype.hpp"
 
 // Forward declarations
 namespace jvl::engine {
@@ -71,12 +72,12 @@ struct Scene {
 		}
 		
 		const auto &get_material(size_t i) const {
-			return reference->materials[i];
+			return *reference->materials[i];
 		}
 
 		const auto &get_local_material(size_t i) const {
 			size_t index = materials[i];
-			return reference->materials[index];
+			return *reference->materials[index];
 		}
 	};
 

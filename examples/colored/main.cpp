@@ -153,7 +153,8 @@ int main(int argc, char *argv[])
 
 	// Load the scene
 	auto asset = engine::ImportedAsset::from(path).value();
-	auto scene = core::Scene();
+
+	core::Scene scene;
 	scene.add(asset);
 
 	// Prepare host and device scenes

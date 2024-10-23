@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 	std::filesystem::path path = argv[1];
 
 	auto asset = engine::ImportedAsset::from(path).value();
-	editor.scene = core::Scene();
+	
 	editor.scene.add(asset);
 
 	// Prepare host and device scenes

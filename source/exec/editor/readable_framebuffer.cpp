@@ -3,15 +3,14 @@
 	
 MODULE(readable-framebuffer);
 	
-ReadableFramebuffer::ReadableFramebuffer(DeviceResourceCollection &drc,
+ReadableFramebuffer::ReadableFramebuffer(DeviceResourceCollection &drc_,
 					 const Viewport &viewport,
 					 const vk::Format &format)
 		: Unique(new_uuid <ReadableFramebuffer> ()),
+		drc(drc_),
 		aperature(viewport.aperature),
 		transform(viewport.transform),
-		extent(viewport.extent),
-		shaders(drc.device, drc.dal),
-		assembler(drc.device, drc.window, drc.dal)
+		extent(viewport.extent)
 {
 	// TODO: constexpr function
 	static const std::map <vk::Format, FormatInfo> format_infos {
@@ -55,6 +54,15 @@ ReadableFramebuffer::ReadableFramebuffer(DeviceResourceCollection &drc,
 	generator.add(image.view, depth.view);
 
 	framebuffer = generator.unpack().front();
+}
+
+// TODO: should use the viewport render group
+void ReadableFramebuffer::configure_pipeline(const vulkan::VertexFlags &flags)
+{
+	if (pipelines.contains(flags))
+		return;
+
+	auto [binding, attributes] = vulkan::binding_and_attributes(flags);
 
 	auto vs = procedure("main") << []() {
 		push_constant <MVP> mvp;
@@ -72,28 +80,17 @@ ReadableFramebuffer::ReadableFramebuffer(DeviceResourceCollection &drc,
 	std::string vertex_shader = link(vs).generate_glsl();
 	std::string fragment_shader = link(fs).generate_glsl();
 
-	shaders // ...
+	auto shaders = littlevk::ShaderStageBundle(drc.device, drc.dal)
 		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
 		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 	
-	assembler // ...
+	pipelines[flags] = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
 		.with_render_pass(render_pass, 0)
 		.with_shader_bundle(shaders)
 		.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
 		.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, solid_size <MVP>)
 		.cull_mode(vk::CullModeFlagBits::eNone)
-		.alpha_blending(false);
-}
-
-// TODO: should use the viewport render group
-void ReadableFramebuffer::configure_pipeline(const vulkan::VertexFlags &flags)
-{
-	if (pipelines.contains(flags))
-		return;
-
-	auto [binding, attributes] = vulkan::binding_and_attributes(flags);
-
-	pipelines[flags] = assembler // ...
+		.alpha_blending(false)
 		.with_vertex_binding(binding)
 		.with_vertex_attributes(attributes);
 }

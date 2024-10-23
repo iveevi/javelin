@@ -109,7 +109,7 @@ void Viewport::display_handle(const RenderingInfo &info)
 	size = ImGui::GetContentRegionAvail();
 	ImGui::ImageButton(imgui_descriptors[info.frame], size, ImVec2(0, 0), ImVec2(1, 1), 0);
 
-	if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+	if (ImGui::IsWindowFocused() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
 		ImVec2 mouse = ImGui::GetMousePos();
 		ImVec2 min = ImGui::GetItemRectMin();
 		ImVec2 max = ImGui::GetItemRectMax();

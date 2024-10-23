@@ -15,6 +15,7 @@ enum class SceneFlags : uint32_t {
 };
 
 struct Scene {
+	// TODO: these should be archetypes...
 	std::vector <TriangleMesh> meshes;
 	std::vector <Material> materials;
 	SceneFlags flags;

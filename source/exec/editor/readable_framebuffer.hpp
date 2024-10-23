@@ -17,6 +17,8 @@ struct FormatInfo {
 };
 
 struct ReadableFramebuffer : Unique {
+	DeviceResourceCollection &drc;
+
 	Aperature aperature;
 	Transform transform;
 
@@ -26,12 +28,6 @@ struct ReadableFramebuffer : Unique {
 
 	vk::RenderPass render_pass;
 	vk::Framebuffer framebuffer;
-	
-	// Cached shaders
-	littlevk::ShaderStageBundle shaders;
-
-	// Cached pipeline assembler
-	littlevk::PipelineAssembler <littlevk::eGraphics> assembler;
 
 	// Pipelines for each vertex layout	
 	std::map <vulkan::VertexFlags, littlevk::Pipeline> pipelines;
