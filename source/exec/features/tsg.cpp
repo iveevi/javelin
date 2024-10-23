@@ -22,6 +22,8 @@ using namespace tsg;
 	
 MODULE(tsg-feature);
 
+// TODO: solid_alignment <...> and restrictions for offset based on that...
+
 // Projection matrix
 struct MVP {
 	mat4 model;
@@ -50,15 +52,13 @@ auto vertex_shader(VertexIntrinsics,
 	return std::make_tuple(Position(mvp.project(position)), position);
 }
 
-// TODO: deprecation warnings on unused layouts
-// TODO: solid_alignment <...> and restrictions for offset based on that...
 auto fragment_shader(FragmentIntrinsics,
 		     PushConstant <vec3, solid_size <MVP>> tint,
 		     vec3 position)
 {
-	vec3 dU = ire::dFdx(position);
-	vec3 dV = ire::dFdy(position);
-	vec3 N = ire::normalize(ire::cross(dU, dV));
+	vec3 dU = dFdx(position);
+	vec3 dV = dFdy(position);
+	vec3 N = normalize(cross(dU, dV));
 	return vec4((0.5f + 0.5f * N) * tint, 1);
 }
 
@@ -150,7 +150,7 @@ struct AttachmentDescriptions : std::array <vk::AttachmentDescription, sizeof...
 };
 
 template <AttachmentForm ... forms>
-struct AttachmentArray {
+struct AttachmentBundle {
 	static constexpr size_t N = sizeof...(forms);
 
 	template <typename ... Args>
@@ -202,12 +202,12 @@ int main(int argc, char *argv[])
 	// Construct a render pass
 	using enum vk::ImageLayout;
 
-	constexpr auto presentation = AttachmentForm().setStoreOp(vk::AttachmentStoreOp::eStore);
-	constexpr auto depth_buffer = AttachmentForm().setFinalLayout(eDepthStencilAttachmentOptimal);
+	constexpr auto Presentation = AttachmentForm().setStoreOp(vk::AttachmentStoreOp::eStore);
+	constexpr auto DepthBuffer = AttachmentForm().setFinalLayout(eDepthStencilAttachmentOptimal);
 
-	AttachmentArray <presentation, depth_buffer> array;
+	AttachmentBundle <Presentation, DepthBuffer> attachments;
 
-	auto descriptions = array.formats(drc.swapchain.format, vk::Format::eD32Sfloat);
+	auto descriptions = attachments.formats(drc.swapchain.format, vk::Format::eD32Sfloat);
 	auto color_attachment_reference = descriptions.ref <eColorAttachmentOptimal> (0);
 	auto depth_attachment_reference = descriptions.ref <eDepthAttachmentOptimal> (0);
 
@@ -377,13 +377,12 @@ int main(int argc, char *argv[])
 				// Render all the meshes
 				for (auto &mesh : device_scene.meshes) {
 					int mid = *mesh.material_usage.begin();
+					// TODO: draw state valid only if constants have been pushed...
 					cmd_ppl // ...
 						.pushConstantsVertex(mvp)
 						.pushConstantsFragment(color)
 						.draw(*mesh.triangles, *mesh.vertices, mesh.count);
 				}
-
-				// TODO: How to force a return to the original state?
 			}
 		}
 	

@@ -23,7 +23,8 @@ namespace jvl::core {
 struct Scene {
 	// Archetype layout
 	std::vector <Mesh> geometries;
-	std::vector <Material> materials;
+	// std::vector <Material> materials;
+	Archetype <Material> materials;
 
 	// Element of a scene
 	struct Object : Unique {

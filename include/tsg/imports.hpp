@@ -35,4 +35,12 @@ using ire::loop;
 using ire::solid_t;
 using ire::solid_size;
 
+using ire::cross;
+using ire::normalize;
+
+using ire::dFdxFine;
+using ire::dFdyFine;
+using ire::dFdx;
+using ire::dFdy;
+
 } // namespace jvl::tsg

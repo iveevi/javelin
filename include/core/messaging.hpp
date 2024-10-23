@@ -7,6 +7,8 @@
 #include "wrapped_types.hpp"
 #include "math_types.hpp"
 
+#include <fmt/printf.h>
+
 namespace jvl::core {
 
 struct UUID {
@@ -101,10 +103,10 @@ public:
 
 // Easier entrace into the UUID system
 struct Unique {
-	core::UUID uuid;
+	UUID uuid;
 
 	// Require that the ID be initialized
-	Unique(const core::UUID &uuid_) : uuid(uuid_) {}
+	Unique(const UUID &uuid_) : uuid(uuid_) {}
 
 	// Global ID
 	int64_t id() const {
@@ -120,6 +122,45 @@ struct Unique {
 template <typename T>
 concept marked = std::is_base_of_v <Unique, T>;
 
+// Vectorized archetype of mark entities
+template <marked T>
+class Archetype {
+	std::vector <T> data;
+	std::map <int64_t, int64_t> global_to_index;
+public:
+	Archetype &add(const T &value) {
+		int64_t index = data.size();
+		data.push_back(value);
+
+		int64_t global = data.back().id();
+		global_to_index[global] = index;
+		fmt::println("adding element ({}, {})", global, index);
+		return *this;
+	}
+
+	T &operator[](size_t index) {
+		return data[index];
+	}
+
+	const T &operator[](size_t index) const {
+		return data[index];
+	}
+	
+	T &mapped(int64_t global) {
+		int64_t index = global_to_index.at(global);
+		return this->operator[](index);
+	}
+
+	const T &mapped(int64_t global) const {
+		int64_t index = global_to_index.at(global);
+		return this->operator[](index);
+	}
+
+	size_t size() const {
+		return data.size();
+	}
+};
+
 // Tracking UUID relationships
 template <marked A, marked B>
 struct Equivalence {
@@ -130,6 +171,7 @@ struct Equivalence {
 		return a_to_b.at(a.id());
 	}
 
+	// TODO: strictly operate on the type...
 	void add(const A &a, const B &b) {
 		a_to_b[a.id()] = b.id();
 		b_to_a[b.id()] = a.id();
@@ -138,6 +180,21 @@ struct Equivalence {
 	void add(const A &a, int64_t b_id) {
 		a_to_b[a.id()] = b_id;
 		b_to_a[b_id] = a.id();
+	}
+	
+	void add(int64_t aid, const B &b) {
+		a_to_b[aid] = b.id();
+		b_to_a[b.id()] = aid;
+	}
+
+	// TODO: strictly operate on the type...
+	bool has_a(int64_t aid) const {
+		return a_to_b.contains(aid);
+	}
+
+	// TODO: strictly operate on the type...
+	bool has_b(int64_t bid) const {
+		return b_to_a.contains(bid);
 	}
 };
 

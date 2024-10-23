@@ -82,13 +82,8 @@ void Viewport::display_handle(const RenderingInfo &info)
 	
 	ImGui::Begin(main_title.c_str(), &open, ImGuiWindowFlags_MenuBar);
 	if (!open) {
-		Message message {
-			.global = uuid.global,
-			.type_id = uuid.type_id,
-			.kind = editor_remove_self,
-		};
-
-		info.message_system.send_to_origin(message);
+		auto remove_request = message(editor_remove_self);
+		info.message_system.send_to_origin(remove_request);
 	}
 
 	active = ImGui::IsWindowFocused();

@@ -6,7 +6,6 @@
 #include "viewport.hpp"
 
 using namespace jvl;
-using namespace jvl::ire;
 
 struct FormatInfo {
 	size_t size;

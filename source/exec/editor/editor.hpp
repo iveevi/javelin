@@ -7,6 +7,7 @@
 #include "viewport.hpp"
 #include "viewport_render_group.hpp"
 #include "readable_framebuffer.hpp"
+#include "material_viewer.hpp"
 
 struct Editor {
 	// Fundamental Vulkan resources
@@ -35,6 +36,11 @@ struct Editor {
 	
 	// Host raytracers
 	std::list <RaytracerCPU> host_raytracers;
+
+	// TODO: common interface of unique objects
+	// TODO: map from type id to list of objects?
+	std::list <MaterialViewer> material_viewers;
+	Equivalence <Material, MaterialViewer> material_to_viewer;
 
 	// Miscellaneous
 	SceneInspector inspector;

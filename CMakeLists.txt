@@ -134,6 +134,7 @@ add_executable(javelin-editor
 	source/exec/editor/main.cpp
 	source/exec/editor/raytracer_cpu.cpp
 	source/exec/editor/readable_framebuffer.cpp
+	source/exec/editor/material_viewer.cpp
 	source/exec/editor/scene_inspector.cpp
 	source/exec/editor/shaders.cpp
 	source/exec/editor/viewport.cpp

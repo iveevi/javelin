@@ -9,7 +9,7 @@
 
 namespace jvl::core {
 
-struct TriangleMesh : core::Unique {
+struct TriangleMesh : Unique {
 	buffer <float3> positions;
 	buffer <float3> normals;
 	buffer <float2> uvs;
@@ -17,7 +17,7 @@ struct TriangleMesh : core::Unique {
 	buffer <int> materials;
 	std::set <int> material_usage;
 
-	TriangleMesh() : core::Unique(new_uuid <TriangleMesh> ()) {}
+	TriangleMesh() : Unique(new_uuid <TriangleMesh> ()) {}
 
 	static std::optional <TriangleMesh> from(const Mesh &m) {
 		TriangleMesh tm;

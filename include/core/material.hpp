@@ -5,8 +5,16 @@
 
 namespace jvl::core {
 
-template <typename T>
-using potentially_texture = jvl::wrapped::variant <std::string, T>;
+// General value information
+// TODO: color3 which is float3 alias...
+// TODO: texture which is a texture location...
+using property_value = jvl::wrapped::variant <
+	int, float,
+	int2, float2,
+	int3, float3,
+	int4, float4,
+	std::string
+>;
 
 template <typename T>
 concept material = requires(const property <property_value> &values) {

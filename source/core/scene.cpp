@@ -63,7 +63,7 @@ void Scene::add(const engine::ImportedAsset &asset)
 			int64_t index = materials.size();
 			reindex[i] = local_materials.size();
 			local_materials.push_back(index);
-			materials.push_back(asset.materials[i]);
+			materials.add(asset.materials[i]);
 		}
 
 		for (auto &i : mids)

@@ -292,10 +292,13 @@ void Editor::process_messages()
 				type_id_of <Viewport> (),
 				type_id_of <RaytracerCPU> (),
 				type_id_of <ReadableFramebuffer> (),
+				type_id_of <MaterialViewer> (),
 			};
 
 			if (quick_fetch.contains(msg.type_id))
 				removal_set.insert(msg.global);
+			else
+				JVL_ABORT("removal requested for unrecognized type UUID={}", msg.type_id);
 		} break;
 
 		case editor_viewport_update_selected:
@@ -340,8 +343,22 @@ void Editor::process_messages()
 
 		case editor_open_material_inspector:
 		{
-			fmt::println("opening material inspector for material with id: {}",
-				msg.value.as <int64_t> ());
+			int64_t id = msg.value.as <int64_t> ();
+			// Skip if already instantiated
+			if (material_to_viewer.has_a(id)) {
+				fmt::println("viewer already open...");
+			} else {
+				fmt::println("opening new material inspector for material with id: {}", id);
+
+				int64_t index = msg.value.as <int64_t> ();
+				auto &material = scene.materials[index];
+				material_viewers.emplace_back(material);
+				
+				auto &viewer = material_viewers.back();
+				imgui_callbacks.push_back(viewer.callback_display());
+
+				material_to_viewer.add(id, viewer);
+			}
 		} break;
 
 		default:
@@ -353,6 +370,7 @@ void Editor::process_messages()
 	remove_items(viewports, removal_set);
 	remove_items(host_raytracers, removal_set);
 	remove_items(readable_framebuffers, removal_set);
+	remove_items(material_viewers, removal_set);
 
 	{
 		// Callbacks

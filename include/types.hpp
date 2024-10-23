@@ -16,15 +16,6 @@ using buffer = std::vector <T>;
 template <typename T>
 using property = jvl::wrapped::hash_table <std::string, T>;
 
-// General value information
-using property_value = jvl::wrapped::variant <
-	int, float,
-	int2, float2,
-	int3, float3,
-	int4, float4,
-	std::string
->;
-
 // General buffer structures
 using typed_buffer = jvl::wrapped::variant <
 	buffer <float4>,
