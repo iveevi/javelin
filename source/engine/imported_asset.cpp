@@ -182,7 +182,8 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 		} else {
 			auto fixed = material.diffuse_texname;
 			std::replace(fixed.begin(), fixed.end(), '\\', '/');
-			m.values[Material::diffuse_key] = path.parent_path() / fixed;
+			std::string full = path.parent_path() / fixed;
+			m.values[Material::diffuse_key] = full;
 		}
 
 		// Specular value

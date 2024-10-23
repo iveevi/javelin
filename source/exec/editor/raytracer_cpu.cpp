@@ -105,8 +105,8 @@ struct Diffuse : SurfaceScattering {
 
 	Diffuse &load(const Material &material) {
 		if (auto diffuse = material.values.get("diffuse")) {
-			if (diffuse->is <float3> ())
-				kd = diffuse->as <float3> ();
+			if (diffuse->is <color3> ())
+				kd = diffuse->as <color3> ();
 			else
 				kd = float3(0.6, 0.6, 0.6);
 		}
@@ -138,7 +138,7 @@ struct Diffuse : SurfaceScattering {
 inline wrapped::optional <float3> emission(const core::Material &material)
 {
 	if (auto emission = material.values.get("emission"))
-		return emission.as <float3> ();
+		return emission.as <color3> ();
 
 	return std::nullopt;
 }

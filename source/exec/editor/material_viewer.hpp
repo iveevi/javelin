@@ -13,7 +13,7 @@ using namespace jvl::core;
 
 struct MaterialViewer : Unique {
 	// TODO: ArchetypeReference instance
-	const Material &material;
+	Material &material;
 
 	std::string main_title;
 
@@ -25,7 +25,7 @@ struct MaterialViewer : Unique {
 	vk::RenderPass render_pass;
 	vk::Framebuffer framebuffer;
 
-	MaterialViewer(const Material &);
+	MaterialViewer(Material &);
 
 	void display_handle(const RenderingInfo &);
 	imgui_callback callback_display();

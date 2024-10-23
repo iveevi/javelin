@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <variant>
+#include <map>
 
 // Wrappers on standard types
 namespace jvl::wrapped {
@@ -72,6 +73,26 @@ struct optional <variant <Args...>> : std::optional <variant <Args...>> {
 	inline optional <T> as() {
 		if (this->has_value())
 			return (this->value()).template as <T> ();
+
+		return std::nullopt;
+	}
+};
+
+// Optional returns for trees
+template <typename K, typename V>
+struct tree : std::map <K, V> {
+	using std::map <K, V> ::map;
+
+	optional <V> get(const K &k) {
+		if (this->count(k))
+			return this->operator[](k);
+
+		return std::nullopt;
+	}
+
+	optional <V> get(const K &k) const {
+		if (this->count(k))
+			return this->at(k);
 
 		return std::nullopt;
 	}

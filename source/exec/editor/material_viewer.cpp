@@ -1,6 +1,6 @@
 #include "material_viewer.hpp"
 
-MaterialViewer::MaterialViewer(const Material &material)
+MaterialViewer::MaterialViewer(Material &material)
 		: Unique(new_uuid <MaterialViewer> ()),
 		material(material)
 {
@@ -16,29 +16,28 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 		info.message_system.send_to_origin(remove_request);
 	}
 
-	ImGui::Text("Properties");
-	ImGui::Separator();
+	bool modified = false;
 	for (auto &[k, v] : material.values) {
 		ImGui::Text("%s", k.c_str());
 		ImGui::SameLine();
 
 		switch (v.index()) {
 		
-		variant_case(property_value, float):
+		variant_case(material_property, float):
 		{
 			auto &f = v.as <float> ();
 			ImGui::Text("%f", f);
 		} break;
 
-		variant_case(property_value, float3):
+		variant_case(material_property, color3):
 		{
-			auto &f = v.as <float3> ();
-			ImGui::Text("%f %f %f", f.x, f.y, f.z);
+			auto &f = v.as <color3> ();
+			modified |= ImGui::ColorEdit3("", &f.x);
 		} break;
 
-		variant_case(property_value, std::string):
+		variant_case(material_property, texture):
 		{
-			auto &s = v.as <std::string> ();
+			auto &s = v.as <texture> ();
 			ImGui::Text("%s", s.c_str());
 		} break;
 
@@ -46,6 +45,10 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 			ImGui::Text("?");
 			break;
 		}
+	}
+
+	if (modified) {
+		fmt::println("material has changed...");
 	}
 
 	ImGui::End();

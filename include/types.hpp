@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include "math_types.hpp"
 #include "wrapped_types.hpp"
@@ -14,7 +15,7 @@ using buffer = std::vector <T>;
 
 // General key-value structure
 template <typename T>
-using property = jvl::wrapped::hash_table <std::string, T>;
+using property = jvl::wrapped::tree <std::string, T>;
 
 // General buffer structures
 using typed_buffer = jvl::wrapped::variant <

@@ -6,18 +6,26 @@
 namespace jvl::core {
 
 // General value information
-// TODO: color3 which is float3 alias...
-// TODO: texture which is a texture location...
-using property_value = jvl::wrapped::variant <
-	int, float,
-	int2, float2,
-	int3, float3,
-	int4, float4,
-	std::string
+struct color3 : float3 {
+	using float3::vector;
+
+	color3(const float3 &other) : float3(other) {}
+};
+
+struct texture : std::string {
+	using std::string::string;
+
+	texture(const std::string &other) : std::string(other) {}
+};
+
+using material_property = jvl::wrapped::variant <
+	float,
+	color3,
+	texture
 >;
 
 template <typename T>
-concept material = requires(const property <property_value> &values) {
+concept material = requires(const property <material_property> &values) {
 	{
 		T::from(values)
 	} -> std::same_as <wrapped::optional <T>>;
@@ -34,7 +42,7 @@ struct Material : Unique {
 
 	std::string name;
 
-	property <property_value> values;
+	property <material_property> values;
 
 	Material(const std::string &name_) : Unique(new_uuid <Material> ()), name(name_) {}
 

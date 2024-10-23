@@ -17,25 +17,25 @@ std::optional <Material> Material::from(core::DeviceResourceCollection &drc, con
 
 	JVL_ASSERT_PLAIN(material.values.contains(core::Material::diffuse_key));
 	auto kd = material.values.get(core::Material::diffuse_key).value();
-	if (kd.is <std::string> ()) {
+	if (kd.is <core::texture> ()) {
 		result.flags = result.flags | MaterialFlags::eAlbedoSampler;
-		result.kd = UnloadedTexture(kd.as <std::string> ());
+		result.kd = UnloadedTexture(kd.as <core::texture> ());
 	} else {
-		result.kd = kd.as <float3> ();
+		result.kd = kd.as <core::color3> ();
 	}
 
 	// Specular
 	JVL_ASSERT_PLAIN(material.values.contains(core::Material::specular_key));
 	auto ks = material.values.get(core::Material::specular_key).value();
-	if (ks.is <std::string> ())
+	if (ks.is <core::texture> ())
 		result.flags = result.flags | MaterialFlags::eSpecularSampler;
 	else
-		JVL_ASSERT_PLAIN(ks.is <float3> ());
+		JVL_ASSERT_PLAIN(ks.is <core::color3> ());
 
 	// Roughness
 	JVL_ASSERT_PLAIN(material.values.contains(core::Material::roughness_key));
 	auto roughness = material.values.get(core::Material::roughness_key).value();
-	if (roughness.is <std::string> ())
+	if (roughness.is <core::texture> ())
 		result.flags = result.flags | MaterialFlags::eRoughnessSampler;
 	else
 		JVL_ASSERT_PLAIN(roughness.is <float> ());
@@ -46,12 +46,12 @@ std::optional <Material> Material::from(core::DeviceResourceCollection &drc, con
 	if (enabled(result.flags, MaterialFlags::eAlbedoSampler))
 		info.kd = float3(0.5, 0.5, 0.5);
 	else
-		info.kd = kd.as <float3> ();
+		info.kd = kd.as <core::color3> ();
 	
 	if (enabled(result.flags, MaterialFlags::eSpecularSampler))
 		info.ks = float3(0.5, 0.5, 0.5);
 	else
-		info.ks = ks.as <float3> ();
+		info.ks = ks.as <core::color3> ();
 	
 	if (enabled(result.flags, MaterialFlags::eRoughnessSampler))
 		info.roughness = 0.1;

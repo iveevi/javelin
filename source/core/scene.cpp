@@ -164,19 +164,16 @@ void write_mesh(std::ofstream &fout, const Mesh &mesh)
 	}
 }
 
-void write_material_property_value(std::ofstream &fout, const property_value &value)
+void write_material_property_value(std::ofstream &fout, const material_property &value)
 {
 	write_int(fout, value.index());
 	if (auto opt_f = value.get <float> ()) {
 		auto f = opt_f.value();
 		fout.write((char *) &f, sizeof(f));
-	} else if (auto opt_f2 = value.get <float2> ()) {
-		auto f2 = opt_f2.value();
-		fout.write((char *) &f2, sizeof(f2));
-	} else if (auto opt_f3 = value.get <float3> ()) {
+	} else if (auto opt_f3 = value.get <color3> ()) {
 		auto f3 = opt_f3.value();
 		fout.write((char *) &f3, sizeof(f3));
-	} else if (auto opt_str = value.get <std::string> ()) {
+	} else if (auto opt_str = value.get <texture> ()) {
 		auto str = opt_str.value();
 		write_string(fout, str);
 	} else {
