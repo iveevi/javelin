@@ -18,7 +18,6 @@ struct ImGuiRenderGroup {
 	std::vector <vk::Framebuffer> framebuffers;
 
 	// Constructors
-	ImGuiRenderGroup() = default;
 	ImGuiRenderGroup(DeviceResourceCollection &);
 
 	void resize(DeviceResourceCollection &);

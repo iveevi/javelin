@@ -33,12 +33,12 @@ concept material = requires(const property <material_property> &values) {
 
 // Generic material description
 struct Material : Unique {
-	static constexpr const char *brdf_key = "brdf";
-	static constexpr const char *ambient_key = "ambient";
-	static constexpr const char *diffuse_key = "diffuse";
-	static constexpr const char *specular_key = "specular";
-	static constexpr const char *emission_key = "emission";
-	static constexpr const char *roughness_key = "roughness";
+	static constexpr const char *brdf_key = "BRDF";
+	static constexpr const char *ambient_key = "Ambient";
+	static constexpr const char *diffuse_key = "Diffuse";
+	static constexpr const char *specular_key = "Specular";
+	static constexpr const char *emission_key = "Emission";
+	static constexpr const char *roughness_key = "Roughness";
 
 	std::string name;
 

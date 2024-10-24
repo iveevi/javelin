@@ -148,14 +148,24 @@ struct Equivalence {
 		b_to_a[b.id()] = aid;
 	}
 
-	// TODO: strictly operate on the type...
 	bool has_a(int64_t aid) const {
 		return a_to_b.contains(aid);
 	}
 
-	// TODO: strictly operate on the type...
 	bool has_b(int64_t bid) const {
 		return b_to_a.contains(bid);
+	}
+	
+	void remove_a(const A &a) {
+		int64_t bid = a_to_b[a.id()];
+		a_to_b.erase(a.id());
+		b_to_a.erase(bid);
+	}
+
+	void remove_b(const B &b) {
+		int64_t aid = b_to_a[b.id()];
+		b_to_a.erase(b.id());
+		a_to_b.erase(aid);
 	}
 };
 

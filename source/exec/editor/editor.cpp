@@ -19,6 +19,21 @@ void remove_items(std::list <T> &list, const std::set <int64_t> &removal)
 	}
 }
 
+template <typename T>
+void remove_items(std::list <T> &list, const std::set <int64_t> &removal, const auto &action)
+{
+	auto it = list.begin();
+	auto end = list.end();
+	while (it != end) {
+		if (removal.contains(it->uuid.global)) {
+			action(*it);
+			it = list.erase(it);
+		} else {
+			it++;
+		}
+	}
+}
+
 // Mouse and button handlers; forwarded to ImGui
 void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)
 {
@@ -56,12 +71,13 @@ Editor::Editor()
 	drc = DeviceResourceCollection::from(info);
 
 	// ImGui configuration
-	rg_imgui = ImGuiRenderGroup(drc);
+	rg_imgui = std::make_unique <ImGuiRenderGroup> (drc);
 
-	configure_imgui(drc, rg_imgui.render_pass);
+	configure_imgui(drc, rg_imgui->render_pass);
 
 	// Other render groups		
 	rg_viewport = std::make_unique <ViewportRenderGroup> (drc);
+	rg_material = std::make_unique <MaterialRenderGroup> (drc);
 
 	// Configure event system(s)
 	glfwSetMouseButtonCallback(drc.window.handle, glfw_button_callback);
@@ -89,7 +105,7 @@ void Editor::add_viewport()
 void Editor::resize()
 {
 	drc.combined().resize(drc.surface, drc.window, drc.swapchain);
-	rg_imgui.resize(drc);
+	rg_imgui->resize(drc);
 }
 
 // Render loop iteration
@@ -132,13 +148,17 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 	for (auto &viewport : viewports)
 		rg_viewport->render(info, viewport);
 
+	// Render any material viewers
+	for (auto &viewer : material_viewers)
+		rg_material->render(info, viewer);
+
 	// Refresh any host raytracers
 	for (auto &raytracer : host_raytracers)
 		raytracer.refresh(drc, cmd);
 
 	// Finally, render the user interface
 	auto current_callbacks = imgui_callbacks;
-	rg_imgui.render(info, current_callbacks);
+	rg_imgui->render(info, current_callbacks);
 
 	// Process any readable framebuffers
 	for (auto &rf : readable_framebuffers)
@@ -346,7 +366,8 @@ void Editor::process_messages()
 			int64_t id = msg.value.as <int64_t> ();
 			// Skip if already instantiated
 			if (material_to_viewer.has_a(id)) {
-				fmt::println("viewer already open...");
+				fmt::println("viewer already open... UUID={}",
+					material_to_viewer.a_to_b[id]);
 			} else {
 				fmt::println("opening new material inspector for material with id: {}", id);
 
@@ -367,10 +388,15 @@ void Editor::process_messages()
 	}
 
 	// Removing items as requested
+	auto remove_material_viewer = [&](const MaterialViewer &viewer) {
+		fmt::println("removing material viewer: UUID={}", viewer.id());
+		material_to_viewer.remove_b(viewer);
+	};
+
 	remove_items(viewports, removal_set);
 	remove_items(host_raytracers, removal_set);
 	remove_items(readable_framebuffers, removal_set);
-	remove_items(material_viewers, removal_set);
+	remove_items(material_viewers, removal_set, remove_material_viewer);
 
 	{
 		// Callbacks

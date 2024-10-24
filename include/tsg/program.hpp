@@ -25,7 +25,6 @@ struct Program <ShaderStageFlags::eNone> {
 // Vertex and fragment sub-programs
 template <specifier ... Specifiers>
 struct Program <ShaderStageFlags::eVertex, Specifiers...> {
-	// TODO: compile to SPIRV from here right away
 	thunder::TrackedBuffer ir_vertex;
 
 	template <specifier ... AddedSpecifiers>

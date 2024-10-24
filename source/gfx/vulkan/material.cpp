@@ -41,24 +41,24 @@ std::optional <Material> Material::from(core::DeviceResourceCollection &drc, con
 		JVL_ASSERT_PLAIN(roughness.is <float> ());
 
 	// Construct the Uber material form
-	uber_x info;
+	uber_x data_uber;
 
 	if (enabled(result.flags, MaterialFlags::eAlbedoSampler))
-		info.kd = float3(0.5, 0.5, 0.5);
+		data_uber.kd = float3(0.5, 0.5, 0.5);
 	else
-		info.kd = kd.as <core::color3> ();
+		data_uber.kd = kd.as <core::color3> ();
 	
 	if (enabled(result.flags, MaterialFlags::eSpecularSampler))
-		info.ks = float3(0.5, 0.5, 0.5);
+		data_uber.ks = float3(0.5, 0.5, 0.5);
 	else
-		info.ks = ks.as <core::color3> ();
+		data_uber.ks = ks.as <core::color3> ();
 	
 	if (enabled(result.flags, MaterialFlags::eRoughnessSampler))
-		info.roughness = 0.1;
+		data_uber.roughness = 0.1;
 	else
-		info.roughness = roughness.as <float> ();
+		data_uber.roughness = roughness.as <float> ();
 
-	result.uber = drc.allocator().buffer(&info, sizeof(info),
+	result.uber = drc.allocator().buffer(&data_uber, sizeof(data_uber),
 			vk::BufferUsageFlagBits::eTransferDst
 			| vk::BufferUsageFlagBits::eUniformBuffer);
 

@@ -14,8 +14,9 @@ struct Editor {
 	DeviceResourceCollection drc;
 
 	// Unique render groups
-	ImGuiRenderGroup rg_imgui;
+	std::unique_ptr <ImGuiRenderGroup> rg_imgui;
 	std::unique_ptr <ViewportRenderGroup> rg_viewport;
+	std::unique_ptr <MaterialRenderGroup> rg_material;
 
 	// Resource caches
 	TextureBank texture_bank;

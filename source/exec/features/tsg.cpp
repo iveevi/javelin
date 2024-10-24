@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
 
 	auto descriptions = attachments.formats(drc.swapchain.format, vk::Format::eD32Sfloat);
 	auto color_attachment_reference = descriptions.ref <eColorAttachmentOptimal> (0);
-	auto depth_attachment_reference = descriptions.ref <eDepthAttachmentOptimal> (0);
+	auto depth_attachment_reference = descriptions.ref <eDepthStencilAttachmentOptimal> (1);
 
 	auto subpass = vk::SubpassDescription()
 		.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
