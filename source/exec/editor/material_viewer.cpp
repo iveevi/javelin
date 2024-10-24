@@ -1,3 +1,5 @@
+#include <nfd.hpp>
+
 #include <engine/imgui.hpp>
 #include <ire/core.hpp>
 
@@ -18,7 +20,9 @@ MaterialViewer::MaterialViewer(const Archetype <Material> ::Reference &material_
 
 void MaterialViewer::display_handle(const RenderingInfo &info)
 {
+	bool property_popup = false;
 	bool open = true;
+
 	ImGui::Begin(main_title.c_str(), &open);
 	if (!open) {
 		auto remove_request = message(editor_remove_self);
@@ -30,6 +34,10 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 	
 	ImGui::Image(descriptor, available);
 
+	// Drop down for other options
+	if (ImGui::Button("Add Property"))
+		property_popup = true;
+
 	auto next = vk::Extent2D(available.x, available.y);
 	next.width = std::max(10u, next.width);
 	next.height = std::max(10u, next.height);
@@ -40,40 +48,105 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 
 	bool modified = false;
 	for (auto &[k, v] : material->values) {
-		ImGui::Text("%s", k.c_str());
-		ImGui::SameLine();
+		if (ImGui::CollapsingHeader(k.c_str())) {
+			switch (v.index()) {
+			
+			variant_case(material_property, float):
+			{
+				auto &f = v.as <float> ();
+				ImGui::Text("%f", f);
+			} break;
 
-		switch (v.index()) {
-		
-		variant_case(material_property, float):
-		{
-			auto &f = v.as <float> ();
-			ImGui::Text("%f", f);
-		} break;
+			variant_case(material_property, color3):
+			{
+				auto &f = v.as <color3> ();
+				modified |= ImGui::ColorEdit3("", &f.x);
+			} break;
 
-		variant_case(material_property, color3):
-		{
-			auto &f = v.as <color3> ();
-			modified |= ImGui::ColorEdit3("", &f.x);
-		} break;
+			variant_case(material_property, texture):
+			{
+				auto &s = v.as <texture> ();
 
-		variant_case(material_property, texture):
-		{
-			auto &s = v.as <texture> ();
-			ImGui::Text("%s", s.c_str());
-		} break;
+				if (textures.contains(s)) {
+					auto &tex = textures[s];
 
-		default:
-			ImGui::Text("?");
-			break;
+					vk::DescriptorSet descriptor;
+					if (tex.is <TemporaryDescriptor> ())
+						descriptor = tex.as <TemporaryDescriptor> ();
+					else
+						descriptor = tex.as <vk::DescriptorSet> ();
+
+					auto size = ImVec2(available.x, available.x);
+
+					ImGui::Image(descriptor, size);
+
+					static constexpr int length = 25;
+					std::string trimmed = s;
+					if (trimmed.size() > length)
+						trimmed = "..." + trimmed.substr(trimmed.size() - length + 3);
+
+					if (ImGui::Button(trimmed.c_str())) {
+						std::filesystem::path path = std::string(s);
+						std::string parent = path.parent_path();
+
+						NFD::Guard guard;
+						NFD::UniquePath result;
+						NFD::OpenDialog(result, nullptr, 0, parent.c_str());
+					}
+				} else {
+					// TODO: loading arrows
+					ImGui::Text("Loading...");
+				}
+			} break;
+
+			variant_case(material_property, name):
+			{
+				auto &s = v.as <name> ();
+
+				ImGui::Text("%s", s.c_str());
+			} break;
+
+			default:
+				ImGui::Text("?");
+				break;
+			}
 		}
 	}
 
-	if (modified) {
+	if (modified)
 		fmt::println("material has changed...");
-	}
 
 	ImGui::End();
+	
+	const char *property_popup_name = "Add Material Property";
+
+	if (ImGui::BeginPopup(property_popup_name)) {
+		const std::map <std::string, material_property> properties {
+			// Name and default value
+			{ Material::ambient_key, color3(0.1, 0.1, 0.1) },
+			{ Material::diffuse_key, color3(1, 0, 1) },
+			{ Material::emission_key, color3(1, 1, 1) },
+			{ Material::roughness_key, 0.4f },
+		};
+
+		for (auto &[k, v] : properties) {
+			// Grey out if already in properties
+			bool disable = material->values.contains(k);
+			ImGui::BeginDisabled(disable);
+			
+			if (ImGui::Selectable(k.c_str())) {
+				fmt::println("adding property: \"{}\"", k);
+				material->values[k] = v;
+			}
+
+			ImGui::EndDisabled();
+		}
+
+		ImGui::EndPopup();
+	}
+
+	if (property_popup)
+		ImGui::OpenPopup(property_popup_name);
 }
 
 imgui_callback MaterialViewer::callback_display()
@@ -138,6 +211,61 @@ auto bufferless_screen = procedure("main") << []()
 
 void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &viewer)
 {
+	// Load material texture properties
+	for (auto &[k, v] : viewer.material->values) {
+		if (!v.is <core::texture> ())
+			continue;
+
+		auto &s = v.as <core::texture> ();
+
+		// TODO: need to check for things that need to be loaded
+		if (viewer.textures.contains(s)) {
+			auto &tex = viewer.textures[s];
+			if (tex.is <TemporaryDescriptor> ()) {
+				fmt::println("temporary descriptor state...");
+				if (info.device_texture_bank.contains(s)) {
+					fmt::println("texture is avaiable now!");
+			
+					auto &image = info.device_texture_bank[s];
+					if (!descriptors.contains(*image)) {
+						auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
+						descriptors[*image] = imgui_texture_descriptor(sampler,
+							image.view,
+							vk::ImageLayout::eShaderReadOnlyOptimal);
+					}
+
+					viewer.textures[s] = descriptors[*image];
+				}
+			}
+		} else {
+			static constexpr const char *error_texture = "$checkerboard";
+			// Load a dummy picture
+			// TODO: dedicated error picture
+
+			auto &image = info.device_texture_bank[error_texture];
+
+			if (!descriptors.contains(*image)) {
+				auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
+				descriptors[*image] = imgui_texture_descriptor(sampler,
+					image.view,
+					vk::ImageLayout::eShaderReadOnlyOptimal);
+			}
+			
+			viewer.textures[s] = TemporaryDescriptor(descriptors[*image]);
+			// TODO: indicate a loading status
+			
+			// Meanwhile, load the texture
+			auto &texture = core::Texture::from(info.texture_bank, std::string(s));
+
+			info.device_texture_bank.upload(info.drc.allocator(),
+				info.drc.commander(),
+				std::string(s),
+				texture,
+				info.extra);
+		}
+		
+	}
+
 	// Delayed construction of the images and framebuffer
 	// TODO: resize operation...
 	if (viewer.extent.old()) {

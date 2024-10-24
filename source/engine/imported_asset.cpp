@@ -165,8 +165,16 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 		imported_asset.geometries.push_back(mesh);
 	}
 
-	auto to_float3 = [](const tinyobj::real_t *const values) {
-		return float3(values[0], values[1], values[2]);
+	auto convert_to_color3 = [](const tinyobj::real_t *const values) {
+		return core::color3(values[0], values[1], values[2]);
+	};
+
+
+	auto resolved_texture = [&](const std::string &in) {
+		std::string fixed = in;
+		std::replace(fixed.begin(), fixed.end(), '\\', '/');
+		std::string full = path.parent_path() / fixed;
+		return core::texture(full);
 	};
 
 	auto &materials = reader.GetMaterials();
@@ -174,38 +182,34 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 		Material m(material.name);
 
 		// TODO: check for textures
-		m.values[Material::brdf_key] = "default";
+		m.values[Material::brdf_key] = core::name("Phong");
 
 		// Diffuse value
-		if (material.diffuse_texname.empty()) {
-			m.values[Material::diffuse_key] = to_float3(material.diffuse);
-		} else {
-			auto fixed = material.diffuse_texname;
-			std::replace(fixed.begin(), fixed.end(), '\\', '/');
-			std::string full = path.parent_path() / fixed;
-			m.values[Material::diffuse_key] = full;
-		}
+		if (material.diffuse_texname.empty())
+			m.values[Material::diffuse_key] = convert_to_color3(material.diffuse);
+		else
+			m.values[Material::diffuse_key] = resolved_texture(material.diffuse_texname);
 
 		// Specular value
 		if (material.specular_texname.empty())
-			m.values[Material::specular_key] = to_float3(material.specular);
+			m.values[Material::specular_key] = convert_to_color3(material.specular);
 		else
-			m.values[Material::specular_key] = material.specular_texname;
+			m.values[Material::specular_key] = resolved_texture(material.specular_texname);
 
 		// Ambient value
 		if (material.ambient_texname.empty())
-			m.values[Material::ambient_key] = to_float3(material.ambient);
+			m.values[Material::ambient_key] = convert_to_color3(material.ambient);
 		else
-			m.values[Material::ambient_key] = material.ambient_texname;
+			m.values[Material::ambient_key] = resolved_texture(material.ambient_texname);
 
 		// Roughness value
 		if (material.roughness_texname.empty())
 			m.values[Material::roughness_key] = material.roughness;
 		else
-			m.values[Material::roughness_key] = material.roughness_texname;
+			m.values[Material::roughness_key] = resolved_texture(material.roughness_texname);
 
 		// Emission should only be added if it is non-zero
-		float3 emission = to_float3(material.emission);
+		float3 emission = convert_to_color3(material.emission);
 		if (length(emission) > 0)
 			m.values[Material::emission_key] = emission;
 
@@ -216,7 +220,7 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 	while (imported_asset.materials.size() < referenced_materials.size()) {
 		// TODO: default_phong()
 		Material m("default");
-		m.values[Material::brdf_key] = "Phong";
+		m.values[Material::brdf_key] = core::name("Phong");
 		m.values[Material::diffuse_key] = float3(1, 0, 1);
 		m.values[Material::specular_key] = float3(0, 0, 0);
 		m.values[Material::roughness_key] = 1.0f;

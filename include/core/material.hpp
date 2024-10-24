@@ -12,6 +12,12 @@ struct color3 : float3 {
 	color3(const float3 &other) : float3(other) {}
 };
 
+struct name : std::string {
+	using std::string::string;
+
+	name(const std::string &other) : std::string(other) {}
+};
+
 struct texture : std::string {
 	using std::string::string;
 
@@ -21,6 +27,7 @@ struct texture : std::string {
 using material_property = jvl::wrapped::variant <
 	float,
 	color3,
+	name,
 	texture
 >;
 

@@ -7,50 +7,16 @@
 
 #include "imgui_render_group.hpp"
 #include "rendering_info.hpp"
+#include "critical.hpp"
 
 using namespace jvl;
 using namespace jvl::core;
 
-// Representing values which may change over frames
-// TODO: critical with timer reset...
-template <typename T>
-class Critical {
-	T item;
-	T next;
-	mutable bool up_to_date = false;
-public:
-	Critical(const T &value, bool up_to_date_ = false)
-		: next(value), up_to_date(up_to_date_) {
-		if (up_to_date)
-			item = next;
-	}
-
-	void queue(const T &value) {
-		next = value;
-		up_to_date = false;
-	}
-
-	const T &current() {
-		return item;
-	}
-
-	const T &updated() {
-		if (old()) {
-			item = next;
-			up_to_date = true;
-		}
-
-		return item;
-	}
-
-	const T *operator->() {
-		return &item;
-	}	
-
-	bool old() const {
-		return !up_to_date;
-	}
+struct TemporaryDescriptor : vk::DescriptorSet {
+	using vk::DescriptorSet::DescriptorSet;
 };
+
+using TextureDescriptor = wrapped::variant <TemporaryDescriptor, vk::DescriptorSet>;
 
 struct MaterialViewer : Unique {
 	Archetype <Material> ::Reference material;
@@ -59,6 +25,9 @@ struct MaterialViewer : Unique {
 
 	Aperature aperature;
 	Transform transform;
+
+	// Mapping texture properties
+	wrapped::tree <std::string, TextureDescriptor> textures;
 
 	// Images and framebuffer (one)
 	littlevk::Image image;
@@ -75,7 +44,8 @@ struct MaterialViewer : Unique {
 struct MaterialRenderGroup {
 	vk::RenderPass render_pass;
 
-	std::map <vulkan::MaterialFlags, littlevk::Pipeline> pipelines;
+	wrapped::tree <vulkan::MaterialFlags, littlevk::Pipeline> pipelines;
+	wrapped::tree <vk::Image, vk::DescriptorSet> descriptors;
 
 	MaterialRenderGroup(DeviceResourceCollection &);
 
