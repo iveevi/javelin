@@ -247,8 +247,8 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 	if (sop.status == littlevk::SurfaceOperation::eResize)
 		resize();
 
-	// Post rendering actions
-	renderer_viewport->post_render();
+	// // Post rendering actions
+	// renderer_viewport->post_render();
 }
 
 // Main menu bar

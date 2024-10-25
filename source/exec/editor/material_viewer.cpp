@@ -429,42 +429,26 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 
 				fmt::println("remaining dependency on key={} source={}", key, source);
 
-				if (info.device_texture_bank.contains(source)) {
-					if (info.device_texture_bank.ready(source)) {
-						fmt::println("  ready!");
+				if (info.device_texture_bank.contains(source)
+					&& info.device_texture_bank.ready(source)) {
+					fmt::println("  ready!");
 
-						auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
-						auto image = info.device_texture_bank[source];
-						
-						// TODO: need to copy the old descriptor set...
-						descriptor = littlevk::bind(info.drc.device, info.drc.descriptor_pool)
-							.allocate_descriptor_sets(pipelines[flags].dsl.value())
-							.front();
+					auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
+					auto image = info.device_texture_bank[source];
+					
+					// TODO: need to copy the old descriptor set...
+					descriptor = littlevk::bind(info.drc.device, info.drc.descriptor_pool)
+						.allocate_descriptor_sets(pipelines[flags].dsl.value())
+						.front();
 
-						littlevk::bind(info.drc.device, descriptor, default_bindings)
-							.queue_update(0, 0, sampler, image.view, vk::ImageLayout::eShaderReadOnlyOptimal)
-							.finalize();
+					littlevk::bind(info.drc.device, descriptor, default_bindings)
+						.queue_update(0, 0, sampler, image.view, vk::ImageLayout::eShaderReadOnlyOptimal)
+						.finalize();
 
-						descriptor.resolve(key);
-					} else {
-						fmt::println("  waiting...");
-					}
-				} else {
-					// TODO: texture loading unit with path and flag to
-					// indicate if should be loade onto the GPU
-					// auto &texture = core::Texture::from(info.texture_bank, source);
-					// auto cmd = info.drc.new_command_buffer();
-					// info.device_texture_bank.upload(info.drc.allocator(), cmd, source, texture);
-					// TextureTransitionUnit transition { cmd, source };
-					// info.transitions.push(transition);
-
-					if (info.worker_texture_loading->pending(source)) {
-						fmt::println("  texture in processing");
-					} else {
-						TextureLoadingUnit unit { source, true };
-						info.worker_texture_loading->push(unit);
-						fmt::println("  needs to be populated, sent to worker thread");
-					}
+					descriptor.resolve(key);
+				} else if (!info.worker_texture_loading->pending(source)) {
+					TextureLoadingUnit unit { source, true };
+					info.worker_texture_loading->push(unit);
 				}
 			}
 		}
