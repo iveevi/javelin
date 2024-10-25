@@ -49,6 +49,9 @@ void TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
 			 const std::string &path,
 			 const core::Texture &texture)
 {
+	if (contains(path))
+		return;
+
 	auto [staging, image] = allocate(allocator, path, texture);
 
 	commander.submit_and_wait([&](const vk::CommandBuffer &cmd) {
@@ -71,6 +74,9 @@ void TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
 			 const std::string &path,
 			 const core::Texture &texture)
 {
+	if (contains(path))
+		return;
+
 	auto [staging, image] = allocate(allocator, path, texture);
 
 	cmd.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });

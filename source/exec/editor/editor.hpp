@@ -8,19 +8,23 @@
 #include "viewport_render_group.hpp"
 #include "readable_framebuffer.hpp"
 #include "material_viewer.hpp"
+#include "texture_loading.hpp"
 
 struct Editor {
 	// Fundamental Vulkan resources
 	DeviceResourceCollection drc;
 
 	// Unique render groups
-	std::unique_ptr <ImGuiRenderGroup> rg_imgui;
-	std::unique_ptr <ViewportRenderGroup> rg_viewport;
-	std::unique_ptr <MaterialRenderGroup> rg_material;
+	std::unique_ptr <ImGuiRenderGroup> renderer_imgui;
+	std::unique_ptr <ViewportRenderGroup> renderer_viewport;
+	std::unique_ptr <MaterialRenderGroup> renderer_material;
+
+	// Thread workers
+	std::unique_ptr <TextureLoadingWorker> worker_texture_loading;
 
 	// Resource caches
-	TextureBank texture_bank;
-	vulkan::TextureBank device_texture_bank;
+	TextureBank host_bank;
+	vulkan::TextureBank device_bank;
 
 	// Scene management
 	core::Scene scene;

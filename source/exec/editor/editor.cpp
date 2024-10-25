@@ -71,13 +71,19 @@ Editor::Editor()
 	drc = DeviceResourceCollection::from(info);
 
 	// ImGui configuration
-	rg_imgui = std::make_unique <ImGuiRenderGroup> (drc);
+	renderer_imgui = std::make_unique <ImGuiRenderGroup> (drc);
 
-	configure_imgui(drc, rg_imgui->render_pass);
+	configure_imgui(drc, renderer_imgui->render_pass);
 
 	// Other render groups		
-	rg_viewport = std::make_unique <ViewportRenderGroup> (drc);
-	rg_material = std::make_unique <MaterialRenderGroup> (drc);
+	renderer_viewport = std::make_unique <ViewportRenderGroup> (drc);
+	renderer_material = std::make_unique <MaterialRenderGroup> (drc);
+
+	// Thread workers
+	worker_texture_loading = std::make_unique <TextureLoadingWorker> (drc,
+		host_bank,
+		device_bank,
+		transitions);
 
 	// Configure event system(s)
 	glfwSetMouseButtonCallback(drc.window.handle, glfw_button_callback);
@@ -85,8 +91,8 @@ Editor::Editor()
 
 	// Populate boilerplate textures
 	auto checkerboard = core::Texture::from("resources/textures/checkerboard.png");
-	texture_bank["$checkerboard"] = checkerboard;
-	device_texture_bank.upload(drc.allocator(),
+	host_bank["$checkerboard"] = checkerboard;
+	device_bank.upload(drc.allocator(),
 		drc.commander(),
 		"$checkerboard",
 		checkerboard);
@@ -95,7 +101,7 @@ Editor::Editor()
 // Adding a new viewport
 void Editor::add_viewport()
 {
-	viewports.emplace_back(drc, rg_viewport->render_pass);
+	viewports.emplace_back(drc, renderer_viewport->render_pass);
 
 	auto &viewport = viewports.back();
 	imgui_callbacks.push_back(viewport.callback_display());
@@ -105,7 +111,7 @@ void Editor::add_viewport()
 void Editor::resize()
 {
 	drc.combined().resize(drc.surface, drc.window, drc.swapchain);
-	rg_imgui->resize(drc);
+	renderer_imgui->resize(drc);
 }
 
 // Render loop iteration
@@ -123,7 +129,7 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 			fmt::println("...completed, time to update the texture bank");
 			for (auto s : sources) {
 				fmt::println("  {}", s);
-				device_texture_bank.mark_ready(s);
+				device_bank.mark_ready(s);
 			}
 
 			completed.insert(f);
@@ -156,8 +162,8 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 		.frame = frame,
 
 		// Caches
-		.texture_bank = texture_bank,
-		.device_texture_bank = device_texture_bank,
+		.texture_bank = host_bank,
+		.device_texture_bank = device_bank,
 
 		// Scenes
 		.scene = scene,
@@ -166,17 +172,20 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 		// Systems
 		.message_system = message_system,
 
+		// Worker threads
+		.worker_texture_loading = worker_texture_loading,
+
 		// Additional command buffers
 		.transitions = transitions,
 	};
 
 	// Render all the viewports
 	for (auto &viewport : viewports)
-		rg_viewport->render(info, viewport);
+		renderer_viewport->render(info, viewport);
 
 	// Render any material viewers
 	for (auto &viewer : material_viewers)
-		rg_material->render(info, viewer);
+		renderer_material->render(info, viewer);
 
 	// Refresh any host raytracers
 	for (auto &raytracer : host_raytracers)
@@ -184,7 +193,7 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 
 	// Finally, render the user interface
 	auto current_callbacks = imgui_callbacks;
-	rg_imgui->render(info, current_callbacks);
+	renderer_imgui->render(info, current_callbacks);
 
 	// Process any readable framebuffers
 	for (auto &rf : readable_framebuffers)
@@ -239,7 +248,7 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 		resize();
 
 	// Post rendering actions
-	rg_viewport->post_render();
+	renderer_viewport->post_render();
 }
 
 // Main menu bar
@@ -478,7 +487,7 @@ void Editor::loop()
 	imgui_callbacks.emplace_back(callback_raytracer_popup());
 	imgui_callbacks.emplace_back(inspector.callback_scene_hierarchy());
 	imgui_callbacks.emplace_back(inspector.callback_object_inspector());
-	imgui_callbacks.emplace_back(rg_viewport->callback_debug_pipelines());
+	imgui_callbacks.emplace_back(renderer_viewport->callback_debug_pipelines());
 	
 	add_viewport();
 

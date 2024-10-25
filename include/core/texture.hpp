@@ -1,16 +1,17 @@
 #pragma once
 
-#include <vulkan/vulkan.hpp>
-
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <map>
+#include <mutex>
+
+#include <vulkan/vulkan.hpp>
 
 namespace jvl::core {
 
 // Forward declarartions
-struct TextureBank;
+class TextureBank;
 
 struct Texture {
 	uint8_t *data = nullptr;
@@ -23,8 +24,21 @@ struct Texture {
 };
 
 // Optional texture caches
-struct TextureBank : public std::map <std::string, Texture> {
-	using std::map <std::string, Texture> ::map;
+// TODO: thread-safe tree
+class TextureBank : std::map <std::string, Texture> {
+	std::mutex lock;
+	
+	using super = std::map <std::string, Texture>;
+public:
+	bool contains(const std::string &key) {
+		std::lock_guard guard(lock);
+		return super::contains(key);
+	}
+
+	Texture &operator[](const std::string &key) {
+		std::lock_guard guard(lock);
+		return super::operator[](key);
+	}
 };
 
 } // namespace jvl::core

@@ -31,6 +31,8 @@ void DeviceResourceCollection::configure_device(const std::vector <const char *>
 {
 	auto queue_family = littlevk::find_queue_families(phdev, surface);
 
+	graphics_index = queue_family.graphics;
+
 	memory_properties = phdev.getMemoryProperties();
 	device = littlevk::device(phdev, queue_family, EXTENSIONS);
 	dal = littlevk::Deallocator(device);

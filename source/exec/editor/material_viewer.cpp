@@ -450,15 +450,21 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 						fmt::println("  waiting...");
 					}
 				} else {
-					fmt::println("  needs to be populated! (unless in progress by the CPU thread)");
-
 					// TODO: texture loading unit with path and flag to
 					// indicate if should be loade onto the GPU
-					auto &texture = core::Texture::from(info.texture_bank, source);
-					auto cmd = info.drc.new_command_buffer();
-					info.device_texture_bank.upload(info.drc.allocator(), cmd, source, texture);
-					TextureTransitionUnit transition { cmd, source };
-					info.transitions.push(transition);
+					// auto &texture = core::Texture::from(info.texture_bank, source);
+					// auto cmd = info.drc.new_command_buffer();
+					// info.device_texture_bank.upload(info.drc.allocator(), cmd, source, texture);
+					// TextureTransitionUnit transition { cmd, source };
+					// info.transitions.push(transition);
+
+					if (info.worker_texture_loading->pending(source)) {
+						fmt::println("  texture in processing");
+					} else {
+						TextureLoadingUnit unit { source, true };
+						info.worker_texture_loading->push(unit);
+						fmt::println("  needs to be populated, sent to worker thread");
+					}
 				}
 			}
 		}

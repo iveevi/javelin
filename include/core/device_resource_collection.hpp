@@ -26,6 +26,9 @@ public:
 	vk::DescriptorPool descriptor_pool;
 	vk::PhysicalDeviceMemoryProperties memory_properties;
 
+	// TODO: collect queue family indices...
+	uint32_t graphics_index;
+
 	littlevk::Swapchain swapchain;
 	littlevk::Deallocator dal;
 

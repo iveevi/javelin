@@ -7,15 +7,13 @@
 #include <gfx/vulkan/scene.hpp>
 #include <gfx/vulkan/texture_bank.hpp>
 
+#include "texture_transition.hpp"
+#include "texture_loading.hpp"
+
 using namespace jvl;
 using namespace jvl::core;
 using namespace jvl::gfx;
 using namespace jvl::engine;
-
-struct TextureTransitionUnit {
-	vk::CommandBuffer cmd;
-	std::string source;
-};
 
 struct RenderingInfo {
 	// Primary rendering structures
@@ -35,6 +33,9 @@ struct RenderingInfo {
 
 	// Messaging system
 	MessageSystem &message_system;
+
+	// Worker threads
+	std::unique_ptr <TextureLoadingWorker> &worker_texture_loading;
 
 	// Additional command buffers for the frame
 	wrapped::thread_safe_queue <TextureTransitionUnit> &transitions;
