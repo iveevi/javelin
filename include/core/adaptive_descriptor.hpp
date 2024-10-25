@@ -4,6 +4,10 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "wrapped_types.hpp"
+
+namespace jvl::core {
+
 class AdaptiveDescriptor : public vk::DescriptorSet {
 	// TODO: need to add binding information as well for each key
 	std::set <std::string> missing;
@@ -32,10 +36,14 @@ public:
 	}
 
 	bool null() const {
-		return static_cast <vk::DescriptorSet> (*this) == VK_NULL_HANDLE;
+		return static_cast <VkDescriptorSet> (*this) == VK_NULL_HANDLE;
 	}
 
 	bool complete() const {
 		return missing.empty();
 	}
 };
+
+using DescriptorTable = jvl::wrapped::tree <std::string, AdaptiveDescriptor>;
+
+} // namespace jvl::core

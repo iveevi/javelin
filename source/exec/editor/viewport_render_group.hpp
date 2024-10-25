@@ -1,11 +1,11 @@
 #pragma once
 
 #include <ire/core.hpp>
+#include <core/adaptive_descriptor.hpp>
 
 #include "pipeline_encoding.hpp"
 #include "shaders.hpp"
 #include "viewport.hpp"
-#include "adaptive_descriptor.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -29,10 +29,6 @@ public:
 
 	// Pipeline kinds
 	std::map <PipelineEncoding, littlevk::Pipeline> pipelines;
-
-	// Tracking descriptor sets
-	// TODO: material to descritor table...
-	std::map <uint64_t, AdaptiveDescriptor> descriptors;
 
 	// Constructors
 	ViewportRenderGroup(DeviceResourceCollection &);

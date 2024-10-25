@@ -6,6 +6,8 @@
 #include <ire/core.hpp>
 
 #include "material_viewer.hpp"
+	
+static constexpr const char *main_ppl_key = "$main";
 
 MODULE(material-viewer);
 
@@ -22,10 +24,10 @@ MaterialViewer::MaterialViewer(const Archetype <Material> ::Reference &material_
 	// Populate the solo textures list with properties which are textures
 	for (auto &[k, v] : material->values) {
 		if (v.is <core::texture> ())
-			branches[k] = AdaptiveDescriptor();
+			descriptors[k] = AdaptiveDescriptor();
 	}
 
-	branches[MaterialViewer::main_key] = AdaptiveDescriptor();
+	descriptors[main_ppl_key] = AdaptiveDescriptor();
 }
 
 void MaterialViewer::display_handle(const RenderingInfo &info)
@@ -42,7 +44,7 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 	ImVec2 available = ImGui::GetContentRegionAvail();
 	available.y *= 0.8;
 	
-	ImGui::ImageButton(descriptor, available, ImVec2(0, 0), ImVec2(1, 1), 0);
+	ImGui::ImageButton(viewport, available, ImVec2(0, 0), ImVec2(1, 1), 0);
 	ImGui::SetItemUsingMouseWheel();
 	
 	// Input handling
@@ -117,7 +119,7 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 					trimmed = "..." + trimmed.substr(trimmed.size() - length + 3);
 
 				auto size = ImVec2(available.x, available.x);
-				ImGui::Image(branches[k], size);
+				ImGui::Image(descriptors[k], size);
 
 				if (ImGui::Button(trimmed.c_str())) {
 					std::filesystem::path path = std::string(source);
@@ -282,13 +284,14 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 	
 		vk::Sampler sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
 		
-		viewer.descriptor = imgui_texture_descriptor(sampler,
+		viewer.viewport = imgui_texture_descriptor(sampler,
 			viewer.image.view,
 			vk::ImageLayout::eShaderReadOnlyOptimal);
 	}
 
-	// TODO: cache this to avoid duplicates...
-	auto converted = gfx::vulkan::Material::from(info.drc, *viewer.material).value();
+	// TODO: cache in each viewer this to avoid duplicates...
+	// TODO: derive each material viewer from the vulkan material type..
+	auto converted = gfx::vulkan::Material(*viewer.material);
 	auto flags = converted.flags;
 
 	static const std::vector <vk::DescriptorSetLayoutBinding> default_bindings {
@@ -395,7 +398,7 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 	}
 	
 	// Check all descriptors
-	for (auto &[branch, descriptor] : viewer.branches) {
+	for (auto &[entry, descriptor] : viewer.descriptors) {
 		if (descriptor.null()) {
 			fmt::println("null descriptor, starting initialization process");
 
@@ -410,10 +413,10 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 				.queue_update(0, 0, sampler, backup_texture.view, vk::ImageLayout::eShaderReadOnlyOptimal)
 				.finalize();
 			
-			if (branch == MaterialViewer::main_key)
+			if (entry == main_ppl_key)
 				descriptor.requirement(AdaptiveDescriptor::environment_key);
 			else
-				descriptor.requirement(branch);
+				descriptor.requirement(entry);
 		} else if (!descriptor.complete()) {
 			// Manage descriptor set updates upon texture loading
 			for (auto key : descriptor.dependencies()) {
@@ -454,7 +457,7 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 		}
 	}
 	
-	auto &descriptor = viewer.branches[MaterialViewer::main_key];
+	auto &descriptor = viewer.descriptors[main_ppl_key];
 	
 	auto &cmd = info.cmd;
 

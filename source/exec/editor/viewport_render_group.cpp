@@ -218,6 +218,8 @@ void ViewportRenderGroup::configure_pipelines(DeviceResourceCollection &drc)
 }
 
 // Preparation for rendering
+static constexpr const char *albedo_ppl_key = "Albedo";
+
 void ViewportRenderGroup::prepare_albedo(const RenderingInfo &info)
 {
 	auto &drc = info.drc;
@@ -245,16 +247,15 @@ void ViewportRenderGroup::prepare_albedo(const RenderingInfo &info)
 		if (!pipelines.contains(encoding))
 			configure_pipeline_albedo(drc, texture);
 
-		int64_t id = material.id();
-		if (!descriptors.contains(id))
-			descriptors[id] = AdaptiveDescriptor();
+		if (!material.descriptors.contains(albedo_ppl_key))
+			material.descriptors[albedo_ppl_key] = AdaptiveDescriptor();
 
 		// The rest is logic for textured materials
 		if (!texture)
 			continue;
 		
 		auto &ppl = pipelines[encoding];
-		auto &descriptor = descriptors[id];
+		auto &descriptor = material.descriptors[albedo_ppl_key];
 
 		if (descriptor.null()) {
 			descriptor = littlevk::bind(drc.device, drc.descriptor_pool)
@@ -275,7 +276,7 @@ void ViewportRenderGroup::prepare_albedo(const RenderingInfo &info)
 				.apply(drc.device);
 		} else if (!descriptor.complete()) {
 			// Must be the diffuse texture
-			std::string source = material.kd.as <vulkan::UnloadedTexture> ().path;
+			std::string source = material.values[Material::diffuse_key].as <core::texture> ();
 
 			if (info.device_texture_bank.contains(source)
 				&& info.device_texture_bank.ready(source)) {
@@ -335,7 +336,7 @@ void ViewportRenderGroup::render_albedo(const RenderingInfo &info,
 		if (texture) {
 			cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
 				ppl.layout, 0,
-				descriptors.at(material.uuid.global), {});
+				material.descriptors[albedo_ppl_key], {});
 		
 			cmd.pushConstants <solid_t <u32>> (ppl.layout,
 				vk::ShaderStageFlagBits::eFragment,
@@ -343,7 +344,7 @@ void ViewportRenderGroup::render_albedo(const RenderingInfo &info,
 				viewport.selected == scene.mesh_to_object[mesh]);
 		} else {
 			solid_t <Albedo> albedo;
-			albedo.get <0> () = material.kd.as <float3> ();
+			albedo.get <0> () = material.values[Material::diffuse_key].as <color3> ();
 			albedo.get <1> () = viewport.selected == scene.mesh_to_object[mesh];
 
 			cmd.pushConstants <solid_t <Albedo>> (ppl.layout,

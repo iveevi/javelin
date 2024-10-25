@@ -4,12 +4,12 @@
 
 #include <core/transform.hpp>
 #include <core/aperature.hpp>
+#include <core/adaptive_descriptor.hpp>
 #include <engine/camera_controller.hpp>
 
 #include "imgui_render_group.hpp"
 #include "rendering_info.hpp"
 #include "critical.hpp"
-#include "adaptive_descriptor.hpp"
 
 using namespace jvl;
 using namespace jvl::core;
@@ -26,15 +26,12 @@ struct MaterialViewer : Unique {
 	float aspect = 1.0f;
 	float radius = 5.0f;
 
-	// Mapping texture properties
-	static constexpr const char *main_key = "$main";
-
-	wrapped::tree <std::string, AdaptiveDescriptor> branches;
+	DescriptorTable descriptors;
 
 	// Images and framebuffer (one)
 	littlevk::Image image;
 	vk::Framebuffer framebuffer;
-	vk::DescriptorSet descriptor;
+	vk::DescriptorSet viewport;
 	Critical <vk::Extent2D> extent;
 
 	MaterialViewer(const Archetype <Material> ::Reference &);

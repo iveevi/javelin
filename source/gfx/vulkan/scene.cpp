@@ -44,10 +44,8 @@ Scene Scene::from(core::DeviceResourceCollection &drc, const cpu::Scene &other, 
 		}
 	}
 
-	for (auto &m : other.materials) {
-		auto vkm = Material::from(drc, m).value();
-		result.materials.push_back(vkm);
-	}
+	for (auto &m : other.materials)
+		result.materials.push_back(m);
 
 	return result;
 }
