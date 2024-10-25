@@ -23,7 +23,7 @@ MaterialViewer::MaterialViewer(const Archetype <Material> ::Reference &material_
 
 void MaterialViewer::display_handle(const RenderingInfo &info)
 {
-	bool property_popup = false;
+	bool popup_properties = false;
 	bool open = true;
 
 	ImGui::Begin(main_title.c_str(), &open);
@@ -40,7 +40,7 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 	
 	// Input handling
 	static constexpr float pad = 0.1f;
-		
+
 	if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
 		ImVec2 delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
 
@@ -77,7 +77,7 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 
 	// Drop down for other options
 	if (ImGui::Button("Add Property"))
-		property_popup = true;
+		popup_properties = true;
 
 	bool modified = false;
 	for (auto &[k, v] : material->values) {
@@ -154,9 +154,9 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 
 	ImGui::End();
 	
-	const char *property_popup_name = "Add Material Property";
+	const char *popup_properties_name = "Add Material Property";
 
-	if (ImGui::BeginPopup(property_popup_name)) {
+	if (ImGui::BeginPopup(popup_properties_name)) {
 		const std::map <std::string, material_property> properties {
 			// Name and default value
 			{ Material::ambient_key, color3(0.1, 0.1, 0.1) },
@@ -181,8 +181,8 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 		ImGui::EndPopup();
 	}
 
-	if (property_popup)
-		ImGui::OpenPopup(property_popup_name);
+	if (popup_properties)
+		ImGui::OpenPopup(popup_properties_name);
 }
 
 imgui_callback MaterialViewer::callback_display()

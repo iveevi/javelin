@@ -577,7 +577,7 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 	// Start the render pass
 	littlevk::RenderPassBeginInfo(2)
 		.with_render_pass(render_pass)
-		.with_framebuffer(viewport.framebuffers[info.operation.index])
+		.with_framebuffer(viewport.framebuffer)
 		.with_extent(viewport.extent)
 		.clear_color(0, std::array <float, 4> { 0, 0, 0, 1 })
 		.clear_depth(1, 1)
@@ -610,7 +610,7 @@ void ViewportRenderGroup::render(const RenderingInfo &info, Viewport &viewport)
 
 	cmd.endRenderPass();
 
-	littlevk::transition(info.cmd, viewport.targets[info.operation.index],
+	littlevk::transition(info.cmd, viewport.image,
 		vk::ImageLayout::ePresentSrcKHR,
 		vk::ImageLayout::eShaderReadOnlyOptimal);
 }

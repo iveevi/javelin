@@ -33,13 +33,16 @@ struct Viewport : Unique {
 
 	// Display information
 	std::string main_title;
-	std::string camera_settings_popup_title;
-	std::string view_mode_popup_title;
+	std::string popup_camera_settings_title;
+	std::string popup_view_mode_title;
 
 	// Images and framebuffers
-	std::vector <littlevk::Image> targets;
-	std::vector <vk::Framebuffer> framebuffers;
-	std::vector <vk::DescriptorSet> imgui_descriptors;
+	littlevk::Image image;
+	littlevk::Image depth;
+
+	vk::Framebuffer framebuffer;
+	vk::DescriptorSet descriptor;
+
 	vk::Extent2D extent;
 
 	Viewport(DeviceResourceCollection &, const vk::RenderPass &);

@@ -20,6 +20,27 @@ bool CameraController::handle_cursor(float2 mouse)
 
 	double dx = mouse.x - last_x;
 	double dy = mouse.y - last_y;
+
+	last_x = mouse.x;
+	last_y = mouse.y;
+
+	// Dragging state
+	pitch -= dx * settings.sensitivity / 1e+3f;
+	yaw -= dy * settings.sensitivity / 1e+3f;
+
+	float pi_e = pi <float> / 2.0f - 1e-3f;
+	yaw = std::min(pi_e, std::max(-pi_e, yaw));
+
+	transform.rotation = fquat::euler_angles(yaw, pitch, 0);
+
+	return std::abs(dx) > 0 or std::abs(dy) > 0;
+}
+
+bool CameraController::handle_delta(float2 delta)
+{
+	float dx = delta.x;
+	float dy = delta.y;
+	
 	if (settings.invert_y)
 		dy = -dy;
 
@@ -29,9 +50,6 @@ bool CameraController::handle_cursor(float2 mouse)
 
 	float pi_e = pi <float> / 2.0f - 1e-3f;
 	yaw = std::min(pi_e, std::max(-pi_e, yaw));
-
-	last_x = mouse.x;
-	last_y = mouse.y;
 
 	transform.rotation = fquat::euler_angles(yaw, pitch, 0);
 

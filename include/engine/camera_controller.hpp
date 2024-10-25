@@ -39,6 +39,7 @@ struct CameraController {
 	CameraController(core::Transform &, const CameraControllerSettings &);
 
 	bool handle_cursor(float2);
+	bool handle_delta(float2);
 	void handle_movement(const core::InteractiveWindow &);
 };
 

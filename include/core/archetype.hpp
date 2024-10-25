@@ -60,7 +60,6 @@ public:
 
 		int64_t global = data.back().id();
 		global_to_index[global] = index;
-		fmt::println("adding element ({}, {})", global, index);
 		return *this;
 	}
 

@@ -110,7 +110,30 @@ void Editor::resize()
 
 // Render loop iteration
 void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncronization::Frame &sync_frame, int32_t frame)
-{
+{	
+	// Check on the fences from past frames
+	if (transitions_progress.size())
+		fmt::println("checking on transition fences");
+
+	std::set <vk::Fence> completed;
+	for (auto &[f, sources] : transitions_progress) {
+		auto status = drc.device.getFenceStatus(f);
+		if (status == vk::Result::eSuccess) {
+			fmt::println("...completed, time to update the texture bank");
+			for (auto s : sources)
+				fmt::println("  {}", s);
+
+			completed.insert(f);
+		} else if (status == vk::Result::eNotReady) {
+			fmt::println("...waiting on fence");
+		} else {
+			fmt::println("...other");
+		}
+	}
+
+	for (auto f : completed)
+		transitions_progress.erase(f);
+
 	// Grab the next image
 	littlevk::SurfaceOperation sop;
 	sop = littlevk::acquire_image(drc.device, drc.swapchain.handle, sync_frame);
@@ -166,7 +189,7 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 
 	cmd.end();
 
-	// Submit command buffer while signaling the semaphore
+	// Submitting primary rendering (graphics) work
 	constexpr vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
 	vk::SubmitInfo submit_info {
@@ -177,22 +200,35 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 
 	drc.graphics_queue.submit(submit_info, sync_frame.in_flight);
 
+	// Submitted texture transition work
 	std::vector <vk::CommandBuffer> commands;
+	vk::Fence transition_fence;
 	{
 		std::lock_guard guard(transitions.lock);
 
+		std::set <std::string> in_progress;
+
 		while (transitions.size_locked()) {
 			auto unit = transitions.pop_locked();
-			fmt::println("creating a fence unit for {}", unit.source);
 			commands.push_back(unit.cmd);
+			in_progress.insert(unit.source);
+		}
+
+		if (in_progress.size()) {
+			vk::FenceCreateInfo info;
+			vk::Fence fence = drc.device.createFence(info);
+			transitions_progress[fence] = in_progress;
+			transition_fence = fence;
 		}
 	}
 
-	vk::SubmitInfo extra_info {
-		{}, {}, commands
-	};
+	if (commands.size()) {
+		vk::SubmitInfo transitions_submit_info {
+			{}, {}, commands
+		};
 
-	drc.graphics_queue.submit(extra_info, {});
+		drc.graphics_queue.submit(transitions_submit_info, transition_fence);
+	}
 
 	// Present to the window
 	sop = littlevk::present_image(drc.present_queue, drc.swapchain.handle, sync_frame, sop.index);
