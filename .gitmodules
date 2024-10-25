@@ -19,3 +19,6 @@
 [submodule "thirdparty/freetype"]
 	path = thirdparty/freetype
 	url = https://github.com/freetype/freetype
+[submodule "thirdparty/tinyexr"]
+	path = thirdparty/tinyexr
+	url = https://github.com/syoyo/tinyexr

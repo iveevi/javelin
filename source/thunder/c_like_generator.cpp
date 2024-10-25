@@ -514,7 +514,10 @@ void c_like_generator_t::generate(const Branch &branch, index_t)
 template <>
 void c_like_generator_t::generate(const Returns &returns, index_t)
 {
-	finish("return " + inlined(returns.value));
+	if (returns.value >= 0)
+		finish("return " + inlined(returns.value));
+	else
+		finish("return");
 }
 
 // Per-atom generator	

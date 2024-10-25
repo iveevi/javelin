@@ -64,8 +64,6 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 		
 		radius += 0.1f * scrolling;
 		radius = std::clamp(radius, 1.0f + pad, 10.0f);
-		
-		fmt::println("radius: {}", radius);
 	}
 
 	auto next = vk::Extent2D(available.x, available.y);
@@ -105,8 +103,8 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 			{
 				auto &s = v.as <texture> ();
 
-				if (textures.contains(s)) {
-					auto &tex = textures[s];
+				if (solo_textures.contains(s)) {
+					auto &tex = solo_textures[s];
 
 					vk::DescriptorSet descriptor;
 					if (tex.is <TemporaryDescriptor> ())
@@ -253,39 +251,52 @@ auto bufferless_screen = procedure("main") << []()
 };
 
 // TODO: generalize to arbitrary sphere, radius
-auto ray_sphere_intersection = [](vec3 origin, vec3 ray)
-{
-	// Intersection with sphere of radius one centered at the origin
-	vec3 oc = origin;
-	f32 a = dot(ray, ray);
-	f32 b = 2 * dot(oc, ray);
-	f32 c = dot(oc, oc) - 1;
+// auto ray_sphere_intersection = [](vec3 origin, vec3 ray)
+// {
+// 	// Intersection with sphere of radius one centered at the origin
+// 	vec3 oc = origin;
+// 	f32 a = dot(ray, ray);
+// 	f32 b = 2 * dot(oc, ray);
+// 	f32 c = dot(oc, oc) - 1;
 
-	f32 discriminant = b * b - 4 * a * c;
-	cond(discriminant < 0);
-		discard();
-	end();
+// 	f32 discriminant = b * b - 4 * a * c;
+// 	cond(discriminant < 0);
+// 		discard();
+// 	end();
 
-	f32 sd = sqrt(discriminant);
+// 	f32 sd = sqrt(discriminant);
 
-	f32 t = (-b - sd)/(2 * a);
-	cond(b + sd > 0);
-		t = (-b + sd)/(2 * a);
-	end();
+// 	f32 t = (-b - sd)/(2 * a);
+// 	cond(b + sd > 0);
+// 		t = (-b + sd)/(2 * a);
+// 	end();
 
-	vec3 point = origin + ray * t;
-	vec3 normal = normalize(point);
+// 	vec3 point = origin + ray * t;
+// 	vec3 normal = normalize(point);
 
-	// Compute UV coordinates
-	f32 u = atan(normal.x, normal.z) / (2.0f * pi <float>) + 0.5f;
-	f32 v = 0.5f + 0.5f * normal.y;
-	vec2 uv = vec2(u, v);
+// 	// Compute UV coordinates
+// 	f32 u = atan(normal.x, normal.z) / (2.0f * pi <float>) + 0.5f;
+// 	f32 v = 0.5f + 0.5f * normal.y;
+// 	vec2 uv = vec2(u, v);
 
-	return std::make_tuple(normal, uv);
-};
+// 	return std::make_tuple(normal, uv);
+// };
 
 void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &viewer)
 {
+	// Load the environment if not already loaded
+	static constexpr const char *environment = "resources/textures/green_sanctuary_4k.exr";
+
+	if (!info.device_texture_bank.contains(environment)) {
+		fmt::println("loading environment");
+		auto texture = core::Texture::from(info.texture_bank, environment);
+		info.device_texture_bank.upload(info.drc.allocator(),
+			info.drc.commander(),
+			environment,
+			texture,
+			info.extra);
+	}
+
 	// Load material texture properties
 	for (auto &[k, v] : viewer.material->values) {
 		if (!v.is <core::texture> ())
@@ -294,22 +305,22 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 		auto &s = v.as <core::texture> ();
 
 		// TODO: need to check for things that need to be loaded
-		if (viewer.textures.contains(s)) {
-			auto &tex = viewer.textures[s];
+		if (viewer.solo_textures.contains(s)) {
+			auto &tex = viewer.solo_textures[s];
 			if (tex.is <TemporaryDescriptor> ()) {
 				fmt::println("temporary descriptor state...");
 				if (info.device_texture_bank.contains(s)) {
 					fmt::println("texture is avaiable now!");
 			
 					auto &image = info.device_texture_bank[s];
-					if (!descriptors.contains(*image)) {
+					if (!solo_descriptors.contains(*image)) {
 						auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
-						descriptors[*image] = imgui_texture_descriptor(sampler,
+						solo_descriptors[*image] = imgui_texture_descriptor(sampler,
 							image.view,
 							vk::ImageLayout::eShaderReadOnlyOptimal);
 					}
 
-					viewer.textures[s] = descriptors[*image];
+					viewer.solo_textures[s] = solo_descriptors[*image];
 				}
 			}
 		} else {
@@ -319,14 +330,14 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 
 			auto &image = info.device_texture_bank[error_texture];
 
-			if (!descriptors.contains(*image)) {
+			if (!solo_descriptors.contains(*image)) {
 				auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
-				descriptors[*image] = imgui_texture_descriptor(sampler,
+				solo_descriptors[*image] = imgui_texture_descriptor(sampler,
 					image.view,
 					vk::ImageLayout::eShaderReadOnlyOptimal);
 			}
 			
-			viewer.textures[s] = TemporaryDescriptor(descriptors[*image]);
+			viewer.solo_textures[s] = TemporaryDescriptor(solo_descriptors[*image]);
 			// TODO: indicate a loading status
 			
 			// Meanwhile, load the texture
@@ -381,19 +392,19 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 	auto converted = gfx::vulkan::Material::from(info.drc, *viewer.material).value();
 	auto flags = converted.flags;
 
+	static const std::vector <vk::DescriptorSetLayoutBinding> default_bindings {
+		vk::DescriptorSetLayoutBinding()
+			.setBinding(0)
+			.setDescriptorCount(1)
+			.setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
+			.setStageFlags(vk::ShaderStageFlagBits::eFragment)
+	};
+
 	if (!pipelines.contains(flags)) {
-		// TODO: move some to push constants
-		// float vfov = to_radians(45.0f);
-
-		// float3 forward { 0, 0, 1 };
-		// float3 up { 0, 1, 0 };
-
-		// float3 w = normalize(-forward);
-		// float3 u = normalize(cross(up, w));
-		// float3 v = cross(w, u);
-
-		auto fs = procedure("main") << [&]() {
+		auto fs = procedure("main") << []() {
 			push_constant <ViewInfo> view;
+
+			sampler2D environment(0);
 
 			layout_in <vec2> uv(0);
 			
@@ -423,9 +434,42 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 
 			vec3 ray = normalize(lower_left + uv.x * horizontal + (1.0f - uv.y) * vertical - origin);
 
-			auto [normal, sphere_uv] = ray_sphere_intersection(origin, ray);
+			// Intersection with sphere of radius one centered at the origin
+			vec3 oc = origin;
+			f32 a = dot(ray, ray);
+			f32 b = 2 * dot(oc, ray);
+			f32 c = dot(oc, oc) - 1;
 
-			fragment = vec4(sphere_uv, 0, 1);
+			f32 discriminant = b * b - 4 * a * c;
+			cond(discriminant < 0);
+			{
+				f32 u = atan(ray.x, ray.z) / (2.0f * pi <float>) + 0.5f;
+				f32 v = 0.5f + 0.5f * ray.y;
+				vec2 uv = vec2(u, 1 - v);
+
+				fragment = environment.sample(uv);
+				fragment.w = 1.0f;
+
+				returns();
+			}
+			end();
+
+			f32 sd = sqrt(discriminant);
+
+			f32 t = (-b - sd)/(2 * a);
+			cond(b + sd > 0);
+				t = (-b + sd)/(2 * a);
+			end();
+
+			vec3 point = origin + ray * t;
+			vec3 normal = normalize(point);
+
+			// // Compute UV coordinates
+			// f32 u = atan(normal.x, normal.z) / (2.0f * pi <float>) + 0.5f;
+			// f32 v = 0.5f + 0.5f * normal.y;
+			// vec2 uv = vec2(u, v);
+	
+			fragment = vec4(0.5 + 0.5 * normal, 1);
 		};
 
 		// TODO: push constants for sphere rotation
@@ -446,8 +490,26 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 			.with_render_pass(render_pass, 0)
 			.with_shader_bundle(shaders)
 			.with_push_constant <ViewInfo> (vk::ShaderStageFlagBits::eFragment)
+			.with_dsl_bindings(default_bindings)
 			.cull_mode(vk::CullModeFlagBits::eNone)
 			.alpha_blending(false);
+
+		auto backup_texture = info.device_texture_bank["$checkerboard"];
+		auto backup_descriptor = littlevk::bind(info.drc.device, info.drc.descriptor_pool)
+			.allocate_descriptor_sets(pipelines[flags].dsl.value())
+			.front();
+
+		auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
+
+		littlevk::bind(info.drc.device, backup_descriptor, default_bindings)
+			.queue_update(0, 0, sampler, backup_texture.view, vk::ImageLayout::eShaderReadOnlyOptimal)
+			.finalize();
+
+		viewer.main_descriptor = TemporaryDescriptor(backup_descriptor, eEnvironment);
+		fmt::println("initial descriptors: {} {}",
+			(void *) backup_descriptor,
+			(void *) viewer.main_descriptor.as <TemporaryDescriptor> ());
+		viewer.main_descriptor.as <TemporaryDescriptor> ().counter = 2;
 	}
 	
 	auto &cmd = info.cmd;
@@ -486,11 +548,50 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 		view.get <2> () = viewer.phi;
 		view.get <3> () = viewer.radius;
 
+		vk::DescriptorSet descriptor;
+
+		auto &main_set = viewer.main_descriptor;
+		if (main_set.is <TemporaryDescriptor> ()) {
+			// TODO: singleton sampler table (per device maybe)
+			fmt::println("handling temporary descriptor");
+			auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
+
+			auto &temporary = main_set.as <TemporaryDescriptor> ();
+
+			descriptor = temporary;
+			if ((temporary.missing & eEnvironment) == eEnvironment) {
+				if (temporary.counter > 0) {
+					temporary.counter--;
+				} else {
+					auto real_environment = info.device_texture_bank[environment];
+					
+					descriptor = littlevk::bind(info.drc.device, info.drc.descriptor_pool)
+						.allocate_descriptor_sets(pipelines[flags].dsl.value())
+						.front();
+
+					littlevk::bind(info.drc.device, descriptor, default_bindings)
+						.queue_update(0, 0, sampler, real_environment.view, vk::ImageLayout::eShaderReadOnlyOptimal)
+						.finalize();
+
+					main_set = descriptor;
+				}
+			}
+		} else {
+			descriptor = main_set.as <vk::DescriptorSet> ();
+		}
+
 		auto &ppl = pipelines[flags];
+
+		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+			ppl.layout, 0u,
+			descriptor, {});
+
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
+		
 		cmd.pushConstants <solid_t <ViewInfo>> (ppl.layout,
 			vk::ShaderStageFlagBits::eFragment,
 			0, view);
+
 		cmd.draw(6, 1, 0, 0);
 	}
 	cmd.endRenderPass();

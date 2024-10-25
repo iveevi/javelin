@@ -13,8 +13,19 @@
 using namespace jvl;
 using namespace jvl::core;
 
+// TODO: unify, and use bool flags...
+enum MaterialDescriptorStatus {
+	eNone = 0b0,
+	eEnvironment = 0b1,
+};
+
 struct TemporaryDescriptor : vk::DescriptorSet {
-	using vk::DescriptorSet::DescriptorSet;
+	MaterialDescriptorStatus missing;
+	int counter;
+
+	TemporaryDescriptor(const vk::DescriptorSet &set = VK_NULL_HANDLE,
+			    MaterialDescriptorStatus status = eNone)
+		: vk::DescriptorSet(set), missing(status), counter(0) {}
 };
 
 using TextureDescriptor = wrapped::variant <TemporaryDescriptor, vk::DescriptorSet>;
@@ -32,7 +43,8 @@ struct MaterialViewer : Unique {
 	float radius = 5.0f;
 
 	// Mapping texture properties
-	wrapped::tree <std::string, TextureDescriptor> textures;
+	wrapped::tree <std::string, TextureDescriptor> solo_textures;
+	TextureDescriptor main_descriptor;
 
 	// Images and framebuffer (one)
 	littlevk::Image image;
@@ -50,7 +62,7 @@ struct MaterialRenderGroup {
 	vk::RenderPass render_pass;
 
 	wrapped::tree <vulkan::MaterialFlags, littlevk::Pipeline> pipelines;
-	wrapped::tree <vk::Image, vk::DescriptorSet> descriptors;
+	wrapped::tree <vk::Image, vk::DescriptorSet> solo_descriptors;
 
 	MaterialRenderGroup(DeviceResourceCollection &);
 

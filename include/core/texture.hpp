@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vulkan/vulkan.hpp>
+
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
@@ -14,11 +16,7 @@ struct Texture {
 	uint8_t *data = nullptr;
 	size_t width = 0;
 	size_t height = 0;
-	
-	enum Format {
-		eRGB,
-		eRGBA
-	} format;
+	vk::Format format;
 
 	static Texture from(const std::filesystem::path &);
 	static Texture &from(TextureBank &, const std::filesystem::path &);

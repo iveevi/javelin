@@ -93,6 +93,11 @@ inline void end()
 }
 
 // TODO: match/match_case statements
+inline void returns()
+{
+	Emitter::active.emit_return(-1);
+}
+
 template <native T>
 inline void returns(const T &value)
 {
