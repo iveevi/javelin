@@ -13,6 +13,7 @@ MODULE(material-viewer);
 MaterialViewer::MaterialViewer(const Archetype <Material> ::Reference &material_)
 		: Unique(new_uuid <MaterialViewer> ()),
 		material(material_),
+		main_descriptor(TemporaryDescriptor()),
 		extent(vk::Extent2D(100, 100))
 {
 	JVL_ASSERT_PLAIN(extent.old());
@@ -250,38 +251,6 @@ auto bufferless_screen = procedure("main") << []()
 	uv = uv_bank[gl_VertexIndex];
 };
 
-// TODO: generalize to arbitrary sphere, radius
-// auto ray_sphere_intersection = [](vec3 origin, vec3 ray)
-// {
-// 	// Intersection with sphere of radius one centered at the origin
-// 	vec3 oc = origin;
-// 	f32 a = dot(ray, ray);
-// 	f32 b = 2 * dot(oc, ray);
-// 	f32 c = dot(oc, oc) - 1;
-
-// 	f32 discriminant = b * b - 4 * a * c;
-// 	cond(discriminant < 0);
-// 		discard();
-// 	end();
-
-// 	f32 sd = sqrt(discriminant);
-
-// 	f32 t = (-b - sd)/(2 * a);
-// 	cond(b + sd > 0);
-// 		t = (-b + sd)/(2 * a);
-// 	end();
-
-// 	vec3 point = origin + ray * t;
-// 	vec3 normal = normalize(point);
-
-// 	// Compute UV coordinates
-// 	f32 u = atan(normal.x, normal.z) / (2.0f * pi <float>) + 0.5f;
-// 	f32 v = 0.5f + 0.5f * normal.y;
-// 	vec2 uv = vec2(u, v);
-
-// 	return std::make_tuple(normal, uv);
-// };
-
 void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &viewer)
 {
 	// Load the environment if not already loaded
@@ -290,11 +259,15 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 	if (!info.device_texture_bank.contains(environment)) {
 		fmt::println("loading environment");
 		auto texture = core::Texture::from(info.texture_bank, environment);
+
+		auto cmd = info.drc.new_command_buffer();
+
 		info.device_texture_bank.upload(info.drc.allocator(),
-			info.drc.commander(),
-			environment,
-			texture,
-			info.extra);
+			cmd, environment, texture);
+
+		TextureTransitionUnit transition { cmd, environment };
+
+		info.transitions.push(transition);
 	}
 
 	// Load material texture properties
@@ -343,11 +316,15 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 			// Meanwhile, load the texture
 			auto &texture = core::Texture::from(info.texture_bank, std::string(s));
 
+			auto cmd = info.drc.new_command_buffer();
+
 			info.device_texture_bank.upload(info.drc.allocator(),
-				info.drc.commander(),
-				std::string(s),
-				texture,
-				info.extra);
+				cmd, std::string(s), texture);
+
+			TextureTransitionUnit transition { cmd, s };
+
+			// TODO: push_in_place?
+			info.transitions.push(transition);
 		}
 	}
 
@@ -493,6 +470,10 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 			.with_dsl_bindings(default_bindings)
 			.cull_mode(vk::CullModeFlagBits::eNone)
 			.alpha_blending(false);
+	}
+
+	if (viewer.main_descriptor.is <TemporaryDescriptor> () && (void *) viewer.main_descriptor.as <TemporaryDescriptor> () == VK_NULL_HANDLE) {
+		fmt::println("null descriptor, starting initialization process");
 
 		auto backup_texture = info.device_texture_bank["$checkerboard"];
 		auto backup_descriptor = littlevk::bind(info.drc.device, info.drc.descriptor_pool)
@@ -506,9 +487,6 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 			.finalize();
 
 		viewer.main_descriptor = TemporaryDescriptor(backup_descriptor, eEnvironment);
-		fmt::println("initial descriptors: {} {}",
-			(void *) backup_descriptor,
-			(void *) viewer.main_descriptor.as <TemporaryDescriptor> ());
 		viewer.main_descriptor.as <TemporaryDescriptor> ().counter = 2;
 	}
 	
@@ -553,7 +531,6 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 		auto &main_set = viewer.main_descriptor;
 		if (main_set.is <TemporaryDescriptor> ()) {
 			// TODO: singleton sampler table (per device maybe)
-			fmt::println("handling temporary descriptor");
 			auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
 
 			auto &temporary = main_set.as <TemporaryDescriptor> ();

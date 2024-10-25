@@ -251,11 +251,18 @@ bool ViewportRenderGroup::handle_texture_state
 
 	auto &texture = core::Texture::from(unit.host_bank, unloaded.path);
 
-	unit.device_bank.upload(drc.allocator(),
-		littlevk::bind(drc.device, texture_loading_pool, drc.graphics_queue),
-		unloaded.path,
-		texture,
-		unit.extra);
+	auto cmd = drc.device.allocateCommandBuffers(
+		vk::CommandBufferAllocateInfo {
+			texture_loading_pool,
+			vk::CommandBufferLevel::ePrimary, 1
+		}).front();
+
+	unit.device_bank.upload(drc.allocator(), cmd, unloaded.path, texture);
+
+	// TODO: put into queue
+	TextureTransitionUnit transition { cmd, unloaded.path };
+
+	unit.transitions.push(transition);
 	
 	unit.material.kd = vulkan::ReadyTexture({}, unloaded.path, false);
 
@@ -396,13 +403,13 @@ void ViewportRenderGroup::prepare_albedo(const RenderingInfo &info)
 					vk::ImageLayout::eShaderReadOnlyOptimal);
 
 				work.push(LoadingWork {
-					material,
-					descriptor,
+					drc,
+					ppl,
 					info.texture_bank,
 					info.device_texture_bank,
-					drc,
-					info.extra,
-					ppl,
+					descriptor,
+					material,
+					info.transitions,
 				});
 			} else {
 				auto &image = material.kd.as <vulkan::LoadedTexture> ();

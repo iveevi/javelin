@@ -20,10 +20,9 @@ struct TextureBank : public std::map <std::string, littlevk::Image> {
 		const core::Texture &);
 	
 	void upload(littlevk::LinkedDeviceAllocator <>,
-		littlevk::LinkedCommandQueue,
+		const vk::CommandBuffer &,
 		const std::string &,
-		const core::Texture &,
-		wrapped::thread_safe_queue <vk::CommandBuffer> &);
+		const core::Texture &);
 };
 
 } // namespace jvl::gfx::vulkan

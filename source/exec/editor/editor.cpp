@@ -141,7 +141,7 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 		.message_system = message_system,
 
 		// Additional command buffers
-		.extra = extra,
+		.transitions = transitions,
 	};
 
 	// Render all the viewports
@@ -169,19 +169,30 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 	// Submit command buffer while signaling the semaphore
 	constexpr vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
-	std::vector <vk::CommandBuffer> commands { cmd };
-	while (extra.size()) {
-		auto cmd = extra.pop();
-		commands.push_back(cmd);
-	}
-
 	vk::SubmitInfo submit_info {
 		sync_frame.image_available,
-		wait_stage, commands,
+		wait_stage, cmd,
 		sync_frame.render_finished
 	};
 
 	drc.graphics_queue.submit(submit_info, sync_frame.in_flight);
+
+	std::vector <vk::CommandBuffer> commands;
+	{
+		std::lock_guard guard(transitions.lock);
+
+		while (transitions.size_locked()) {
+			auto unit = transitions.pop_locked();
+			fmt::println("creating a fence unit for {}", unit.source);
+			commands.push_back(unit.cmd);
+		}
+	}
+
+	vk::SubmitInfo extra_info {
+		{}, {}, commands
+	};
+
+	drc.graphics_queue.submit(extra_info, {});
 
 	// Present to the window
 	sop = littlevk::present_image(drc.present_queue, drc.swapchain.handle, sync_frame, sop.index);

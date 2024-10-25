@@ -28,7 +28,10 @@ struct TemporaryDescriptor : vk::DescriptorSet {
 		: vk::DescriptorSet(set), missing(status), counter(0) {}
 };
 
-using TextureDescriptor = wrapped::variant <TemporaryDescriptor, vk::DescriptorSet>;
+using TextureDescriptor = wrapped::variant <
+	TemporaryDescriptor,
+	vk::DescriptorSet
+>;
 
 struct MaterialViewer : Unique {
 	Archetype <Material> ::Reference material;

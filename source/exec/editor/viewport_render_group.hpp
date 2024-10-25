@@ -13,13 +13,13 @@ using namespace jvl::ire;
 
 // Deferred texture loading
 struct LoadingWork {
-	vulkan::Material &material;
-	vk::DescriptorSet &descriptor;
+	DeviceResourceCollection &drc;
+	littlevk::Pipeline &ppl;
 	TextureBank &host_bank;
 	vulkan::TextureBank &device_bank;
-	DeviceResourceCollection &drc;
-	wrapped::thread_safe_queue <vk::CommandBuffer> &extra;
-	littlevk::Pipeline &ppl;
+	vk::DescriptorSet &descriptor;
+	vulkan::Material &material;
+	wrapped::thread_safe_queue <TextureTransitionUnit> &transitions;
 };
 
 struct DescriptorBinding {

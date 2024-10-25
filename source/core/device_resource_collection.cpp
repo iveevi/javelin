@@ -18,6 +18,15 @@ littlevk::LinkedCommandQueue DeviceResourceCollection::commander()
 	return littlevk::bind(device, command_pool, graphics_queue);
 }
 
+vk::CommandBuffer DeviceResourceCollection::new_command_buffer()
+{
+	return device.allocateCommandBuffers(
+		vk::CommandBufferAllocateInfo {
+			command_pool,
+			vk::CommandBufferLevel::ePrimary, 1
+		}).front();
+}
+
 void DeviceResourceCollection::configure_device(const std::vector <const char *> &EXTENSIONS)
 {
 	auto queue_family = littlevk::find_queue_families(phdev, surface);

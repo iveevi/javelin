@@ -12,6 +12,11 @@ using namespace jvl::core;
 using namespace jvl::gfx;
 using namespace jvl::engine;
 
+struct TextureTransitionUnit {
+	vk::CommandBuffer cmd;
+	std::string source;
+};
+
 struct RenderingInfo {
 	// Primary rendering structures
 	DeviceResourceCollection &drc;
@@ -32,5 +37,5 @@ struct RenderingInfo {
 	MessageSystem &message_system;
 
 	// Additional command buffers for the frame
-	wrapped::thread_safe_queue <vk::CommandBuffer> &extra;
+	wrapped::thread_safe_queue <TextureTransitionUnit> &transitions;
 };

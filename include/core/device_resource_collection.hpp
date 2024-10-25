@@ -35,6 +35,10 @@ public:
 	littlevk::LinkedDevices combined();
 	littlevk::LinkedCommandQueue commander();
 
+	vk::CommandBuffer new_command_buffer();
+
+	// TODO: duplication method for another thread
+
 	static DeviceResourceCollection from(const DeviceResourceCollectionInfo &);
 };
 

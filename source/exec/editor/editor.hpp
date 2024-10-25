@@ -49,8 +49,9 @@ struct Editor {
 	// Systems
 	MessageSystem message_system;
 
-	// Additional commands
-	wrapped::thread_safe_queue <vk::CommandBuffer> extra;
+	// Managing texture transitions
+	wrapped::thread_safe_queue <TextureTransitionUnit> transitions;
+	wrapped::tree <vk::Fence, std::set <std::string>> transitions_progress;
 
 	// Constructor
 	// TODO: pass command line options later...

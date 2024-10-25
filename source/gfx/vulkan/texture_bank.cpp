@@ -58,17 +58,11 @@ void TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
 }
 
 void TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
-			 littlevk::LinkedCommandQueue commander,
+			 const vk::CommandBuffer &cmd,
 			 const std::string &path,
-			 const core::Texture &texture,
-			 wrapped::thread_safe_queue <vk::CommandBuffer> &queue)
+			 const core::Texture &texture)
 {
 	auto [staging, image] = allocate(allocator, path, texture);
-
-	vk::CommandBuffer cmd = commander.device.allocateCommandBuffers(
-		vk::CommandBufferAllocateInfo {
-			commander.pool, vk::CommandBufferLevel::ePrimary, 1
-		}).front();
 
 	cmd.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
 	{
@@ -82,8 +76,6 @@ void TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
 		image.transition(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
 	}
 	cmd.end();
-
-	queue.push(cmd);
 
 	// Assign to the proper spot
 	this->operator[](path) = image;
