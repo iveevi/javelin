@@ -24,20 +24,17 @@ struct TextureLoadingUnit {
 class TextureLoadingWorker {
 	littlevk::LinkedDeviceAllocator <> allocator;
 
-	vk::CommandPool command_pool;
-
 	core::TextureBank &host_bank;
 	gfx::vulkan::TextureBank &device_bank;
 
-	// TODO: multiple workers...
-	std::thread worker;
 	std::atomic_bool active;
+	std::vector <std::thread> workers;
 	wrapped::thread_safe_set <std::string> processing;
 	wrapped::thread_safe_queue <TextureLoadingUnit> items;
 	
 	wrapped::thread_safe_queue <TextureTransitionUnit> &transition_queue;
 
-	void loop();
+	void loop(const vk::CommandPool &);
 public:
 	TextureLoadingWorker(DeviceResourceCollection &,
 			     TextureBank &,

@@ -10,30 +10,41 @@ TextureLoadingWorker::TextureLoadingWorker(DeviceResourceCollection &drc,
 		active(true),
 		transition_queue(transition_queue_)
 {
-	auto ftn = std::bind(&TextureLoadingWorker::loop, this);
-	worker = std::thread(ftn);
+	static constexpr size_t WORKER_COUNT = 8;
 
-	auto command_pool_info = vk::CommandPoolCreateInfo()
-		.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer)
-		.setQueueFamilyIndex(drc.graphics_index);
+	for (size_t i = 0; i < WORKER_COUNT; i++) {
+		auto command_pool_info = vk::CommandPoolCreateInfo()
+			.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer)
+			.setQueueFamilyIndex(drc.graphics_index);
 
-	// Thread local command pool	
-	command_pool = allocator.device.createCommandPool(command_pool_info);
+		// Thread local command pool	
+		auto command_pool = allocator.device.createCommandPool(command_pool_info);
+		
+		auto ftn = std::bind(&TextureLoadingWorker::loop, this, command_pool);
+
+		workers.emplace_back(ftn);
+	}
 }
 
 TextureLoadingWorker::~TextureLoadingWorker()
 {
 	active = false;
-	worker.join();
+	for (auto &worker : workers)
+		worker.join();
 }
 
-void TextureLoadingWorker::loop()
+void TextureLoadingWorker::loop(const vk::CommandPool &command_pool)
 {
 	while (active) {
-		if (!items.size())
-			continue;
-		
-		auto unit = items.pop();
+		TextureLoadingUnit unit;	
+
+		{
+			std::lock_guard guard(items.lock);
+			if (items.size_locked())
+				unit = items.pop_locked();
+			else
+				continue;
+		}
 
 		// Rest of the stuff...
 		auto texture = core::Texture::from(host_bank, unit.source);
