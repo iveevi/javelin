@@ -1,3 +1,5 @@
+#include <core/formats.hpp>
+
 #include "shaders.hpp"
 #include "readable_framebuffer.hpp"
 	
@@ -11,15 +13,6 @@ ReadableFramebuffer::ReadableFramebuffer(DeviceResourceCollection &drc,
 		transform(viewport.transform),
 		extent(viewport.extent)
 {
-	// TODO: constexpr function
-	static const std::map <vk::Format, FormatInfo> format_infos {
-		{ vk::Format::eR32Sint, { 4, 1 } }
-	};
-
-	JVL_ASSERT(format_infos.contains(format),
-		"unsupported format for readable framebuffer: {}",
-		vk::to_string(format));
-	
 	render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
 		.add_attachment(littlevk::default_color_attachment(format))
 		.add_attachment(littlevk::default_depth_attachment())
@@ -28,7 +21,7 @@ ReadableFramebuffer::ReadableFramebuffer(DeviceResourceCollection &drc,
 			.depth_attachment(1, vk::ImageLayout::eDepthStencilAttachmentOptimal)
 			.done();
 
-	auto info = format_infos.at(format);
+	auto info = FormatInfo::fetch(format);
 	
 	littlevk::Image depth;
 

@@ -7,15 +7,6 @@
 
 using namespace jvl;
 
-struct FormatInfo {
-	size_t size;
-	size_t channels;
-
-	size_t bytes(const vk::Extent2D &extent) {
-		return size * extent.width * extent.height;
-	}
-};
-
 struct ReadableFramebuffer : Unique {
 	Aperature aperature;
 	Transform transform;

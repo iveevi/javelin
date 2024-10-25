@@ -44,16 +44,11 @@ Texture Texture::from(const std::filesystem::path &path)
 
 		result.width = width;
 		result.height = height;
-		result.data = new uint8_t[4 * width * height];
-		result.format = vk::Format::eR8G8B8A8Unorm;
-
-		// Copy and quantize the data
-		for (size_t i = 0; i < 4 *  width * height; i++) {
-			result.data[i] = 255.0f * ptr[i];
-		}
-
-		fmt::println("loaded exr image with {} x {}", width, height);
-		free(ptr);
+		result.format = vk::Format::eR32G32B32A32Sfloat;
+		result.data = (uint8_t *) ptr;
+		
+		JVL_INFO("loaded texture (EXR) {} (@{}) with dimensions: ({}, {})",
+			path.string(), (void *) result.data, width, height);
 		
 		return result;
 	}
@@ -68,7 +63,7 @@ Texture Texture::from(const std::filesystem::path &path)
 	result.width = width;
 	result.height = height;
 
-	fmt::println("  loaded texture {} (@{}) with dimensions: ({}, {}, {})",
+	JVL_INFO("loaded texture {} (@{}) with dimensions: ({}, {}, {})",
 		path.string(), (void *) result.data, width, height, channels);
 
 	result.format = vk::Format::eR8G8B8A8Unorm;

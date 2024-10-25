@@ -102,6 +102,7 @@ add_library(javelin-gfx STATIC
 	${IMGUI_SOURCES}
 	source/core/aabb.cpp
 	source/core/device_resource_collection.cpp
+	source/core/formats.cpp
 	source/core/interactive_window.cpp
 	source/core/scene.cpp
 	source/core/texture.cpp
