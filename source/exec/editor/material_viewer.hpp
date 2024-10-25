@@ -13,25 +13,41 @@
 using namespace jvl;
 using namespace jvl::core;
 
-// TODO: unify, and use bool flags...
-enum MaterialDescriptorStatus {
-	eNone = 0b0,
-	eEnvironment = 0b1,
+class AdaptiveDescriptor : public vk::DescriptorSet {
+	// TODO: need to add binding information as well for each key
+	std::set <std::string> missing;
+public:
+	// Common extra keys for material-centric descriptor sets
+	static constexpr const char *environment_key = "Environment";
+
+	AdaptiveDescriptor(const vk::DescriptorSet &set = VK_NULL_HANDLE)
+		: vk::DescriptorSet(set) {}
+
+	AdaptiveDescriptor &operator=(const vk::DescriptorSet &other) {
+		vk::DescriptorSet::operator=(other);
+		return *this;
+	}
+	
+	void requirement(const std::string &key) {
+		missing.insert(key);
+	}
+	
+	void resolve(const std::string &key) {
+		missing.erase(key);
+	}
+
+	auto dependencies() const {
+		return missing;
+	}
+
+	bool null() const {
+		return static_cast <vk::DescriptorSet> (*this) == VK_NULL_HANDLE;
+	}
+
+	bool complete() const {
+		return missing.empty();
+	}
 };
-
-struct TemporaryDescriptor : vk::DescriptorSet {
-	MaterialDescriptorStatus missing;
-	int counter;
-
-	TemporaryDescriptor(const vk::DescriptorSet &set = VK_NULL_HANDLE,
-			    MaterialDescriptorStatus status = eNone)
-		: vk::DescriptorSet(set), missing(status), counter(0) {}
-};
-
-using TextureDescriptor = wrapped::variant <
-	TemporaryDescriptor,
-	vk::DescriptorSet
->;
 
 struct MaterialViewer : Unique {
 	Archetype <Material> ::Reference material;
@@ -46,8 +62,9 @@ struct MaterialViewer : Unique {
 	float radius = 5.0f;
 
 	// Mapping texture properties
-	wrapped::tree <std::string, TextureDescriptor> solo_textures;
-	TextureDescriptor main_descriptor;
+	static constexpr const char *main_key = "$main";
+
+	wrapped::tree <std::string, AdaptiveDescriptor> branches;
 
 	// Images and framebuffer (one)
 	littlevk::Image image;

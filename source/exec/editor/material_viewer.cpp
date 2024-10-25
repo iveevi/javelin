@@ -13,12 +13,19 @@ MODULE(material-viewer);
 MaterialViewer::MaterialViewer(const Archetype <Material> ::Reference &material_)
 		: Unique(new_uuid <MaterialViewer> ()),
 		material(material_),
-		main_descriptor(TemporaryDescriptor()),
 		extent(vk::Extent2D(100, 100))
 {
 	JVL_ASSERT_PLAIN(extent.old());
 
 	main_title = fmt::format("Material Viewer: {}##{}", material->name, material->id());
+
+	// Populate the solo textures list with properties which are textures
+	for (auto &[k, v] : material->values) {
+		if (v.is <core::texture> ())
+			branches[k] = AdaptiveDescriptor();
+	}
+
+	branches[MaterialViewer::main_key] = AdaptiveDescriptor();
 }
 
 void MaterialViewer::display_handle(const RenderingInfo &info)
@@ -102,36 +109,23 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 
 			variant_case(material_property, texture):
 			{
-				auto &s = v.as <texture> ();
+				static constexpr int length = 25;
 
-				if (solo_textures.contains(s)) {
-					auto &tex = solo_textures[s];
+				std::string source = v.as <core::texture> ();
+				std::string trimmed = source;
+				if (trimmed.size() > length)
+					trimmed = "..." + trimmed.substr(trimmed.size() - length + 3);
 
-					vk::DescriptorSet descriptor;
-					if (tex.is <TemporaryDescriptor> ())
-						descriptor = tex.as <TemporaryDescriptor> ();
-					else
-						descriptor = tex.as <vk::DescriptorSet> ();
+				auto size = ImVec2(available.x, available.x);
+				ImGui::Image(branches[k], size);
 
-					auto size = ImVec2(available.x, available.x);
+				if (ImGui::Button(trimmed.c_str())) {
+					std::filesystem::path path = std::string(source);
+					std::string parent = path.parent_path();
 
-					ImGui::Image(descriptor, size);
-
-					static constexpr int length = 25;
-					std::string trimmed = s;
-					if (trimmed.size() > length)
-						trimmed = "..." + trimmed.substr(trimmed.size() - length + 3);
-
-					if (ImGui::Button(trimmed.c_str())) {
-						std::filesystem::path path = std::string(s);
-						std::string parent = path.parent_path();
-
-						NFD::Guard guard;
-						NFD::UniquePath result;
-						NFD::OpenDialog(result, nullptr, 0, parent.c_str());
-					}
-				} else {
-					ImGui::Text("Loading...");
+					NFD::Guard guard;
+					NFD::UniquePath result;
+					NFD::OpenDialog(result, nullptr, 0, parent.c_str());
 				}
 			} break;
 
@@ -255,78 +249,6 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 {
 	// Load the environment if not already loaded
 	static constexpr const char *environment = "resources/textures/green_sanctuary_4k.exr";
-
-	if (!info.device_texture_bank.contains(environment)) {
-		fmt::println("loading environment");
-		auto texture = core::Texture::from(info.texture_bank, environment);
-
-		auto cmd = info.drc.new_command_buffer();
-
-		info.device_texture_bank.upload(info.drc.allocator(),
-			cmd, environment, texture);
-
-		TextureTransitionUnit transition { cmd, environment };
-
-		info.transitions.push(transition);
-	}
-
-	// Load material texture properties
-	for (auto &[k, v] : viewer.material->values) {
-		if (!v.is <core::texture> ())
-			continue;
-
-		auto &s = v.as <core::texture> ();
-
-		// TODO: need to check for things that need to be loaded
-		if (viewer.solo_textures.contains(s)) {
-			auto &tex = viewer.solo_textures[s];
-			if (tex.is <TemporaryDescriptor> ()) {
-				fmt::println("temporary descriptor state...");
-				if (info.device_texture_bank.contains(s)) {
-					fmt::println("texture is avaiable now!");
-			
-					auto &image = info.device_texture_bank[s];
-					if (!solo_descriptors.contains(*image)) {
-						auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
-						solo_descriptors[*image] = imgui_texture_descriptor(sampler,
-							image.view,
-							vk::ImageLayout::eShaderReadOnlyOptimal);
-					}
-
-					viewer.solo_textures[s] = solo_descriptors[*image];
-				}
-			}
-		} else {
-			static constexpr const char *error_texture = "$checkerboard";
-			// Load a dummy picture
-			// TODO: dedicated error picture
-
-			auto &image = info.device_texture_bank[error_texture];
-
-			if (!solo_descriptors.contains(*image)) {
-				auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
-				solo_descriptors[*image] = imgui_texture_descriptor(sampler,
-					image.view,
-					vk::ImageLayout::eShaderReadOnlyOptimal);
-			}
-			
-			viewer.solo_textures[s] = TemporaryDescriptor(solo_descriptors[*image]);
-			// TODO: indicate a loading status
-			
-			// Meanwhile, load the texture
-			auto &texture = core::Texture::from(info.texture_bank, std::string(s));
-
-			auto cmd = info.drc.new_command_buffer();
-
-			info.device_texture_bank.upload(info.drc.allocator(),
-				cmd, std::string(s), texture);
-
-			TextureTransitionUnit transition { cmd, s };
-
-			// TODO: push_in_place?
-			info.transitions.push(transition);
-		}
-	}
 
 	// Delayed construction of the images and framebuffer
 	// TODO: resize operation...
@@ -471,24 +393,78 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 			.cull_mode(vk::CullModeFlagBits::eNone)
 			.alpha_blending(false);
 	}
+	
+	// Check all descriptors
+	for (auto &[branch, descriptor] : viewer.branches) {
+		if (descriptor.null()) {
+			fmt::println("null descriptor, starting initialization process");
 
-	if (viewer.main_descriptor.is <TemporaryDescriptor> () && (void *) viewer.main_descriptor.as <TemporaryDescriptor> () == VK_NULL_HANDLE) {
-		fmt::println("null descriptor, starting initialization process");
+			auto backup_texture = info.device_texture_bank["$checkerboard"];
+			descriptor = littlevk::bind(info.drc.device, info.drc.descriptor_pool)
+				.allocate_descriptor_sets(pipelines[flags].dsl.value())
+				.front();
 
-		auto backup_texture = info.device_texture_bank["$checkerboard"];
-		auto backup_descriptor = littlevk::bind(info.drc.device, info.drc.descriptor_pool)
-			.allocate_descriptor_sets(pipelines[flags].dsl.value())
-			.front();
+			auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
 
-		auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
+			littlevk::bind(info.drc.device, descriptor, default_bindings)
+				.queue_update(0, 0, sampler, backup_texture.view, vk::ImageLayout::eShaderReadOnlyOptimal)
+				.finalize();
+			
+			if (branch == MaterialViewer::main_key)
+				descriptor.requirement(AdaptiveDescriptor::environment_key);
+			else
+				descriptor.requirement(branch);
+		} else if (!descriptor.complete()) {
+			// Manage descriptor set updates upon texture loading
+			for (auto key : descriptor.dependencies()) {
+				std::string source;
+				if (key == AdaptiveDescriptor::environment_key) {
+					source = environment;
+				} else {
+					JVL_ASSERT(viewer.material->values.contains(key),
+						"material does not have key \'{}\'", key);
 
-		littlevk::bind(info.drc.device, backup_descriptor, default_bindings)
-			.queue_update(0, 0, sampler, backup_texture.view, vk::ImageLayout::eShaderReadOnlyOptimal)
-			.finalize();
+					source = viewer.material->values[key].as <core::texture> ();
+				}
 
-		viewer.main_descriptor = TemporaryDescriptor(backup_descriptor, eEnvironment);
-		viewer.main_descriptor.as <TemporaryDescriptor> ().counter = 2;
+				fmt::println("remaining dependency on key={} source={}", key, source);
+
+				if (info.device_texture_bank.contains(source)) {
+					if (info.device_texture_bank.ready(source)) {
+						fmt::println("  ready!");
+
+						auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
+						auto image = info.device_texture_bank[source];
+						
+						// TODO: need to copy the old descriptor set...
+						descriptor = littlevk::bind(info.drc.device, info.drc.descriptor_pool)
+							.allocate_descriptor_sets(pipelines[flags].dsl.value())
+							.front();
+
+						littlevk::bind(info.drc.device, descriptor, default_bindings)
+							.queue_update(0, 0, sampler, image.view, vk::ImageLayout::eShaderReadOnlyOptimal)
+							.finalize();
+
+						descriptor.resolve(key);
+					} else {
+						fmt::println("  waiting...");
+					}
+				} else {
+					fmt::println("  needs to be populated! (unless in progress by the CPU thread)");
+
+					// TODO: texture loading unit with path and flag to
+					// indicate if should be loade onto the GPU
+					auto &texture = core::Texture::from(info.texture_bank, source);
+					auto cmd = info.drc.new_command_buffer();
+					info.device_texture_bank.upload(info.drc.allocator(), cmd, source, texture);
+					TextureTransitionUnit transition { cmd, source };
+					info.transitions.push(transition);
+				}
+			}
+		}
 	}
+	
+	auto &descriptor = viewer.branches[MaterialViewer::main_key];
 	
 	auto &cmd = info.cmd;
 
@@ -525,37 +501,6 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 		view.get <1> () = viewer.theta;
 		view.get <2> () = viewer.phi;
 		view.get <3> () = viewer.radius;
-
-		vk::DescriptorSet descriptor;
-
-		auto &main_set = viewer.main_descriptor;
-		if (main_set.is <TemporaryDescriptor> ()) {
-			// TODO: singleton sampler table (per device maybe)
-			auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
-
-			auto &temporary = main_set.as <TemporaryDescriptor> ();
-
-			descriptor = temporary;
-			if ((temporary.missing & eEnvironment) == eEnvironment) {
-				if (temporary.counter > 0) {
-					temporary.counter--;
-				} else {
-					auto real_environment = info.device_texture_bank[environment];
-					
-					descriptor = littlevk::bind(info.drc.device, info.drc.descriptor_pool)
-						.allocate_descriptor_sets(pipelines[flags].dsl.value())
-						.front();
-
-					littlevk::bind(info.drc.device, descriptor, default_bindings)
-						.queue_update(0, 0, sampler, real_environment.view, vk::ImageLayout::eShaderReadOnlyOptimal)
-						.finalize();
-
-					main_set = descriptor;
-				}
-			}
-		} else {
-			descriptor = main_set.as <vk::DescriptorSet> ();
-		}
 
 		auto &ppl = pipelines[flags];
 

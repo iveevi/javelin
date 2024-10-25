@@ -115,13 +115,16 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 	if (transitions_progress.size())
 		fmt::println("checking on transition fences");
 
+	// TODO: logic and queues should go the device texture bank
 	std::set <vk::Fence> completed;
 	for (auto &[f, sources] : transitions_progress) {
 		auto status = drc.device.getFenceStatus(f);
 		if (status == vk::Result::eSuccess) {
 			fmt::println("...completed, time to update the texture bank");
-			for (auto s : sources)
+			for (auto s : sources) {
 				fmt::println("  {}", s);
+				device_texture_bank.mark_ready(s);
+			}
 
 			completed.insert(f);
 		} else if (status == vk::Result::eNotReady) {

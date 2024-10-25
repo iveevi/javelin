@@ -2,19 +2,9 @@
 
 #include <cstdint>
 
-namespace jvl::tsg {
+#include "../flags.hpp"
 
-// TODO: move to up include
-// Generate default operations for enumeration classes
-#define flag_operators(T, base)						\
-	constexpr T operator+(T A, T B)					\
-	{								\
-		return T(base(A) | base(B));				\
-	}								\
-	constexpr bool has(T A, T B)					\
-	{								\
-		return ((base(A) & base(B)) == base(B));		\
-	}
+namespace jvl::tsg {
 
 // Vulkan shader stages
 enum class ShaderStageFlags : uint16_t {

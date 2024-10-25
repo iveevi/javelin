@@ -11,8 +11,15 @@
 
 namespace jvl::gfx::vulkan {
 
-struct TextureBank : public std::map <std::string, littlevk::Image> {
+class TextureBank : public std::map <std::string, littlevk::Image> {
+	// Textures which are yet to finish transitions
+	std::set <std::string> processing;
+public:
 	using std::map <std::string, littlevk::Image> ::map;
+
+	bool ready(const std::string &) const;
+
+	void mark_ready(const std::string &);
 
 	void upload(littlevk::LinkedDeviceAllocator <>,
 		littlevk::LinkedCommandQueue,

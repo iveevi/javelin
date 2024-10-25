@@ -1,6 +1,5 @@
 #include <core/formats.hpp>
 
-#include "logging.hpp"
 #include "gfx/vulkan/texture_bank.hpp"
 
 namespace jvl::gfx::vulkan {
@@ -33,6 +32,16 @@ static auto allocate(littlevk::LinkedDeviceAllocator <> allocator,
 		.image(image_info);
 
 	return std::make_tuple(staging, image);
+}
+
+bool TextureBank::ready(const std::string &path) const
+{
+	return !processing.contains(path);
+}
+
+void TextureBank::mark_ready(const std::string &path)
+{
+	processing.erase(path);
 }
 
 void TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
@@ -79,6 +88,9 @@ void TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
 
 	// Assign to the proper spot
 	this->operator[](path) = image;
+
+	// Since we are not waiting for completing, mark as processing
+	processing.insert(path);
 }
 
 } // namespace jvl::gfx::vulkan
