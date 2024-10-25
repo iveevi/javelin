@@ -1,5 +1,7 @@
 #include <nfd.hpp>
 
+#include <imgui/imgui_internal.h>
+
 #include <engine/imgui.hpp>
 #include <ire/core.hpp>
 
@@ -32,11 +34,39 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 	ImVec2 available = ImGui::GetContentRegionAvail();
 	available.y *= 0.8;
 	
-	ImGui::Image(descriptor, available);
+	ImGui::ImageButton(descriptor, available, ImVec2(0, 0), ImVec2(1, 1), 0);
+	ImGui::SetItemUsingMouseWheel();
+	
+	// Input handling
+	static constexpr float pad = 0.1f;
+		
+	if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+		ImVec2 delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
 
-	// Drop down for other options
-	if (ImGui::Button("Add Property"))
-		property_popup = true;
+		theta += 0.01f * delta.x;
+		phi += 0.01f * delta.y;
+
+		phi = std::clamp(phi, pad, pi <float> - pad);
+
+		if (!dragging) {
+			glfwSetInputMode(info.drc.window.handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			dragging = true;
+		}
+
+		ImGui::ResetMouseDragDelta();
+	} else {
+		glfwSetInputMode(info.drc.window.handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		dragging = false;
+	}
+
+	if (ImGui::IsItemHovered()) {
+		float scrolling = ImGui::GetIO().MouseWheel;
+		
+		radius += 0.1f * scrolling;
+		radius = std::clamp(radius, 1.0f + pad, 10.0f);
+		
+		fmt::println("radius: {}", radius);
+	}
 
 	auto next = vk::Extent2D(available.x, available.y);
 	next.width = std::max(10u, next.width);
@@ -44,7 +74,11 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 	if (extent.current() != next)
 		extent.queue(next);
 
-	aperature.aspect = available.x / available.y;
+	aspect = available.x / available.y;
+
+	// Drop down for other options
+	if (ImGui::Button("Add Property"))
+		property_popup = true;
 
 	bool modified = false;
 	for (auto &[k, v] : material->values) {
@@ -54,7 +88,11 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 			variant_case(material_property, float):
 			{
 				auto &f = v.as <float> ();
-				ImGui::Text("%f", f);
+
+				if (k == Material::roughness_key)
+					ImGui::SliderFloat("Value", &f, 0, 1);
+				else
+					ImGui::Text("%f", f);
 			} break;
 
 			variant_case(material_property, color3):
@@ -94,7 +132,6 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 						NFD::OpenDialog(result, nullptr, 0, parent.c_str());
 					}
 				} else {
-					// TODO: loading arrows
 					ImGui::Text("Loading...");
 				}
 			} break;
@@ -175,10 +212,16 @@ using namespace jvl::ire;
 
 struct ViewInfo {
 	f32 aspect;
+	f32 theta;
+	f32 phi;
+	f32 radius;
 
 	auto layout() const {
 		return uniform_layout("ViewInfo",
-			named_field(aspect));
+			named_field(aspect),
+			named_field(theta),
+			named_field(phi),
+			named_field(radius));
 	}
 };
 		
@@ -207,6 +250,38 @@ auto bufferless_screen = procedure("main") << []()
 
 	gl_Position = vertex_bank[gl_VertexIndex];
 	uv = uv_bank[gl_VertexIndex];
+};
+
+// TODO: generalize to arbitrary sphere, radius
+auto ray_sphere_intersection = [](vec3 origin, vec3 ray)
+{
+	// Intersection with sphere of radius one centered at the origin
+	vec3 oc = origin;
+	f32 a = dot(ray, ray);
+	f32 b = 2 * dot(oc, ray);
+	f32 c = dot(oc, oc) - 1;
+
+	f32 discriminant = b * b - 4 * a * c;
+	cond(discriminant < 0);
+		discard();
+	end();
+
+	f32 sd = sqrt(discriminant);
+
+	f32 t = (-b - sd)/(2 * a);
+	cond(b + sd > 0);
+		t = (-b + sd)/(2 * a);
+	end();
+
+	vec3 point = origin + ray * t;
+	vec3 normal = normalize(point);
+
+	// Compute UV coordinates
+	f32 u = atan(normal.x, normal.z) / (2.0f * pi <float>) + 0.5f;
+	f32 v = 0.5f + 0.5f * normal.y;
+	vec2 uv = vec2(u, v);
+
+	return std::make_tuple(normal, uv);
 };
 
 void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &viewer)
@@ -263,7 +338,6 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 				texture,
 				info.extra);
 		}
-		
 	}
 
 	// Delayed construction of the images and framebuffer
@@ -309,14 +383,14 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 
 	if (!pipelines.contains(flags)) {
 		// TODO: move some to push constants
-		float vfov = to_radians(viewer.aperature.fovy);
+		// float vfov = to_radians(45.0f);
 
-		float3 forward { 0, 0, 1 };
-		float3 up { 0, 1, 0 };
+		// float3 forward { 0, 0, 1 };
+		// float3 up { 0, 1, 0 };
 
-		float3 w = normalize(-forward);
-		float3 u = normalize(cross(up, w));
-		float3 v = cross(w, u);
+		// float3 w = normalize(-forward);
+		// float3 u = normalize(cross(up, w));
+		// float3 v = cross(w, u);
 
 		auto fs = procedure("main") << [&]() {
 			push_constant <ViewInfo> view;
@@ -325,41 +399,33 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 			
 			layout_out <vec4> fragment(0);
         
+			float vfov = to_radians(45.0f);
 			float h = std::tan(vfov / 2);
 
 			f32 vheight = 2.0f * h;
 			f32 vwidth = vheight * view.aspect;
 
-			vec3 origin = vec3(0, 0, -5);
+			vec3 fwd;
+			fwd.x = sin(view.phi) * cos(view.theta);
+			fwd.y = cos(view.phi);
+			fwd.z = sin(view.phi) * sin(view.theta);
+
+			vec3 origin = -view.radius * fwd;
+
+			vec3 w = normalize(-fwd);
+			vec3 u = normalize(cross(vec3(0, 1, 0), w));
+			vec3 v = cross(w, u);
+
 			vec3 forward = vec3(w.x, w.y, w.z);
 			vec3 horizontal = vwidth * vec3(u.x, u.y, u.z);
 			vec3 vertical = vheight * vec3(v.x, v.y, v.z);
 			vec3 lower_left = origin - horizontal/2.0f - vertical/2.0f - forward;
 
 			vec3 ray = normalize(lower_left + uv.x * horizontal + (1.0f - uv.y) * vertical - origin);
-			
-			// Intersection with sphere of radius one centered at the origin
-			vec3 oc = origin;
-			f32 a = dot(ray, ray);
-			f32 b = 2 * dot(oc, ray);
-			f32 c = dot(oc, oc) - 1;
 
-			f32 discriminant = b * b - 4 * a * c;
-			cond(discriminant < 0);
-				discard();
-			end();
+			auto [normal, sphere_uv] = ray_sphere_intersection(origin, ray);
 
-			f32 sd = sqrt(discriminant);
-
-			f32 t = (-b - sd)/(2 * a);
-			cond(b + sd > 0);
-				t = (-b + sd)/(2 * a);
-			end();
-
-			vec3 point = origin + ray * t;
-			vec3 normal = normalize(point);
-
-			fragment = vec4(0.5 + 0.5 * normal, 1);
+			fragment = vec4(sphere_uv, 0, 1);
 		};
 
 		// TODO: push constants for sphere rotation
@@ -414,7 +480,11 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 
 	cmd.beginRenderPass(begin_info, vk::SubpassContents::eInline);
 	{
-		solid_t <ViewInfo> view = viewer.aperature.aspect;
+		solid_t <ViewInfo> view;
+		view.get <0> () = viewer.aspect;
+		view.get <1> () = viewer.theta;
+		view.get <2> () = viewer.phi;
+		view.get <3> () = viewer.radius;
 
 		auto &ppl = pipelines[flags];
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);

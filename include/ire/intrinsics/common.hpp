@@ -93,10 +93,16 @@ native_t <T> acos(const native_t <T> &x)
 	return platform_intrinsic_from_args <native_t <T>> (thunder::acos, x);
 }
 
-template <native T>
-native_t <T> atan(const native_t <T> &x)
+template <floating_arithmetic T>
+auto atan(const T &x)
 {
-	return platform_intrinsic_from_args <native_t <T>> (thunder::atan, x);
+	return platform_intrinsic_from_args <arithmetic_base <T>> (thunder::atan, x);
+}
+
+template <floating_arithmetic T, floating_arithmetic U>
+auto atan(const T &x, const U &y)
+{
+	return platform_intrinsic_from_args <arithmetic_base <T>> (thunder::atan, x, y);
 }
 
 template <native T>

@@ -14,7 +14,10 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 		// Inverse trigonometric functions
                 { asin, { overload::from(f32, f32) } },
                 { acos, { overload::from(f32, f32) } },
-                { atan, { overload::from(f32, f32) } },
+                { atan, {
+			overload::from(f32, f32),
+			overload::from(f32, f32, f32),
+		} },
 
 		// Powering functions
                 { sqrt, { overload::from(f32, f32) } },

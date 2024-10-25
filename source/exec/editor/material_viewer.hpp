@@ -4,6 +4,7 @@
 
 #include <core/transform.hpp>
 #include <core/aperature.hpp>
+#include <engine/camera_controller.hpp>
 
 #include "imgui_render_group.hpp"
 #include "rendering_info.hpp"
@@ -23,8 +24,12 @@ struct MaterialViewer : Unique {
 
 	std::string main_title;
 
-	Aperature aperature;
-	Transform transform;
+	// View controller
+	bool dragging = false;
+	float theta = 0.0f;
+	float phi = 0.5f * pi <float>;
+	float aspect = 1.0f;
+	float radius = 5.0f;
 
 	// Mapping texture properties
 	wrapped::tree <std::string, TextureDescriptor> textures;
