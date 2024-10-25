@@ -1,12 +1,13 @@
 #pragma once
 
 #include <deque>
+#include <map>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 #include <variant>
-#include <map>
 
 // Wrappers on standard types
 namespace jvl::wrapped {
@@ -209,6 +210,59 @@ struct thread_safe_queue : private std::deque <T> {
 	void clear() {
 		std::lock_guard guard(lock);
 		return std::deque <T> ::clear();
+	}
+};
+
+// Thread safe sets
+template <typename T>
+class thread_safe_set : std::set <T> {
+protected:
+	mutable std::mutex lock;
+
+	using super = std::set <T>;
+public:
+	void add(const T &value) {
+		std::lock_guard guard(lock);
+		super::insert(value);
+	}
+
+	void erase(const T &value) {
+		std::lock_guard guard(lock);
+		super::erase(value);
+	}
+
+	bool contains(const T &value) const {
+		std::lock_guard guard(lock);
+		return super::contains(value);
+	}
+};
+
+// Thread safe trees
+template <typename K, typename V>
+class thread_safe_tree : std::map <K, V> {
+protected:
+	mutable std::mutex lock;
+	
+	using super = std::map <K, V>;
+public:
+	bool contains(const K &key) {
+		std::lock_guard guard(lock);
+		return super::contains(key);
+	}
+	
+	const V &at(const K &key) const {
+		std::lock_guard guard(lock);
+		return super::at(key);
+	}
+	
+	V &operator[](const K &key) {
+		std::lock_guard guard(lock);
+		return super::operator[](key);
+	}
+
+	const V &operator[](const K &key) const {
+		std::lock_guard guard(lock);
+		return super::operator[](key);
 	}
 };
 

@@ -257,12 +257,11 @@ bool ViewportRenderGroup::handle_texture_state
 			vk::CommandBufferLevel::ePrimary, 1
 		}).front();
 
-	unit.device_bank.upload(drc.allocator(), cmd, unloaded.path, texture);
-
-	// TODO: put into queue
-	TextureTransitionUnit transition { cmd, unloaded.path };
-
-	unit.transitions.push(transition);
+	bool pushed = unit.device_bank.upload(drc.allocator(), cmd, unloaded.path, texture);
+	if (pushed) {
+		TextureTransitionUnit transition { cmd, unloaded.path };
+		unit.transitions.push(transition);
+	}
 	
 	unit.material.kd = vulkan::ReadyTexture({}, unloaded.path, false);
 

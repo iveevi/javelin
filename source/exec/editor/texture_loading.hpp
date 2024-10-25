@@ -7,6 +7,7 @@
 #include <fmt/printf.h>
 
 #include <core/texture.hpp>
+#include <core/device_resource_collection.hpp>
 #include <gfx/vulkan/texture_bank.hpp>
 #include <wrapped_types.hpp>
 
@@ -20,28 +21,6 @@ struct TextureLoadingUnit {
 	bool to_device;
 };
 
-template <typename T>
-class thread_safe_set : std::set <T> {
-	std::mutex lock;
-
-	using super = std::set <T>;
-public:
-	void add(const T &value) {
-		std::lock_guard guard(lock);
-		super::insert(value);
-	}
-
-	void erase(const T &value) {
-		std::lock_guard guard(lock);
-		super::erase(value);
-	}
-
-	bool contains(const T &value) {
-		std::lock_guard guard(lock);
-		return super::contains(value);
-	}
-};
-
 class TextureLoadingWorker {
 	littlevk::LinkedDeviceAllocator <> allocator;
 
@@ -53,7 +32,7 @@ class TextureLoadingWorker {
 	// TODO: multiple workers...
 	std::thread worker;
 	std::atomic_bool active;
-	thread_safe_set <std::string> processing;
+	wrapped::thread_safe_set <std::string> processing;
 	wrapped::thread_safe_queue <TextureLoadingUnit> items;
 	
 	wrapped::thread_safe_queue <TextureTransitionUnit> &transition_queue;
@@ -78,11 +57,12 @@ class TextureLoadingWorker {
 
 			auto cmd = allocator.device.allocateCommandBuffers(allocate_info).front();
 
-			// TODO: make this thread safe as well...	
-			device_bank.upload(allocator, cmd, unit.source, texture);
+			if (device_bank.upload(allocator, cmd, unit.source, texture)) {
+				TextureTransitionUnit transition { cmd, unit.source };
+				transition_queue.push(transition);
+			}
 
-			TextureTransitionUnit transition { cmd, unit.source };
-			transition_queue.push(transition);
+			processing.erase(unit.source);
 		}
 	}
 public:

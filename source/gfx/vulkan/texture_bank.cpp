@@ -36,21 +36,23 @@ static auto allocate(littlevk::LinkedDeviceAllocator <> allocator,
 
 bool TextureBank::ready(const std::string &path) const
 {
+	std::lock_guard guard(this->lock);
 	return !processing.contains(path);
 }
 
 void TextureBank::mark_ready(const std::string &path)
 {
+	std::lock_guard guard(this->lock);
 	processing.erase(path);
 }
 
-void TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
+bool TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
 			 littlevk::LinkedCommandQueue commander,
 			 const std::string &path,
 			 const core::Texture &texture)
 {
 	if (contains(path))
-		return;
+		return false;
 
 	auto [staging, image] = allocate(allocator, path, texture);
 
@@ -67,15 +69,17 @@ void TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
 
 	// Assign to the proper spot
 	this->operator[](path) = image;
+	
+	return true;
 }
 
-void TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
+bool TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
 			 const vk::CommandBuffer &cmd,
 			 const std::string &path,
 			 const core::Texture &texture)
 {
 	if (contains(path))
-		return;
+		return false;
 
 	auto [staging, image] = allocate(allocator, path, texture);
 
@@ -97,6 +101,8 @@ void TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
 
 	// Since we are not waiting for completing, mark as processing
 	processing.insert(path);
+
+	return true;
 }
 
 } // namespace jvl::gfx::vulkan

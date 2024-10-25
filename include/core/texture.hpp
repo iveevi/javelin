@@ -3,10 +3,10 @@
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
-#include <map>
-#include <mutex>
 
 #include <vulkan/vulkan.hpp>
+
+#include "../wrapped_types.hpp"
 
 namespace jvl::core {
 
@@ -24,21 +24,8 @@ struct Texture {
 };
 
 // Optional texture caches
-// TODO: thread-safe tree
-class TextureBank : std::map <std::string, Texture> {
-	std::mutex lock;
-	
-	using super = std::map <std::string, Texture>;
-public:
-	bool contains(const std::string &key) {
-		std::lock_guard guard(lock);
-		return super::contains(key);
-	}
-
-	Texture &operator[](const std::string &key) {
-		std::lock_guard guard(lock);
-		return super::operator[](key);
-	}
+class TextureBank : public wrapped::thread_safe_tree <std::string, Texture> {
+	using wrapped::thread_safe_tree <std::string, Texture> ::thread_safe_tree;
 };
 
 } // namespace jvl::core
