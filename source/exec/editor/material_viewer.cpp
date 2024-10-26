@@ -119,7 +119,7 @@ void MaterialViewer::display_handle(const RenderingInfo &info)
 					trimmed = "..." + trimmed.substr(trimmed.size() - length + 3);
 
 				auto size = ImVec2(available.x, available.x);
-				ImGui::Image(descriptors[k], size);
+				ImGui::Image(descriptors[k].set(), size);
 
 				if (ImGui::Button(trimmed.c_str())) {
 					std::filesystem::path path = std::string(source);
@@ -257,12 +257,6 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 	if (viewer.extent.old()) {
 		auto &drc = info.drc;
 
-		// if (viewer.image) {
-		// 	info.drc.device.destroyImage(*viewer.image);
-		// }
-
-		fmt::println("allocating images and creating framebuffer...");
-
 		auto &extent = viewer.extent.updated();
 
 		viewer.image = drc.allocator()
@@ -294,19 +288,17 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 	auto converted = gfx::vulkan::Material(*viewer.material);
 	auto flags = converted.flags;
 
-	static const std::vector <vk::DescriptorSetLayoutBinding> default_bindings {
-		vk::DescriptorSetLayoutBinding()
-			.setBinding(0)
-			.setDescriptorCount(1)
-			.setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
-			.setStageFlags(vk::ShaderStageFlagBits::eFragment)
-	};
+	static constexpr size_t B_ENVIRONMENT = 0;
+	static constexpr size_t B_ALBEDO = 1;
 
 	if (!pipelines.contains(flags)) {
-		auto fs = procedure("main") << []() {
+		bool albedo_sampler = vulkan::enabled(flags, vulkan::MaterialFlags::eAlbedoSampler);
+
+		auto fs = procedure("main") << [albedo_sampler]() {
 			push_constant <ViewInfo> view;
 
-			sampler2D environment(0);
+			sampler2D environment(B_ENVIRONMENT);
+			sampler2D albedo(B_ALBEDO);
 
 			layout_in <vec2> uv(0);
 			
@@ -366,12 +358,19 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 			vec3 point = origin + ray * t;
 			vec3 normal = normalize(point);
 
-			// // Compute UV coordinates
-			// f32 u = atan(normal.x, normal.z) / (2.0f * pi <float>) + 0.5f;
-			// f32 v = 0.5f + 0.5f * normal.y;
-			// vec2 uv = vec2(u, v);
-	
-			fragment = vec4(0.5 + 0.5 * normal, 1);
+			// Compute UV coordinates
+			{
+				f32 u = atan(normal.x, normal.z) / (2.0f * pi <float>) + 0.5f;
+				f32 v = 0.5f + 0.5f * normal.y;
+				vec2 uv = vec2(u, v);
+
+				if (albedo_sampler) {
+					fragment = albedo.sample(uv);
+					fragment.w = 1.0f;
+				} else {
+					fragment = vec4(0.5 + 0.5 * normal, 1);
+				}
+			}
 		};
 
 		// TODO: push constants for sphere rotation
@@ -388,40 +387,79 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 			.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
 			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 		
-		pipelines[flags] = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
+		auto assembler = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
 			.with_render_pass(render_pass, 0)
 			.with_shader_bundle(shaders)
 			.with_push_constant <ViewInfo> (vk::ShaderStageFlagBits::eFragment)
-			.with_dsl_bindings(default_bindings)
+			.with_dsl_binding(0, vk::DescriptorType::eCombinedImageSampler,
+					  1, vk::ShaderStageFlagBits::eFragment)
 			.cull_mode(vk::CullModeFlagBits::eNone)
 			.alpha_blending(false);
+
+		if (albedo_sampler) {
+			assembler.with_dsl_binding(1, vk::DescriptorType::eCombinedImageSampler,
+						   1, vk::ShaderStageFlagBits::eFragment);
+		}
+		
+		pipelines[flags] = assembler;
 	}
+
+	auto &ppl = pipelines[flags];
 	
 	// Check all descriptors
 	for (auto &[entry, descriptor] : viewer.descriptors) {
 		if (descriptor.null()) {
-			fmt::println("null descriptor, starting initialization process");
-
 			auto backup_texture = info.device_texture_bank["$checkerboard"];
-			descriptor = littlevk::bind(info.drc.device, info.drc.descriptor_pool)
-				.allocate_descriptor_sets(pipelines[flags].dsl.value())
-				.front();
-
 			auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
 
-			littlevk::bind(info.drc.device, descriptor, default_bindings)
-				.queue_update(0, 0, sampler, backup_texture.view, vk::ImageLayout::eShaderReadOnlyOptimal)
-				.finalize();
-			
-			if (entry == main_ppl_key)
-				descriptor.requirement(AdaptiveDescriptor::environment_key);
-			else
-				descriptor.requirement(entry);
+			// TODO: this part depends on the entry...
+			if (entry == main_ppl_key) {
+				fmt::println("null descriptor, starting initialization process");
+
+				descriptor // ...
+					.with_layout(ppl.dsl.value())
+					.allocate(info.drc.device, info.drc.descriptor_pool);
+
+				auto binder = littlevk::DescriptorUpdateQueue(descriptor.set(), ppl.bindings)
+					.queue_update(B_ENVIRONMENT, 0, sampler,
+						backup_texture.view,
+						vk::ImageLayout::eShaderReadOnlyOptimal);
+
+				if (vulkan::enabled(flags, vulkan::MaterialFlags::eAlbedoSampler)) {
+					binder.queue_update(B_ALBEDO, 0, sampler,
+						backup_texture.view,
+						vk::ImageLayout::eShaderReadOnlyOptimal);
+				}
+
+				binder.apply(info.drc.device);
+
+				descriptor.requirement(AdaptiveDescriptor::environment_key, B_ENVIRONMENT);
+				descriptor.requirement(Material::diffuse_key, B_ALBEDO);
+			} else {
+				auto binding = vk::DescriptorSetLayoutBinding()
+					.setBinding(B_ENVIRONMENT)
+					.setDescriptorCount(1)
+					.setStageFlags(vk::ShaderStageFlagBits::eFragment)
+					.setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+
+				auto layout_info = vk::DescriptorSetLayoutCreateInfo()
+					.setBindings(binding);
+
+				auto layout = info.drc.device.createDescriptorSetLayout(layout_info);
+
+				descriptor.with_layout(layout)
+					.allocate(info.drc.device, info.drc.descriptor_pool);
+
+				descriptor.requirement(entry, B_ENVIRONMENT);
+			}
 		} else if (!descriptor.complete()) {
+			// TODO: this function is common...
+
 			// Manage descriptor set updates upon texture loading
-			for (auto key : descriptor.dependencies()) {
+			for (auto &[key, updating] : descriptor.dependencies()) {
 				std::string source;
 				if (key == AdaptiveDescriptor::environment_key) {
+					// TODO: detach from the material descriptor set...
 					source = environment;
 				} else {
 					JVL_ASSERT(viewer.material->values.contains(key),
@@ -430,23 +468,48 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 					source = viewer.material->values[key].as <core::texture> ();
 				}
 
-				fmt::println("remaining dependency on key={} source={}", key, source);
-
 				if (info.device_texture_bank.contains(source)
 					&& info.device_texture_bank.ready(source)) {
-					fmt::println("  ready!");
-
 					auto sampler = littlevk::SamplerAssembler(info.drc.device, info.drc.dal);
 					auto image = info.device_texture_bank[source];
 					
-					// TODO: need to copy the old descriptor set...
-					descriptor = littlevk::bind(info.drc.device, info.drc.descriptor_pool)
-						.allocate_descriptor_sets(pipelines[flags].dsl.value())
-						.front();
+					AdaptiveDescriptor old_descriptor = descriptor;
 
-					littlevk::bind(info.drc.device, descriptor, default_bindings)
-						.queue_update(0, 0, sampler, image.view, vk::ImageLayout::eShaderReadOnlyOptimal)
-						.finalize();
+					descriptor.allocate(info.drc.device, info.drc.descriptor_pool);
+
+					// Copy old descriptor set
+					std::vector <vk::CopyDescriptorSet> copies;
+					vk::WriteDescriptorSet write;
+
+					for (auto &[_, binding] : descriptor.mapped()) {
+						if (binding != updating) {
+							auto copy_info = vk::CopyDescriptorSet()
+								.setDescriptorCount(1)
+								.setDstArrayElement(0)
+								.setDstBinding(binding)
+								.setDstSet(descriptor.set())
+								.setSrcArrayElement(0)
+								.setSrcBinding(binding)
+								.setSrcSet(old_descriptor.set());
+
+							copies.push_back(copy_info);
+						} else {
+							auto image_info = vk::DescriptorImageInfo()
+								.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
+								.setImageView(image.view)
+								.setSampler(sampler);
+
+							write = vk::WriteDescriptorSet()
+								.setDescriptorCount(1)
+								.setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
+								.setImageInfo(image_info)
+								.setDstSet(descriptor.set())
+								.setDstArrayElement(0)
+								.setDstBinding(descriptor.key_binding(key));
+						}
+					}
+
+					info.drc.device.updateDescriptorSets(write, copies);
 
 					descriptor.resolve(key);
 				} else if (!info.worker_texture_loading->pending(source)) {
@@ -499,7 +562,7 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
 			ppl.layout, 0u,
-			descriptor, {});
+			descriptor.set(), {});
 
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
 		

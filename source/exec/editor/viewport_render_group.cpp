@@ -258,18 +258,17 @@ void ViewportRenderGroup::prepare_albedo(const RenderingInfo &info)
 		auto &descriptor = material.descriptors[albedo_ppl_key];
 
 		if (descriptor.null()) {
-			descriptor = littlevk::bind(drc.device, drc.descriptor_pool)
-				.allocate_descriptor_sets(*ppl.dsl)
-				.front();
+			descriptor.with_layout(ppl.dsl.value())
+				.allocate(drc.device, drc.descriptor_pool);
 
-			descriptor.requirement(Material::diffuse_key);
+			descriptor.requirement(Material::diffuse_key, 0);
 
 			// Backup bindings
 			auto &image = info.device_texture_bank["$checkerboard"];
 		
 			auto sampler = littlevk::SamplerAssembler(drc.device, drc.dal);
 
-			littlevk::DescriptorUpdateQueue(descriptor, ppl.bindings)
+			littlevk::DescriptorUpdateQueue(descriptor.set(), ppl.bindings)
 				.queue_update(0, 0, sampler,
 					image.view,
 					vk::ImageLayout::eShaderReadOnlyOptimal)
@@ -284,11 +283,9 @@ void ViewportRenderGroup::prepare_albedo(const RenderingInfo &info)
 				auto image = info.device_texture_bank[source];
 				
 				// TODO: need to copy the old descriptor set...
-				descriptor = littlevk::bind(info.drc.device, info.drc.descriptor_pool)
-					.allocate_descriptor_sets(ppl.dsl.value())
-					.front();
+				descriptor.allocate(drc.device, drc.descriptor_pool);
 
-				littlevk::DescriptorUpdateQueue(descriptor, ppl.bindings)
+				littlevk::DescriptorUpdateQueue(descriptor.set(), ppl.bindings)
 					.queue_update(0, 0, sampler,
 						image.view,
 						vk::ImageLayout::eShaderReadOnlyOptimal)
@@ -336,7 +333,7 @@ void ViewportRenderGroup::render_albedo(const RenderingInfo &info,
 		if (texture) {
 			cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
 				ppl.layout, 0,
-				material.descriptors[albedo_ppl_key], {});
+				material.descriptors[albedo_ppl_key].set(), {});
 		
 			cmd.pushConstants <solid_t <u32>> (ppl.layout,
 				vk::ShaderStageFlagBits::eFragment,
