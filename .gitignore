@@ -5,3 +5,4 @@ build/
 compile_commands.json
 imgui.ini
 gcc_jit_result*.c
+vgcore.*

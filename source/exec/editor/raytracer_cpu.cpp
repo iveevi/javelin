@@ -203,19 +203,6 @@ RaytracerCPU::~RaytracerCPU()
 }
 
 // Rendering methods
-Ray RaytracerCPU::ray_from_pixel(float2 uv)
-{
-	// TODO: rayframe method
-	Ray ray;
-	ray.origin = rayframe.origin;
-	ray.direction = normalize(rayframe.lower_left
-			+ uv.x * rayframe.horizontal
-			+ (1 - uv.y) * rayframe.vertical
-			- rayframe.origin);
-
-	return ray;
-}
-
 float3 RaytracerCPU::radiance(const Ray &ray, int depth)
 {
 	if (depth <= 0)
@@ -241,12 +228,14 @@ float3 RaytracerCPU::radiance(const Ray &ray, int depth)
 	next.origin = sh.offset();
 	next.direction = scattering.wo;
 
-	return radiance(next, depth - 1) * scattering.brdf / scattering.pdf;
+	return 0.5f + 0.5f * sh.normal;
+
+	// return radiance(next, depth - 1) * scattering.brdf / scattering.pdf;
 }
 
 float4 RaytracerCPU::raytrace(int2 ij, float2 uv, const Extra &extra)
 {
-	core::Ray ray = ray_from_pixel(uv);
+	Ray ray = rayframe.sample(uv);
 	float3 color = radiance(ray, 10);
 
 	float3 &prior = contributions[ij];

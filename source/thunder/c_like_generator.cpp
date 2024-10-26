@@ -87,6 +87,8 @@ static std::string arguments_to_string(const std::vector <std::string> &args)
 std::string generate_primitive(const Primitive &p)
 {
 	switch (p.type) {
+	case boolean:
+		return fmt::format("{}", p.bdata);
 	case i32:
 		return fmt::format("{}", p.idata);
 	case u32:
@@ -97,7 +99,7 @@ std::string generate_primitive(const Primitive &p)
 		break;
 	}
 
-	return "<prim:?>";
+	JVL_ABORT("unsupported primitive: {}", p);
 }
 
 std::string generate_operation(OperationCode code, const std::string &a, const std::string &b)
@@ -375,16 +377,16 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 template <>
 void c_like_generator_t::generate(const Qualifier &, index_t)
 {
-	// Same idea here; all globals should be
-	// instatiated from the linker side
+	// Nothing to do here, linkage should have taken
+	// care of generating the necessary structs; their
+	// assigned names should all be in struct_names
 }
 
 template <>
 void c_like_generator_t::generate(const TypeInformation &, index_t)
 {
-	// Nothing to do here, linkage should have taken
-	// care of generating the necessary structs; their
-	// assigned names should all be in struct_names
+	// Same idea here; all globals should be
+	// instatiated from the linker side
 }
 
 template <>

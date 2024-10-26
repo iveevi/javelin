@@ -86,6 +86,9 @@ std::string Primitive::to_string() const
         result = fmt::format("{:15} value: ", "PRIMITIVE");
 
         switch (type) {
+        case boolean:
+                result += fmt::format("{}", bdata);
+                break;
         case i32:
                 result += fmt::format("{}", idata);
                 break;

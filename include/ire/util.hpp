@@ -179,7 +179,7 @@ cache_index_t const_uniform_layout_t <Args...> ::list() const
 		layout_const_field f = fields[i];
 
 		end.next = next.id;
-		if (f.type == eField) {
+		if (!f.aggregate) {
 			const tagged *t = reinterpret_cast <const tagged *> (f.ptr);
 
 			if (t->ref.id == -1)
@@ -187,8 +187,11 @@ cache_index_t const_uniform_layout_t <Args...> ::list() const
 			else
 				end.item = t->ref.id;
 
+		} else {
+			MODULE(const-uniform-layout-list);
+
+			JVL_ABORT("nested aggregates are unsupported");
 		}
-		// TODO: handle nested structs...
 
 		next = em.emit(end);
 	}

@@ -53,7 +53,7 @@ index_t LinkageUnit::new_aggregate(size_t ftn, const std::vector <QualifiedType>
 	return std::distance(aggregates.begin(), it);
 }
 
-void LinkageUnit::process_function_qualifier(Function &function, index_t index, index_t i, const Qualifier &qualifier)
+void LinkageUnit::process_function_qualifier(Function &function, size_t index, index_t i, const Qualifier &qualifier)
 {
 	if (sampler_kind(qualifier.kind)) {
 		size_t binding = qualifier.numerical;
@@ -132,7 +132,7 @@ void LinkageUnit::process_function_qualifier(Function &function, index_t index, 
 	}
 }
 
-void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &function, index_t i, QualifiedType qt)
+void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &function, size_t index, index_t i, QualifiedType qt)
 {
 	std::vector <QualifiedType> fields {
 		qt.as <StructFieldType> ().base()
@@ -145,13 +145,11 @@ void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &funct
 			auto &sft = qt.as <StructFieldType> ();
 			fields.push_back(sft.base());
 		} else {
-			// TODO: if its concrete, we need to reference it...
-			JVL_ASSERT_PLAIN(qt.is_primitive());
 			fields.push_back(qt);
 		}
 	} while (qt.is <StructFieldType> ());
 
-	map[i] = new_aggregate(i, fields);
+	map[i] = new_aggregate(index, fields);
 }
 
 // TODO: return referenced callables
@@ -188,7 +186,7 @@ std::vector <index_t> LinkageUnit::process_function(const Function &ftn)
 		// Checking for structs used by the function
 		auto qt = function.types[i];
 		if (qt.is <StructFieldType> ())
-			process_function_aggregate(map, function, i, qt);
+			process_function_aggregate(map, function, index, i, qt);
 	}
 
 	return referenced;
@@ -275,6 +273,11 @@ void generate_aggregates(std::string &result,
 			 const std::vector <Aggregate> &aggregates)
 {
 	for (auto &aggregate : aggregates) {
+		JVL_ASSERT(aggregate.function >= 0 && aggregate.function < generators.size(),
+			"aggregate function is out of bounds "
+			" ({} when there are only {} generators)",
+			aggregate.function, generators.size());
+
 		auto &generator = generators[aggregate.function];
 
 		result += "struct " + aggregate.name + " {\n";

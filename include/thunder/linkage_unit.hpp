@@ -34,7 +34,6 @@ struct local_layout_type {
 	QualifierKind kind;
 };
 
-
 struct push_constant_info : local_layout_type {
 	size_t offset;
 	index_t underlying;
@@ -63,8 +62,8 @@ struct LinkageUnit {
 
 	index_t new_aggregate(size_t, const std::vector <QualifiedType> &);
 
-	void process_function_qualifier(Function &, index_t, index_t, const Qualifier &);
-	void process_function_aggregate(TypeMap &, const Function &, index_t, QualifiedType);
+	void process_function_qualifier(Function &, size_t, index_t, const Qualifier &);
+	void process_function_aggregate(TypeMap &, const Function &, size_t, index_t, QualifiedType);
 	
 	std::vector <index_t> process_function(const Function &);
 	

@@ -65,7 +65,6 @@ struct RaytracerCPU : Unique {
 	~RaytracerCPU();
 
 	// Rendering methods
-	Ray ray_from_pixel(float2);
 	float3 radiance(const Ray &, int);
 	float4 raytrace(int2, float2, const Extra &);
 

@@ -14,10 +14,18 @@ template <typename T>
 constexpr thunder::PrimitiveType synthesize_primitive_type();
 
 // Automatically determining layout types
-template <string_literal name, non_native_generic T>
+template <string_literal name, builtin T>
 inline auto field(const T &ref)
 {
-	return __field <name, T> (&static_cast <const tagged &> (ref));
+	return __field <name, T> (&static_cast <const tagged &> (ref), nullptr);
+}
+
+template <string_literal name, aggregate T>
+inline auto field(const T &ref)
+{
+	using layout_t = decltype(T().layout());
+	auto ptr = new layout_t(ref.layout());
+	return __field <name, T> (nullptr, ptr);
 }
 
 #define named_field(name) field <#name> (name)
@@ -96,15 +104,17 @@ cache_index_t type_field_from_args_impl()
 	auto &em = Emitter::active;
 
 	thunder::TypeInformation type_info;
-
 	if constexpr (aggregate <T>) {
 		using layout_t = decltype(T().layout());
 
 		// If its a single struct, then we should not nest
-		if constexpr (I == 0)
+		if constexpr (I == 0 && sizeof...(Args) == 0) {
+			fmt::println("singel struct!");
 			return type_field_from_args(layout_t());
-		else
+		} else {
+			fmt::println("nested struct!");
 			type_info.down = type_field_from_args(layout_t()).id;
+		}
 	} else {
 		type_info.item = synthesize_primitive_type <T> ();
 	}
@@ -150,17 +160,16 @@ cache_index_t type_field_index_from_args(int index)
 
 	auto &em = Emitter::active;
 
-	thunder::TypeInformation tf;
-
+	thunder::TypeInformation type_info;
 	if constexpr (aggregate <T>) {
 		using layout_t = decltype(T().layout());
-		tf.down = type_field_from_args(layout_t()).id;
+		type_info.down = type_field_from_args(layout_t()).id;
 	} else {
-		tf.item = synthesize_primitive_type <T> ();
+		type_info.item = synthesize_primitive_type <T> ();
 	}
 
 	cache_index_t cached;
-	cached = em.emit(tf);
+	cached = em.emit(type_info);
 	return cached;
 }
 

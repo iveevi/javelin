@@ -2,8 +2,9 @@
 
 #include <cmath>
 
-#include "transform.hpp"
 #include "../trigonometry.hpp"
+#include "ray.hpp"
+#include "transform.hpp"
 
 namespace jvl::core {
 
@@ -35,6 +36,17 @@ struct Rayframe {
 	float3 lower_left;
 	float3 horizontal;
 	float3 vertical;
+
+	Ray sample(float2 uv) const {
+		Ray ray;
+		ray.origin = origin;
+		ray.direction = normalize(lower_left
+				+ uv.x * horizontal
+				+ (1 - uv.y) * vertical
+				- origin);
+
+		return ray;
+	}
 };
 
 inline Rayframe rayframe(const Aperature &apr, const Transform &transform)

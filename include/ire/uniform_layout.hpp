@@ -9,16 +9,12 @@
 
 namespace jvl::ire {
 
-// Field classifications
-enum {
-	eField,
-	eNested
-};
+// TODO: detail namespace...
 
 // Ordinary layouts
 struct layout_field {
 	const char *name;
-	int type;
+	bool aggregate;
 	void *ptr;
 
 	void ref_with(cache_index_t);
@@ -33,44 +29,33 @@ struct uniform_layout_t {
 	// TODO: move down...
 	void ref_with(cache_index_t up) {
 		MODULE(uniform-layout-ref-with);
+		
+		auto &em = Emitter::active;
 
-		// If there is only one element then transfer it only
-		if constexpr (sizeof...(Args) == 1) {
-			layout_field f = fields[0];
-			f.ref_with(up);
-		} else {
-			wrapped::hash_table <void *, int> listed;
+		// TODO: name hints in the active emitter...
+		wrapped::tree <const void *, int> listed;
 
-			auto &em = Emitter::active;
+		for (size_t i = 0; i < fields.size(); i++) {
+			layout_field f = fields[i];
 
-			// TODO: name hint at the first type field...
-			for (size_t i = 0; i < fields.size(); i++) {
-				layout_field f = fields[i];
+			bool unique = !listed.contains(f.ptr);
+			JVL_ASSERT(unique,
+				"duplicate member in uniform layout, "
+				"field #{} conflicts with field #{}",
+				i + 1, listed[f.ptr] + 1);
 
-				bool unique = !listed.contains(f.ptr);
-				JVL_ASSERT(unique,
-					"duplicate member in uniform layout, "
-					"field #{} conflicts with field #{}",
-					i + 1, listed[f.ptr] + 1);
+			cache_index_t cit;
+			cit = em.emit_load(up.id, i);
+			f.ref_with(cit);
 
-				thunder::Load load;
-				load.src = up.id;
-				load.idx = i;
-
-				cache_index_t cit;
-				cit = em.emit(load);
-
-				f.ref_with(cit);
-
-				listed[f.ptr] = i;
-			}
+			listed[f.ptr] = i;
 		}
 	}
 };
 
 inline void layout_field::ref_with(cache_index_t up)
 {
-	if (type == eNested) {
+	if (aggregate) {
 		using tmp_layout = uniform_layout_t <void>;
 		auto ul = reinterpret_cast <tmp_layout *> (ptr);
 		ul->ref_with(up);
@@ -82,8 +67,8 @@ inline void layout_field::ref_with(cache_index_t up)
 
 // Const-qualified layouts
 struct layout_const_field {
+	bool aggregate;
 	const char *name;
-	int type;
 	const void *ptr;
 };
 
@@ -99,9 +84,8 @@ struct const_uniform_layout_t {
 		uniform_layout_t <Args...> layout;
 		layout.name = name;
 		for (auto cf: fields) {
-			// TODO: might crash with pointer to layouts...
 			layout_field f;
-			f.type = cf.type;
+			f.aggregate = cf.aggregate;
 			f.ptr = const_cast <void *> (cf.ptr);
 			layout.fields.push_back(f);
 		}
@@ -123,6 +107,8 @@ template <string_literal name, typename T>
 struct __field {
 	static constexpr string_literal literal = name;
 	const tagged *ref;
+	const void *agr;
+	
 };
 
 // Concept for fields
@@ -140,8 +126,8 @@ template <builtin T, string_literal name, typename ... UArgs>
 void __const_init(layout_const_field *fields, int index, const __field <name, T> &t, const UArgs &... uargs)
 {
 	layout_const_field f;
+	f.aggregate = false;
 	f.name = name.value;
-	f.type = eField;
 	f.ptr = t.ref;
 
 	fields[index] = f;
@@ -152,12 +138,10 @@ void __const_init(layout_const_field *fields, int index, const __field <name, T>
 template <aggregate T, string_literal name, typename ... UArgs>
 void __const_init(layout_const_field *fields, int index, const __field <name, T> &t, const UArgs &... uargs)
 {
-	using layout_t = decltype(T().layout());
-
 	layout_const_field f;
+	f.aggregate = true;
 	f.name = name.value;
-	f.type = eNested;
-	f.ptr = new layout_t(t.layout());
+	f.ptr = t.agr;
 
 	fields[index] = f;
 	if constexpr (sizeof...(uargs) > 0)
