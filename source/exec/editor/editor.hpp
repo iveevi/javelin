@@ -10,6 +10,41 @@
 #include "material_viewer.hpp"
 #include "texture_loading.hpp"
 
+struct Timer {
+	using clock_t = std::chrono::high_resolution_clock;
+
+	clock_t clock;
+	clock_t::time_point last;
+
+	void begin() {
+		last = clock.now();
+	}
+
+	[[nodiscard]]
+	double end() {
+		auto now = clock.now();
+		auto duration = std::chrono::duration_cast <std::chrono::microseconds> (now - last).count();
+		return (duration / 1000.0);
+	}
+};
+
+using TimeTable = wrapped::tree <std::string, double>;
+
+struct ScopedTimer {
+	Timer timer;
+	TimeTable &ref;
+	std::string label;
+
+	ScopedTimer(TimeTable &ref_, const std::string &label_)
+			: ref(ref_), label(label_) {
+		timer.begin();
+	}
+
+	~ScopedTimer() {
+		ref[label] = timer.end();
+	}
+};
+
 struct Editor {
 	// Fundamental Vulkan resources
 	DeviceResourceCollection drc;
@@ -47,6 +82,10 @@ struct Editor {
 	std::list <MaterialViewer> material_viewers;
 	Equivalence <Material, MaterialViewer> material_to_viewer;
 
+	// Timing resources
+	bool display_times;
+	TimeTable previous_times;
+
 	// Miscellaneous
 	SceneInspector inspector;
 
@@ -76,9 +115,11 @@ struct Editor {
 	// User interface methods
 	void imgui_main_menu_bar(const RenderingInfo &);
 	void imgui_raytracer_popup(const RenderingInfo &);
+	void imgui_times_popup(const RenderingInfo &);
 
 	imgui_callback callback_main_menu_bar();
-	imgui_callback callback_raytracer_popup();
+	imgui_callback callback_popup_raytracer();
+	imgui_callback callback_popup_times();
 
 	// Rendering loop
 	void loop();

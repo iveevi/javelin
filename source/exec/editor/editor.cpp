@@ -96,6 +96,9 @@ Editor::Editor()
 		drc.commander(),
 		"$checkerboard",
 		checkerboard);
+
+	// Other fields
+	display_times = false;
 }
 
 // Adding a new viewport
@@ -116,38 +119,46 @@ void Editor::resize()
 
 // Render loop iteration
 void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncronization::Frame &sync_frame, int32_t frame)
-{	
+{
 	// Check on the fences from past frames
 	if (transitions_progress.size())
 		fmt::println("checking on transition fences");
 
-	// TODO: logic and queues should go the device texture bank
-	std::set <vk::Fence> completed;
-	for (auto &[f, sources] : transitions_progress) {
-		auto status = drc.device.getFenceStatus(f);
-		if (status == vk::Result::eSuccess) {
-			fmt::println("...completed, time to update the texture bank");
-			for (auto s : sources) {
-				fmt::println("  {}", s);
-				device_bank.mark_ready(s);
+	{
+		ScopedTimer timer(previous_times, "transition fences");
+		
+		std::set <vk::Fence> completed;
+		for (auto &[f, sources] : transitions_progress) {
+			auto status = drc.device.getFenceStatus(f);
+			if (status == vk::Result::eSuccess) {
+				fmt::println("...completed, time to update the texture bank");
+				for (auto s : sources) {
+					fmt::println("  {}", s);
+					device_bank.mark_ready(s);
+				}
+
+				completed.insert(f);
+			} else if (status == vk::Result::eNotReady) {
+				fmt::println("...waiting on fence");
+			} else {
+				fmt::println("...other");
 			}
-
-			completed.insert(f);
-		} else if (status == vk::Result::eNotReady) {
-			fmt::println("...waiting on fence");
-		} else {
-			fmt::println("...other");
 		}
-	}
 
-	for (auto f : completed)
-		transitions_progress.erase(f);
+			for (auto f : completed)
+				transitions_progress.erase(f);
+	}
 
 	// Grab the next image
 	littlevk::SurfaceOperation sop;
-	sop = littlevk::acquire_image(drc.device, drc.swapchain.handle, sync_frame);
-	if (sop.status == littlevk::SurfaceOperation::eResize)
-		return resize();
+
+	{
+		ScopedTimer timer(previous_times, "acquiring image");
+
+		sop = littlevk::acquire_image(drc.device, drc.swapchain.handle, sync_frame);
+		if (sop.status == littlevk::SurfaceOperation::eResize)
+			return resize();
+	}
 
 	// Start the render pass
 	vk::CommandBufferBeginInfo cbbi;
@@ -180,37 +191,61 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 	};
 
 	// Render all the viewports
-	for (auto &viewport : viewports)
-		renderer_viewport->render(info, viewport);
+	{
+		ScopedTimer timer(previous_times, "viewports");
+
+		for (auto &viewport : viewports)
+			renderer_viewport->render(info, viewport);
+	}
 
 	// Render any material viewers
-	for (auto &viewer : material_viewers)
-		renderer_material->render(info, viewer);
+	{
+		ScopedTimer timer(previous_times, "material viewers");
+
+		for (auto &viewer : material_viewers)
+			renderer_material->render(info, viewer);
+	}
 
 	// Refresh any host raytracers
-	for (auto &raytracer : host_raytracers)
-		raytracer.refresh(drc, cmd);
+	{
+		ScopedTimer timer(previous_times, "host raytracers");
+
+		for (auto &raytracer : host_raytracers)
+			raytracer.refresh(drc, cmd);
+	}
 
 	// Finally, render the user interface
-	auto current_callbacks = imgui_callbacks;
-	renderer_imgui->render(info, current_callbacks);
+	{
+		ScopedTimer timer(previous_times, "imgui callbacks");
+
+		auto current_callbacks = imgui_callbacks;
+		renderer_imgui->render(info, current_callbacks);
+	}
 
 	// Process any readable framebuffers
-	for (auto &rf : readable_framebuffers)
-		rf.go(info);
+	{
+		ScopedTimer timer(previous_times, "readable framebuffers");
+
+		for (auto &rf : readable_framebuffers)
+			rf.go(info);
+	}
 
 	cmd.end();
 
 	// Submitting primary rendering (graphics) work
-	constexpr vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+	{
+		ScopedTimer timer(previous_times, "render submit");
 
-	vk::SubmitInfo submit_info {
-		sync_frame.image_available,
-		wait_stage, cmd,
-		sync_frame.render_finished
-	};
+		constexpr vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
-	drc.graphics_queue.submit(submit_info, sync_frame.in_flight);
+		vk::SubmitInfo submit_info {
+			sync_frame.image_available,
+			wait_stage, cmd,
+			sync_frame.render_finished
+		};
+
+		drc.graphics_queue.submit(submit_info, sync_frame.in_flight);
+	}
 
 	// Submitted texture transition work
 	std::vector <vk::CommandBuffer> commands;
@@ -243,12 +278,12 @@ void Editor::render(const vk::CommandBuffer &cmd, const littlevk::PresentSyncron
 	}
 
 	// Present to the window
-	sop = littlevk::present_image(drc.present_queue, drc.swapchain.handle, sync_frame, sop.index);
-	if (sop.status == littlevk::SurfaceOperation::eResize)
-		resize();
-
-	// // Post rendering actions
-	// renderer_viewport->post_render();
+	{
+		ScopedTimer timer(previous_times, "present image");
+		sop = littlevk::present_image(drc.present_queue, drc.swapchain.handle, sync_frame, sop.index);
+		if (sop.status == littlevk::SurfaceOperation::eResize)
+			resize();
+	}
 }
 
 // Main menu bar
@@ -261,21 +296,19 @@ void Editor::imgui_main_menu_bar(const RenderingInfo &)
 	ImGui::BeginMainMenuBar();
 
 	if (ImGui::BeginMenu("View")) {
-		if (ImGui::MenuItem("Viewport")) {
+		if (ImGui::MenuItem("Viewport"))
 			add_viewport();
-		}
-		
-		if (ImGui::MenuItem("Raytracer (CPU)")) {
+		if (ImGui::MenuItem("Raytracer (CPU)"))
 			popup_raytracer = true;
-		}
 
 		ImGui::EndMenu();
 	}
 
 	if (ImGui::BeginMenu("Debug")) {
-		if (ImGui::MenuItem("Render Pipelines")) {
+		if (ImGui::MenuItem("Render Pipelines"))
 			popup_pipelines = true;
-		}
+		if (ImGui::MenuItem("Times"))
+			display_times = true;
 
 		ImGui::EndMenu();
 	}
@@ -285,7 +318,6 @@ void Editor::imgui_main_menu_bar(const RenderingInfo &)
 	// Handle the popups
 	if (popup_raytracer)
 		ImGui::OpenPopup("Raytracer");
-	
 	if (popup_pipelines)
 		ImGui::OpenPopup("Render Pipelines");
 }
@@ -336,6 +368,74 @@ void Editor::imgui_raytracer_popup(const RenderingInfo &)
 	ImGui::EndPopup();
 }
 
+void Editor::imgui_times_popup(const RenderingInfo &)
+{
+	if (!display_times)
+		return;
+
+	bool open = true;
+	ImGui::Begin("Times", &open);
+	if (!open) {
+		display_times = false;
+		return ImGui::End();
+	}
+
+	// Sorting by time percentage
+	double total = previous_times["total"];
+
+	struct TimeItem {
+		std::string label;
+		double time;
+		double percentage;
+
+		bool operator>(const TimeItem &other) const {
+			return time > other.time;
+		}
+
+		bool operator==(const TimeItem &other) const {
+			return label == other.label;
+		}
+	};
+
+	std::set <TimeItem, std::greater <TimeItem>> items;
+	for (auto &[k, t] : previous_times)
+		items.emplace(k, t, 100.0 * t / total);
+
+	ImGui::Text("Host Frame Times");
+	ImGui::Separator();
+	if (ImGui::BeginTable("times", 3)) {
+		// Header
+		ImGui::TableSetupColumn("Task", ImGuiTableColumnFlags_None, 0.0f);
+		ImGui::TableSetupColumn("Time (ms)", ImGuiTableColumnFlags_None, 0.0f);
+		ImGui::TableSetupColumn("Percentage", ImGuiTableColumnFlags_None, 0.0f);
+		ImGui::TableHeadersRow();
+		
+		// Elements
+		int row = 0;
+
+		ImU32 color0 = ImGui::GetColorU32(ImVec4(1, 1, 1, 0.0f));
+		ImU32 color1 = ImGui::GetColorU32(ImVec4(1, 1, 1, 0.25f));
+
+		for (auto &item : items) {
+			ImGui::TableNextRow();
+			ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, (row++) % 2 ? color0 : color1);
+
+			ImGui::TableNextColumn();
+			ImGui::Text("%s", item.label.c_str());
+			
+			ImGui::TableNextColumn();
+			ImGui::Text("%.3f", item.time);
+			
+			ImGui::TableNextColumn();
+			ImGui::Text("%3.2f", item.percentage);
+		}
+
+		ImGui::EndTable();
+	}
+
+	ImGui::End();
+}
+
 imgui_callback Editor::callback_main_menu_bar()
 {
 	return {
@@ -344,7 +444,7 @@ imgui_callback Editor::callback_main_menu_bar()
 	};
 }
 
-imgui_callback Editor::callback_raytracer_popup()
+imgui_callback Editor::callback_popup_raytracer()
 {
 	return {
 		-1,
@@ -352,9 +452,21 @@ imgui_callback Editor::callback_raytracer_popup()
 	};
 }
 
+imgui_callback Editor::callback_popup_times()
+{
+	return {
+		-1,
+		std::bind(&Editor::imgui_times_popup, this, std::placeholders::_1)
+	};
+}
+
 // Processing messages
 void Editor::process_messages()
 {
+	Timer timer;
+
+	timer.begin();
+
 	// Handle incoming messages
 	auto &messages = message_system.get_origin();
 
@@ -469,6 +581,8 @@ void Editor::process_messages()
 				it++;
 		}
 	}
+
+	previous_times["proess messages"] = timer.end();
 }
 
 // Rendering loop
@@ -484,7 +598,8 @@ void Editor::loop()
 
 	// Configure for startup
 	imgui_callbacks.emplace_back(callback_main_menu_bar());
-	imgui_callbacks.emplace_back(callback_raytracer_popup());
+	imgui_callbacks.emplace_back(callback_popup_raytracer());
+	imgui_callbacks.emplace_back(callback_popup_times());
 	imgui_callbacks.emplace_back(inspector.callback_scene_hierarchy());
 	imgui_callbacks.emplace_back(inspector.callback_object_inspector());
 	imgui_callbacks.emplace_back(renderer_viewport->callback_debug_pipelines());
@@ -493,7 +608,10 @@ void Editor::loop()
 
 	// Rendering loop
 	int32_t frame = 0;
+
 	while (!glfwWindowShouldClose(drc.window.handle)) {
+		ScopedTimer timer(previous_times, "total");
+
 		glfwPollEvents();
 
 		// Render the frame

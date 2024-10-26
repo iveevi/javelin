@@ -25,10 +25,7 @@ Texture Texture::from(const std::filesystem::path &path)
 
 	std::string file = path.string();
 	std::string extension = path.extension();
-	fmt::println("image ext: {}", extension);
 	if (extension == ".exr") {
-		// TODO: unquantized version
-
 		float *ptr;
 		int width;
 		int height;
