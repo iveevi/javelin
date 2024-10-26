@@ -16,6 +16,7 @@
 #include "solidify.hpp"
 #include "uniform_layout.hpp"
 #include "vector.hpp"
+#include "std.hpp"
 
 #include "intrinsics/common.hpp"
 #include "intrinsics/glsl.hpp"
