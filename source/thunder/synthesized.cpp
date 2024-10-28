@@ -75,8 +75,10 @@ void Buffer::include(index_t i)
 	// Call values should be evaluated only once by default;
 	// at linking time, it may be possible to inline functions.
 	case Atom::type_index <Call> ():
+	{
 		synthesized.insert(i);
-		break;
+		synthesized.insert(atom.as <Call> ().type);
+	} break;
 
 	case Atom::type_index <Intrinsic> ():
 		synthesized.insert(i);

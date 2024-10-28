@@ -49,6 +49,7 @@ struct LinkageUnit {
 	std::vector <Function> functions;
 	std::vector <Aggregate> aggregates;
 	std::vector <TypeMap> maps;
+	std::map <index_t, std::set <index_t>> dependencies;
 
 	struct {
 		push_constant_info push_constant = push_constant_info::from();
@@ -65,7 +66,7 @@ struct LinkageUnit {
 	void process_function_qualifier(Function &, size_t, index_t, const Qualifier &);
 	void process_function_aggregate(TypeMap &, const Function &, size_t, index_t, QualifiedType);
 	
-	std::vector <index_t> process_function(const Function &);
+	std::set <index_t> process_function(const Function &);
 	
 	void add(const TrackedBuffer &);
 	

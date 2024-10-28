@@ -153,9 +153,9 @@ void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &funct
 }
 
 // TODO: return referenced callables
-std::vector <index_t> LinkageUnit::process_function(const Function &ftn)
+std::set <index_t> LinkageUnit::process_function(const Function &ftn)
 {
-	std::vector <index_t> referenced;
+	std::set <index_t> referenced;
 
 	// TODO: run validation here as well
 	index_t index = functions.size();
@@ -180,7 +180,7 @@ std::vector <index_t> LinkageUnit::process_function(const Function &ftn)
 		// Referenced callables
 		if (atom.is <Call> ()) {
 			auto &call = atom.as <Call> ();
-			referenced.push_back(call.cid);
+			referenced.insert(call.cid);
 		}
 
 		// Checking for structs used by the function
@@ -188,6 +188,9 @@ std::vector <index_t> LinkageUnit::process_function(const Function &ftn)
 		if (qt.is <StructFieldType> ())
 			process_function_aggregate(map, function, index, i, qt);
 	}
+	
+	// Mark the dependencies
+	dependencies[index] = referenced;
 
 	return referenced;
 }
@@ -441,6 +444,33 @@ void generate_function(std::string &result,
 	result += "}\n";
 }
 
+// Topological sorting functions by dependencies
+auto topological_sort(const std::map <index_t, std::set <index_t>> &dependencies)
+{
+	std::set <index_t> included;
+	std::deque <index_t> sorted;
+
+	std::deque <index_t> proc;
+	for (size_t i = 0; i < dependencies.size(); i++)
+		proc.push_back(i);
+
+	while (proc.size()) {
+		index_t i = proc.front();
+		proc.pop_front();
+
+		if (included.contains(i))
+			continue;
+
+		included.insert(i);
+		sorted.push_front(i);
+
+		for (auto j : dependencies.at(i))
+			proc.push_front(j);
+	}
+
+	return sorted;
+}
+
 // Primary generation routine
 std::string LinkageUnit::generate_glsl() const
 {
@@ -473,14 +503,19 @@ std::string LinkageUnit::generate_glsl() const
 	generat_samplers(result, globals.samplers);
 
 	// Generate each of the functions
-	for (size_t i = 0; i < functions.size(); i++) {
+	auto sorted = topological_sort(dependencies);
+
+	while (sorted.size()) {
+		index_t i = sorted.front();
+		sorted.pop_front();
+
 		auto &function = functions[i];
 		auto &generator = generators[i];
 			
 		// TODO: topologically sort the functions before synthesis
 		generate_function(result, generator, function);
 
-		if (i + 1 < functions.size())
+		if (sorted.size())
 			result += "\n";
 	}
 

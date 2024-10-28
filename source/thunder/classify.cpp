@@ -83,7 +83,14 @@ QualifiedType Buffer::classify(index_t i) const
 	}
 
 	case Atom::type_index <Call> ():
-		return classify(atom.as <Call> ().type);
+	{
+		auto &call = atom.as <Call> ();
+		auto &qt = types[call.type];
+		if (qt.is_primitive())
+			return qt;
+
+		return QualifiedType::concrete(call.type);
+	}
 	
 	case Atom::type_index <Operation> ():
 	{

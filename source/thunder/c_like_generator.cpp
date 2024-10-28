@@ -370,6 +370,7 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 		break;
 	}
 
+	dump();
 	JVL_ABORT("failed to resolve type name for {}", qt);
 }
 

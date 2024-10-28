@@ -12,6 +12,8 @@ struct optional {
 	promoted <T> data;
 public:
 	optional() : status(false) {}
+	optional(std::nullopt_t) : status(false) {}
+	optional(const T &value) : status(true), data(value) {}
 
 	auto has_value() {
 		return status;

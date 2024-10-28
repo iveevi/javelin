@@ -205,11 +205,56 @@ MaterialRenderGroup::MaterialRenderGroup(DeviceResourceCollection &drc)
 // Shaders
 using namespace jvl::ire;
 
+struct Ray {
+	vec3 d;
+	vec3 origin;
+
+	vec3 at(f32 t) const {
+		return origin + t * d;
+	}
+
+	auto layout() const {
+		return uniform_layout("Ray",
+			named_field(d),
+			named_field(origin));
+	}
+};
+
 struct ViewInfo {
 	f32 aspect;
 	f32 theta;
 	f32 phi;
 	f32 radius;
+
+	auto ray(vec2 uv) const {
+		static constexpr float fov = 45.0f;
+
+		float vfov = to_radians(fov);
+		float h = std::tan(vfov / 2);
+
+		f32 vheight = 2.0f * h;
+		f32 vwidth = vheight * aspect;
+
+		vec3 fwd;
+		fwd.x = sin(phi) * cos(theta);
+		fwd.y = cos(phi);
+		fwd.z = sin(phi) * sin(theta);
+
+		vec3 origin = -radius * fwd;
+
+		vec3 w = normalize(-fwd);
+		vec3 u = normalize(cross(vec3(0, 1, 0), w));
+		vec3 v = cross(w, u);
+
+		vec3 forward = vec3(w.x, w.y, w.z);
+		vec3 horizontal = vwidth * vec3(u.x, u.y, u.z);
+		vec3 vertical = vheight * vec3(v.x, v.y, v.z);
+		vec3 lower_left = origin - horizontal/2.0f - vertical/2.0f - forward;
+
+		vec3 direction = normalize(lower_left + uv.x * horizontal + (1.0f - uv.y) * vertical - origin);
+
+		return ::Ray(direction, origin);
+	}
 
 	auto layout() const {
 		return uniform_layout("ViewInfo",
@@ -219,7 +264,38 @@ struct ViewInfo {
 			named_field(radius));
 	}
 };
-		
+
+// TODO: as procedure
+auto direction_uv = procedure("direction_uv") << [](vec3 d)
+{
+	f32 u = atan(d.x, d.z) / (2.0f * pi <float>) + 0.5f;
+	f32 v = 0.5f + 0.5f * d.y;
+	return vec2(u, 1 - v);
+};
+
+auto ray_sphere = procedure <optional <f32>> ("ray_sphere") << [](::Ray ray)
+{
+	// Intersection with sphere of radius one centered at the origin
+	vec3 oc = ray.origin;
+	f32 a = dot(ray.d, ray.d);
+	f32 b = 2 * dot(oc, ray.d);
+	f32 c = dot(oc, oc) - 1;
+
+	f32 discriminant = b * b - 4 * a * c;
+	cond(discriminant < 0);
+		returns(optional <f32> (std::nullopt));
+	end();
+
+	f32 sd = sqrt(discriminant);
+
+	f32 t = (-b - sd)/(2 * a);
+	cond(b + sd > 0);
+		t = (-b + sd)/(2 * a);
+	end();
+
+	returns(optional <f32> (t));
+};
+
 auto bufferless_screen = procedure("main") << []()
 {
 	// TODO: global arrays... new constructor for forced initialization
@@ -303,44 +379,19 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 			layout_in <vec2> uv(0);
 			
 			layout_out <vec4> fragment(0);
-        
-			float vfov = to_radians(45.0f);
-			float h = std::tan(vfov / 2);
 
-			f32 vheight = 2.0f * h;
-			f32 vwidth = vheight * view.aspect;
-
-			vec3 fwd;
-			fwd.x = sin(view.phi) * cos(view.theta);
-			fwd.y = cos(view.phi);
-			fwd.z = sin(view.phi) * sin(view.theta);
-
-			vec3 origin = -view.radius * fwd;
-
-			vec3 w = normalize(-fwd);
-			vec3 u = normalize(cross(vec3(0, 1, 0), w));
-			vec3 v = cross(w, u);
-
-			vec3 forward = vec3(w.x, w.y, w.z);
-			vec3 horizontal = vwidth * vec3(u.x, u.y, u.z);
-			vec3 vertical = vheight * vec3(v.x, v.y, v.z);
-			vec3 lower_left = origin - horizontal/2.0f - vertical/2.0f - forward;
-
-			vec3 ray = normalize(lower_left + uv.x * horizontal + (1.0f - uv.y) * vertical - origin);
+			auto ray = view.ray(uv);
 
 			// Intersection with sphere of radius one centered at the origin
-			vec3 oc = origin;
-			f32 a = dot(ray, ray);
-			f32 b = 2 * dot(oc, ray);
+			vec3 oc = ray.origin;
+			f32 a = dot(ray.d, ray.d);
+			f32 b = 2 * dot(oc, ray.d);
 			f32 c = dot(oc, oc) - 1;
 
 			f32 discriminant = b * b - 4 * a * c;
 			cond(discriminant < 0);
 			{
-				f32 u = atan(ray.x, ray.z) / (2.0f * pi <float>) + 0.5f;
-				f32 v = 0.5f + 0.5f * ray.y;
-				vec2 uv = vec2(u, 1 - v);
-
+				vec2 uv = direction_uv(ray.d);
 				fragment = environment.sample(uv);
 				fragment.w = 1.0f;
 
@@ -355,14 +406,14 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 				t = (-b + sd)/(2 * a);
 			end();
 
-			vec3 point = origin + ray * t;
+			t = ray_sphere(ray).value();
+
+			vec3 point = ray.at(t);
 			vec3 normal = normalize(point);
 
 			// Compute UV coordinates
 			{
-				f32 u = atan(normal.x, normal.z) / (2.0f * pi <float>) + 0.5f;
-				f32 v = 0.5f + 0.5f * normal.y;
-				vec2 uv = vec2(u, v);
+				vec2 uv = direction_uv(normal);
 
 				if (albedo_sampler) {
 					fragment = albedo.sample(uv);

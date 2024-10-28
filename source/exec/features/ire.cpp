@@ -26,7 +26,6 @@ struct variant {};
 
 static_assert(aggregate <optional <f32>>);
 
-// TODO: need to fix nested structures...
 struct custom {
 	f32 x;
 	vec2 y;
