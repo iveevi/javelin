@@ -228,6 +228,7 @@ enum OperationCode : uint8_t {
 
 	modulus,
 
+	bool_not,
 	bool_or,
 	bool_and,
 
@@ -257,6 +258,7 @@ static constexpr const char *tbl_operation_code[] = {
 
 	"modulus",
 
+	"not",
 	"or",
 	"and",
 

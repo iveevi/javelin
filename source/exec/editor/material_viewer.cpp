@@ -382,37 +382,18 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 
 			auto ray = view.ray(uv);
 
-			// Intersection with sphere of radius one centered at the origin
-			vec3 oc = ray.origin;
-			f32 a = dot(ray.d, ray.d);
-			f32 b = 2 * dot(oc, ray.d);
-			f32 c = dot(oc, oc) - 1;
-
-			f32 discriminant = b * b - 4 * a * c;
-			cond(discriminant < 0);
+			optional <f32> t = ray_sphere(ray);
+			cond(!t.has_value());
 			{
 				vec2 uv = direction_uv(ray.d);
 				fragment = environment.sample(uv);
 				fragment.w = 1.0f;
-
-				returns();
 			}
-			end();
-
-			f32 sd = sqrt(discriminant);
-
-			f32 t = (-b - sd)/(2 * a);
-			cond(b + sd > 0);
-				t = (-b + sd)/(2 * a);
-			end();
-
-			t = ray_sphere(ray).value();
-
-			vec3 point = ray.at(t);
-			vec3 normal = normalize(point);
-
-			// Compute UV coordinates
+			elif();
 			{
+				vec3 point = ray.at(t.value());
+				vec3 normal = normalize(point);
+				
 				vec2 uv = direction_uv(normal);
 
 				if (albedo_sampler) {
@@ -422,10 +403,14 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 					fragment = vec4(0.5 + 0.5 * normal, 1);
 				}
 			}
+			end();
 		};
 
 		// TODO: push constants for sphere rotation
 		// TODO: uniform buffer for material parameters
+
+		fs.dump();
+		fmt::println("(^) full shader (albedo={})", albedo_sampler);
 
 		auto vertex_shader = link(bufferless_screen).generate_glsl();
 		auto fragment_shader = link(fs).generate_glsl();

@@ -8,9 +8,10 @@ namespace jvl::ire {
 // Optional types like std::optional
 template <generic T>
 struct optional {
+	// TODO: change to class
 	native_t <bool> status;
 	promoted <T> data;
-public:
+
 	optional() : status(false) {}
 	optional(std::nullopt_t) : status(false) {}
 	optional(const T &value) : status(true), data(value) {}

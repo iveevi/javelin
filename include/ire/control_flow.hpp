@@ -115,9 +115,9 @@ inline void returns(const T &value)
 {
 	auto &em = Emitter::active;
 	auto layout = value.layout();
-	cache_index_t args = layout.list();
+	thunder::index_t args = layout.reconstruct();
 	thunder::index_t type = type_field_from_args(layout).id;
-	thunder::index_t rv = em.emit_construct(type, args.id, thunder::normal);
+	thunder::index_t rv = em.emit_construct(type, args, thunder::normal);
 	em.emit_return(rv);
 }
 

@@ -15,7 +15,7 @@ inline thunder::index_t translate_primitive(bool b)
 
 	thunder::Primitive p;
 	p.type = thunder::boolean;
-	p.idata = b;
+	p.bdata = b;
 
 	return em.emit(p);
 }
@@ -77,23 +77,14 @@ struct native_t : tagged {
 
 	native_t(T v = T()) : value(v) {}
 
+	native_t(const cache_index_t &cit) : tagged(cit) {}
+
 	// Explicit conversion operations
+	// TODO: softed to allow float <-> int conversions
 	template <native U>
 	requires std::is_convertible_v <U, T>
 	explicit native_t(const native_t <U> &other) {
 		this->ref = other.ref;
-	}
-
-	native_t operator-() const {
-		auto &em = Emitter::active;
-
-		thunder::Operation neg;
-		neg.a = synthesize().id;
-		neg.code = thunder::OperationCode::unary_negation;
-
-		cache_index_t cit;
-		cit = em.emit(neg);
-		return cit;
 	}
 
 	native_t &operator=(const T &v) {
@@ -131,9 +122,13 @@ struct native_t : tagged {
 	///////////////////////////////////
 	// In place arithmetic operators //
 	///////////////////////////////////
+
+	native_t operator-() const {
+		return operation_from_args <native_t> (thunder::unary_negation, *this);
+	}
 	
 	native_t &operator+=(const native_t &a) {
-		// TODO: store instruction!
+		// TODO: store instruction?
 		*this = operation_from_args <native_t> (thunder::addition, (*this), a);
 		return *this;
 	}
@@ -264,6 +259,12 @@ struct native_t : tagged {
 	//////////////////////////
 
 	using bool_t = native_t <bool>;
+
+	// Unary negation
+	native_t operator!() const
+	requires std::is_same_v <T, bool> {
+		return operation_from_args <native_t> (thunder::bool_not, *this);
+	}
 
 	friend bool_t operator==(const native_t &a, const native_t &b) {
 		return operation_from_args <bool_t> (thunder::equals, a, b);

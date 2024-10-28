@@ -83,7 +83,7 @@ thunder::index_t list_from_args(const T &t, const Args &... args)
 
 	thunder::Construct ctor;
 	ctor.type = type_field_from_args(layout).id;
-	ctor.args = layout.list().id;
+	ctor.args = layout.reconstruct();
 
 	thunder::List l;
 	l.item = em.emit(ctor);
@@ -166,37 +166,36 @@ cache_index_t default_construct_index(const const_uniform_layout_t <Args...> &la
 	return cit;
 }
 
-template <typename ... Args>
-requires (sizeof...(Args) > 0)
-cache_index_t const_uniform_layout_t <Args...> ::list() const
-{
-	auto &em = Emitter::active;
+// template <typename ... Args>
+// requires (sizeof...(Args) > 0)
+// cache_index_t const_uniform_layout_t <Args...> ::list() const
+// {
+// 	auto &em = Emitter::active;
 
-	thunder::List end;
+// 	thunder::List end;
 
-	cache_index_t next = cache_index_t::null();
-	for (int i = fields.size() - 1; i >= 0; i--) {
-		layout_const_field f = fields[i];
+// 	cache_index_t next = cache_index_t::null();
+// 	for (int i = fields.size() - 1; i >= 0; i--) {
+// 		layout_const_field f = fields[i];
 
-		end.next = next.id;
-		if (!f.aggregate) {
-			const tagged *t = reinterpret_cast <const tagged *> (f.ptr);
+// 		end.next = next.id;
+// 		if (!f.aggregate) {
+// 			const tagged *t = reinterpret_cast <const tagged *> (f.ptr);
 
-			if (t->ref.id == -1)
-				end.item = default_construct_index(*this, i).id;
-			else
-				end.item = t->ref.id;
+// 			if (t->ref.id == -1)
+// 				end.item = default_construct_index(*this, i).id;
+// 			else
+// 				end.item = t->ref.id;
+// 		} else {
+// 			MODULE(const-uniform-layout-list);
 
-		} else {
-			MODULE(const-uniform-layout-list);
+// 			JVL_ABORT("nested aggregates are unsupported");
+// 		}
 
-			JVL_ABORT("nested aggregates are unsupported");
-		}
+// 		next = em.emit(end);
+// 	}
 
-		next = em.emit(end);
-	}
-
-	return next;
-}
+// 	return next;
+// }
 
 } // namespace jvl::ire

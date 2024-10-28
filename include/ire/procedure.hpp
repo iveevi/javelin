@@ -65,7 +65,7 @@ struct Procedure : thunder::TrackedBuffer {
 	R operator()(const Args &... args) {
 		auto &em = Emitter::active;
 
-		// If R is uniform compatible, then we need to bind its members...
+		// If R is an aggregate, we need to bind its members
 		if constexpr (aggregate <R>) {
 			R instance;
 

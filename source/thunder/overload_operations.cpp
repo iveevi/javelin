@@ -91,6 +91,7 @@ QualifiedType lookup_operation_overload(const OperationCode &key, const std::vec
 			overload::from(uvec4, uvec4, u32),
 		} },
 
+		{ bool_not, { overload::from(boolean, boolean) } },
 		{ bool_or, { overload::from(boolean, boolean, boolean) } },
 		{ bool_and, { overload::from(boolean, boolean, boolean) } },
 		

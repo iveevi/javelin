@@ -72,18 +72,35 @@ struct layout_const_field {
 	const void *ptr;
 };
 
+template <typename T, typename ... Args>
+thunder::index_t reconstruct(size_t i, const std::vector <layout_const_field> &fields)
+{
+	MODULE(reconstruct);
+
+	if (fields[i].aggregate)
+		JVL_ABORT("unfinished implementation for reconstructing aggregates");
+
+	thunder::List list;
+	list.item = reinterpret_cast <const T *> (fields[i].ptr)->synthesize().id;
+
+	if constexpr (sizeof...(Args))
+		list.next = reconstruct <Args...> (i + 1, fields);
+
+	return Emitter::active.emit(list);
+}
+
 template <typename ... Args>
 requires (sizeof...(Args) > 0)
 struct const_uniform_layout_t {
 	std::string name;
 	std::vector <layout_const_field> fields;
 
-	cache_index_t list() const;
+	// cache_index_t list() const;
 
 	auto remove_const() const {
 		uniform_layout_t <Args...> layout;
 		layout.name = name;
-		for (auto cf: fields) {
+		for (auto cf : fields) {
 			layout_field f;
 			f.aggregate = cf.aggregate;
 			f.ptr = const_cast <void *> (cf.ptr);
@@ -91,6 +108,11 @@ struct const_uniform_layout_t {
 		}
 
 		return layout;
+	}
+
+	// Explicit (re)construction of an aggregate type
+	thunder::index_t reconstruct() const {
+		return reconstruct <Args...> (0, fields);
 	}
 };
 

@@ -130,7 +130,9 @@ std::string generate_operation(OperationCode code, const std::string &a, const s
 
 	// Handle the special cases
 	if (code == unary_negation)
-		return fmt::format("-{}", a);
+		return fmt::format("-({})", a);
+	if (code == bool_not)
+		return fmt::format("!({})", a);
 
 	// Should be left with purely binary operations
 	JVL_ASSERT(operators.contains(code),
