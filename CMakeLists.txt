@@ -183,6 +183,24 @@ target_link_libraries(tsg-features
 target_compile_definitions(tsg-features PRIVATE
 	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
 
+# Experimental program for higher order functions
+add_executable(higher-features
+	source/exec/features/higher.cpp
+	thirdparty/glad/src/gl.c)
+
+set_property(TARGET higher-features PROPERTY ENABLE_EXPORTS ON)
+
+target_link_libraries(higher-features
+	glfw
+	fmt::fmt
+	javelin-ire
+	javelin-gfx
+	gccjit
+	${VULKAN_LIBRARY_SET})
+
+target_compile_definitions(higher-features PRIVATE
+	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
+
 # Experimental program for the JVL language
 add_executable(lang-features
 	source/exec/features/lang.cpp

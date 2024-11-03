@@ -370,11 +370,11 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 	if (!pipelines.contains(flags)) {
 		bool albedo_sampler = vulkan::enabled(flags, vulkan::MaterialFlags::eAlbedoSampler);
 
+		// TODO: deferred functions...
 		auto fs = procedure("main") << [albedo_sampler]() {
 			push_constant <ViewInfo> view;
 
 			sampler2D environment(B_ENVIRONMENT);
-			sampler2D albedo(B_ALBEDO);
 
 			layout_in <vec2> uv(0);
 			
@@ -383,6 +383,7 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 			auto ray = view.ray(uv);
 
 			optional <f32> t = ray_sphere(ray);
+
 			cond(!t.has_value());
 			{
 				vec2 uv = direction_uv(ray.d);
@@ -391,6 +392,9 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 			}
 			elif();
 			{
+				// TODO: the shading model can be deferred...
+				sampler2D albedo(B_ALBEDO);
+
 				vec3 point = ray.at(t.value());
 				vec3 normal = normalize(point);
 				
@@ -406,7 +410,6 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 			end();
 		};
 
-		// TODO: push constants for sphere rotation
 		// TODO: uniform buffer for material parameters
 
 		fs.dump();
