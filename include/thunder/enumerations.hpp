@@ -116,6 +116,7 @@ enum QualifierKind : int8_t {
 	glsl_intrinsic_gl_InstanceIndex,
 	glsl_intrinsic_gl_VertexID,
 	glsl_intrinsic_gl_VertexIndex,
+	glsl_intrinsic_gl_GlobalInvocationID,
 	
 	glsl_intrinsic_gl_Position,
 
@@ -164,6 +165,7 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"glsl:gl_InstanceIndex",
 	"glsl:gl_VertexID",
 	"glsl:gl_VertexIndex",
+	"glsl:gl_GlobalInvocationID",
 	
 	"glsl:gl_Position",
 
@@ -291,6 +293,9 @@ static_assert(__oc_end + 1 == sizeof(tbl_operation_code)/sizeof(const char *));
 enum IntrinsicOperation : uint16_t {
 	discard,
 
+	// Global status
+	set_local_size,
+
 	// Casting operations
 	cast_to_int,
 	cast_to_uint,
@@ -353,6 +358,8 @@ enum IntrinsicOperation : uint16_t {
 
 static constexpr const char *tbl_intrinsic_operation[] = {
 	"discard",
+
+	"local_size",
 
 	"int",
 	"uint",

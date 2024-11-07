@@ -64,6 +64,9 @@ static std::optional <std::string> generate_global_reference(const Qualifier &qu
 		return "gl_VertexID";
 	case glsl_intrinsic_gl_VertexIndex:
 		return "gl_VertexIndex";
+	case glsl_intrinsic_gl_GlobalInvocationID:
+		return "gl_GlobalInvocationID";
+
 	case glsl_intrinsic_gl_Position:
 		return "gl_Position";
 
@@ -424,6 +427,10 @@ void c_like_generator_t::generate(const Operation &operation, index_t index)
 template <>
 void c_like_generator_t::generate(const Intrinsic &intrinsic, index_t index)
 {
+	// Special cases
+	if (intrinsic.opn == thunder::set_local_size)
+		return;
+
 	// Keyword intrinsic
 	if (intrinsic.args == -1)
 		return finish(tbl_intrinsic_operation[intrinsic.opn]);

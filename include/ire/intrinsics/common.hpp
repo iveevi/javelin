@@ -4,6 +4,7 @@
 #include "../native.hpp"
 #include "../util.hpp"
 #include "../vector.hpp"
+#include "../arithmetic.hpp"
 
 namespace jvl::ire {
 
@@ -14,12 +15,12 @@ auto abs(const T &a)
 	return platform_intrinsic_from_args <result> (thunder::abs, a);
 }
 
-template <native T, typename U>
-requires std::is_convertible_v <U, native_t <T>>
-native_t <T> max(const native_t <T> &a, const U &b)
+template <arithmetic A, arithmetic B>
+requires overload_compatible <A, B>
+arithmetic_base <A> max(const A &a, const B &b)
 {
-	auto pb = native_t <T> (b);
-	return platform_intrinsic_from_args <native_t <T>> (thunder::max, a, pb);
+	using R = decltype(underlying(a));
+	return platform_intrinsic_from_args <R> (thunder::max, underlying(a), underlying(b));
 }
 
 template <native T>

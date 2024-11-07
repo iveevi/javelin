@@ -10,13 +10,13 @@
 namespace jvl::gfx::vulkan {
 
 struct InterleaveResult {
-	buffer <float> data;
+	std::vector <float> data;
 	VertexFlags enabled;
 };
 
 inline InterleaveResult interleave(const core::TriangleMesh &tmesh, VertexFlags flags)
 {
-	buffer <float> bf;
+	std::vector <float> bf;
 
 	size_t size = tmesh.positions.size();
 	

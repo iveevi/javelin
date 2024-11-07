@@ -183,10 +183,41 @@ std::set <index_t> LinkageUnit::process_function(const Function &ftn)
 			referenced.insert(call.cid);
 		}
 
+		// Checking for special intrinsics
+		if (atom.is <Intrinsic> ()) {
+			auto it = atom.as <Intrinsic> ();
+			if (it.opn == thunder::set_local_size) {
+				thunder::index_t args = it.args;
+
+				uint3 size = uint3(1, 1, 1);
+
+				int32_t j = 0;
+				while (args != -1 && j < 3) {
+					Atom local = function[args];
+
+					JVL_ASSERT_PLAIN(local.is <List> ());
+					auto list = local.as <List> ();
+					local = function[list.item];
+
+					JVL_ASSERT_PLAIN(local.is <Primitive> ());
+					auto value = local.as <Primitive> ();
+
+					JVL_ASSERT_PLAIN(value.type == u32);
+					size[j++] = value.udata;
+
+					args = list.next;
+				}
+
+				local_size = size;
+			}
+		}
+
 		// Checking for structs used by the function
 		auto qt = function.types[i];
 		if (qt.is <StructFieldType> ())
 			process_function_aggregate(map, function, index, i, qt);
+
+		// TODO: static initializers
 	}
 	
 	// Mark the dependencies
@@ -481,6 +512,18 @@ std::string LinkageUnit::generate_glsl() const
 
 	// Create the generators
 	auto generators = configure_generators();
+
+	// Special global states
+	if (local_size) {
+		result += fmt::format("layout ("
+			"local_size_x = {}, "
+			"local_size_y = {}, "
+			"local_size_z = {}) in;"
+			"\n\n",
+			local_size->x,
+			local_size->y,
+			local_size->z);
+	}
 
 	// Declare the aggregates used
 	generate_aggregates(result, generators, aggregates);

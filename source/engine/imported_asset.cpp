@@ -57,13 +57,13 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 	std::set <int32_t> referenced_materials;
 
 	for (size_t s = 0; s < shapes.size(); s++) {
-		buffer <float3> positions;
-		buffer <float3> normals;
-		buffer <float2> uvs;
+		std::vector <float3> positions;
+		std::vector <float3> normals;
+		std::vector <float2> uvs;
 
-		buffer <int3> triangles;
-		buffer <int4> quadrilaterals;
-		buffer <int> materials;
+		std::vector <int3> triangles;
+		std::vector <int4> quadrilaterals;
+		std::vector <int> materials;
 
 		std::unordered_map <float3, int32_t> position_map;
 		std::unordered_map <tinyobj::index_t, int32_t> index_map;

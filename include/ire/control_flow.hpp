@@ -121,4 +121,11 @@ inline void returns(const T &value)
 	em.emit_return(rv);
 }
 
+// Special control-flow related global states
+struct local_size {
+	local_size(uint32_t x = 1, uint32_t y = 1, uint32_t z = 1) {
+		ire::void_platform_intrinsic_from_args(thunder::set_local_size, u32(x), u32(y), u32(z));
+	}
+};
+
 } // namespace jvl::ire

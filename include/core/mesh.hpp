@@ -16,8 +16,8 @@ struct Mesh {
 	static constexpr char material_key[] = "material";
 
 	size_t vertex_count;
-	property <typed_buffer> vertex_properties;
-	property <typed_buffer> face_properties;
+	property <typed_vector> vertex_properties;
+	property <typed_vector> face_properties;
 };
 
 } // namespace jvl::core

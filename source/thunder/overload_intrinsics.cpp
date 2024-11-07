@@ -6,6 +6,13 @@ namespace jvl::thunder {
 QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std::vector <QualifiedType> &args)
 {
         static const overload_table <IntrinsicOperation> table {
+		// Global startus
+		{ set_local_size, {
+			overload::from(none, u32),
+			overload::from(none, u32, u32),
+			overload::from(none, u32, u32, u32),
+		} },
+
 		// Casting operations
 		{ cast_to_int, {
 			overload::from(i32, u32),

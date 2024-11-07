@@ -205,6 +205,52 @@ void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)
 	}
 }
 
+struct SimulationInfo {
+	vec3 O1;
+	vec3 O2;
+	f32 M;
+	f32 dt;
+
+	auto layout() const {
+		return uniform_layout("SimulationInfo",
+			named_field(O1),
+			named_field(O2),
+			named_field(M),
+			named_field(dt));
+	}
+};
+
+auto integrator()
+{
+	local_size group(32);
+
+	push_constant <SimulationInfo> info;
+	
+	buffer <array <vec3>> positions(0, -1);
+	buffer <array <vec3>> velocities(1, -1);
+
+	u32 tid = gl_GlobalInvocationID.x;
+
+	vec3 p = positions[tid];
+	vec3 v = velocities[tid];
+
+	vec3 d;
+	f32 l;
+
+	d = (p - info.O1);	
+	l = max(length(d), 1.0f);
+	v = v - info.dt * info.M * d / pow(l, 3.0f);
+	
+	d = (p - info.O2);	
+	l = max(length(d), 1.0f);
+	v = v - info.dt * info.M * d / pow(l, 3.0f);
+
+	p += info.dt * v;
+
+	velocities[tid] = v;
+	positions[tid] = p;
+}
+
 void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 {
 	ImGuiIO &io = ImGui::GetIO();
@@ -212,73 +258,6 @@ void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 
 	auto controller = reinterpret_cast <engine::CameraController *> (glfwGetWindowUserPointer(window));
 	controller->handle_cursor(float2(x, y));
-}
-
-void jitter(std::vector <aligned_float3> &particles,
-	    std::vector <aligned_float3> &velocities,
-	    float dt,
-	    float M)
-{
-	float t = glfwGetTime();
-
-	static float3 O1 = float3 { -5, 0, 0 };
-	static float3 V1 = float3 { -1, -2, 2 };
-	
-	static float3 O2 = float3 { 5, 0, 0 };
-	static float3 V2 = float3 { 1, 2, -2 };
-
-	float3 mid = 0.5f * (O1 + O2);
-	float R = 20.0f + length(O1 - O2);
-
-	omp_set_num_threads(omp_get_max_threads());
-	
-	std::random_device rd;
-	std::default_random_engine gen(rd());
-	std::uniform_real_distribution <float> unit(0.0f, 1.0f);
-	std::uniform_real_distribution <float> distribution(-1.0f, 1.0f);
-
-	#pragma omp parallel for
-	for (size_t i = 0; i < particles.size(); ++i) {
-		aligned_float3 &v = velocities[i];
-		aligned_float3 &p = particles[i];
-
-		{
-			float3 d = (p - O1);	
-			float l = fmax(1, length(d));
-			v = v - dt * M * d / powf(l, 3.0f);
-		}
-		
-		{
-			float3 d = (p - O2);	
-			float l = fmax(1, length(d));
-			v = v - dt * M * d / powf(l, 3.0f);
-		}
-
-		p += dt * v;
-
-		// Bounding
-		if (length(p - mid) > R) {
-			float theta = distribution(gen) * 2.0f * M_PI;
-			float phi = std::acos(distribution(gen));
-
-			float x = std::sin(phi) * std::cos(theta);
-			float y = std::sin(phi) * std::sin(theta);
-			float z = std::cos(phi);
-			float r = R * std::sqrt(unit(gen));
-
-			p = r * float3(x, y, z) + mid;
-		}
-	}
-
-	float3 D = (O1 - O2);
-	float L = length(D);
-	float3 A = M * M * D / powf(L, 3.0f);
-
-	V1 -= dt * A / M;
-	V2 += dt * A / M;
-
-	O1 += dt * V1;
-	O2 += dt * V2;
 }
 
 int main(int argc, char *argv[])
@@ -317,7 +296,7 @@ int main(int argc, char *argv[])
 	engine::configure_imgui(drc, render_pass);
 
 	// Generate random points for the point cloud
-	int N = 150'000;
+	int N = 100'000;
 
 	// TODO: solidify... (alignment issues)
 	std::vector <float3> points = generate_random_points(N, 10.0f);
@@ -367,6 +346,30 @@ int main(int argc, char *argv[])
 			vk::BufferUsageFlagBits::eStorageBuffer
 			| vk::BufferUsageFlagBits::eTransferDst);
 
+	auto tb_info = vk::DescriptorBufferInfo()
+		.setBuffer(tb.buffer)
+		.setOffset(0)
+		.setRange(sizeof(aligned_float3) * points.size());
+	
+	auto sb_info = vk::DescriptorBufferInfo()
+		.setBuffer(sb.buffer)
+		.setOffset(0)
+		.setRange(sizeof(aligned_float3) * points.size());
+
+	std::array <vk::WriteDescriptorSet, 2> writes;
+
+	writes[0] = vk::WriteDescriptorSet()
+		.setDescriptorCount(1)
+		.setDstBinding(0)
+		.setDescriptorType(vk::DescriptorType::eStorageBuffer)
+		.setBufferInfo(tb_info);
+	
+	writes[1] = vk::WriteDescriptorSet()
+		.setDescriptorCount(1)
+		.setDstBinding(1)
+		.setDescriptorType(vk::DescriptorType::eStorageBuffer)
+		.setBufferInfo(sb_info);
+
 	// Configure pipeline
 	auto pipeline = configure_pipeline(drc, render_pass, jet);
 
@@ -374,32 +377,35 @@ int main(int argc, char *argv[])
 		.allocate_descriptor_sets(pipeline.dsl.value())
 		.front();
 
-	auto tb_info = vk::DescriptorBufferInfo()
-		.setBuffer(tb.buffer)
-		.setOffset(0)
-		.setRange(sizeof(float4) * points.size());
+	writes[0].setDstSet(set);
+	writes[1].setDstSet(set);
+
+	drc.device.updateDescriptorSets(writes, {}, {});
 	
-	auto sb_info = vk::DescriptorBufferInfo()
-		.setBuffer(sb.buffer)
-		.setOffset(0)
-		.setRange(sizeof(float4) * points.size());
+	// Integration pipeline
+	auto cs = procedure("main") << integrator;
+	auto compute_shader = link(cs).generate_glsl();
 
-	std::array <vk::WriteDescriptorSet, 2> writes;
+	fmt::println("{}", compute_shader);
 
-	writes[0] = vk::WriteDescriptorSet()
-		.setDstSet(set)
-		.setDescriptorCount(1)
-		.setDstBinding(0)
-		.setDescriptorType(vk::DescriptorType::eStorageBuffer)
-		.setBufferInfo(tb_info);
+	auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
+		.source(compute_shader, vk::ShaderStageFlagBits::eCompute);
+
+	littlevk::Pipeline compute = littlevk::PipelineAssembler <littlevk::eCompute> (drc.device, drc.dal)
+		.with_shader_bundle(bundle)
+		.with_push_constant <SimulationInfo> (vk::ShaderStageFlagBits::eCompute)
+		.with_dsl_binding(0, vk::DescriptorType::eStorageBuffer,
+				  1, vk::ShaderStageFlagBits::eCompute)
+		.with_dsl_binding(1, vk::DescriptorType::eStorageBuffer,
+				  1, vk::ShaderStageFlagBits::eCompute);
 	
-	writes[1] = vk::WriteDescriptorSet()
-		.setDstSet(set)
-		.setDescriptorCount(1)
-		.setDstBinding(1)
-		.setDescriptorType(vk::DescriptorType::eStorageBuffer)
-		.setBufferInfo(sb_info);
-
+	vk::DescriptorSet compute_set = littlevk::bind(drc.device, drc.descriptor_pool)
+		.allocate_descriptor_sets(compute.dsl.value())
+		.front();
+	
+	writes[0].setDstSet(compute_set);
+	writes[1].setDstSet(compute_set);
+	
 	drc.device.updateDescriptorSets(writes, {}, {});
 
 	// Framebuffer manager
@@ -429,6 +435,7 @@ int main(int argc, char *argv[])
 	std::string cmap = "jet";
 	float dt = 0.02f;
 	float mass = 500.0f;
+	bool pause = false;
 
 	// Handling camera events
 	engine::CameraController controller {
@@ -443,10 +450,27 @@ int main(int argc, char *argv[])
 	// Handling window resizing
 	auto resizer = [&]() { framebuffers.resize(drc, render_pass); };
 
+	// Gravity points
+	static float3 O1 = float3 { -5, 0, 0 };
+	static float3 V1 = float3 { -1, -2, 2 };
+	
+	static float3 O2 = float3 { 5, 0, 0 };
+	static float3 V2 = float3 { 1, 2, -2 };
+
 	// Main loop
 	auto &window = drc.window;
 	while (!window.should_close()) {
 		window.poll();
+
+		static bool down = false;
+		if (window.key_pressed(GLFW_KEY_SPACE)) {
+			if (!down) {
+				pause = !pause;
+				down = true;
+			}
+		} else {
+			down = false;
+		}
 
 		controller.handle_movement(drc.window);
 
@@ -488,15 +512,22 @@ int main(int argc, char *argv[])
 		float smin = 1e10f;
 		float smax = 0;
 
+		littlevk::download(drc.device, sb, velocities);
+
 		for (const auto &v : velocities) {
 			float s = length(v);
 			smin = std::min(smin, s);
 			smax = std::max(smax, s);
 		}
 
+		if (fabs(smax - smin) < 1e-3f) {
+			smax += 1e-3f;
+			smin -= 1e-3f;
+		}
+
 		view_info.get <2> () = smin;
 		view_info.get <3> () = smax;
-
+		
 		// Render each point as a sphere
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.handle);
 
@@ -516,7 +547,10 @@ int main(int argc, char *argv[])
 		{
 			engine::ImGuiRenderContext context(cmd);
 
-			ImGui::Begin("Configure Simulation");
+			ImGui::Begin("Simulation Info");
+
+			ImGui::Separator();
+			ImGui::Text("Framerate: %3.2f", ImGui::GetIO().Framerate);
 
 			static const std::map <std::string, vec3 (*)(f32)> maps {
 				{ "cividis",	cividis  },
@@ -549,13 +583,43 @@ int main(int argc, char *argv[])
 		}
 
 		cmd.endRenderPass();
+
+		// Integration pass
+		if (!pause) {
+			solid_t <SimulationInfo> info;
+			info.get <0> () = O1;
+			info.get <1> () = O2;
+			info.get <2> () = mass;
+			info.get <3> () = dt;
+
+			cmd.bindPipeline(vk::PipelineBindPoint::eCompute, compute.handle);
+
+			cmd.pushConstants <solid_t <SimulationInfo>> (compute.layout,
+				vk::ShaderStageFlagBits::eCompute,
+				0, info);
+
+			cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
+				compute.layout,
+				0, compute_set, {});
+
+			cmd.dispatch((N + 31) / 32, 1, 1);
+		}
+
 		cmd.end();
 
-		// Randomly jittering particles
-		jitter(particles, velocities, dt, mass);
+		// Update primary particles
+		float3 mid = 0.5f * (O1 + O2);
+		float R = 20.0f + length(O1 - O2);
 
-		littlevk::upload(drc.device, tb, particles);
-		littlevk::upload(drc.device, sb, velocities);
+		float3 D = (O1 - O2);
+		float L = length(D);
+		float3 A = mass * mass * D / powf(L, 3.0f);
+
+		V1 -= dt * A / mass;
+		V2 += dt * A / mass;
+
+		O1 += dt * V1;
+		O2 += dt * V2;
 	
 		// Submit command buffer while signaling the semaphore
 		vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;

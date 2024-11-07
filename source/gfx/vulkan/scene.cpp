@@ -13,7 +13,7 @@ Scene Scene::from(core::DeviceResourceCollection &drc, const cpu::Scene &other, 
 		int64_t original = other.mesh_to_object[m];
 
 		if (flags == SceneFlags::eOneMaterialPerMesh && m.material_usage.size() > 1) {
-			std::map <int, buffer <int3>> triangles;
+			std::map <int, std::vector <int3>> triangles;
 
 			// TODO: put in the same device memory, but different ranges...
 			size_t size = m.triangles.size();
@@ -21,10 +21,6 @@ Scene Scene::from(core::DeviceResourceCollection &drc, const cpu::Scene &other, 
 				int mid = m.materials[i];
 				triangles[mid].push_back(m.triangles[i]);
 			}
-
-			// fmt::println("# of triangles for each material...");
-			// for (auto &[mid, tris] : triangles)
-			// 	fmt::println("  {} -> {}", mid, tris.size());
 
 			std::vector <core::TriangleMesh> split;
 			for (auto &[mid, tris] : triangles) {

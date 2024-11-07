@@ -1,7 +1,6 @@
 #include <array>
 #include <cassert>
 #include <fstream>
-#include <unordered_map>
 
 #include <fmt/printf.h>
 
@@ -44,7 +43,7 @@ void Scene::add(const engine::ImportedAsset &asset)
 
 		auto &mids = geometry.face_properties
 			.at(Mesh::material_key)
-			.as <buffer <int>> ();
+			.as <std::vector <int32_t>> ();
 
 		// Find the unique materials
 		std::set <int> ref;
@@ -116,30 +115,31 @@ void write_string(std::ofstream &fout, const std::string &s)
 }
 
 template <typename T>
-void write_buffer(std::ofstream &fout, const buffer <T> &buf)
+void write_buffer(std::ofstream &fout, const std::vector <T> &buf)
 {
 	write_int(fout, buf.size());
 	fout.write((char *) buf.data(), buf.size() * sizeof(T));
 }
 
-void write_typed_buffer(std::ofstream &fout, const typed_buffer &buf)
+void write_typed_buffer(std::ofstream &fout, const typed_vector &buf)
 {
 	write_int(fout, buf.index());
-	if (auto ib = buf.get <buffer <int>> ())
+	// TODO: visitor pattern...
+	if (auto ib = buf.get <std::vector <int>> ())
 		return write_buffer(fout, ib.value());
-	else if (auto ib2 = buf.get <buffer <int2>> ())
+	else if (auto ib2 = buf.get <std::vector <int2>> ())
 		return write_buffer(fout, ib2.value());
-	else if (auto ib3 = buf.get <buffer <int3>> ())
+	else if (auto ib3 = buf.get <std::vector <int3>> ())
 		return write_buffer(fout, ib3.value());
-	else if (auto ib4 = buf.get <buffer <int4>> ())
+	else if (auto ib4 = buf.get <std::vector <int4>> ())
 		return write_buffer(fout, ib4.value());
-	else if (auto fb = buf.get <buffer <float>> ())
+	else if (auto fb = buf.get <std::vector <float>> ())
 		return write_buffer(fout, fb.value());
-	else if (auto fb2 = buf.get <buffer <float2>> ())
+	else if (auto fb2 = buf.get <std::vector <float2>> ())
 		return write_buffer(fout, fb2.value());
-	else if (auto fb3 = buf.get <buffer <float3>> ())
+	else if (auto fb3 = buf.get <std::vector <float3>> ())
 		return write_buffer(fout, fb3.value());
-	else if (auto fb4 = buf.get <buffer <float4>> ())
+	else if (auto fb4 = buf.get <std::vector <float4>> ())
 		return write_buffer(fout, fb4.value());
 	else
 		abort();

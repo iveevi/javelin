@@ -7,6 +7,7 @@
 
 #include "buffer.hpp"
 #include "tracked_buffer.hpp"
+#include "../math_types.hpp"
 
 namespace jvl::thunder {
 
@@ -45,6 +46,8 @@ struct push_constant_info : local_layout_type {
 
 struct LinkageUnit {
 	// TODO: dirty flag for caching
+	std::optional <uint3> local_size;
+
 	std::set <index_t> loaded;
 	std::vector <Function> functions;
 	std::vector <Aggregate> aggregates;

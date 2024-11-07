@@ -9,28 +9,24 @@
 
 namespace jvl {
 
-// Alias for vectors
-template <typename T>
-using buffer = std::vector <T>;
-
 // General key-value structure
 template <typename T>
 using property = jvl::wrapped::tree <std::string, T>;
 
 // General buffer structures
-using typed_buffer = jvl::wrapped::variant <
-	buffer <float4>,
-	buffer <float3>,
-	buffer <float2>,
-	buffer <float>,
-	buffer <int3>,
-	buffer <int2>,
-	buffer <int4>,
-	buffer <int>
+using typed_vector = jvl::wrapped::variant <
+	std::vector <float4>,
+	std::vector <float3>,
+	std::vector <float2>,
+	std::vector <float>,
+	std::vector <int3>,
+	std::vector <int2>,
+	std::vector <int4>,
+	std::vector <int>
 >;
 
 // Size of buffers
-inline size_t typed_buffer_size(const typed_buffer &buffer)
+inline size_t typed_buffer_size(const typed_vector &buffer)
 {
 	auto ftn = [](auto b) { return b.size(); };
 	return std::visit(ftn, buffer);

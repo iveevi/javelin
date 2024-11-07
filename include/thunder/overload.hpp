@@ -64,10 +64,6 @@ struct overload_table : public wrapped::hash_table <T, overload_list> {
 		
 		auto &overloads = this->at(key);
 		for (auto &ovl : overloads) {
-			// JVL_DEBUG_INFO("\tcomparing {} with overload {}",
-			// 	overload::type_decls_to_string(args),
-			// 	overload::type_decls_to_string(ovl.args));
-
 			if (ovl.args.size() != args.size())
 				continue;
 
