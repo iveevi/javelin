@@ -493,9 +493,9 @@ inline matrix<T, 4, 4> translate_to_mat4(const vector<T, 3> &v)
 {
 	matrix<T, 4, 4> ret = matrix<T, 4, 4>::identity();
 
-	ret[0][3] = v.x;
-	ret[1][3] = v.y;
-	ret[2][3] = v.z;
+	ret[3][0] = v.x;
+	ret[3][1] = v.y;
+	ret[3][2] = v.z;
 
 	return ret;
 }

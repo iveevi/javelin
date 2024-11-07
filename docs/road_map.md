@@ -40,12 +40,17 @@
 
 ## Editor
 
-- [x] Visualization for surface normals
-- [x] Visualization for surface texture coordinates
-- [x] Visualization for depth
-- [x] Visualization for individual triangles
-- [x] Visualization for textured and untextured albedo
-- [ ] Visualization for object roughness
+- [ ] Visualization of various scene properties
+	- [x] Surface normals, geometric and interpolated
+	- [x] Texture coordinates
+	- [x] Depth from the camera
+	- [x] Individual triangles of meshes
+	- [x] Individual objects in the scene
+	- [x] Textured and untextured albedo
+	- [ ] Object roughness
+- [x] Host profiler statistics
+- [ ] Device profiler statistics
+	- [ ] Overdraw counter
 
 ## Engine
 
@@ -59,3 +64,5 @@
 - [ ] Specialized glyph rendering through runtime shader generation
 	- Parallelized version as well, compiling multiple shaders at the same time
 - [ ] Barnes-Hutt simulation for N-body particle simulation
+- [ ] Simple raytracing pipeline
+- [ ] Ray query pipeline with hybrid rasterization
