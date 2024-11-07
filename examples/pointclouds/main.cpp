@@ -17,6 +17,7 @@
 #include <gfx/vulkan/scene.hpp>
 #include <ire/core.hpp>
 
+#include "cmaps.hpp"
 #include "common/extensions.hpp"
 #include "common/default_framebuffer_set.hpp"
 
@@ -112,81 +113,7 @@ void vertex()
 	out_range = vec2(view_info.smin, view_info.smax);
 }
 
-vec3 viridis(f32 t)
-{
-	t = clamp(t, 0.0, 1.0);
-
-	f32 r = 0.27727 + 0.4435 * t + 0.25413 * t * t;
-	f32 g = 0.01564 + 0.8934 * t - 0.1115 * t * t;
-	f32 b = 0.34527 - 0.5297 * t + 0.2344 * t * t;
-
-	return vec3(r, g, b);	
-}
-
-vec3 coolwarm(f32 t)
-{
-	const vec3 blue = vec3(0.230, 0.299, 0.754);
-	const vec3 red = vec3(0.706, 0.016, 0.150);
-	return mix(blue, red, t);
-}
-
-vec3 plasma(f32 t)
-{
-	array <vec3> colors = std::array <vec3, 5> {
-		vec3(0.050383, 0.029803, 0.527975),
-		vec3(0.243113, 0.157851, 0.580158),
-		vec3(0.604854, 0.298763, 0.539024),
-		vec3(0.901807, 0.455796, 0.313098),
-		vec3(0.986893, 0.998364, 0.644924),
-	};
-
-	t = clamp(t, 0.0, 1.0);
-	f32 x = t * (colors.length - 1);
-	i32 idx = i32(x);
-	f32 f = fract(x);
-
-	return mix(colors[idx], colors[idx + 1], f);
-}
-
-vec3 magma(f32 t)
-{
-	array <vec3> colors = std::array <vec3, 6> {
-		vec3(0.001462, 0.000466, 0.013866),
-		vec3(0.189952, 0.072838, 0.364543),
-		vec3(0.488034, 0.117846, 0.520837),
-		vec3(0.798216, 0.280197, 0.469538),
-		vec3(0.986888, 0.518867, 0.319809),
-		vec3(0.987053, 0.998364, 0.644924),
-	};
-
-	t = clamp(t, 0.0, 1.0);
-	f32 x = t * (colors.length - 1);
-	i32 idx = i32(x);
-	f32 f = fract(x);
-
-	return mix(colors[idx], colors[idx + 1], f);
-}
-
-vec3 inferno(f32 t)
-{
-	array <vec3> colors = std::array <vec3, 6> {
-		vec3(0.001462, 0.000466, 0.013866),
-		vec3(0.134692, 0.038125, 0.286266),
-		vec3(0.432299, 0.088325, 0.544931),
-		vec3(0.779289, 0.198144, 0.579307),
-		vec3(0.995236, 0.418828, 0.407278),
-		vec3(0.988362, 0.998364, 0.644924),
-	};
-
-	t = clamp(t, 0.0, 1.0);
-	f32 x = t * (colors.length - 1);
-	i32 idx = i32(x);
-	f32 f = fract(x);
-
-	return mix(colors[idx], colors[idx + 1], f);
-}
-
-void fragment()
+void fragment(vec3 (*cmap)(f32))
 {
 	layout_in <vec3> position(0);
 	layout_in <f32> speed(1);
@@ -196,7 +123,7 @@ void fragment()
 
 	f32 t = (speed - range.x) / (range.y - range.x);
 
-	fragment = vec4(magma(t), 1.0f);
+	fragment = vec4(cmap(t), 1.0f);
 }
 
 // Function to generate random points and use them as positions for spheres
@@ -225,12 +152,13 @@ std::vector <float3> generate_random_points(int N, float spread)
 
 // Pipeline configuration for rendering spheres
 littlevk::Pipeline configure_pipeline(core::DeviceResourceCollection &drc,
-				      const vk::RenderPass &render_pass)
+				      const vk::RenderPass &render_pass,
+				      auto cmap)
 {
 	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
 
 	auto vs_callable = procedure("main") << vertex;
-	auto fs_callable = procedure("main") << fragment;
+	auto fs_callable = procedure("main") << std::make_tuple(cmap) << fragment;
 
 	std::string vertex_shader = link(vs_callable).generate_glsl();
 	std::string fragment_shader = link(fs_callable).generate_glsl();
@@ -287,35 +215,27 @@ void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 }
 
 void jitter(std::vector <aligned_float3> &particles,
-	    std::vector <aligned_float3> &velocities)
+	    std::vector <aligned_float3> &velocities,
+	    float dt,
+	    float M)
 {
-	static constexpr float dt = 0.05f;
-
 	float t = glfwGetTime();
 
-	static float M1 = 100.0f;
-	static float3 O1 = float3 { -5, 0, 0 };
-	static float3 V1 = float3 { 1, -2, 1 };
+	static float3 O1 = float3 { -10, 0, 0 };
+	static float3 V1 = float3 { -1, -2, 2 };
 	
-	static float M2 = 100.0f;
-	static float3 O2 = float3 { 5, 0, 0 };
-	static float3 V2 = float3 { 0, 1, -1 };
+	static float3 O2 = float3 { 10, 0, 0 };
+	static float3 V2 = float3 { 1, 2, -2 };
 
-	float pad = 10.0f;
-
-	float3 bmin;
-	float3 bmax;
-
-	bmin.x = std::min(O1.x, O2.x) - pad;
-	bmax.x = std::max(O1.x, O2.x) + pad;
-	
-	bmin.y = std::min(O1.y, O2.y) - pad;
-	bmax.y = std::max(O1.y, O2.y) + pad;
-	
-	bmin.z = std::min(O1.z, O2.z) - pad;
-	bmax.z = std::max(O1.z, O2.z) + pad;
+	float3 mid = 0.5f * (O1 + O2);
+	float R = 20.0f + length(O1 - O2);
 
 	omp_set_num_threads(omp_get_max_threads());
+	
+	std::random_device rd;
+	std::default_random_engine gen(rd());
+	std::uniform_real_distribution <float> unit(0.0f, 1.0f);
+	std::uniform_real_distribution <float> distribution(-1.0f, 1.0f);
 
 	#pragma omp parallel for
 	for (size_t i = 0; i < particles.size(); ++i) {
@@ -325,31 +245,37 @@ void jitter(std::vector <aligned_float3> &particles,
 		{
 			float3 d = (p - O1);	
 			float l = fmax(1, length(d));
-			v = v - dt * M1 * d / powf(l, 3.0f);
+			v = v - dt * M * d / powf(l, 3.0f);
 		}
 		
 		{
 			float3 d = (p - O2);	
 			float l = fmax(1, length(d));
-			v = v - dt * M2 * d / powf(l, 3.0f);
+			v = v - dt * M * d / powf(l, 3.0f);
 		}
 
 		p += dt * v;
 
-		// Re-bounding
-		#pragma omp unroll full
-		for (size_t i = 0; i < 3; i++) {
-			if ((p[i] < bmin[i] || p[i] > bmax[i]) && p[i] * v[i] > 0)
-				v[i] = 0;
+		// Bounding
+		if (length(p - mid) > R) {
+			float theta = distribution(gen) * 2.0f * M_PI;
+			float phi = std::acos(distribution(gen));
+
+			float x = std::sin(phi) * std::cos(theta);
+			float y = std::sin(phi) * std::sin(theta);
+			float z = std::cos(phi);
+			float r = R * std::sqrt(unit(gen));
+
+			p = r * float3(x, y, z) + mid;
 		}
 	}
 
 	float3 D = (O1 - O2);
 	float L = length(D);
-	float3 A = M1 * M2 * D / powf(L, 3.0f);
+	float3 A = M * M * D / powf(L, 3.0f);
 
-	V1 -= dt * A / M1;
-	V2 += dt * A / M2;
+	V1 -= dt * A / M;
+	V2 += dt * A / M;
 
 	O1 += dt * V1;
 	O2 += dt * V2;
@@ -404,7 +330,7 @@ int main(int argc, char *argv[])
 	for (auto p : points) {
 		particles.push_back(p);
 
-		std::uniform_real_distribution<float> distribution(-1.0f, 1.0f);
+		std::uniform_real_distribution <float> distribution(-1.0f, 1.0f);
 
 		float theta = distribution(gen) * 2.0f * M_PI;
 		float phi = std::acos(distribution(gen));
@@ -442,7 +368,7 @@ int main(int argc, char *argv[])
 			| vk::BufferUsageFlagBits::eTransferDst);
 
 	// Configure pipeline
-	auto pipeline = configure_pipeline(drc, render_pass);
+	auto pipeline = configure_pipeline(drc, render_pass, viridis);
 
 	vk::DescriptorSet set = littlevk::bind(drc.device, drc.descriptor_pool)
 		.allocate_descriptor_sets(pipeline.dsl.value())
@@ -498,6 +424,11 @@ int main(int argc, char *argv[])
 	// Synchronization information
 	auto frame = 0u;
 	auto sync = littlevk::present_syncronization(drc.device, 2).unwrap(drc.dal);
+
+	// Simulation
+	std::string cmap = "viridis";
+	float dt = 0.02f;
+	float mass = 500.0f;
 
 	// Handling camera events
 	engine::CameraController controller {
@@ -581,17 +512,47 @@ int main(int argc, char *argv[])
 		cmd.bindIndexBuffer(ib.buffer, 0, vk::IndexType::eUint32);
 		cmd.drawIndexed(3 * sphere.triangles.size(), N, 0, 0, 0);
 
+		// ImGui
+		{
+			engine::ImGuiRenderContext context(cmd);
+
+			ImGui::Begin("Configure Simulation");
+
+			static const std::map <std::string, vec3 (*)(f32)> maps {
+				{ "cividis",	cividis  },
+				{ "coolwarm",	coolwarm },
+				{ "inferno",	inferno  },
+				{ "jet",	jet      },
+				{ "magma",	magma    },
+				{ "parula",	parula   },
+				{ "plasma",	plasma	 },
+				{ "spectral",	spectral },
+				{ "turbo",	turbo    },
+				{ "viridis",	viridis  },
+			};
+
+			if (ImGui::BeginCombo("Color Map", cmap.c_str())) {
+				for (auto &[k, m] : maps) {
+					if (ImGui::Selectable(k.c_str(), k == cmap)) {
+						pipeline = configure_pipeline(drc, render_pass, m);
+						cmap = k;
+					}
+				}
+
+				ImGui::EndCombo();
+			}
+
+			ImGui::SliderFloat("Time Step", &dt, 0.01, 0.1);
+			ImGui::SliderFloat("Planetary Mass", &mass, 100, 1000);
+
+			ImGui::End();
+		}
+
 		cmd.endRenderPass();
 		cmd.end();
 
 		// Randomly jittering particles
-		static constexpr float spread = 0.05f;
-
-		thread_local std::random_device rd;
-		thread_local std::mt19937 gen(rd());
-		thread_local std::uniform_real_distribution <float> dis(-spread, spread);
-
-		jitter(particles, velocities);
+		jitter(particles, velocities, dt, mass);
 
 		littlevk::upload(drc.device, tb, particles);
 		littlevk::upload(drc.device, sb, velocities);
