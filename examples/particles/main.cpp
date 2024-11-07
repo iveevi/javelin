@@ -221,10 +221,10 @@ void jitter(std::vector <aligned_float3> &particles,
 {
 	float t = glfwGetTime();
 
-	static float3 O1 = float3 { -10, 0, 0 };
+	static float3 O1 = float3 { -5, 0, 0 };
 	static float3 V1 = float3 { -1, -2, 2 };
 	
-	static float3 O2 = float3 { 10, 0, 0 };
+	static float3 O2 = float3 { 5, 0, 0 };
 	static float3 V2 = float3 { 1, 2, -2 };
 
 	float3 mid = 0.5f * (O1 + O2);
