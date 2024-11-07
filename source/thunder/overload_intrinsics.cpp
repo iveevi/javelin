@@ -6,6 +6,12 @@ namespace jvl::thunder {
 QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std::vector <QualifiedType> &args)
 {
         static const overload_table <IntrinsicOperation> table {
+		// Casting operations
+		{ cast_to_int, {
+			overload::from(i32, u32),
+			overload::from(i32, f32),
+		} },
+
 		// Trigonometric functions
                 { sin, { overload::from(f32, f32) } },
                 { cos, { overload::from(f32, f32) } },
@@ -66,6 +72,12 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
                 } },
 
 		// Vector operations
+		{ length, {
+			overload::from(f32, vec2),
+			overload::from(f32, vec3),
+			overload::from(f32, vec4),
+		} },
+
                 { dot, {
                         overload::from(i32, ivec2, ivec2),
                         overload::from(i32, ivec3, ivec3),

@@ -82,10 +82,31 @@ struct vector_base <T, 4> {
 template <typename T, size_t N>
 struct vector : vector_base <T, N> {
 	using vector_base <T, N> ::vector_base;
-
+	
 	vector &operator+=(const vector &A) {
 		for (size_t i = 0; i < N; i++)
 			this->data[i] += A[i];
+
+		return *this;
+	}
+
+	vector &operator-=(const vector &A) {
+		for (size_t i = 0; i < N; i++)
+			this->data[i] -= A[i];
+
+		return *this;
+	}
+
+	vector &operator*=(const vector &A) {
+		for (size_t i = 0; i < N; i++)
+			this->data[i] *= A[i];
+
+		return *this;
+	}
+
+	vector &operator/=(const vector &A) {
+		for (size_t i = 0; i < N; i++)
+			this->data[i] /= A[i];
 
 		return *this;
 	}

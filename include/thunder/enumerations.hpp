@@ -291,6 +291,11 @@ static_assert(__oc_end + 1 == sizeof(tbl_operation_code)/sizeof(const char *));
 enum IntrinsicOperation : uint16_t {
 	discard,
 
+	// Casting operations
+	cast_to_int,
+	cast_to_uint,
+	cast_to_float,
+
 	// Trigonometric functions
 	sin,
 	cos,
@@ -317,6 +322,7 @@ enum IntrinsicOperation : uint16_t {
 	ceil,
 
 	// Vector operations
+	length,
 	dot,
 	cross,
 	normalize,
@@ -348,6 +354,10 @@ enum IntrinsicOperation : uint16_t {
 static constexpr const char *tbl_intrinsic_operation[] = {
 	"discard",
 
+	"int",
+	"uint",
+	"float",
+
 	"sin",
 	"cos",
 	"tan",
@@ -369,6 +379,7 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"floor",
 	"ceil",
 
+	"length",
 	"dot",
 	"cross",
 	"normalize",

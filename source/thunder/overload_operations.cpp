@@ -10,6 +10,9 @@ QualifiedType lookup_operation_overload(const OperationCode &key, const std::vec
 		overload::from(u32, u32, u32),
 		overload::from(f32, f32, f32),
 		
+		overload::from(f32, f32, i32),
+		overload::from(f32, i32, f32),
+		
 		overload::from(ivec2, ivec2, ivec2),
 		overload::from(ivec3, ivec3, ivec3),
 		overload::from(ivec4, ivec4, ivec4),

@@ -32,12 +32,16 @@ VULKAN_EXTENSIONS(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 struct ViewInfo {
 	mat4 view;
 	mat4 proj;
+	f32 smin;
+	f32 smax;
 
 	auto layout() const {
 		return uniform_layout(
 			"ViewInfo",
 			named_field(view),
-			named_field(proj));
+			named_field(proj),
+			named_field(smin),
+			named_field(smax));
 	}
 };
 
@@ -88,37 +92,133 @@ struct Sphere {
 void vertex()
 {
 	layout_in <vec3> position(0);
-	layout_out <vec3> out_position(0);
 
-	read_only_buffer <array <vec3>> translations(0, 4);
+	layout_out <vec3> out_position(0);
+	layout_out <f32> out_speed(1);
+	layout_out <vec2> out_range(2);
+
+	read_only_buffer <array <vec3>> translations(0, -1);
+	read_only_buffer <array <vec3>> velocities(1, -1);
 	
 	push_constant <ViewInfo> view_info;
 
 	vec3 translate = translations[gl_InstanceIndex];
+	vec3 velocity = velocities[gl_InstanceIndex];
+	
 	gl_Position = project_vertex(view_info, translate, position);
+
 	out_position = position;
+	out_speed = length(velocity);
+	out_range = vec2(view_info.smin, view_info.smax);
+}
+
+vec3 viridis(f32 t)
+{
+	t = clamp(t, 0.0, 1.0);
+
+	f32 r = 0.27727 + 0.4435 * t + 0.25413 * t * t;
+	f32 g = 0.01564 + 0.8934 * t - 0.1115 * t * t;
+	f32 b = 0.34527 - 0.5297 * t + 0.2344 * t * t;
+
+	return vec3(r, g, b);	
+}
+
+vec3 coolwarm(f32 t)
+{
+	const vec3 blue = vec3(0.230, 0.299, 0.754);
+	const vec3 red = vec3(0.706, 0.016, 0.150);
+	return mix(blue, red, t);
+}
+
+vec3 plasma(f32 t)
+{
+	array <vec3> colors = std::array <vec3, 5> {
+		vec3(0.050383, 0.029803, 0.527975),
+		vec3(0.243113, 0.157851, 0.580158),
+		vec3(0.604854, 0.298763, 0.539024),
+		vec3(0.901807, 0.455796, 0.313098),
+		vec3(0.986893, 0.998364, 0.644924),
+	};
+
+	t = clamp(t, 0.0, 1.0);
+	f32 x = t * (colors.length - 1);
+	i32 idx = i32(x);
+	f32 f = fract(x);
+
+	return mix(colors[idx], colors[idx + 1], f);
+}
+
+vec3 magma(f32 t)
+{
+	array <vec3> colors = std::array <vec3, 6> {
+		vec3(0.001462, 0.000466, 0.013866),
+		vec3(0.189952, 0.072838, 0.364543),
+		vec3(0.488034, 0.117846, 0.520837),
+		vec3(0.798216, 0.280197, 0.469538),
+		vec3(0.986888, 0.518867, 0.319809),
+		vec3(0.987053, 0.998364, 0.644924),
+	};
+
+	t = clamp(t, 0.0, 1.0);
+	f32 x = t * (colors.length - 1);
+	i32 idx = i32(x);
+	f32 f = fract(x);
+
+	return mix(colors[idx], colors[idx + 1], f);
+}
+
+vec3 inferno(f32 t)
+{
+	array <vec3> colors = std::array <vec3, 6> {
+		vec3(0.001462, 0.000466, 0.013866),
+		vec3(0.134692, 0.038125, 0.286266),
+		vec3(0.432299, 0.088325, 0.544931),
+		vec3(0.779289, 0.198144, 0.579307),
+		vec3(0.995236, 0.418828, 0.407278),
+		vec3(0.988362, 0.998364, 0.644924),
+	};
+
+	t = clamp(t, 0.0, 1.0);
+	f32 x = t * (colors.length - 1);
+	i32 idx = i32(x);
+	f32 f = fract(x);
+
+	return mix(colors[idx], colors[idx + 1], f);
 }
 
 void fragment()
 {
 	layout_in <vec3> position(0);
+	layout_in <f32> speed(1);
+	layout_in <vec2> range(2);
+
 	layout_out <vec4> fragment(0);
 
-	// Since the positions are on the sphere anyways...
-	vec3 N = normalize(position);
-	fragment = vec4(0.5f + 0.5f * N, 1.0f);
+	f32 t = (speed - range.x) / (range.y - range.x);
+
+	fragment = vec4(magma(t), 1.0f);
 }
 
 // Function to generate random points and use them as positions for spheres
-std::vector <float3> generate_random_points(int num_points, float spread)
+std::vector <float3> generate_random_points(int N, float spread)
 {
 	std::vector <float3> points;
 	std::random_device rd;
 	std::mt19937 gen(rd());
 	std::uniform_real_distribution <float> dis(-spread, spread);
 
-	for (int i = 0; i < num_points; i++)
-		points.push_back(float3(dis(gen), dis(gen), dis(gen)));
+	for (int i = 0; i < N; i++) {
+		while (true) {
+			float x = dis(gen);
+			float y = dis(gen);
+			float z = dis(gen);
+			float3 p = float3(x, y, z);
+			if (length(p) > spread / 2.0f) {
+				points.push_back(p);
+				break;
+			}
+		}
+	}
 
 	return points;
 }
@@ -149,6 +249,8 @@ littlevk::Pipeline configure_pipeline(core::DeviceResourceCollection &drc,
 		.with_push_constant <solid_t<ViewInfo>> (vk::ShaderStageFlagBits::eVertex, 0)
 		.with_push_constant <solid_t<u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t<ViewInfo>))
 		.with_dsl_binding(0, vk::DescriptorType::eStorageBuffer,
+				  1, vk::ShaderStageFlagBits::eVertex)
+		.with_dsl_binding(1, vk::DescriptorType::eStorageBuffer,
 				  1, vk::ShaderStageFlagBits::eVertex)
 		.cull_mode(vk::CullModeFlagBits::eNone);
 }
@@ -184,23 +286,73 @@ void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 	controller->handle_cursor(float2(x, y));
 }
 
-void jitter(std::vector <float4> &particles, float spread)
+void jitter(std::vector <aligned_float3> &particles,
+	    std::vector <aligned_float3> &velocities)
 {
-	std::random_device rd;
-	std::vector <std::default_random_engine> engines(omp_get_max_threads());
+	static constexpr float dt = 0.05f;
 
-	for (int i = 0; i < omp_get_max_threads(); ++i)
-		engines[i].seed(rd());
+	float t = glfwGetTime();
+
+	static float M1 = 100.0f;
+	static float3 O1 = float3 { -5, 0, 0 };
+	static float3 V1 = float3 { 1, -2, 1 };
+	
+	static float M2 = 100.0f;
+	static float3 O2 = float3 { 5, 0, 0 };
+	static float3 V2 = float3 { 0, 1, -1 };
+
+	float pad = 10.0f;
+
+	float3 bmin;
+	float3 bmax;
+
+	bmin.x = std::min(O1.x, O2.x) - pad;
+	bmax.x = std::max(O1.x, O2.x) + pad;
+	
+	bmin.y = std::min(O1.y, O2.y) - pad;
+	bmax.y = std::max(O1.y, O2.y) + pad;
+	
+	bmin.z = std::min(O1.z, O2.z) - pad;
+	bmax.z = std::max(O1.z, O2.z) + pad;
+
+	omp_set_num_threads(omp_get_max_threads());
 
 	#pragma omp parallel for
 	for (size_t i = 0; i < particles.size(); ++i) {
-		int tid = omp_get_thread_num();
-		std::uniform_real_distribution <float> dist(-spread, spread);
+		aligned_float3 &v = velocities[i];
+		aligned_float3 &p = particles[i];
 
-		particles[i].x += dist(engines[tid]);
-		particles[i].y += dist(engines[tid]);
-		particles[i].z += dist(engines[tid]);
+		{
+			float3 d = (p - O1);	
+			float l = fmax(1, length(d));
+			v = v - dt * M1 * d / powf(l, 3.0f);
+		}
+		
+		{
+			float3 d = (p - O2);	
+			float l = fmax(1, length(d));
+			v = v - dt * M2 * d / powf(l, 3.0f);
+		}
+
+		p += dt * v;
+
+		// Re-bounding
+		#pragma omp unroll full
+		for (size_t i = 0; i < 3; i++) {
+			if ((p[i] < bmin[i] || p[i] > bmax[i]) && p[i] * v[i] > 0)
+				v[i] = 0;
+		}
 	}
+
+	float3 D = (O1 - O2);
+	float L = length(D);
+	float3 A = M1 * M2 * D / powf(L, 3.0f);
+
+	V1 -= dt * A / M1;
+	V2 += dt * A / M2;
+
+	O1 += dt * V1;
+	O2 += dt * V2;
 }
 
 int main(int argc, char *argv[])
@@ -239,32 +391,53 @@ int main(int argc, char *argv[])
 	engine::configure_imgui(drc, render_pass);
 
 	// Generate random points for the point cloud
-	int N = 1'000'000;
+	int N = 150'000;
 
 	// TODO: solidify... (alignment issues)
 	std::vector <float3> points = generate_random_points(N, 10.0f);
-	for (auto p : points)
-		fmt::println("p = {} {} {}", p.x, p.y, p.z);
+	std::vector <aligned_float3> velocities;
+	std::vector <aligned_float3> particles;
+	
+	std::random_device rd;
+	std::default_random_engine gen(rd());
 
-	std::vector <float4> aligned_points;
-	for (auto p : points)
-		aligned_points.push_back(float4(p, 0));
+	for (auto p : points) {
+		particles.push_back(p);
+
+		std::uniform_real_distribution<float> distribution(-1.0f, 1.0f);
+
+		float theta = distribution(gen) * 2.0f * M_PI;
+		float phi = std::acos(distribution(gen));
+
+		float x = std::sin(phi) * std::cos(theta);
+		float y = std::sin(phi) * std::sin(theta);
+		float z = std::cos(phi);
+
+		float3 v = float3(x, y, z);
+		
+		velocities.push_back(v);
+	}
 
 	// Prepare the sphere geometry
 	int resolution = 25;
+
 	Sphere sphere(resolution, 0.025f);
 
 	littlevk::Buffer vb;
 	littlevk::Buffer ib;
 	littlevk::Buffer tb;
-	std::tie(vb, ib, tb) = drc.allocator()
+	littlevk::Buffer sb;
+	std::tie(vb, ib, tb, sb) = drc.allocator()
 		.buffer(sphere.vertices,
 			vk::BufferUsageFlagBits::eVertexBuffer
 			| vk::BufferUsageFlagBits::eTransferDst)
 		.buffer(sphere.triangles,
 			vk::BufferUsageFlagBits::eIndexBuffer
 			| vk::BufferUsageFlagBits::eTransferDst)
-		.buffer(aligned_points,
+		.buffer(particles,
+			vk::BufferUsageFlagBits::eStorageBuffer
+			| vk::BufferUsageFlagBits::eTransferDst)
+		.buffer(velocities,
 			vk::BufferUsageFlagBits::eStorageBuffer
 			| vk::BufferUsageFlagBits::eTransferDst);
 
@@ -279,15 +452,29 @@ int main(int argc, char *argv[])
 		.setBuffer(tb.buffer)
 		.setOffset(0)
 		.setRange(sizeof(float4) * points.size());
+	
+	auto sb_info = vk::DescriptorBufferInfo()
+		.setBuffer(sb.buffer)
+		.setOffset(0)
+		.setRange(sizeof(float4) * points.size());
 
-	auto write = vk::WriteDescriptorSet()
+	std::array <vk::WriteDescriptorSet, 2> writes;
+
+	writes[0] = vk::WriteDescriptorSet()
 		.setDstSet(set)
 		.setDescriptorCount(1)
 		.setDstBinding(0)
 		.setDescriptorType(vk::DescriptorType::eStorageBuffer)
 		.setBufferInfo(tb_info);
+	
+	writes[1] = vk::WriteDescriptorSet()
+		.setDstSet(set)
+		.setDescriptorCount(1)
+		.setDstBinding(1)
+		.setDescriptorType(vk::DescriptorType::eStorageBuffer)
+		.setBufferInfo(sb_info);
 
-	drc.device.updateDescriptorSets(write, {}, {});
+	drc.device.updateDescriptorSets(writes, {}, {});
 
 	// Framebuffer manager
 	DefaultFramebufferSet framebuffers;
@@ -367,6 +554,18 @@ int main(int argc, char *argv[])
 		view_info[m_proj] = proj;
 		view_info[m_view] = view;
 
+		float smin = 1e10f;
+		float smax = 0;
+
+		for (const auto &v : velocities) {
+			float s = length(v);
+			smin = std::min(smin, s);
+			smax = std::max(smax, s);
+		}
+
+		view_info.get <2> () = smin;
+		view_info.get <3> () = smax;
+
 		// Render each point as a sphere
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.handle);
 
@@ -392,9 +591,10 @@ int main(int argc, char *argv[])
 		thread_local std::mt19937 gen(rd());
 		thread_local std::uniform_real_distribution <float> dis(-spread, spread);
 
-		jitter(aligned_points, 0.1f);
+		jitter(particles, velocities);
 
-		littlevk::upload(drc.device, tb, aligned_points);
+		littlevk::upload(drc.device, tb, particles);
+		littlevk::upload(drc.device, sb, velocities);
 	
 		// Submit command buffer while signaling the semaphore
 		vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;

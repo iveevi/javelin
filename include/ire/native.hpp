@@ -53,6 +53,23 @@ inline thunder::index_t translate_primitive(float f)
 	return em.emit(p);
 }
 
+// Generating cast operations
+constexpr auto caster(int32_t)
+{
+	return thunder::cast_to_int;
+}
+
+constexpr auto caster(uint32_t)
+{
+	return thunder::cast_to_uint;
+}
+
+constexpr auto caster(float)
+{
+	return thunder::cast_to_float;
+}
+
+// Type class for natives
 template <typename T>
 concept native = requires(const T &t) {
 	{
@@ -73,7 +90,7 @@ struct native_t : tagged {
 	using native_type = T;
 	using arithmetic_type = native_t;
 
-	T value;
+	T value = T();
 
 	native_t(T v = T()) : value(v) {}
 
@@ -84,7 +101,15 @@ struct native_t : tagged {
 	template <native U>
 	requires std::is_convertible_v <U, T>
 	explicit native_t(const native_t <U> &other) {
-		this->ref = other.ref;
+		auto &em = Emitter::active;
+		if constexpr (std::same_as <T, U>) {
+			this->ref = other.ref;
+		} else {
+			synthesize();
+			thunder::index_t args = em.emit_list(other.ref.id);
+			thunder::index_t cast = em.emit_intrinsic(args, caster(value));
+			em.emit_store(this->ref.id, cast);
+		}
 	}
 
 	native_t &operator=(const T &v) {

@@ -76,7 +76,7 @@ struct Emitter {
 		return emit(thunder::Intrinsic(args, opn));
 	}
 
-	index_t emit_list(index_t item, index_t next) {
+	index_t emit_list(index_t item, index_t next = -1) {
 		return emit(thunder::List(item, next));
 	}
 

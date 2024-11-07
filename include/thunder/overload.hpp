@@ -62,10 +62,6 @@ struct overload_table : public wrapped::hash_table <T, overload_list> {
 			"overload table does not contain entry for ${}",
 			name_table[key]);
 		
-		// JVL_DEBUG_INFO("finding overload {} for ${}",
-		// 	overload::type_decls_to_string(args),
-		// 	name_table[key]);
-
 		auto &overloads = this->at(key);
 		for (auto &ovl : overloads) {
 			// JVL_DEBUG_INFO("\tcomparing {} with overload {}",

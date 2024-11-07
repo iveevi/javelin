@@ -63,6 +63,13 @@ auto ceil(const T &a)
 	return platform_intrinsic_from_args <result> (thunder::ceil, a);
 }
 
+template <floating_arithmetic T>
+auto fract(const T &a)
+{
+	using result = decltype(underlying(a));
+	return platform_intrinsic_from_args <result> (thunder::fract, a);
+}
+
 template <native T>
 native_t <T> sin(const native_t <T> &x)
 {
@@ -147,6 +154,12 @@ template <native T>
 vec <T, 3> cross(const vec <T, 3> &v, const vec <T, 3> &w)
 {
 	return platform_intrinsic_from_args <vec <T, 3>> (thunder::cross, v, w);
+}
+
+template <native T, size_t N>
+auto length(const vec <T, N> &v)
+{
+	return platform_intrinsic_from_args <native_t <T>> (thunder::length, v);
 }
 
 template <native T, size_t N>
