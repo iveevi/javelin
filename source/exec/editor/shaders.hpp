@@ -25,7 +25,7 @@ array <vec3> hsv_palette(float saturation, float lightness)
 }
 
 // Model-view-projection structure
-struct MVP {
+struct ViewInfo {
 	mat4 model;
 	mat4 view;
 	mat4 proj;

@@ -135,7 +135,7 @@ auto rasterizer(const A &assembly, auto vertex_layout, auto vertex_transform, au
 }
 
 // Example programs
-struct MVP {
+struct ViewInfo {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
@@ -154,7 +154,7 @@ struct MVP {
 	}
 };
 
-auto transform(PushConstant <MVP> mvp, vec3 position) -> std::tuple <Position, vec3>
+auto transform(PushConstant <ViewInfo> mvp, vec3 position) -> std::tuple <Position, vec3>
 {
 	return { mvp.project(position), position };
 }

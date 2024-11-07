@@ -93,8 +93,12 @@ auto uniform_layout(const std::string &name, const Args &... args)
 [[gnu::always_inline]]
 static inline bool valid(const thunder::TypeInformation &tf)
 {
+	// TODO: method
 	return (tf.down != -1) || (tf.item != thunder::bad);
 }
+
+template <typename T>
+struct type_info_override : std::false_type {};
 
 template <size_t I, generic T, generic ... Args>
 cache_index_t type_field_from_args_impl()
@@ -116,7 +120,12 @@ cache_index_t type_field_from_args_impl()
 			type_info.down = type_field_from_args(layout_t()).id;
 		}
 	} else {
-		type_info.item = synthesize_primitive_type <T> ();
+		using override = type_info_override <T>;
+
+		if constexpr (override::value)
+			type_info.down = override::synthesize();
+		else
+			type_info.item = synthesize_primitive_type <T> ();
 	}
 
 	JVL_ASSERT(valid(type_info), "invalid type information was generated");

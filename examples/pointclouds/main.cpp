@@ -1,3 +1,5 @@
+#include <omp.h>
+
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_vulkan.h>
@@ -26,23 +28,24 @@ using namespace jvl::ire;
 
 VULKAN_EXTENSIONS(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
-// Model-view-projection structure
-struct MVP {
-	mat4 model;
+// View and projection information
+struct ViewInfo {
 	mat4 view;
 	mat4 proj;
 
-	vec4 project(vec3 position) {
-		return proj * (view * (model * vec4(position, 1.0)));
-	}
-
 	auto layout() const {
 		return uniform_layout(
-			"MVP",
-			named_field(model),
+			"ViewInfo",
 			named_field(view),
 			named_field(proj));
 	}
+};
+
+auto project_vertex = [](ViewInfo &info, vec3 &translate, vec3 position)
+{
+	// TODO: put the buffer here...
+	vec4 p = vec4(position + translate, 1);
+	return info.proj * (info.view * p);
 };
 
 // Sphere geometry (represented as a collection of vertices and indices)
@@ -86,10 +89,13 @@ void vertex()
 {
 	layout_in <vec3> position(0);
 	layout_out <vec3> out_position(0);
-	
-	push_constant <MVP> mvp;
 
-	gl_Position = mvp.project(position);
+	read_only_buffer <array <vec3>> translations(0, 4);
+	
+	push_constant <ViewInfo> view_info;
+
+	vec3 translate = translations[gl_InstanceIndex];
+	gl_Position = project_vertex(view_info, translate, position);
 	out_position = position;
 }
 
@@ -133,12 +139,17 @@ littlevk::Pipeline configure_pipeline(core::DeviceResourceCollection &drc,
 		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
 		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 
+	fmt::println("{}", vertex_shader);
+	fmt::println("{}", fragment_shader);
+
 	return littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
 		.with_render_pass(render_pass, 0)
 		.with_vertex_layout(vertex_layout)
 		.with_shader_bundle(bundle)
-		.with_push_constant <solid_t<MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
-		.with_push_constant <solid_t<u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t<MVP>))
+		.with_push_constant <solid_t<ViewInfo>> (vk::ShaderStageFlagBits::eVertex, 0)
+		.with_push_constant <solid_t<u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t<ViewInfo>))
+		.with_dsl_binding(0, vk::DescriptorType::eStorageBuffer,
+				  1, vk::ShaderStageFlagBits::eVertex)
 		.cull_mode(vk::CullModeFlagBits::eNone);
 }
 
@@ -171,6 +182,25 @@ void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 
 	auto controller = reinterpret_cast <engine::CameraController *> (glfwGetWindowUserPointer(window));
 	controller->handle_cursor(float2(x, y));
+}
+
+void jitter(std::vector <float4> &particles, float spread)
+{
+	std::random_device rd;
+	std::vector <std::default_random_engine> engines(omp_get_max_threads());
+
+	for (int i = 0; i < omp_get_max_threads(); ++i)
+		engines[i].seed(rd());
+
+	#pragma omp parallel for
+	for (size_t i = 0; i < particles.size(); ++i) {
+		int tid = omp_get_thread_num();
+		std::uniform_real_distribution <float> dist(-spread, spread);
+
+		particles[i].x += dist(engines[tid]);
+		particles[i].y += dist(engines[tid]);
+		particles[i].z += dist(engines[tid]);
+	}
 }
 
 int main(int argc, char *argv[])
@@ -209,27 +239,55 @@ int main(int argc, char *argv[])
 	engine::configure_imgui(drc, render_pass);
 
 	// Generate random points for the point cloud
-	int N = 1'000;
+	int N = 1'000'000;
 
+	// TODO: solidify... (alignment issues)
 	std::vector <float3> points = generate_random_points(N, 10.0f);
+	for (auto p : points)
+		fmt::println("p = {} {} {}", p.x, p.y, p.z);
+
+	std::vector <float4> aligned_points;
+	for (auto p : points)
+		aligned_points.push_back(float4(p, 0));
 
 	// Prepare the sphere geometry
-	int resolution = 10;
-
-	Sphere sphere(resolution, 0.1f);
+	int resolution = 25;
+	Sphere sphere(resolution, 0.025f);
 
 	littlevk::Buffer vb;
 	littlevk::Buffer ib;
-	std::tie(vb, ib) = drc.allocator()
+	littlevk::Buffer tb;
+	std::tie(vb, ib, tb) = drc.allocator()
 		.buffer(sphere.vertices,
 			vk::BufferUsageFlagBits::eVertexBuffer
 			| vk::BufferUsageFlagBits::eTransferDst)
 		.buffer(sphere.triangles,
 			vk::BufferUsageFlagBits::eIndexBuffer
+			| vk::BufferUsageFlagBits::eTransferDst)
+		.buffer(aligned_points,
+			vk::BufferUsageFlagBits::eStorageBuffer
 			| vk::BufferUsageFlagBits::eTransferDst);
 
 	// Configure pipeline
 	auto pipeline = configure_pipeline(drc, render_pass);
+
+	vk::DescriptorSet set = littlevk::bind(drc.device, drc.descriptor_pool)
+		.allocate_descriptor_sets(pipeline.dsl.value())
+		.front();
+
+	auto tb_info = vk::DescriptorBufferInfo()
+		.setBuffer(tb.buffer)
+		.setOffset(0)
+		.setRange(sizeof(float4) * points.size());
+
+	auto write = vk::WriteDescriptorSet()
+		.setDstSet(set)
+		.setDescriptorCount(1)
+		.setDstBinding(0)
+		.setDescriptorType(vk::DescriptorType::eStorageBuffer)
+		.setBufferInfo(tb_info);
+
+	drc.device.updateDescriptorSets(write, {}, {});
 
 	// Framebuffer manager
 	DefaultFramebufferSet framebuffers;
@@ -240,12 +298,10 @@ int main(int argc, char *argv[])
 	core::Aperature aperature;
 
 	// MVP structure used for push constants
-	auto m_model = uniform_field(MVP, model);
-	auto m_view = uniform_field(MVP, view);
-	auto m_proj = uniform_field(MVP, proj);
+	auto m_view = uniform_field(ViewInfo, view);
+	auto m_proj = uniform_field(ViewInfo, proj);
 
-	solid_t <MVP> mvp;
-	mvp[m_model] = float4x4(1.0f); // Identity for now
+	solid_t <ViewInfo> view_info;
 
 	// Command buffers for the rendering loop
 	auto command_buffers = littlevk::command_buffers(drc.device,
@@ -308,38 +364,37 @@ int main(int argc, char *argv[])
 		auto proj = perspective(aperature);
 		auto view = camera_transform.to_view_matrix();
 
-		mvp[m_proj] = proj;
-		mvp[m_view] = view;
+		view_info[m_proj] = proj;
+		view_info[m_view] = view;
 
 		// Render each point as a sphere
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.handle);
 
-		static constexpr float spread = 0.05f;
-
-		std::random_device rd;
-		std::mt19937 gen(rd());
-		std::uniform_real_distribution <float> dis(-spread, spread);
-
-		for (auto &point : points) {
-			core::Transform transform;
-			transform.translate = point;
-
-			mvp[m_model] = transform.to_mat4();
-			
-			cmd.pushConstants <solid_t <MVP>> (pipeline.layout,
-				vk::ShaderStageFlagBits::eVertex,
-				0, mvp);
-
-			cmd.bindVertexBuffers(0, vb.buffer, { 0 });
-			cmd.bindIndexBuffer(ib.buffer, 0, vk::IndexType::eUint32);
-			cmd.drawIndexed(3 * sphere.triangles.size(), 1, 0, 0, 0);
-
-			// Jitter each one a little bit
-			point += float3(dis(gen), dis(gen), dis(gen));
-		}
+		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+			pipeline.layout,
+			0, set, {});
+		
+		cmd.pushConstants <solid_t <ViewInfo>> (pipeline.layout,
+			vk::ShaderStageFlagBits::eVertex,
+			0, view_info);
+		
+		cmd.bindVertexBuffers(0, vb.buffer, { 0 });
+		cmd.bindIndexBuffer(ib.buffer, 0, vk::IndexType::eUint32);
+		cmd.drawIndexed(3 * sphere.triangles.size(), N, 0, 0, 0);
 
 		cmd.endRenderPass();
 		cmd.end();
+
+		// Randomly jittering particles
+		static constexpr float spread = 0.05f;
+
+		thread_local std::random_device rd;
+		thread_local std::mt19937 gen(rd());
+		thread_local std::uniform_real_distribution <float> dis(-spread, spread);
+
+		jitter(aligned_points, 0.1f);
+
+		littlevk::upload(drc.device, tb, aligned_points);
 	
 		// Submit command buffer while signaling the semaphore
 		vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;

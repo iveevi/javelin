@@ -25,7 +25,7 @@ MODULE(tsg-feature);
 // TODO: solid_alignment <...> and restrictions for offset based on that...
 
 // Projection matrix
-struct MVP {
+struct ViewInfo {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
@@ -46,14 +46,14 @@ struct MVP {
 
 // Testing
 auto vertex_shader(VertexIntrinsics,
-		   PushConstant <MVP> mvp,
+		   PushConstant <ViewInfo> mvp,
 		   vec3 position)
 {
 	return std::make_tuple(Position(mvp.project(position)), position);
 }
 
 auto fragment_shader(FragmentIntrinsics,
-		     PushConstant <vec3, solid_size <MVP>> tint,
+		     PushConstant <vec3, solid_size <ViewInfo>> tint,
 		     vec3 position)
 {
 	vec3 dU = dFdx(position);
@@ -276,9 +276,9 @@ int main(int argc, char *argv[])
 	auto sync = littlevk::present_syncronization(drc.device, 2).unwrap(drc.dal);
 
 	// Caching MVP fields
-	auto m_model = uniform_field(MVP, model);
-	auto m_view = uniform_field(MVP, view);
-	auto m_proj = uniform_field(MVP, proj);
+	auto m_model = uniform_field(ViewInfo, model);
+	auto m_view = uniform_field(ViewInfo, view);
+	auto m_proj = uniform_field(ViewInfo, proj);
 
 	// Configuring assets
 	auto mesh = engine::ImportedAsset::from(argv[1]).value();
@@ -361,7 +361,7 @@ int main(int argc, char *argv[])
 					.setScissor(scissor);
 
 				// Configure push constants
-				solid_t <MVP> mvp;
+				solid_t <ViewInfo> mvp;
 
 				camera_aperature.aspect = float(extent.width) / float(extent.height);
 

@@ -112,6 +112,8 @@ enum QualifierKind : int8_t {
 
 	glsl_intrinsic_gl_FragCoord,
 	glsl_intrinsic_gl_FragDepth,
+	glsl_intrinsic_gl_InstanceID,
+	glsl_intrinsic_gl_InstanceIndex,
 	glsl_intrinsic_gl_VertexID,
 	glsl_intrinsic_gl_VertexIndex,
 	
@@ -158,6 +160,8 @@ static constexpr const char *tbl_qualifier_kind[] = {
 
 	"glsl:gl_FragCoord",
 	"glsl:gl_FragDepth",
+	"glsl:gl_InstanceID",
+	"glsl:gl_InstanceIndex",
 	"glsl:gl_VertexID",
 	"glsl:gl_VertexIndex",
 	

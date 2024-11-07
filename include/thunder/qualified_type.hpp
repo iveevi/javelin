@@ -82,6 +82,12 @@ struct QualifiedType : qualified_type_base {
 		auto pd = get <PlainDataType> ();
 		return pd && pd->is <PrimitiveType> ();
 	}
+	
+	bool is_concrete() const {
+		auto pd = get <PlainDataType> ();
+		// TODO: alias ConcreteIndex = index_t
+		return pd && pd->is <index_t> ();
+	}
 
 	PlainDataType remove_qualifiers() const;
 

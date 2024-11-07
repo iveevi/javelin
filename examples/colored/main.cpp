@@ -24,7 +24,7 @@ using namespace jvl::ire;
 VULKAN_EXTENSIONS(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
 // Model-view-projection structure
-struct MVP {
+struct ViewInfo {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
@@ -50,7 +50,7 @@ void vertex()
 	layout_in <vec3> position(0);
 	
 	// Projection information
-	push_constant <MVP> mvp;
+	push_constant <ViewInfo> mvp;
 
 	// Projecting the vertex
 	gl_Position = mvp.project(position);
@@ -86,8 +86,8 @@ littlevk::Pipeline configure_pipeline(core::DeviceResourceCollection &drc,
 		.with_render_pass(render_pass, 0)
 		.with_vertex_layout(vertex_layout)
 		.with_shader_bundle(bundle)
-		.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
-		.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t <MVP>))
+		.with_push_constant <solid_t <ViewInfo>> (vk::ShaderStageFlagBits::eVertex, 0)
+		.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t <ViewInfo>))
 		.cull_mode(vk::CullModeFlagBits::eNone);
 }
 
@@ -188,11 +188,11 @@ int main(int argc, char *argv[])
 	core::Aperature aperature;
 
 	// MVP structure used for push constants
-	auto m_model = uniform_field(MVP, model);
-	auto m_view = uniform_field(MVP, view);
-	auto m_proj = uniform_field(MVP, proj);
+	auto m_model = uniform_field(ViewInfo, model);
+	auto m_view = uniform_field(ViewInfo, view);
+	auto m_proj = uniform_field(ViewInfo, proj);
 	
-	solid_t <MVP> mvp;
+	solid_t <ViewInfo> mvp;
 
 	mvp[m_model] = model_transform.to_mat4();
 	
@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
 		for (auto &mesh : vk_scene.meshes) {
 			int mid = *mesh.material_usage.begin();
 
-			cmd.pushConstants <solid_t <MVP>> (ppl.layout,
+			cmd.pushConstants <solid_t <ViewInfo>> (ppl.layout,
 				vk::ShaderStageFlagBits::eVertex,
 				0, mvp);
 

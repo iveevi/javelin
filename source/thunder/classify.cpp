@@ -174,8 +174,15 @@ QualifiedType Buffer::classify(index_t i) const
 		QualifiedType qt = classify(access.src);
 		
 		auto pd = qt.get <PlainDataType> ();
-		if (pd && pd->is <index_t> ())
-			qt = classify(pd->as <index_t> ());
+		while (pd) {
+			if (pd->is <index_t> ()) {
+				qt = classify(pd->as <index_t> ());
+				pd = qt.get <PlainDataType> ();
+			}
+		}
+
+		if (!qt.is <ArrayType> ())
+			dump();
 
 		JVL_ASSERT(qt.is <ArrayType> (),
 			"array accesses must operate on array "

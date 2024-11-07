@@ -78,12 +78,15 @@ using __glsl_vec4 = __glsl_intrinsic_variable_t <vec <float, 4>, code>;
 // GLSL shader intrinsic variable definitions //
 ////////////////////////////////////////////////
 
-static const __glsl_vec4  <thunder::glsl_intrinsic_gl_FragCoord>   gl_FragCoord;
-static const __glsl_float <thunder::glsl_intrinsic_gl_FragDepth>   gl_FragDepth;
-static const __glsl_int   <thunder::glsl_intrinsic_gl_VertexID>    gl_VertexID;
-static const __glsl_int   <thunder::glsl_intrinsic_gl_VertexIndex> gl_VertexIndex;
+static const __glsl_vec4  <thunder::glsl_intrinsic_gl_FragCoord>   	gl_FragCoord;
+static const __glsl_float <thunder::glsl_intrinsic_gl_FragDepth>   	gl_FragDepth;
+static const __glsl_int   <thunder::glsl_intrinsic_gl_InstanceID>  	gl_InstanceID;
+static const __glsl_int   <thunder::glsl_intrinsic_gl_InstanceIndex>	gl_InstanceIndex;
+static const __glsl_int   <thunder::glsl_intrinsic_gl_VertexID>   	gl_VertexID;
+static const __glsl_int   <thunder::glsl_intrinsic_gl_VertexIndex> 	gl_VertexIndex;
 
-static       __glsl_vec4 <thunder::glsl_intrinsic_gl_Position>     gl_Position;
+// Mutable intrinsics
+static __glsl_vec4 <thunder::glsl_intrinsic_gl_Position>     		gl_Position;
 
 /////////////////////////////////////
 // GLSL shader intrinsic functions //

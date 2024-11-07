@@ -34,10 +34,11 @@ struct cache_index_t {
 	}
 
 	static cache_index_t null() {
-		return {.id = -1};
+		return { .id = -1 };
 	}
 };
 
+// TODO: use optional...
 struct tagged {
 	mutable cache_index_t ref;
 	mutable bool immutable;
@@ -50,11 +51,13 @@ struct tagged {
 		return ref != -1;
 	}
 
-	int synthesize() const {
+	cache_index_t synthesize() const {
 		if (!cached())
 			abort();
 
-		return ref.id;
+		cache_index_t cid;
+		cid = ref.id;
+		return cid;
 	}
 };
 

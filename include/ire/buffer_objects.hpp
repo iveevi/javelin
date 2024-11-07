@@ -19,7 +19,7 @@ struct bound_buffer_object <T, K> {
 	
 	size_t binding;
 
-	bound_buffer_object(size_t binding_) : binding(binding_) {}
+	bound_buffer_object(size_t binding_) :  binding(binding_) {}
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
@@ -39,8 +39,9 @@ template <builtin T, thunder::QualifierKind K>
 struct bound_buffer_object <T, K> : T {
 	size_t binding;
 
-	bound_buffer_object(size_t binding_)
-			: binding(binding_) {
+	template <typename ... Args>
+	bound_buffer_object(size_t binding_, const Args &... args)
+			: T(args...), binding(binding_) {
 		auto &em = Emitter::active;
 		thunder::index_t type = type_field_from_args <T> ().id;
 		thunder::index_t pc = em.emit_qualifier(type, binding, K);

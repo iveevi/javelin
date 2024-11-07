@@ -56,6 +56,10 @@ static std::optional <std::string> generate_global_reference(const Qualifier &qu
 		return "gl_FragCoord";
 	case glsl_intrinsic_gl_FragDepth:
 		return "gl_FragDepth";
+	case glsl_intrinsic_gl_InstanceID:
+		return "gl_InstanceID";
+	case glsl_intrinsic_gl_InstanceIndex:
+		return "gl_InstanceIndex";
 	case glsl_intrinsic_gl_VertexID:
 		return "gl_VertexID";
 	case glsl_intrinsic_gl_VertexIndex:
@@ -349,9 +353,16 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 	{
 		auto &at = qt.as <ArrayType> ();
 		auto base = type_to_string(at.base());
+
+		std::string array = fmt::format("[{}]", at.size);
+
+		// Unsize arrays
+		if (at.size < 0)
+			array = "[]";
+
 		return {
 			.pre = base.pre,
-			.post = fmt::format("{}[{}]", base.post, at.size)
+			.post = fmt::format("{}{}", base.post, array)
 		};
 	}
 

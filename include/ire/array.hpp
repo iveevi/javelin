@@ -5,6 +5,10 @@
 
 namespace jvl::ire {
 
+// Forward declarartions
+template <generic T>
+struct array;
+
 // TODO: unsized arrays as well with array <T, -1>
 template <generic T>
 struct array_base {
@@ -14,6 +18,7 @@ struct array_base {
 template <native T>
 struct array_base <T> : public tagged {
 	using element = native_t <T>;
+	using arithmetic_type = array <T>;
 
 	uint32_t length = 0;
 
@@ -38,6 +43,7 @@ struct array_base <T> : public tagged {
 template <builtin T>
 struct array_base <T> : public tagged {
 	using element = T;
+	using arithmetic_type = array <T>;
 
 	uint32_t length = 0;
 
@@ -79,6 +85,7 @@ struct array_base <T> : public tagged {
 template <aggregate T>
 struct array_base <T> : public tagged {
 	using element = T;
+	using arithmetic_type = array <T>;
 
 	uint32_t length = 0;
 
@@ -147,6 +154,17 @@ struct array : public array_base <T> {
 		auto layout = returned.layout().remove_const();
 		layout.ref_with(cache_index_t::from(c));
 		return returned;
+	}
+};
+
+template <typename T>
+struct type_info_override <array <T>> : std::true_type {
+	static int synthesize() {
+		auto &em = Emitter::active;
+		thunder::index_t underlying = type_field_from_args <T> ().id;
+		// NOTE: assuming unsized arrays here...
+		thunder::index_t qualifier = em.emit_qualifier(underlying, -1, thunder::arrays);
+		return qualifier;
 	}
 };
 
