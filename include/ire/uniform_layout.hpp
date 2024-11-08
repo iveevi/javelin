@@ -73,7 +73,7 @@ struct layout_const_field {
 };
 
 template <typename T, typename ... Args>
-thunder::index_t reconstruct(size_t i, const std::vector <layout_const_field> &fields)
+thunder::index_t reconstruct_fields(size_t i, const std::vector <layout_const_field> &fields)
 {
 	MODULE(reconstruct);
 
@@ -84,7 +84,7 @@ thunder::index_t reconstruct(size_t i, const std::vector <layout_const_field> &f
 	list.item = reinterpret_cast <const T *> (fields[i].ptr)->synthesize().id;
 
 	if constexpr (sizeof...(Args))
-		list.next = reconstruct <Args...> (i + 1, fields);
+		list.next = reconstruct_fields <Args...> (i + 1, fields);
 
 	return Emitter::active.emit(list);
 }
@@ -112,7 +112,7 @@ struct const_uniform_layout_t {
 
 	// Explicit (re)construction of an aggregate type
 	thunder::index_t reconstruct() const {
-		return reconstruct <Args...> (0, fields);
+		return reconstruct_fields <Args...> (0, fields);
 	}
 };
 

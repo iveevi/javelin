@@ -94,10 +94,7 @@ struct native_t : tagged {
 
 	native_t(T v = T()) : value(v) {}
 
-	native_t(const cache_index_t &cit) : tagged(cit) {}
-
 	// Explicit conversion operations
-	// TODO: softed to allow float <-> int conversions
 	template <native U>
 	requires std::is_convertible_v <U, T>
 	explicit native_t(const native_t <U> &other) {

@@ -46,10 +46,10 @@ struct ViewInfo {
 	}
 };
 
-auto project_vertex = [](ViewInfo &info, vec3 &translate, vec3 position)
+auto project_vertex = [](ViewInfo &info, vec3 &position, vec3 vertex)
 {
 	// TODO: put the buffer here...
-	vec4 p = vec4(position + translate, 1);
+	vec4 p = vec4(vertex + position, 1);
 	return info.proj * (info.view * p);
 };
 
@@ -98,12 +98,12 @@ void vertex()
 	layout_out <f32> out_speed(1);
 	layout_out <vec2> out_range(2);
 
-	read_only_buffer <array <vec3>> translations(0, -1);
+	read_only_buffer <array <vec3>> positions(0, -1);
 	read_only_buffer <array <vec3>> velocities(1, -1);
 	
 	push_constant <ViewInfo> view_info;
 
-	vec3 translate = translations[gl_InstanceIndex];
+	vec3 translate = positions[gl_InstanceIndex];
 	vec3 velocity = velocities[gl_InstanceIndex];
 	
 	gl_Position = project_vertex(view_info, translate, position);
@@ -296,7 +296,7 @@ int main(int argc, char *argv[])
 	engine::configure_imgui(drc, render_pass);
 
 	// Generate random points for the point cloud
-	int N = 100'000;
+	int N = 200'000;
 
 	// TODO: solidify... (alignment issues)
 	std::vector <float3> points = generate_random_points(N, 10.0f);

@@ -5,7 +5,6 @@ set(CMAKE_CXX_STANDARD 20)
 project(javelin C CXX)
 
 find_package(Vulkan REQUIRED)
-find_package(glfw3 REQUIRED)
 find_package(OpenMP REQUIRED)
 
 include(FetchContent)
@@ -49,7 +48,9 @@ set(VULKAN_LIBRARY_SET
 	glslang-default-resource-limits)
 
 # Options for coverage
-if (${ENABLE_COVERAGE})
+set(STATIC_ANALYSIS)
+
+if(ENABLE_COVERAGE)
 	set(COVERAGE_FLAGS --coverage)
 endif()
 
@@ -75,15 +76,15 @@ add_library(javelin-ire STATIC
 	source/thunder/usage.cpp)
 
 target_compile_options(javelin-ire PRIVATE
-	-fno-rtti
-	$<$<CONFIG:Debug>:-Wall;-Werror;--coverage>)
+	${STATIC_ANALYSIS}
+	$<$<CONFIG:Debug>:-Wall;-Werror;${COVERAGE_FLAGS}>)
 
 target_link_libraries(javelin-ire
 	fmt::fmt
 	gccjit
 	glslang::glslang
 	glslang::glslang-default-resource-limits
-	$<$<CONFIG:Debug>:--coverage>)
+	$<$<CONFIG:Debug>:${COVERAGE_FLAGS}>)
 
 target_compile_definitions(javelin-ire PRIVATE
 	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
@@ -118,13 +119,13 @@ add_library(javelin-gfx STATIC
 	source/gfx/vulkan/texture_bank.cpp)
 
 target_compile_options(javelin-gfx PRIVATE
-	-fno-rtti
+	${STATIC_ANALYSIS}
 	$<$<CONFIG:Debug>:-Wall;-Werror;${COVERAGE_FLAGS}>)
 
 target_link_libraries(javelin-gfx PRIVATE
 	fmt::fmt
 	${VULKAN_LIBRARY_SET}
-	$<$<CONFIG:Debug>:--coverage>)
+	$<$<CONFIG:Debug>:${COVERAGE_FLAGS}>)
 
 target_compile_definitions(javelin-gfx PRIVATE
 	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
@@ -144,7 +145,7 @@ add_executable(javelin-editor
 	source/exec/editor/viewport_render_group.cpp)
 
 target_compile_options(javelin-editor PRIVATE
-	-fno-rtti
+	${STATIC_ANALYSIS}
 	$<$<CONFIG:Debug>:-Wall;-Werror;${COVERAGE_FLAGS}>)
 
 target_link_libraries(javelin-editor PRIVATE
@@ -152,7 +153,7 @@ target_link_libraries(javelin-editor PRIVATE
 	fmt::fmt
 	javelin-ire
 	javelin-gfx
-	$<$<CONFIG:Debug>:--coverage>)
+	$<$<CONFIG:Debug>:${COVERAGE_FLAGS}>)
 
 target_compile_definitions(javelin-editor PRIVATE
 	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
@@ -208,7 +209,7 @@ add_executable(lang-features
 	source/lang/lex.cpp)
 
 target_compile_options(lang-features PRIVATE
-	-fno-rtti
+	${STATIC_ANALYSIS}
 	$<$<CONFIG:Debug>:-Wall;-Werror;-fsanitize=address>)
 
 target_link_libraries(lang-features PRIVATE
@@ -233,7 +234,11 @@ target_link_libraries(test
 	GTest::gtest_main
 	javelin-ire
 	glfw
-	gccjit)
+	gccjit
+	$<$<CONFIG:Debug>:-fsanitize=address>)
+
+target_compile_options(test PRIVATE
+	$<$<CONFIG:Debug>:-Wall;-Werror;-fsanitize=address>)
 
 # Example projects
 add_subdirectory(examples)
