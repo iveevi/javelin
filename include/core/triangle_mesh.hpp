@@ -62,6 +62,40 @@ struct TriangleMesh : Unique {
 
 		return tm;
 	}
+
+	static TriangleMesh uv_sphere(int32_t resolution, float radius) {
+		TriangleMesh mesh;
+
+		// Generate sphere vertices and indices (simplified version)
+		for (int32_t lat = 0; lat <= resolution; lat++) {
+			float theta = lat * M_PI / resolution;
+			for (int32_t lon = 0; lon < resolution; lon++) {
+				float phi = lon * 2 * M_PI / resolution;
+
+				float x = radius * sin(theta) * cos(phi);
+				float y = radius * cos(theta);
+				float z = radius * sin(theta) * sin(phi);
+
+				mesh.positions.push_back(float3(x, y, z));
+			}
+		}
+
+		// Generate indices for sphere (simplified triangulation)
+		for (int32_t lat = 0; lat < resolution; lat++) {
+			for (int32_t lon = 0; lon < resolution; lon++) {
+				int first = lat * resolution + lon;
+				int second = first + resolution;
+
+				int3 t0 = { first, second, first + 1 };
+				int3 t1 = { second, second + 1, first + 1 };
+
+				mesh.triangles.push_back(t0);
+				mesh.triangles.push_back(t1);
+			}
+		}
+
+		return mesh;
+	}
 };
 
 } // namespace jvl::core
