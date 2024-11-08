@@ -71,10 +71,11 @@ auto fract(const T &a)
 	return platform_intrinsic_from_args <result> (thunder::fract, a);
 }
 
-template <native T>
-native_t <T> sin(const native_t <T> &x)
+template <floating_arithmetic T>
+auto sin(const T &a)
 {
-	return platform_intrinsic_from_args <native_t <T>> (thunder::sin, x);
+	using result = decltype(underlying(a));
+	return platform_intrinsic_from_args <result> (thunder::sin, underlying(a));
 }
 
 template <native T>

@@ -19,6 +19,16 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 			overload::from(i32, f32),
 		} },
 
+		{ cast_to_uint, {
+			overload::from(u32, u32),
+			overload::from(u32, f32),
+		} },
+
+		{ cast_to_float, {
+			overload::from(f32, i32),
+			overload::from(f32, u32),
+		} },
+
 		// Trigonometric functions
                 { sin, { overload::from(f32, f32) } },
                 { cos, { overload::from(f32, f32) } },
@@ -48,29 +58,29 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
                 { clamp, {
                         overload::from(f32, f32, f32, f32)
                 } },
-                
+
 		{ min, {
                         overload::from(f32, f32, f32)
                 } },
-                
+
 		{ max, {
                         overload::from(f32, f32, f32)
                 } },
-		
+
 		{ fract, {
                         overload::from(f32, f32),
                         overload::from(vec2, vec2),
                         overload::from(vec3, vec3),
                         overload::from(vec4, vec4),
                 } },
-		
+
 		{ floor, {
                         overload::from(f32, f32),
                         overload::from(vec2, vec2),
                         overload::from(vec3, vec3),
                         overload::from(vec4, vec4),
                 } },
-		
+
 		{ ceil, {
                         overload::from(f32, f32),
                         overload::from(vec2, vec2),
@@ -89,24 +99,24 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
                         overload::from(i32, ivec2, ivec2),
                         overload::from(i32, ivec3, ivec3),
                         overload::from(i32, ivec4, ivec4),
-                        
+
 			overload::from(u32, uvec2, uvec2),
                         overload::from(u32, uvec3, uvec3),
                         overload::from(u32, uvec4, uvec4),
-                        
+
 			overload::from(f32, vec2, vec2),
                         overload::from(f32, vec3, vec3),
                         overload::from(f32, vec4, vec4),
                 } },
-                
+
 		{ cross, {
                         overload::from(vec3, vec3, vec3),
                 } },
-		
+
 		{ normalize, {
                         overload::from(vec3, vec3),
                 } },
-		
+
 		{ reflect, {
                         overload::from(vec3, vec3, vec3),
                 } },
@@ -139,7 +149,7 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 			overload::from(PlainDataType(ivec4), QualifiedType::sampler(uvec4, 3), PlainDataType(vec3)),
 			overload::from(PlainDataType(vec4), QualifiedType::sampler(vec4, 3), PlainDataType(vec3)),
 		} },
-		
+
 		{ glsl_texelFetch, {
 			overload::from(PlainDataType(ivec4), QualifiedType::sampler(ivec4, 1), PlainDataType(i32), PlainDataType(i32)),
 			overload::from(PlainDataType(ivec4), QualifiedType::sampler(uvec4, 1), PlainDataType(i32), PlainDataType(i32)),
@@ -153,7 +163,7 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 			overload::from(PlainDataType(ivec4), QualifiedType::sampler(uvec4, 3), PlainDataType(ivec3), PlainDataType(i32)),
 			overload::from(PlainDataType(vec4), QualifiedType::sampler(vec4, 3), PlainDataType(ivec3), PlainDataType(i32)),
 		} },
-		
+
 		// GLSL casting intrinsics
 		{ glsl_floatBitsToInt, {
                         overload::from(i32, f32),
@@ -168,14 +178,14 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
                         overload::from(uvec3, vec3),
                         overload::from(uvec4, vec4),
                 } },
-		
+
 		{ glsl_intBitsToFloat, {
                         overload::from(f32, i32),
                         overload::from(vec2, ivec2),
                         overload::from(vec3, ivec3),
                         overload::from(vec4, ivec4),
                 } },
-                
+
 		{ glsl_uintBitsToFloat, {
                         overload::from(f32, u32),
                         overload::from(vec2, uvec2),
@@ -187,15 +197,15 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 		{ glsl_dFdx, {
 			overload::from(vec3, vec3),
 		} },
-		
+
 		{ glsl_dFdy, {
 			overload::from(vec3, vec3),
 		} },
-		
+
 		{ glsl_dFdxFine, {
 			overload::from(vec3, vec3),
 		} },
-		
+
 		{ glsl_dFdyFine, {
 			overload::from(vec3, vec3),
 		} },

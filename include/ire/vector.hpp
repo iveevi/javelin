@@ -99,13 +99,13 @@ public:
 		Emitter::active.emit(store);
 		return *this;
 	}
-	
+
 	template <integral_native U, typename Up_, thunder::SwizzleCode swz_>
 	swizzle_element &operator>>=(const swizzle_element <U, Up_, swz_> &a)
 	requires integral_native <T> {
 		return operator>>=(native_t <U> (a));
 	}
-	
+
 	template <integral_native U>
 	swizzle_element &operator<<=(const native_t <U> &a)
 	requires integral_native <T> {
@@ -115,13 +115,13 @@ public:
 		Emitter::active.emit(store);
 		return *this;
 	}
-	
+
 	template <integral_native U, typename Up_, thunder::SwizzleCode swz_>
 	swizzle_element &operator<<=(const swizzle_element <U, Up_, swz_> &a)
 	requires integral_native <T> {
 		return operator<<=(native_t <U> (a));
 	}
-	
+
 	// Bitwise operators
 	swizzle_element &operator|=(const arithmetic_type &a)
 	requires integral_native <T> {
@@ -129,7 +129,7 @@ public:
 		tmp |= a;
 		return *this;
 	}
-	
+
 	swizzle_element &operator&=(const arithmetic_type &a)
 	requires integral_native <T> {
 		arithmetic_type tmp = *this;
@@ -153,7 +153,7 @@ class swizzle_base <T, 2> : public tagged {
 public:
 	swizzle_element <T, self, thunder::SwizzleCode::x> x;
 	swizzle_element <T, self, thunder::SwizzleCode::y> y;
-	
+
 	explicit swizzle_base(T x_ = T(0))
 			: x(this), y(this) {
 		initial[0] = x_;
@@ -165,7 +165,7 @@ public:
 		initial[0] = x_;
 		initial[1] = y_;
 	}
-	
+
 	explicit swizzle_base(const native_t <T> &x_, const native_t <T> y_)
 			: x(this), y(this) {
 		auto &em = Emitter::active;
@@ -173,7 +173,7 @@ public:
 		thunder::index_t args = list_from_args(x_, y_);
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
-	
+
 	swizzle_base(const swizzle_base &other)
 			: swizzle_base() {
 		if (other.cached()) {
@@ -217,14 +217,14 @@ public:
 		initial[1] = v_;
 		initial[2] = v_;
 	}
-	
+
 	swizzle_base(T x_ , T y_, T z_)
 			: x(this), y(this), z(this) {
 		initial[0] = x_;
 		initial[1] = y_;
 		initial[2] = z_;
 	}
-	
+
 	swizzle_base(const native_t <T> &x_)
 			: swizzle_base() {
 		auto &em = Emitter::active;
@@ -242,7 +242,7 @@ public:
 		thunder::index_t args = list_from_args(x_, y_, z_);
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
-	
+
 	swizzle_base(const swizzle_base &other)
 			: swizzle_base() {
 		if (other.cached()) {
@@ -285,7 +285,7 @@ public:
 		initial[2] = z_;
 		initial[3] = w_;
 	}
-	
+
 	explicit swizzle_base(const native_t <T> x_,
 			      const native_t <T> &y_,
 			      const native_t <T> &z_,
@@ -304,7 +304,7 @@ public:
 		thunder::index_t args = list_from_args(v, w_);
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
-	
+
 	swizzle_base(const swizzle_base <T, 2> &v, const native_t <T> &z_, const native_t <T> &w_)
 			: swizzle_base() {
 		auto &em = Emitter::active;
@@ -312,7 +312,7 @@ public:
 		thunder::index_t args = list_from_args(v, z_, w_);
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
-	
+
 	swizzle_base(const swizzle_base &other)
 			: swizzle_base() {
 		if (other.cached()) {
@@ -360,6 +360,8 @@ struct vec : swizzle_base <T, N> {
 	}
 
 	// In place arithmetic operators
+	using scalar = native_t <T>;
+
 	vec &operator+=(const vec &a) {
 		*this = operation_from_args <vec> (thunder::addition, (*this), a);
 		return *this;
@@ -371,6 +373,11 @@ struct vec : swizzle_base <T, N> {
 	}
 
 	vec &operator*=(const vec &a) {
+		*this = operation_from_args <vec> (thunder::multiplication, (*this), a);
+		return *this;
+	}
+
+	vec &operator*=(const scalar &a) {
 		*this = operation_from_args <vec> (thunder::multiplication, (*this), a);
 		return *this;
 	}
