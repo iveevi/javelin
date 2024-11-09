@@ -2,12 +2,13 @@
 
 #include <type_traits>
 
+#include "../thunder/opt.hpp"
 #include "../thunder/tracked_buffer.hpp"
 #include "control_flow.hpp"
+#include "parameters.hpp"
 #include "tagged.hpp"
 #include "type_synthesis.hpp"
 #include "uniform_layout.hpp"
-#include "parameters.hpp"
 
 namespace jvl::ire {
 
@@ -115,26 +116,6 @@ struct Procedure : thunder::TrackedBuffer {
 			thunder::index_t c = em.emit_construct(q, -1, thunder::transient);
 			P::inject(x, c);
 		}
-
-		// } else if constexpr (aggregate <T>) {
-		// 	auto &x = std::get <index> (tpl);
-		//
-		// 	auto layout = x.layout().remove_const();
-		// 	thunder::index_t t = type_field_from_args(layout).id;
-		// 	thunder::index_t q = em.emit_qualifier(t, index, thunder::parameter);
-		// 	thunder::index_t c = em.emit_construct(q, -1, thunder::transient);
-		// 	layout.ref_with(cache_index_t::from(c));
-		// } else if constexpr (builtin <T>) {
-		// 	auto &x = std::get <index> (tpl);
-		//
-		// 	using T = std::decay_t <decltype(x)>;
-		//
-		// 	thunder::index_t t = type_field_from_args <T> ().id;
-		// 	thunder::index_t q = em.emit_qualifier(t, index, thunder::parameter);
-		// 	x.ref = em.emit_construct(q, -1, thunder::transient);
-		// } else {
-		// 	// Otherwise treat it as a parameter for Type I partial specialization
-		// }
 
 		if constexpr (index + 1 < sizeof...(Args))
 			__fill_parameter_references <index + 1> (tpl);
@@ -253,6 +234,7 @@ struct signature <R (Args...)> {
 }
 
 // Interface for constructing callables from functions
+// TODO: optimization options
 template <void_or_non_native_generic R = void>
 struct procedure {
 	std::string name;
@@ -309,6 +291,8 @@ auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 	}
 	proc.end();
 
+	// thunder::opt_transform(proc);
+
 	return proc.named(C.name);
 }
 
@@ -339,6 +323,8 @@ auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 		std::apply(ftn, args);
 	}
 	proc.end();
+
+	// thunder::opt_transform(proc);
 
 	return proc.named(C.name);
 }

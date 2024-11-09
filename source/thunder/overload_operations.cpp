@@ -9,34 +9,34 @@ QualifiedType lookup_operation_overload(const OperationCode &key, const std::vec
 		overload::from(i32, i32, i32),
 		overload::from(u32, u32, u32),
 		overload::from(f32, f32, f32),
-		
+
 		overload::from(f32, f32, i32),
 		overload::from(f32, i32, f32),
-		
+
 		overload::from(ivec2, ivec2, ivec2),
 		overload::from(ivec3, ivec3, ivec3),
 		overload::from(ivec4, ivec4, ivec4),
-		
+
 		overload::from(uvec2, uvec2, uvec2),
 		overload::from(uvec3, uvec3, uvec3),
 		overload::from(uvec4, uvec4, uvec4),
-		
+
 		overload::from(vec2, vec2, vec2),
 		overload::from(vec3, vec3, vec3),
 		overload::from(vec4, vec4, vec4),
 
 		overload::from(ivec3, ivec3, i32),
 		overload::from(ivec3, i32, ivec3),
-		
+
 		overload::from(uvec2, uvec2, u32),
 		overload::from(uvec2, u32, uvec2),
 
 		overload::from(uvec3, uvec3, u32),
 		overload::from(uvec3, u32, uvec3),
-		
+
 		overload::from(vec3, vec3, f32),
 		overload::from(vec3, f32, vec3),
-		
+
 		overload::from(vec4, vec4, f32),
 		overload::from(vec4, f32, vec4),
 	};
@@ -46,12 +46,13 @@ QualifiedType lookup_operation_overload(const OperationCode &key, const std::vec
 		overload::from(vec3, mat3, vec3),
 		overload::from(vec4, mat4, vec4),
 	};
-	
+
 	static const overload_list bitwise_operator_overloads {
 		overload::from(i32, i32, i32),
 		overload::from(ivec2, ivec2, ivec2),
 		overload::from(ivec3, ivec3, ivec3),
 		overload::from(ivec4, ivec4, ivec4),
+
 		overload::from(u32, u32, u32),
 		overload::from(uvec2, uvec2, uvec2),
 		overload::from(uvec2, uvec2, u32),
@@ -65,6 +66,16 @@ QualifiedType lookup_operation_overload(const OperationCode &key, const std::vec
 		overload::from(boolean, i32, i32),
 		overload::from(boolean, f32, f32),
 		overload::from(boolean, u32, u32),
+	};
+
+	static const overload_list shift_overloads {
+		overload::from(i32, i32, i32),
+		overload::from(i32, i32, u32),
+
+		overload::from(u32, u32, u32),
+		overload::from(u32, u32, i32),
+
+		overload::from(uvec3, uvec3, u32),
 	};
 
         static const overload_table <OperationCode> table {
@@ -81,14 +92,13 @@ QualifiedType lookup_operation_overload(const OperationCode &key, const std::vec
 		{ division, arithmetic_overloads },
 
 		{ modulus, {
-			// TODO: legalize floating point modulus?
 			overload::from(i32, i32, i32),
 			overload::from(u32, u32, u32),
-			
+
 			overload::from(ivec2, ivec2, i32),
 			overload::from(ivec3, ivec3, i32),
 			overload::from(ivec4, ivec4, i32),
-			
+
 			overload::from(uvec2, uvec2, u32),
 			overload::from(uvec3, uvec3, u32),
 			overload::from(uvec4, uvec4, u32),
@@ -97,22 +107,13 @@ QualifiedType lookup_operation_overload(const OperationCode &key, const std::vec
 		{ bool_not, { overload::from(boolean, boolean) } },
 		{ bool_or, { overload::from(boolean, boolean, boolean) } },
 		{ bool_and, { overload::from(boolean, boolean, boolean) } },
-		
+
 		{ bit_and, bitwise_operator_overloads },
 		{ bit_or, bitwise_operator_overloads },
 		{ bit_xor, bitwise_operator_overloads },
-		
-		{ bit_shift_left, {
-			overload::from(i32, i32, i32),
-			overload::from(u32, u32, u32),
-			overload::from(uvec3, uvec3, u32),
-		} },
-		
-		{ bit_shift_right, {
-			overload::from(i32, i32, i32),
-			overload::from(u32, u32, u32),
-			overload::from(uvec3, uvec3, u32),
-		} },
+
+		{ bit_shift_left, shift_overloads },
+		{ bit_shift_right, shift_overloads },
 
 		{ cmp_ge, comparison_overloads },
 		{ cmp_geq, comparison_overloads },

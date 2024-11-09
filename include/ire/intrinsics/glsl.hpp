@@ -36,9 +36,9 @@ struct __glsl_intrinsic_variable_t <T, code> {
 template <native T, thunder::QualifierKind code>
 struct __glsl_intrinsic_variable_t <vec <T, 3>, code> {
 	using arithmetic_type = vec <T, 3>;
-	
+
 	using self = __glsl_intrinsic_variable_t;
-	
+
 	swizzle_element <T, self, thunder::SwizzleCode::x> x;
 	swizzle_element <T, self, thunder::SwizzleCode::y> y;
 	swizzle_element <T, self, thunder::SwizzleCode::z> z;
@@ -55,7 +55,7 @@ struct __glsl_intrinsic_variable_t <vec <T, 3>, code> {
 	operator arithmetic_type() const {
 		return synthesize();
 	}
-	
+
 	// Assignment only for non-const intrinsics (assignable)
 	const self &operator=(const vec <T, 3> &other) {
 		auto &em = Emitter::active;
@@ -67,9 +67,9 @@ struct __glsl_intrinsic_variable_t <vec <T, 3>, code> {
 template <native T, thunder::QualifierKind code>
 struct __glsl_intrinsic_variable_t <vec <T, 4>, code> {
 	using arithmetic_type = vec <T, 4>;
-	
+
 	using self = __glsl_intrinsic_variable_t;
-	
+
 	swizzle_element <T, self, thunder::SwizzleCode::x> x;
 	swizzle_element <T, self, thunder::SwizzleCode::y> y;
 	swizzle_element <T, self, thunder::SwizzleCode::z> z;
@@ -87,7 +87,7 @@ struct __glsl_intrinsic_variable_t <vec <T, 4>, code> {
 	operator arithmetic_type() const {
 		return synthesize();
 	}
-	
+
 	// Assignment only for non-const intrinsics (assignable)
 	const self &operator=(const vec <T, 4> &other) {
 		auto &em = Emitter::active;
@@ -172,6 +172,11 @@ vec <T, N> dFdyFine(const vec <T, N> &v)
 inline native_t <float> intBitsToFloat(const native_t <int32_t> &v)
 {
 	return platform_intrinsic_from_args <native_t <float>> (thunder::glsl_intBitsToFloat, v);
+}
+
+inline native_t <float> uintBitsToFloat(const native_t <uint32_t> &v)
+{
+	return platform_intrinsic_from_args <native_t <float>> (thunder::glsl_uintBitsToFloat, v);
 }
 
 // Casting intrinsics for vector types

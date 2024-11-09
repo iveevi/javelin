@@ -19,7 +19,7 @@ concept overload_compatible = true
 // Addition
 template <arithmetic A, arithmetic B>
 requires overload_compatible <A, B>
-arithmetic_base <A> operator+(const A &a, const B &b)
+auto operator+(const A &a, const B &b)
 {
 	return underlying(a) + underlying(b);
 }
@@ -27,7 +27,7 @@ arithmetic_base <A> operator+(const A &a, const B &b)
 // Subtraction
 template <arithmetic A, arithmetic B>
 requires overload_compatible <A, B>
-arithmetic_base <A> operator-(const A &a, const B &b)
+auto operator-(const A &a, const B &b)
 {
 	return underlying(a) - underlying(b);
 }
@@ -35,7 +35,7 @@ arithmetic_base <A> operator-(const A &a, const B &b)
 // Multiplication
 template <arithmetic A, arithmetic B>
 requires overload_compatible <A, B>
-arithmetic_base <A> operator*(const A &a, const B &b)
+auto operator*(const A &a, const B &b)
 {
 	return underlying(a) * underlying(b);
 }
@@ -43,39 +43,39 @@ arithmetic_base <A> operator*(const A &a, const B &b)
 // Division
 template <arithmetic A, arithmetic B>
 requires overload_compatible <A, B>
-arithmetic_base <A> operator/(const A &a, const B &b)
+auto operator/(const A &a, const B &b)
 {
 	return underlying(a) / underlying(b);
 }
 
 // Modulus
-template <arithmetic A, arithmetic B>
+template <integral_arithmetic A, integral_arithmetic B>
 requires overload_compatible <A, B>
-arithmetic_base <A> operator%(const A &a, const B &b)
+auto operator%(const A &a, const B &b)
 {
 	return underlying(a) % underlying(b);
 }
 
 // Bit OR
-template <arithmetic A, arithmetic B>
+template <integral_arithmetic A, integral_arithmetic B>
 requires overload_compatible <A, B>
-arithmetic_base <A> operator|(const A &a, const B &b)
+auto operator|(const A &a, const B &b)
 {
 	return underlying(a) | underlying(b);
 }
 
 // Bit AND
-template <arithmetic A, arithmetic B>
+template <integral_arithmetic A, integral_arithmetic B>
 requires overload_compatible <A, B>
-arithmetic_base <A> operator&(const A &a, const B &b)
+auto operator&(const A &a, const B &b)
 {
 	return underlying(a) & underlying(b);
 }
 
 // Bit XOR
-template <arithmetic A, arithmetic B>
+template <integral_arithmetic A, integral_arithmetic B>
 requires overload_compatible <A, B>
-arithmetic_base <A> operator^(const A &a, const B &b)
+auto operator^(const A &a, const B &b)
 {
 	return underlying(a) ^ underlying(b);
 }
@@ -107,6 +107,21 @@ requires overload_compatible <A, B>
 native_t <bool> operator<(const A &a, const B &b)
 {
 	return underlying(a) < underlying(b);
+}
+
+// Shifting operators
+template <integral_arithmetic A, integral_arithmetic B>
+requires integral_native <typename decltype(underlying(B()))::native_type>
+auto operator<<(const A &a, const B &b)
+{
+	return underlying(a) << underlying(b);
+}
+
+template <integral_arithmetic A, integral_arithmetic B>
+requires integral_native <typename decltype(underlying(B()))::native_type>
+auto operator>>(const A &a, const B &b)
+{
+	return underlying(a) >> underlying(b);
 }
 
 } // namespace jvl::ire

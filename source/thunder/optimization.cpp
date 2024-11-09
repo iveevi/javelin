@@ -1,6 +1,7 @@
 #include <queue>
 #include <unordered_set>
 
+#include "thunder/enumerations.hpp"
 #include "thunder/opt.hpp"
 #include "logging.hpp"
 
@@ -19,8 +20,12 @@ bool opt_transform_compact(Buffer &result)
 
 		Atom atom = result.atoms[i];
 
+		// Calls can mutate the state,
+		// deal with this in linkage
+		bool enable = !atom.is <Call> ();
+
 		// Exhaustive search through other items
-		for (size_t j = i + 1; j < result.pointer; j++) {
+		for (size_t j = i + 1; enable && (j < result.pointer); j++) {
 			if (relocation.contains(j))
 				continue;
 
@@ -87,7 +92,7 @@ bool opt_transform_constructor_elision(Buffer &result)
 		index_t arg = construct.args;
 		if (arg == -1)
 			continue;
-		
+
 		std::vector <index_t> fields;
 		while (arg != -1) {
 			auto &atom = result.atoms[arg];
@@ -117,6 +122,9 @@ bool opt_transform_constructor_elision(Buffer &result)
 
 bool opt_transform_dce_exempt(const Atom &atom)
 {
+	if (auto intrinsic = atom.get <Intrinsic> ())
+		return intrinsic->opn == thunder::set_local_size;
+
 	return atom.is <Returns> ()
 		|| atom.is <Store> ()
 		|| atom.is <Qualifier> ()
@@ -135,7 +143,7 @@ bool opt_transform_dce_override(const Atom &atom)
 	}
 
 	default:
-		break;	
+		break;
 	}
 
 	return false;

@@ -18,6 +18,7 @@ TrackedBuffer::TrackedBuffer(const TrackedBuffer &other)
 
 // TODO: destructor will erase the entry if the active * == this
 
+// TODO: disable copies; overwrite ID during moves...
 TrackedBuffer &TrackedBuffer::operator=(const TrackedBuffer &other)
 {
 	if (this != &other) {

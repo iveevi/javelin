@@ -20,11 +20,12 @@ struct Aggregate {
 };
 
 struct Function : Buffer {
+	size_t cid;
 	std::string name;
 	QualifiedType returns;
 	std::vector <QualifiedType> args;
 
-	Function(const Buffer &, const std::string &);
+	Function(const Buffer &, const std::string &, size_t);
 };
 
 using TypeMap = std::map <index_t, index_t>;
@@ -52,6 +53,7 @@ struct LinkageUnit {
 	std::vector <Function> functions;
 	std::vector <Aggregate> aggregates;
 	std::vector <TypeMap> maps;
+	std::map <index_t, index_t> cids;
 	std::map <index_t, std::set <index_t>> dependencies;
 
 	struct {

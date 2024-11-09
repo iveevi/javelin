@@ -174,8 +174,10 @@ public:
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
 
-	swizzle_base(const swizzle_base &other)
-			: swizzle_base() {
+	swizzle_base(const swizzle_base &other) : swizzle_base() {
+		initial[0] = other.initial[0];
+		initial[1] = other.initial[1];
+
 		if (other.cached()) {
 			auto &em = Emitter::active;
 			thunder::index_t type = type_field_from_args <vec <T, 2>> ().id;
@@ -205,7 +207,7 @@ template <native T>
 class swizzle_base <T, 3> : public tagged {
 	using self = swizzle_base <T, 3>;
 
-	T initial[3] = { T(), T() };
+	T initial[3] = { T(), T(), T() };
 public:
 	swizzle_element <T, self, thunder::SwizzleCode::x> x;
 	swizzle_element <T, self, thunder::SwizzleCode::y> y;
@@ -243,8 +245,11 @@ public:
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
 
-	swizzle_base(const swizzle_base &other)
-			: swizzle_base() {
+	swizzle_base(const swizzle_base &other) : swizzle_base() {
+		initial[0] = other.initial[0];
+		initial[1] = other.initial[1];
+		initial[2] = other.initial[2];
+
 		if (other.cached()) {
 			auto &em = Emitter::active;
 			thunder::index_t type = type_field_from_args <vec <T, 3>> ().id;
@@ -313,8 +318,12 @@ public:
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
 
-	swizzle_base(const swizzle_base &other)
-			: swizzle_base() {
+	swizzle_base(const swizzle_base &other) : swizzle_base() {
+		initial[0] = other.initial[0];
+		initial[1] = other.initial[1];
+		initial[2] = other.initial[2];
+		initial[3] = other.initial[3];
+
 		if (other.cached()) {
 			auto &em = Emitter::active;
 			thunder::index_t type = type_field_from_args <vec <T, 4>> ().id;

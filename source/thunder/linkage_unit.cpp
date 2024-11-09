@@ -30,8 +30,8 @@ bool Aggregate::operator==(const Aggregate &other) const
 }
 
 // Functions
-Function::Function(const Buffer &buffer, const std::string &name_)
-		: Buffer(buffer), name(name_) {}
+Function::Function(const Buffer &buffer, const std::string &name_, size_t cid_)
+		: Buffer(buffer), cid(cid_), name(name_) {}
 
 // Linkage unit methods
 index_t LinkageUnit::new_aggregate(size_t ftn, const std::vector <QualifiedType> &fields)
@@ -219,9 +219,10 @@ std::set <index_t> LinkageUnit::process_function(const Function &ftn)
 
 		// TODO: static initializers
 	}
-	
+
 	// Mark the dependencies
 	dependencies[index] = referenced;
+	cids[ftn.cid] = index;
 
 	return referenced;
 }
@@ -231,10 +232,16 @@ void LinkageUnit::add(const TrackedBuffer &callable)
 	if (loaded.contains(callable.cid))
 		return;
 
-	auto referenced = process_function(Function(callable, callable.name));
+	Function converted {
+		callable,
+		callable.name,
+		callable.cid
+	};
+
+	auto referenced = process_function(converted);
 
 	loaded.insert(callable.cid);
-	for (index_t i : referenced)	
+	for (index_t i : referenced)
 		add(*TrackedBuffer::search_tracked(i));
 }
 
@@ -353,7 +360,7 @@ void generate_push_constant(std::string &result,
 {
 	if (pc.index == -1)
 		return;
-		
+
 	auto &types = functions[pc.function].types;
 	auto &generator = generators[pc.function];
 
@@ -456,8 +463,6 @@ void generate_function(std::string &result,
 {
 	auto ts = generator.type_to_string(function.returns);
 
-	// TODO: topologically sort the functions before synthesis
-
 	std::string args;
 	for (size_t j = 0; j < function.args.size(); j++) {
 		auto ts = generator.type_to_string(function.args[j]);
@@ -531,7 +536,7 @@ std::string LinkageUnit::generate_glsl() const
 	// Globals: layout inputs and outputs
 	generate_layout_io(result, generators, functions, "in", globals.inputs);
 	generate_layout_io(result, generators, functions, "out", globals.outputs);
-	
+
 	// Globals: push constants
 	generate_push_constant(result, generators, functions, globals.push_constant);
 
@@ -545,8 +550,26 @@ std::string LinkageUnit::generate_glsl() const
 	// Globals: samplers
 	generat_samplers(result, globals.samplers);
 
+	// Fix dependencies to use local indices
+	auto resolved_dependencies = dependencies;
+
+	fmt::println("functions to synthesize:");
+	for (auto &[i, d] : resolved_dependencies) {
+		fmt::print("{} @{} ->", functions[i].name, i);
+
+		auto resolved = std::set <index_t> ();
+		for (auto j : d)
+			resolved.insert(cids.at(j));
+
+		d = resolved;
+		for (auto j : d)
+			fmt::print(" {}", j);
+
+		fmt::print("\n");
+	}
+
 	// Generate each of the functions
-	auto sorted = topological_sort(dependencies);
+	auto sorted = topological_sort(resolved_dependencies);
 
 	while (sorted.size()) {
 		index_t i = sorted.front();
@@ -554,7 +577,7 @@ std::string LinkageUnit::generate_glsl() const
 
 		auto &function = functions[i];
 		auto &generator = generators[i];
-			
+
 		// TODO: topologically sort the functions before synthesis
 		generate_function(result, generator, function);
 
@@ -707,15 +730,15 @@ std::string LinkageUnit::generate_cpp() const
 			result += "\n";
 		}
 	}
-	
+
 	// Create the generators
 	auto generators = configure_generators();
-	
+
 	// Generate each of the functions
 	for (size_t i = 0; i < functions.size(); i++) {
 		auto &function = functions[i];
 		auto &generator = generators[i];
-			
+
 		generate_function(result, generator, function);
 
 		if (i + 1 < functions.size())
@@ -773,7 +796,7 @@ std::vector <uint32_t> LinkageUnit::generate_spirv(const vk::ShaderStageFlagBits
 	EShLanguage stage = translate_shader_stage(flags);
 
 	std::string glsl = generate_glsl();
-	
+
 	const char *shaderStrings[] { glsl.c_str() };
 
 	glslang::SpvOptions options;

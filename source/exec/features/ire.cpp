@@ -21,9 +21,24 @@
 using namespace jvl;
 using namespace jvl::ire;
 
+auto tea = procedure("tea") << [](u32 val0, u32 val1)
+{
+	u32 v0 = val0;
+	u32 v1 = val1;
+	u32 s0 = 0;
+
+	for (uint32_t i = 0; i < 16; i++) {
+		s0 += 0x9e3779b9;
+		v0 += ((v1 << 4u) + 0xa341316c) ^ (v1 + s0) ^ ((v1 >> 5u) + 0xc8013ea4);
+		v1 += ((v0 << 4u) + 0xad90777d) ^ (v0 + s0) ^ ((v0 >> 5u) + 0x7e95761e);
+	}
+
+	return v0;
+};
+
 auto lambda = [](inout <u32> x)
 {
-	x = x + 1;
+	return tea(x, 1 - x);
 };
 
 auto ftn = procedure <void> ("rand") << lambda;

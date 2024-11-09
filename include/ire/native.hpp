@@ -103,7 +103,7 @@ struct native_t : tagged {
 			this->ref = other.ref;
 		} else {
 			synthesize();
-			thunder::index_t args = em.emit_list(other.ref.id);
+			thunder::index_t args = em.emit_list(other.synthesize().id);
 			thunder::index_t cast = em.emit_intrinsic(args, caster(value));
 			em.emit_store(this->ref.id, cast);
 		}
@@ -148,7 +148,7 @@ struct native_t : tagged {
 	native_t operator-() const {
 		return operation_from_args <native_t> (thunder::unary_negation, *this);
 	}
-	
+
 	native_t &operator+=(const native_t &a) {
 		// TODO: store instruction?
 		*this = operation_from_args <native_t> (thunder::addition, (*this), a);
@@ -180,7 +180,7 @@ struct native_t : tagged {
 		*this = operation_from_args <native_t> (thunder::bit_shift_right, (*this), a);
 		return *this;
 	}
-	
+
 	template <integral_native U>
 	native_t &operator<<=(const native_t <U> &a)
 	requires integral_native <T> {
@@ -193,7 +193,7 @@ struct native_t : tagged {
 		*this = operation_from_args <native_t> (thunder::bit_or, (*this), a);
 		return *this;
 	}
-	
+
 	native_t &operator&=(const native_t &a)
 	requires integral_native <T> {
 		*this = operation_from_args <native_t> (thunder::bit_and, (*this), a);
@@ -208,28 +208,28 @@ struct native_t : tagged {
 	{
 		return operation_from_args <native_t> (thunder::addition, a, b);
 	}
-	
+
 	friend native_t operator-(const native_t &a, const native_t &b)
 	{
 		return operation_from_args <native_t> (thunder::subtraction, a, b);
 	}
-	
+
 	friend native_t operator*(const native_t &a, const native_t &b)
 	{
 		return operation_from_args <native_t> (thunder::multiplication, a, b);
 	}
-	
+
 	friend native_t operator/(const native_t &a, const native_t &b)
 	{
 		return operation_from_args <native_t> (thunder::division, a, b);
 	}
-	
+
 	// TODO: different implementations for floating point (fmod)
 	friend native_t operator%(const native_t &a, const native_t &b)
 	{
 		return operation_from_args <native_t> (thunder::modulus, a, b);
 	}
-	
+
 	///////////////////////
 	// Bitwise operators //
 	///////////////////////
@@ -239,12 +239,12 @@ struct native_t : tagged {
 	requires integral_native <T> {
 		return operation_from_args <native_t> (thunder::bit_or, a, b);
 	}
-	
+
 	friend native_t operator&(const native_t &a, const native_t &b)
 	requires integral_native <T> {
 		return operation_from_args <native_t> (thunder::bit_and, a, b);
 	}
-	
+
 	friend native_t operator^(const native_t &a, const native_t &b)
 	requires integral_native <T> {
 		return operation_from_args <native_t> (thunder::bit_xor, a, b);
