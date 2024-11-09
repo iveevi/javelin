@@ -35,7 +35,7 @@ inline void assertion(bool cond, const std::string &module, const std::string &m
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::purple), "assertion failed: ");
 	fmt::println("{}", msg);
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
-	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::pink), "note: ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::cadet_blue), "note: ");
 	fmt::println("declared from {}:{}", file, line);
 	std::fflush(stdout);
 	__builtin_trap();
@@ -70,7 +70,7 @@ inline void abort(const std::string &module, const std::string &msg, const char 
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::orange_red), "fatal error: ");
 	fmt::println("{}", msg);
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
-	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::pink), "note: ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::cadet_blue), "note: ");
 	fmt::println("declared from {}:{}", file, line);
 	std::fflush(stdout);
 	__builtin_trap();
@@ -113,7 +113,7 @@ inline void warning(const std::string &module, const std::string &msg)
 inline void info(const std::string &msg)
 {
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
-	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::cyan), "info: ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::cadet_blue), "info: ");
 	fmt::println("{}", msg);
 	std::fflush(stdout);
 }
@@ -122,7 +122,7 @@ inline void info(const std::string &module, const std::string &msg)
 {
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin ");
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "({}): ", module);
-	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::cyan), "info: ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::cadet_blue), "info: ");
 	fmt::println("{}", msg);
 	std::fflush(stdout);
 }
@@ -130,7 +130,7 @@ inline void info(const std::string &module, const std::string &msg)
 inline void note(const std::string &msg)
 {
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
-	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::pink), "note: ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::cadet_blue), "note: ");
 	fmt::println("{}", msg);
 	std::fflush(stdout);
 }
@@ -148,7 +148,7 @@ struct stage_bracket {
 	stage_bracket(const std::string &module_) : module(module_) {
 		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
 		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gold), "begin: ");
-		fmt::print(fmt::emphasis::underline | fmt::emphasis::bold | fmt::fg(fmt::color::white_smoke), "{}\n", module);
+		fmt::print(fmt::emphasis::underline | fmt::emphasis::bold | fmt::fg(fmt::color::gray), "{}\n", module);
 		std::fflush(stdout);
 
 		start = clk.now();
@@ -162,8 +162,8 @@ struct stage_bracket {
 
 		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
 		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gold), "close: ");
-		fmt::print(fmt::emphasis::underline | fmt::emphasis::bold | fmt::fg(fmt::color::white_smoke), "{}", module);
-		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::white_smoke), " ({} ms)\n", ms);
+		fmt::print(fmt::emphasis::underline | fmt::emphasis::bold | fmt::fg(fmt::color::gray), "{}", module);
+		fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), " ({} ms)\n", ms);
 		std::fflush(stdout);
 	}
 };

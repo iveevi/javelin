@@ -68,11 +68,11 @@ struct LinkageUnit {
 
 	void process_function_qualifier(Function &, size_t, index_t, const Qualifier &);
 	void process_function_aggregate(TypeMap &, const Function &, size_t, index_t, QualifiedType);
-	
+
 	std::set <index_t> process_function(const Function &);
-	
+
 	void add(const TrackedBuffer &);
-	
+
 	auto configure_generators() const;
 
 	// Generating code

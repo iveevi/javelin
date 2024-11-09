@@ -8,7 +8,7 @@
 - [x] Vector types
 - [ ] Arrays of generic items without a statically specified size
 	- For CC targets, solidify into wide arrays
-- [ ] `inout` and `out` qualifiers for parameters
+- [x] `inout`, `out`, and `in` qualifiers for parameters
 - [x] Uniform variables and buffers (GLSL)
 - [x] Storage buffer objects (GLSL)
 	- read-write, read only, write only
@@ -25,7 +25,7 @@
 - [x] Layout intputs and outputs
 	- With interpolation modes: `flat`, `noperspective`, and `smooth`
 - [x] Push constants with offsets
-- [ ] Casting operations
+- [x] Casting operations
 - [ ] Partial evaluation of callables
 - [ ] Duplicate bindings with dead code elimination
 - [x] Lambdas with capture
@@ -61,6 +61,7 @@
 
 - [x] False coloring of triangle meshes using arrays
 - [x] Custom color palette rendering of meshes with HSV
+- [x] Particle systems with and without compute shaders
 - [ ] Specialized glyph rendering through runtime shader generation
 	- Parallelized version as well, compiling multiple shaders at the same time
 - [ ] Barnes-Hutt simulation for N-body particle simulation

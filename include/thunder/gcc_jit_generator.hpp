@@ -35,7 +35,7 @@ struct gcc_jit_function_generator_t : Buffer {
 	};
 
 	expanded_list_chain expand_list_chain(index_t) const;
-	
+
 	// Per-atom generator
 	void generate(index_t);
 
@@ -45,9 +45,9 @@ struct gcc_jit_function_generator_t : Buffer {
 
 		JVL_ABORT("failed to JIT (gcc-jit) compile atom: {} (@{})", atom, i);
 	}
-	
+
 	gcc_jit_object *load_field(index_t, index_t, bool);
-	
+
 	// Expand generation list
 	auto work_list();
 

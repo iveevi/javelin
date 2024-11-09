@@ -8,6 +8,7 @@
 // TODO: out/inout parameter qualifiers
 // TODO: external constant specialization
 
+#include "ire/type_system.hpp"
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
@@ -20,41 +21,12 @@
 using namespace jvl;
 using namespace jvl::ire;
 
-// TODO: tagged union
-template <generic ... Args>
-struct variant {};
-
-static_assert(aggregate <optional <f32>>);
-
-struct custom {
-	f32 x;
-	vec2 y;
-	mat4 z;
-
-	auto layout() const {
-		return uniform_layout("custom",
-			named_field(x),
-			named_field(y),
-			named_field(z));	
-	}
-};
-
-auto lambda = [](optional <custom> v)
+auto lambda = [](inout <u32> x)
 {
-	// TODO: type checking for returns...
-	cond(v.has_value());
-		returns(v.value().x);
-	end();
-
-	returns(0.8f);
+	x = x + 1;
 };
 
-using S = detail::signature <decltype(lambda)>;
-using Result = S::return_t;
-using Arguments = S::args_t;
-using Procedure = S::manual_prodecure <f32>;
-
-auto ftn = procedure <f32> ("ftn") << lambda;
+auto ftn = procedure <void> ("rand") << lambda;
 
 int main()
 {

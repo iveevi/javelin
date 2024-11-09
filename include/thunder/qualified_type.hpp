@@ -30,7 +30,7 @@ struct StructFieldType : PlainDataType {
 	index_t next;
 
 	StructFieldType(PlainDataType, index_t);
-	
+
 	PlainDataType base() const;
 
 	bool operator==(const StructFieldType &) const;
@@ -56,15 +56,38 @@ struct SamplerType : public PlainDataType {
 	index_t dimension;
 
 	SamplerType(PlainDataType, index_t);
-	
+
 	bool operator==(const SamplerType &) const;
 	std::string to_string() const;
 	std::size_t hash() const;
 };
 
-// TODO: inout
-// TODO: out
-// TODO: storage types
+// Parameter IN type
+struct InArgType : public PlainDataType {
+	InArgType(PlainDataType);
+
+	bool operator==(const InArgType &) const;
+	std::string to_string() const;
+	std::size_t hash() const;
+};
+
+// Parameter OUT type
+struct OutArgType : public PlainDataType {
+	OutArgType(PlainDataType);
+
+	bool operator==(const OutArgType &) const;
+	std::string to_string() const;
+	std::size_t hash() const;
+};
+
+// Parameter INOUT type
+struct InOutArgType : public PlainDataType {
+	InOutArgType(PlainDataType);
+
+	bool operator==(const InOutArgType &) const;
+	std::string to_string() const;
+	std::size_t hash() const;
+};
 
 // Full qualified type
 using qualified_type_base = wrapped::variant <
@@ -72,7 +95,10 @@ using qualified_type_base = wrapped::variant <
 	PlainDataType,
 	StructFieldType,
 	ArrayType,
-	SamplerType
+	SamplerType,
+	InArgType,
+	OutArgType,
+	InOutArgType
 >;
 
 struct QualifiedType : qualified_type_base {
@@ -82,7 +108,7 @@ struct QualifiedType : qualified_type_base {
 		auto pd = get <PlainDataType> ();
 		return pd && pd->is <PrimitiveType> ();
 	}
-	
+
 	bool is_concrete() const {
 		auto pd = get <PlainDataType> ();
 		// TODO: alias ConcreteIndex = index_t
@@ -111,6 +137,7 @@ inline auto format_as(const QualifiedType &qt)
 } // namespace jvl::thunder
 
 // Hashing
+// TODO: replace with maps and comparison operator?
 template <>
 struct std::hash <jvl::thunder::QualifiedType> {
 	std::size_t operator()(const jvl::thunder::QualifiedType &qt) const {

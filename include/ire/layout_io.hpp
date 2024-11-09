@@ -94,7 +94,7 @@ struct layout_in <T, kind> : T {
 		this->ref = other.ref;
 		return *this;
 	}
-	
+
 	operator typename T::arithmetic_type() const {
 		return arithmetic_type(T::synthesize());
 	}

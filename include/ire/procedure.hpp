@@ -7,38 +7,134 @@
 #include "tagged.hpp"
 #include "type_synthesis.hpp"
 #include "uniform_layout.hpp"
+#include "parameters.hpp"
 
 namespace jvl::ire {
+
+// Generating type codes and filling references for parameters
+template <typename T>
+struct parameter_injection : std::false_type {};
+
+template <builtin T>
+struct parameter_injection <T> : std::true_type {
+	static thunder::index_t emit() {
+		return type_field_from_args <T> ().id;
+	}
+
+	static void inject(T &x, thunder::index_t i) {
+		x.ref = i;
+	}
+};
+
+template <aggregate T>
+struct parameter_injection <T> : std::true_type {
+	static thunder::index_t emit() {
+		T x;
+		auto layout = x.layout().remove_const();
+		return type_field_from_args(layout).id;
+	}
+
+	static void inject(T &x, thunder::index_t i) {
+		auto layout = x.layout().remove_const();
+		layout.ref_with(cache_index_t::from(i));
+	}
+};
+
+template <generic T>
+struct parameter_injection <in <T>> : std::true_type {
+	using U = promoted <T>;
+	using P = parameter_injection <U>;
+
+	static thunder::index_t emit() {
+		auto &em = Emitter::active;
+
+		thunder::index_t t = P::emit();
+		return em.emit_qualifier(t, -1, thunder::qualifier_in);
+	}
+
+	static void inject(in <T> &x, thunder::index_t i) {
+		U &y = static_cast <U &> (x);
+		P::inject(y, i);
+	}
+};
+
+template <generic T>
+struct parameter_injection <out <T>> : std::true_type {
+	using U = promoted <T>;
+	using P = parameter_injection <U>;
+
+	static thunder::index_t emit() {
+		auto &em = Emitter::active;
+
+		thunder::index_t t = P::emit();
+		return em.emit_qualifier(t, -1, thunder::qualifier_out);
+	}
+
+	static void inject(out <T> &x, thunder::index_t i) {
+		U &y = static_cast <U &> (x);
+		P::inject(y, i);
+	}
+};
+
+template <generic T>
+struct parameter_injection <inout <T>> : std::true_type {
+	using U = promoted <T>;
+	using P = parameter_injection <U>;
+
+	static thunder::index_t emit() {
+		auto &em = Emitter::active;
+
+		thunder::index_t t = P::emit();
+		return em.emit_qualifier(t, -1, thunder::qualifier_inout);
+	}
+
+	static void inject(inout <T> &x, thunder::index_t i) {
+		U &y = static_cast <U &> (x);
+		P::inject(y, i);
+	}
+};
 
 // Internal construction of procedures
 template <void_or_non_native_generic R, typename ... Args>
 struct Procedure : thunder::TrackedBuffer {
+	// TODO: put outside this defn
 	template <size_t index>
 	void __fill_parameter_references(std::tuple <Args...> &tpl)
 	requires (sizeof...(Args) > 0) {
 		auto &em = Emitter::active;
 
-		using type_t = std::decay_t <decltype(std::get <index> (tpl))>;
+		using T = std::decay_t <decltype(std::get <index> (tpl))>;
+		using P = parameter_injection <T>;
 
-		if constexpr (aggregate <type_t>) {
-			auto &x = std::get <index> (tpl);
+		auto &x = std::get <index> (tpl);
 
-			auto layout = x.layout().remove_const();
-			thunder::index_t t = type_field_from_args(layout).id;
+		// Parameters in the target language
+		if constexpr (P::value) {
+			thunder::index_t t = P::emit();
 			thunder::index_t q = em.emit_qualifier(t, index, thunder::parameter);
 			thunder::index_t c = em.emit_construct(q, -1, thunder::transient);
-			layout.ref_with(cache_index_t::from(c));
-		} else if constexpr (builtin <type_t>) {
-			auto &x = std::get <index> (tpl);
-
-			using T = std::decay_t <decltype(x)>;
-			
-			thunder::index_t t = type_field_from_args <T> ().id;
-			thunder::index_t q = em.emit_qualifier(t, index, thunder::parameter);
-			x.ref = em.emit_construct(q, -1, thunder::transient);
-		} else {
-			// Otherwise treat it as a parameter for Type I partial specialization
+			P::inject(x, c);
 		}
+
+		// } else if constexpr (aggregate <T>) {
+		// 	auto &x = std::get <index> (tpl);
+		//
+		// 	auto layout = x.layout().remove_const();
+		// 	thunder::index_t t = type_field_from_args(layout).id;
+		// 	thunder::index_t q = em.emit_qualifier(t, index, thunder::parameter);
+		// 	thunder::index_t c = em.emit_construct(q, -1, thunder::transient);
+		// 	layout.ref_with(cache_index_t::from(c));
+		// } else if constexpr (builtin <T>) {
+		// 	auto &x = std::get <index> (tpl);
+		//
+		// 	using T = std::decay_t <decltype(x)>;
+		//
+		// 	thunder::index_t t = type_field_from_args <T> ().id;
+		// 	thunder::index_t q = em.emit_qualifier(t, index, thunder::parameter);
+		// 	x.ref = em.emit_construct(q, -1, thunder::transient);
+		// } else {
+		// 	// Otherwise treat it as a parameter for Type I partial specialization
+		// }
 
 		if constexpr (index + 1 < sizeof...(Args))
 			__fill_parameter_references <index + 1> (tpl);
@@ -168,7 +264,7 @@ struct procedure {
 template <void_or_non_native_generic R, typename ... Args>
 struct procedure_with_args : procedure <R> {
 	std::tuple <Args...> args;
-	
+
 	procedure_with_args(const std::string &name_,
 		      const std::tuple <Args...> &args_)
 		: procedure <R> (name_), args(args_) {}
@@ -206,7 +302,7 @@ auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 		auto args = typename S::args_t();
 		if constexpr (sizeof...(Args))
 			args = C.args;
-		
+
 		proc.call(args);
 		auto values = std::apply(ftn, args);
 		returns(values);
@@ -222,7 +318,7 @@ requires (std::same_as <typename detail::signature <F> ::return_t, void>)
 auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 {
 	using S = detail::signature <F>;
-	
+
 	if constexpr (sizeof...(Args)) {
 		// Make sure the types match
 		using required = typename S::args_t;

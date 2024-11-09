@@ -8,7 +8,6 @@ namespace jvl::thunder::detail {
 
 MODULE(c-like-generator);
 
-// TODO: pass options to the body_t type
 static std::optional <std::string> generate_global_reference(const Qualifier &qualifier)
 {
 	switch (qualifier.kind) {
@@ -76,7 +75,7 @@ static std::optional <std::string> generate_global_reference(const Qualifier &qu
 
 	return std::nullopt;
 }
-	
+
 static std::string arguments_to_string(const std::vector <std::string> &args)
 {
 	std::string ret;
@@ -113,26 +112,26 @@ std::string generate_operation(OperationCode code, const std::string &a, const s
 {
 	// Binary operator strings
 	static const wrapped::hash_table <OperationCode, const char *> operators {
-		{ addition, "+" },
-		{ subtraction, "-" },
-		{ multiplication, "*" },
-		{ division, "/" },
-		
-		{ modulus, "%" },
-		
-		{ bit_shift_left, "<<" },
-		{ bit_shift_right, ">>" },
-		
-		{ bit_and, "&" },
-		{ bit_or, "|" },
-		{ bit_xor, "^" },
-		
-		{ cmp_ge, ">" },
-		{ cmp_geq, ">=" },
-		{ cmp_le, "<" },
-		{ cmp_leq, "<=" },
-		{ equals, "==" },
-		{ not_equals, "!=" },
+		{ addition,		"+" },
+		{ subtraction,		"-" },
+		{ multiplication,	"*" },
+		{ division,		"/" },
+
+		{ modulus,		"%" },
+
+		{ bit_shift_left,	"<<" },
+		{ bit_shift_right,	">>" },
+
+		{ bit_and,		"&" },
+		{ bit_or,		"|" },
+		{ bit_xor,		"^" },
+
+		{ cmp_ge,		">" },
+		{ cmp_geq,		">=" },
+		{ cmp_le,		"<" },
+		{ cmp_leq,		"<=" },
+		{ equals,		"==" },
+		{ not_equals,		"!=" },
 	};
 
 	// Handle the special cases
@@ -202,7 +201,7 @@ std::string c_like_generator_t::reference(index_t index) const
 		if (ref)
 			return ref.value();
 	} break;
-	
+
 	case Atom::type_index <Construct> ():
 	{
 		auto &constructor = atom.as <Construct> ();
@@ -213,7 +212,7 @@ std::string c_like_generator_t::reference(index_t index) const
 	case Atom::type_index <Load> ():
 	{
 		auto &load = atom.as <Load> ();
-		
+
 		std::string accessor;
 		if (load.idx != -1)
 			accessor = fmt::format(".f{}", load.idx);
@@ -227,7 +226,7 @@ std::string c_like_generator_t::reference(index_t index) const
 		std::string accessor = tbl_swizzle_code[swizzle.code];
 		return reference(swizzle.src) + "." + accessor;
 	}
-	
+
 	case Atom::type_index <ArrayAccess> ():
 	{
 		auto &access = atom.as <ArrayAccess> ();
@@ -237,7 +236,7 @@ std::string c_like_generator_t::reference(index_t index) const
 	default:
 		break;
 	}
-		
+
 	// TODO: Could be problematic, its not an actual storage location
 	return inlined(index);
 }
@@ -262,7 +261,7 @@ std::string c_like_generator_t::inlined(index_t index) const
 
 	case Atom::type_index <Primitive> ():
 		return generate_primitive(atom.as <Primitive> ());
-	
+
 	case Atom::type_index <Operation> ():
 	{
 		auto &operation = atom.as <Operation> ();
@@ -296,7 +295,7 @@ std::string c_like_generator_t::inlined(index_t index) const
 	case Atom::type_index <Call> ():
 	{
 		auto &call = atom.as <Call> ();
-		
+
 		TrackedBuffer *cbl = TrackedBuffer::search_tracked(call.cid);
 		std::string args;
 		if (call.args != -1)
@@ -346,13 +345,12 @@ std::vector <std::string> c_like_generator_t::arguments(index_t start) const
 
 c_like_generator_t::type_string c_like_generator_t::type_to_string(const QualifiedType &qt) const
 {
-	// TODO: might need some target specific handling
 	switch (qt.index()) {
-	
-	case QualifiedType::type_index <NilType> ():
+
+	variant_case(QualifiedType, NilType):
 		return { "void", "" };
 
-	case QualifiedType::type_index <ArrayType> ():
+	variant_case(QualifiedType, ArrayType):
 	{
 		auto &at = qt.as <ArrayType> ();
 		auto base = type_to_string(at.base());
@@ -369,7 +367,7 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 		};
 	}
 
-	case QualifiedType::type_index <PlainDataType> ():
+	variant_case(QualifiedType, PlainDataType):
 	{
 		auto &pd = qt.as <PlainDataType> ();
 		if (auto p = pd.get <PrimitiveType> ())
@@ -382,11 +380,48 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 		return type_to_string(types[concrete]);
 	}
 
+	variant_case(QualifiedType, InArgType):
+	{
+		auto &in = qt.as <InArgType> ();
+		auto base = static_cast <PlainDataType> (in);
+		auto info = type_to_string(base);
+
+		return {
+			.pre = "in " + info.pre,
+			.post = info.post
+		};
+	}
+
+	variant_case(QualifiedType, OutArgType):
+	{
+		auto &out = qt.as <OutArgType> ();
+		auto base = static_cast <PlainDataType> (out);
+		auto info = type_to_string(base);
+
+		return {
+			.pre = "out " + info.pre,
+			.post = info.post
+		};
+	}
+
+	variant_case(QualifiedType, InOutArgType):
+	{
+		auto &inout = qt.as <InOutArgType> ();
+		auto base = static_cast <PlainDataType> (inout);
+		auto info = type_to_string(base);
+
+		return {
+			.pre = "inout " + info.pre,
+			.post = info.post
+		};
+	}
+
 	default:
 		break;
 	}
 
 	dump();
+
 	JVL_ABORT("failed to resolve type name for {}", qt);
 }
 
@@ -456,7 +491,7 @@ void c_like_generator_t::generate(const Construct &construct, index_t index)
 
 	if (construct.args == -1)
 		return declare(index);
-	
+
 	define(index, inlined(index));
 }
 
@@ -503,18 +538,18 @@ void c_like_generator_t::generate(const Branch &branch, index_t)
 		finish(fmt::format("if ({}) {{", inlined(branch.cond)), false);
 		indentation++;
 		return;
-	
+
 	case loop_while:
 		finish(fmt::format("while ({}) {{", inlined(branch.cond)), false);
 		indentation++;
 		return;
-	
+
 	case conditional_else_if:
 		indentation--;
 		finish(fmt::format("}} else if ({}) {{", inlined(branch.cond)), false);
 		indentation++;
 		return;
-	
+
 	case conditional_else:
 		indentation--;
 		finish("} else {", false);
@@ -523,15 +558,15 @@ void c_like_generator_t::generate(const Branch &branch, index_t)
 
 	case control_flow_skip:
 		return finish("continue", true);
-	
+
 	case control_flow_stop:
 		return finish("break", true);
 
 	default:
 		break;
 	}
-	
-	JVL_ABORT("failed to generate branch: {}", branch);	
+
+	JVL_ABORT("failed to generate branch: {}", branch);
 }
 
 template <>
@@ -543,7 +578,7 @@ void c_like_generator_t::generate(const Returns &returns, index_t)
 		finish("return");
 }
 
-// Per-atom generator	
+// Per-atom generator
 void c_like_generator_t::generate(index_t i)
 {
 	auto ftn = [&](auto atom) { return generate(atom, i); };

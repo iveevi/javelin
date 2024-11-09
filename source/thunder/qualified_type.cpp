@@ -130,6 +130,60 @@ std::size_t SamplerType::hash() const
         return PlainDataType::hash() ^ (std::size_t(dimension) << 16);
 }
 
+// Parameter IN type
+InArgType::InArgType(PlainDataType p) : PlainDataType(p) {}
+
+bool InArgType::operator==(const InArgType &other) const
+{
+	return PlainDataType::operator==(other);
+}
+
+std::string InArgType::to_string() const
+{
+	return fmt::format("in({})", PlainDataType::to_string());
+}
+
+std::size_t InArgType::hash() const
+{
+	return PlainDataType::hash();
+}
+
+// Parameter OUT type
+OutArgType::OutArgType(PlainDataType p) : PlainDataType(p) {}
+
+bool OutArgType::operator==(const OutArgType &other) const
+{
+	return PlainDataType::operator==(other);
+}
+
+std::string OutArgType::to_string() const
+{
+	return fmt::format("out({})", PlainDataType::to_string());
+}
+
+std::size_t OutArgType::hash() const
+{
+	return PlainDataType::hash();
+}
+
+// Parameter INOUT type
+InOutArgType::InOutArgType(PlainDataType p) : PlainDataType(p) {}
+
+bool InOutArgType::operator==(const InOutArgType &other) const
+{
+	return PlainDataType::operator==(other);
+}
+
+std::string InOutArgType::to_string() const
+{
+	return fmt::format("inout({})", PlainDataType::to_string());
+}
+
+std::size_t InOutArgType::hash() const
+{
+	return PlainDataType::hash();
+}
+
 // Full qualified type
 QualifiedType::operator bool() const
 {

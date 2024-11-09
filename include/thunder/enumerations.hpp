@@ -68,7 +68,7 @@ static const char *tbl_primitive_types[] = {
 	"__end"
 };
 
-static_assert(__pt_end + 1 == sizeof(tbl_primitive_types)/sizeof(const char *));
+static_assert(__pt_end + 1 == sizeof(tbl_primitive_types) / sizeof(const char *));
 
 //////////////////////
 // Global qualifier //
@@ -78,8 +78,13 @@ enum QualifierKind : int8_t {
 	basic,
 
 	parameter,
+
+	qualifier_in,
+	qualifier_out,
+	qualifier_inout,
+
 	arrays,
-	
+
 	layout_in_flat,
 	layout_in_noperspective,
 	layout_in_smooth,
@@ -97,15 +102,15 @@ enum QualifierKind : int8_t {
 	write_only_storage_buffer,
 
 	shared,
-	
+
 	isampler_1d,
 	isampler_2d,
 	isampler_3d,
-	
+
 	usampler_1d,
 	usampler_2d,
 	usampler_3d,
-	
+
 	sampler_1d,
 	sampler_2d,
 	sampler_3d,
@@ -117,7 +122,7 @@ enum QualifierKind : int8_t {
 	glsl_intrinsic_gl_VertexID,
 	glsl_intrinsic_gl_VertexIndex,
 	glsl_intrinsic_gl_GlobalInvocationID,
-	
+
 	glsl_intrinsic_gl_Position,
 
 	__gq_end
@@ -127,6 +132,11 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"basic",
 
 	"parameter",
+
+	"in",
+	"out",
+	"inout",
+
 	"arrays",
 
 	"layout_input_flat",
@@ -166,13 +176,13 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"glsl:gl_VertexID",
 	"glsl:gl_VertexIndex",
 	"glsl:gl_GlobalInvocationID",
-	
+
 	"glsl:gl_Position",
 
 	"__end"
 };
 
-static_assert(__gq_end + 1 == sizeof(tbl_qualifier_kind)/sizeof(const char *));
+static_assert(__gq_end + 1 == sizeof(tbl_qualifier_kind) / sizeof(const char *));
 
 //////////////////
 // Swizzle Code //
@@ -188,7 +198,7 @@ static constexpr const char *tbl_swizzle_code[] = {
 	"__end"
 };
 
-static_assert(__sc_end + 1 == sizeof(tbl_swizzle_code)/sizeof(const char *));
+static_assert(__sc_end + 1 == sizeof(tbl_swizzle_code) / sizeof(const char *));
 
 /////////////////////
 // Branching Kinds //
@@ -218,7 +228,7 @@ static constexpr const char *tbl_branch_kind[] = {
 	"__end"
 };
 
-static_assert(__bk_end + 1 == sizeof(tbl_branch_kind)/sizeof(const char *));
+static_assert(__bk_end + 1 == sizeof(tbl_branch_kind) / sizeof(const char *));
 
 ////////////////////
 // Operation Code //
@@ -284,7 +294,7 @@ static constexpr const char *tbl_operation_code[] = {
 	"__end"
 };
 
-static_assert(__oc_end + 1 == sizeof(tbl_operation_code)/sizeof(const char *));
+static_assert(__oc_end + 1 == sizeof(tbl_operation_code) / sizeof(const char *));
 
 /////////////////////////
 // Intrinsic Operation //
@@ -411,7 +421,7 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"__end"
 };
 
-static_assert(__io_end + 1 == sizeof(tbl_intrinsic_operation)/sizeof(const char *));
+static_assert(__io_end + 1 == sizeof(tbl_intrinsic_operation) / sizeof(const char *));
 
 ///////////////////////
 // Constructor modes //

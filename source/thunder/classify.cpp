@@ -7,7 +7,7 @@
 #include "thunder/overload.hpp"
 
 namespace jvl::thunder {
-	
+
 MODULE(classify-atoms);
 
 QualifiedType Buffer::classify(index_t i) const
@@ -46,8 +46,9 @@ QualifiedType Buffer::classify(index_t i) const
 	case Atom::type_index <Qualifier> ():
 	{
 		auto &qualifier = atom.as <Qualifier> ();
-		
+
 		QualifiedType decl = classify(qualifier.underlying);
+
 
 		// Handling arrays
 		if (qualifier.kind == arrays) {
@@ -60,15 +61,31 @@ QualifiedType Buffer::classify(index_t i) const
 		// Handling samplers
 		if (sampler_kind(qualifier.kind)) {
 			return QualifiedType::sampler(sampler_result(qualifier.kind),
-				sampler_dimension(qualifier.kind));
-		}
-		
-		if (auto pd = decl.get <PlainDataType> ()) {
-			if (pd->is <PrimitiveType> ())
-				return decl;
+						      sampler_dimension(qualifier.kind));
 		}
 
-		return QualifiedType::concrete(qualifier.underlying);
+		// Potentially primitive
+		PlainDataType base = qualifier.underlying;
+		if (auto pd = decl.get <PlainDataType> ()) {
+			if (pd->is <PrimitiveType> ())
+				base = pd->as <PrimitiveType> ();
+		}
+
+		// Handling parameter types
+		if (qualifier.kind == qualifier_in)
+			return InArgType(base);
+		if (qualifier.kind == qualifier_out)
+			return OutArgType(base);
+		if (qualifier.kind == qualifier_inout)
+			return InOutArgType(base);
+
+		// Simplify in the case of special parameter types
+		if (decl.is <InArgType> ()
+				|| decl.is <OutArgType> ()
+				|| decl.is <InOutArgType> ())
+			return decl;
+
+		return base;
 	}
 
 	case Atom::type_index <Construct> ():
@@ -76,8 +93,18 @@ QualifiedType Buffer::classify(index_t i) const
 		auto &constructor = atom.as <Construct> ();
 
 		QualifiedType qt = classify(constructor.type);
-		if (constructor.mode == transient || qt.is <PlainDataType> ())
+		if (qt.is <PlainDataType> ())
 			return qt;
+
+		if (constructor.mode == transient) {
+			// Reduce if its a parameter
+			if (auto in = qt.get <InArgType> ())
+				return static_cast <PlainDataType> (*in);
+			if (auto out = qt.get <OutArgType> ())
+				return static_cast <PlainDataType> (*out);
+			if (auto inout = qt.get <InOutArgType> ())
+				return static_cast <PlainDataType> (*inout);
+		}
 
 		return QualifiedType::concrete(constructor.type);
 	}
@@ -91,7 +118,7 @@ QualifiedType Buffer::classify(index_t i) const
 
 		return QualifiedType::concrete(call.type);
 	}
-	
+
 	case Atom::type_index <Operation> ():
 	{
 		auto &operation = atom.as <Operation> ();
@@ -167,12 +194,12 @@ QualifiedType Buffer::classify(index_t i) const
 		dump();
 		JVL_ABORT("unfinished implementation for load: {}", atom);
 	}
-	
+
 	case Atom::type_index <ArrayAccess> ():
 	{
 		auto &access = atom.as <ArrayAccess> ();
 		QualifiedType qt = classify(access.src);
-		
+
 		auto pd = qt.get <PlainDataType> ();
 		while (pd) {
 			if (pd->is <index_t> ()) {
@@ -190,7 +217,7 @@ QualifiedType Buffer::classify(index_t i) const
 
 		return qt.as <ArrayType> ().base();
 	}
-	
+
 	case Atom::type_index <Returns> ():
 	{
 		auto &returns = atom.as <Returns> ();
