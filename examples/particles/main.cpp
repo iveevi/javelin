@@ -30,7 +30,7 @@ using namespace jvl::ire;
 VULKAN_EXTENSIONS(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
 // View and projection information
-struct ViewInfo {
+struct MVP {
 	mat4 view;
 	mat4 proj;
 	f32 smin;
@@ -46,7 +46,7 @@ struct ViewInfo {
 	}
 };
 
-auto project_vertex = [](ViewInfo &info, vec3 &translate, vec3 position)
+auto project_vertex = [](MVP &info, vec3 &translate, vec3 position)
 {
 	// TODO: put the buffer here...
 	vec4 p = vec4(position + translate, 1);
@@ -65,7 +65,7 @@ void vertex()
 	read_only_buffer <array <vec3>> translations(0, -1);
 	read_only_buffer <array <vec3>> velocities(1, -1);
 	
-	push_constant <ViewInfo> view_info;
+	push_constant <MVP> view_info;
 
 	vec3 translate = translations[gl_InstanceIndex];
 	vec3 velocity = velocities[gl_InstanceIndex];
@@ -138,8 +138,8 @@ littlevk::Pipeline configure_pipeline(core::DeviceResourceCollection &drc,
 		.with_render_pass(render_pass, 0)
 		.with_vertex_layout(vertex_layout)
 		.with_shader_bundle(bundle)
-		.with_push_constant <solid_t<ViewInfo>> (vk::ShaderStageFlagBits::eVertex, 0)
-		.with_push_constant <solid_t<u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t<ViewInfo>))
+		.with_push_constant <solid_t<MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
+		.with_push_constant <solid_t<u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t<MVP>))
 		.with_dsl_binding(0, vk::DescriptorType::eStorageBuffer,
 				  1, vk::ShaderStageFlagBits::eVertex)
 		.with_dsl_binding(1, vk::DescriptorType::eStorageBuffer,
@@ -373,10 +373,10 @@ int main(int argc, char *argv[])
 	core::Aperature aperature;
 
 	// MVP structure used for push constants
-	auto m_view = uniform_field(ViewInfo, view);
-	auto m_proj = uniform_field(ViewInfo, proj);
+	auto m_view = uniform_field(MVP, view);
+	auto m_proj = uniform_field(MVP, proj);
 
-	solid_t <ViewInfo> view_info;
+	solid_t <MVP> view_info;
 
 	// Command buffers for the rendering loop
 	auto command_buffers = littlevk::command_buffers(drc.device,
@@ -466,7 +466,7 @@ int main(int argc, char *argv[])
 			pipeline.layout,
 			0, set, {});
 		
-		cmd.pushConstants <solid_t <ViewInfo>> (pipeline.layout,
+		cmd.pushConstants <solid_t <MVP>> (pipeline.layout,
 			vk::ShaderStageFlagBits::eVertex,
 			0, view_info);
 		

@@ -9,7 +9,8 @@ void vertex(RenderMode mode)
 	layout_in <vec2> uv(2);
 
 	// Projection informations
-	push_constant <ViewInfo> mvp;
+	push_constant <MVP> mvp;
+
 	gl_Position = mvp.project(position);
 	gl_Position.y = -gl_Position.y;
 
@@ -99,7 +100,7 @@ void fragment(RenderMode mode)
 
 	case RenderMode::eObject:
 	{
-		push_constant <ObjectInfo> info(solid_size <ViewInfo>);
+		push_constant <ObjectInfo> info(solid_size <MVP>);
 
 		auto palette = hsv_palette <16> (0.5, 1);
 
@@ -139,7 +140,7 @@ void fragment(RenderMode mode)
 	}
 
 	// Highlighting the selected object
-	push_constant <u32> highlight(sizeof(solid_t <ViewInfo>));
+	push_constant <u32> highlight(sizeof(solid_t <MVP>));
 
 	highlight_fragment(fragment, highlight);
 }

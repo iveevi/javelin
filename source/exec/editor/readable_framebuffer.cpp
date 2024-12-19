@@ -57,14 +57,14 @@ void ReadableFramebuffer::configure_pipeline(DeviceResourceCollection &drc, cons
 	auto [binding, attributes] = vulkan::binding_and_attributes(flags);
 
 	auto vs = procedure("main") << []() {
-		push_constant <ViewInfo> mvp;
+		push_constant <MVP> mvp;
 		layout_in <vec3> position(0);
 		gl_Position = mvp.project(position);
 		gl_Position.y = -gl_Position.y;
 	};
 
 	auto fs = procedure("main") << []() {
-		push_constant <i32> id(solid_size <ViewInfo>);
+		push_constant <i32> id(solid_size <MVP>);
 		layout_out <i32> obj(0);
 		obj = id;
 	};
@@ -79,8 +79,8 @@ void ReadableFramebuffer::configure_pipeline(DeviceResourceCollection &drc, cons
 	pipelines[flags] = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
 		.with_render_pass(render_pass, 0)
 		.with_shader_bundle(shaders)
-		.with_push_constant <solid_t <ViewInfo>> (vk::ShaderStageFlagBits::eVertex, 0)
-		.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, solid_size <ViewInfo>)
+		.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
+		.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, solid_size <MVP>)
 		.cull_mode(vk::CullModeFlagBits::eNone)
 		.alpha_blending(false)
 		.with_vertex_binding(binding)
@@ -109,11 +109,11 @@ void ReadableFramebuffer::go(const RenderingInfo &info, Null)
 	littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(extent));
 
 	// Common camera information
-	solid_t <ViewInfo> mvp;
+	solid_t <MVP> mvp;
 
-	auto m_model = uniform_field(ViewInfo, model);
-	auto m_view = uniform_field(ViewInfo, view);
-	auto m_proj = uniform_field(ViewInfo, proj);
+	auto m_model = uniform_field(MVP, model);
+	auto m_view = uniform_field(MVP, view);
+	auto m_proj = uniform_field(MVP, proj);
 
 	mvp[m_model] = jvl::float4x4::identity();
 	mvp[m_proj] = jvl::core::perspective(aperature);
@@ -129,13 +129,13 @@ void ReadableFramebuffer::go(const RenderingInfo &info, Null)
 
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.handle);
 
-		cmd.pushConstants <solid_t <ViewInfo>> (pipeline.layout,
+		cmd.pushConstants <solid_t <MVP>> (pipeline.layout,
 			vk::ShaderStageFlagBits::eVertex,
 			0, mvp);
 
 		cmd.pushConstants <solid_t <i32>> (pipeline.layout,
 			vk::ShaderStageFlagBits::eFragment,
-			sizeof(solid_t <ViewInfo>),
+			sizeof(solid_t <MVP>),
 			scene.mesh_to_object[mesh]);
 
 		cmd.bindVertexBuffers(0, mesh.vertices.buffer, { 0 });

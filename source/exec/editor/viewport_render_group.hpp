@@ -21,9 +21,9 @@ class ViewportRenderGroup {
 	void prepare_albedo(const RenderingInfo &);
 
 	// Rendering specific groups of pipelines
-	void render_albedo(const RenderingInfo &, const Viewport &, const solid_t <ViewInfo> &);
-	void render_objects(const RenderingInfo &, const Viewport &, const solid_t <ViewInfo> &);
-	void render_default(const RenderingInfo &, const Viewport &, const solid_t <ViewInfo> &);
+	void render_albedo(const RenderingInfo &, const Viewport &, const solid_t <MVP> &);
+	void render_objects(const RenderingInfo &, const Viewport &, const solid_t <MVP> &);
+	void render_default(const RenderingInfo &, const Viewport &, const solid_t <MVP> &);
 public:
 	vk::RenderPass render_pass;
 
