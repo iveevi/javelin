@@ -89,30 +89,8 @@ target_link_libraries(javelin-ire
 target_compile_definitions(javelin-ire PRIVATE
 	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
 
-# Testing suite using GoogleTest
-# TODO: move cmake file to source / tests
-add_executable(test
-	source/test/ire_callable.cpp
-	source/test/ire_emitter.cpp
-	source/test/ire_ggx_brdf.cpp
-	source/test/ire_jit_gcc_material.cpp
-	source/test/ire_solidification.cpp
-	source/test/ire_synthesize_cpp.cpp
-	source/test/ire_synthesize_glsl.cpp
-	source/test/math_matrix.cpp
-	thirdparty/glad/src/gl.c)
-
-set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)
-
-target_link_libraries(test
-	GTest::gtest_main
-	javelin-ire
-	glfw
-	gccjit
-	$<$<CONFIG:Debug>:-fsanitize=address>)
-
-target_compile_options(test PRIVATE
-	$<$<CONFIG:Debug>:-Wall;-Werror;-fsanitize=address>)
+# Testing suite
+add_subdirectory(testing)
 
 # Example projects
 add_subdirectory(examples)

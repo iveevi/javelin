@@ -42,8 +42,6 @@ ftn add(int a, int b) -> int
 
 int main()
 {
-	// std::filesystem::path path = "include/lang/proto/triangle.jvl";
-	// std::string source = readfile(path);
 	fmt::println("{}", source);
 
 	jvl::lang::parse_state ps(jvl::lang::lexer(source), 0);
