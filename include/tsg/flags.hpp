@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "../flags.hpp"
+#include "../core/flags.hpp"
 
 namespace jvl::tsg {
 

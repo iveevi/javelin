@@ -1,6 +1,6 @@
 #pragma once
 
-#include <math_types.hpp>
+#include <core/math.hpp>
 
 namespace jvl::core {
 

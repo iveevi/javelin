@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "wrapped_types.hpp"
+#include <core/wrapped.hpp>
 
 namespace jvl::core {
 

@@ -8,12 +8,10 @@
 // TODO: out/inout parameter qualifiers
 // TODO: external constant specialization
 
-#include "ire/type_system.hpp"
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
 #include <ire/core.hpp>
-#include <profiles/targets.hpp>
 #include <thunder/opt.hpp>
 #include <thunder/linkage_unit.hpp>
 #include <constants.hpp>

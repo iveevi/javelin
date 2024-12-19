@@ -1,9 +1,9 @@
 #include <queue>
 #include <unordered_set>
 
+#include "core/logging.hpp"
 #include "thunder/enumerations.hpp"
 #include "thunder/opt.hpp"
-#include "logging.hpp"
 
 namespace jvl::thunder {
 

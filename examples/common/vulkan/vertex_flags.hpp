@@ -5,8 +5,8 @@
 
 #include <littlevk/littlevk.hpp>
 
-#include <math_types.hpp>
-#include <logging.hpp>
+#include <core/math.hpp>
+#include <core/logging.hpp>
 
 namespace jvl::gfx::vulkan {
 

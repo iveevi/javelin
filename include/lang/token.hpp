@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "../wrapped_types.hpp"
+#include "../core/wrapped.hpp"
 
 // TODO: move to lang/format.hpp
 #include <fmt/format.h>

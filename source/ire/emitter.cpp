@@ -5,12 +5,10 @@
 
 #include <fmt/core.h>
 
+#include "core/logging.hpp"
 #include "ire/emitter.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
-#include "thunder/opt.hpp"
-#include "wrapped_types.hpp"
-#include "logging.hpp"
 
 namespace jvl::ire {
 

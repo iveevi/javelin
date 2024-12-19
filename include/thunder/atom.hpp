@@ -3,9 +3,9 @@
 #include <fmt/printf.h>
 #include <fmt/format.h>
 
+#include "../core/wrapped.hpp"
+#include "../core/logging.hpp"
 #include "enumerations.hpp"
-#include "../wrapped_types.hpp"
-#include "../logging.hpp"
 
 namespace jvl::thunder {
 

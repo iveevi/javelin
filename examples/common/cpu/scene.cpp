@@ -1,6 +1,6 @@
 #include <stack>
 
-#include <logging.hpp>
+#include <core/logging.hpp>
 
 #include "scene.hpp"
 

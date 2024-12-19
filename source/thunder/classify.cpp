@@ -1,11 +1,10 @@
-#include "logging.hpp"
+#include "core/logging.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/buffer.hpp"
 #include "thunder/enumerations.hpp"
 #include "thunder/properties.hpp"
 #include "thunder/qualified_type.hpp"
 #include "thunder/overload.hpp"
-#include <functional>
 
 namespace jvl::thunder {
 

@@ -4,8 +4,8 @@
 
 #include <fmt/printf.h>
 
-#include <logging.hpp>
-#include <math_types.hpp>
+#include <core/logging.hpp>
+#include <core/math.hpp>
 
 #include "scene.hpp"
 #include "material.hpp"

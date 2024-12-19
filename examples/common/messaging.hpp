@@ -4,8 +4,8 @@
 #include <map>
 #include <queue>
 
-#include "wrapped_types.hpp"
-#include "math_types.hpp"
+#include <core/wrapped.hpp>
+#include <core/math.hpp>
 
 #include <fmt/printf.h>
 

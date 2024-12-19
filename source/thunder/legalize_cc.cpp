@@ -1,5 +1,5 @@
+#include "core/logging.hpp"
 #include "ire/emitter.hpp"
-#include "logging.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
 #include "thunder/opt.hpp"

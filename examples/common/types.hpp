@@ -4,8 +4,8 @@
 #include <vector>
 #include <map>
 
-#include "math_types.hpp"
-#include "wrapped_types.hpp"
+#include <core/math.hpp>
+#include <core/wrapped.hpp>
 
 namespace jvl {
 

@@ -5,7 +5,6 @@
 
 #include <ire/core.hpp>
 #include <thunder/opt.hpp>
-#include <profiles/targets.hpp>
 
 using namespace jvl;
 using namespace jvl::ire;

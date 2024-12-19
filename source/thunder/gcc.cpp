@@ -4,7 +4,7 @@
 
 #include <libgccjit.h>
 
-#include "logging.hpp"
+#include "core/logging.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
 #include "thunder/qualified_type.hpp"

@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <math_types.hpp>
+#include <core/math.hpp>
 
 #include "../aabb.hpp"
 #include "intersection.hpp"

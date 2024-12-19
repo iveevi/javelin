@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "math_types.hpp"
+#include <core/math.hpp>
 
 using namespace jvl;
 

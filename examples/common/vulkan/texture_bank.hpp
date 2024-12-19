@@ -4,7 +4,7 @@
 
 #include <littlevk/littlevk.hpp>
 
-#include <wrapped_types.hpp>
+#include <core/wrapped.hpp>
 
 #include "texture.hpp"
 

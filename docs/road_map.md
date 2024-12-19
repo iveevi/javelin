@@ -1,5 +1,9 @@
 # Road Map
 
+## Thunder Backend
+
+- [ ] Persistent variables to store computations
+
 ## Intermediate Representation Emitter
 
 - [x] Generic type system
@@ -30,6 +34,7 @@
 - [ ] Duplicate bindings with dead code elimination
 - [x] Lambdas with capture
 - [ ] Deferred declarations for runtime specialization
+- [ ] CUDA support with NVRTC
 
 ## Type Safe Graphics
 
@@ -37,25 +42,7 @@
 - [x] Type and binding checking for layout inputs and outputs in adjacent stages
 - [x] Compiler warnings (via deprecation) for unused layout outputs
 - [ ] Descriptor set layout binding generation
-
-## Editor
-
-- [ ] Visualization of various scene properties
-	- [x] Surface normals, geometric and interpolated
-	- [x] Texture coordinates
-	- [x] Depth from the camera
-	- [x] Individual triangles of meshes
-	- [x] Individual objects in the scene
-	- [x] Textured and untextured albedo
-	- [ ] Object roughness
-- [x] Host profiler statistics
-- [ ] Device profiler statistics
-	- [ ] Overdraw counter
-
-## Engine
-
-- [x] Texture caching to avoid duplicate texture loading
-- [ ] Back-up pipelines for incompatible vertex layouts
+- [ ] Mesh shaders
 
 ## Examples
 

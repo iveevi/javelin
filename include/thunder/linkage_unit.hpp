@@ -5,9 +5,9 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "../core/math.hpp"
 #include "buffer.hpp"
 #include "tracked_buffer.hpp"
-#include "../math_types.hpp"
 
 namespace jvl::thunder {
 
@@ -80,10 +80,12 @@ struct LinkageUnit {
 	// Generating code
 	std::string generate_glsl() const;
 	std::string generate_cpp() const;
+	std::string generate_cuda() const;
 
 	// TODO: conditional guard for SPIRV support
 	std::vector <uint32_t> generate_spirv(const vk::ShaderStageFlagBits &) const;
 
+	// TODO: cuda JIT as well
 	void *jit() const;
 };
 

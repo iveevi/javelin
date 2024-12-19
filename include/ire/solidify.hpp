@@ -1,9 +1,8 @@
 #pragma once
 
-#include "../math_types.hpp"
+#include "../core/math.hpp"
 #include "aggregate.hpp"
 #include "aliases.hpp"
-#include "string_literal.hpp"
 #include "uniform_layout.hpp"
 
 namespace jvl::ire {

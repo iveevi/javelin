@@ -1,7 +1,6 @@
 #include "util.hpp"
 
 #include <ire/core.hpp>
-#include <profiles/targets.hpp>
 
 using namespace jvl;
 using namespace jvl::ire;

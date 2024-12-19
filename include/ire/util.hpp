@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../core/logging.hpp"
 #include "../thunder/atom.hpp"
 #include "../thunder/enumerations.hpp"
-#include "logging.hpp"
 #include "native.hpp"
 #include "tagged.hpp"
 #include "type_synthesis.hpp"
@@ -121,7 +121,7 @@ R operation_from_args(thunder::OperationCode type, const A &a, const B &b)
 
 	thunder::index_t aid = a.synthesize().id;
 
-	JVL_ASSERT(aid >= 0 && aid <= size,
+	JVL_ASSERT(aid >= 0 && (size_t) aid <= size,
 		"invalid index ({}) synthesized for operation (type: {})",
 		aid, thunder::tbl_operation_code[type]);
 

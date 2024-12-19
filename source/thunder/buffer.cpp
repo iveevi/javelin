@@ -1,4 +1,5 @@
-#include "logging.hpp"
+#include "core/logging.hpp"
+
 #include "thunder/atom.hpp"
 #include "thunder/buffer.hpp"
 #include "thunder/qualified_type.hpp"

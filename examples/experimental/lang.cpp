@@ -12,7 +12,8 @@
 #include <fmt/std.h>
 #include <fmt/format.h>
 
-#include "wrapped_types.hpp"
+#include <core/wrapped.hpp>
+
 #include "lang/token.hpp"
 #include "lang/memory.hpp"
 #include "lang/parsing.hpp"

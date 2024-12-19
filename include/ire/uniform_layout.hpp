@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../logging.hpp"
+#include "../core/logging.hpp"
 #include "../thunder/atom.hpp"
 #include "aggregate.hpp"
 #include "tagged.hpp"
