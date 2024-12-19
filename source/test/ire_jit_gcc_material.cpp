@@ -2,7 +2,7 @@
 
 #include "ire/core.hpp"
 #include "thunder/opt.hpp"
-#include "constants.hpp"
+// #include "constants.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;

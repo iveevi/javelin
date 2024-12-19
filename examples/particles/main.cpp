@@ -4,25 +4,20 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_vulkan.h>
 
-#include <core/aperature.hpp>
-#include <core/color.hpp>
-#include <core/device_resource_collection.hpp>
-#include <core/scene.hpp>
-#include <core/transform.hpp>
-#include <engine/camera_controller.hpp>
-#include <engine/frame_render_context.hpp>
-#include <engine/imgui.hpp>
-#include <engine/imported_asset.hpp>
-#include <gfx/cpu/scene.hpp>
-#include <gfx/vulkan/scene.hpp>
 #include <ire/core.hpp>
 
-#include "common/cmaps.hpp"
-#include "common/extensions.hpp"
-#include "common/default_framebuffer_set.hpp"
+#include "aperature.hpp"
+#include "camera_controller.hpp"
+#include "cmaps.hpp"
+#include "default_framebuffer_set.hpp"
+#include "device_resource_collection.hpp"
+#include "extensions.hpp"
+#include "frame_render_context.hpp"
+#include "imgui.hpp"
+#include "transform.hpp"
+#include "triangle_mesh.hpp"
 
 #include <random>
-#include <vector>
 
 using namespace jvl;
 using namespace jvl::ire;

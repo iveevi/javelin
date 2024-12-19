@@ -2,7 +2,7 @@
 
 #include <littlevk/littlevk.hpp>
 
-#include <core/device_resource_collection.hpp>
+#include "device_resource_collection.hpp"
 
 using namespace jvl;
 

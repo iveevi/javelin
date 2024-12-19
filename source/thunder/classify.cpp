@@ -128,11 +128,11 @@ QualifiedType Buffer::classify(index_t i) const
 	{
 		auto &operation = atom.as <Operation> ();
 
-		JVL_ASSERT(operation.a >= 0 && operation.a < pointer,
+		JVL_ASSERT(operation.a >= 0 && (size_t) operation.a < pointer,
 			"invalid operand argument in operation: {} (@{})", atom, i);
 
 		if (operation.code != unary_negation && operation.code != bool_not) {
-			JVL_ASSERT(operation.b >= 0 && operation.b < pointer,
+			JVL_ASSERT(operation.b >= 0 && (size_t) operation.b < pointer,
 				"invalid operand argument in operation: {} (@{})", atom, i);
 		}
 

@@ -7,21 +7,13 @@
 #include FT_BBOX_H
 #include FT_OUTLINE_H
 
-#include <core/aperature.hpp>
-#include <core/color.hpp>
-#include <core/device_resource_collection.hpp>
-#include <core/scene.hpp>
-#include <core/transform.hpp>
-#include <engine/camera_controller.hpp>
-#include <engine/frame_render_context.hpp>
-#include <engine/imgui.hpp>
-#include <engine/imported_asset.hpp>
-#include <gfx/cpu/scene.hpp>
-#include <gfx/vulkan/scene.hpp>
 #include <ire/core.hpp>
 
-#include "common/extensions.hpp"
-#include "common/default_framebuffer_set.hpp"
+#include "extensions.hpp"
+#include "default_framebuffer_set.hpp"
+#include "device_resource_collection.hpp"
+#include "frame_render_context.hpp"
+#include "imgui.hpp"
 
 using namespace jvl;
 // using namespace jvl::ire;
