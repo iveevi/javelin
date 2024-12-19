@@ -25,7 +25,7 @@ index_t Buffer::emit(const Atom &atom, bool enable_classification)
 		types[pointer] = classify(pointer);
 		include(pointer);
 	}
-	
+
 	return pointer++;
 }
 
@@ -78,7 +78,7 @@ std::vector <QualifiedType> Buffer::expand_list_types(index_t i) const
 
 		List list = atom.as <List> ();
 		i = list.next;
-		
+
 		args.push_back(types[list.item]);
 	}
 

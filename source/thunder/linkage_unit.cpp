@@ -553,20 +553,20 @@ std::string LinkageUnit::generate_glsl() const
 	// Fix dependencies to use local indices
 	auto resolved_dependencies = dependencies;
 
-	fmt::println("functions to synthesize:");
-	for (auto &[i, d] : resolved_dependencies) {
-		fmt::print("{} @{} ->", functions[i].name, i);
+	// fmt::println("functions to synthesize:");
+	// for (auto &[i, d] : resolved_dependencies) {
+	// 	fmt::print("{} @{} ->", functions[i].name, i);
 
-		auto resolved = std::set <index_t> ();
-		for (auto j : d)
-			resolved.insert(cids.at(j));
+	// 	auto resolved = std::set <index_t> ();
+	// 	for (auto j : d)
+	// 		resolved.insert(cids.at(j));
 
-		d = resolved;
-		for (auto j : d)
-			fmt::print(" {}", j);
+	// 	d = resolved;
+	// 	for (auto j : d)
+	// 		fmt::print(" {}", j);
 
-		fmt::print("\n");
-	}
+	// 	fmt::print("\n");
+	// }
 
 	// Generate each of the functions
 	auto sorted = topological_sort(resolved_dependencies);

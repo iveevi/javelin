@@ -7,7 +7,7 @@ void vertex(RenderMode mode)
 	layout_in <vec3> position(0);
 	layout_in <vec3> normal(1);
 	layout_in <vec2> uv(2);
-	
+
 	// Projection informations
 	push_constant <ViewInfo> mvp;
 	gl_Position = mvp.project(position);
@@ -22,7 +22,7 @@ void vertex(RenderMode mode)
 
 		out_normal = normal;
 	} break;
-	
+
 	case RenderMode::eNormalGeometric:
 	case RenderMode::eBackup:
 	{
@@ -36,7 +36,7 @@ void vertex(RenderMode mode)
 	{
 		// TODO: allow duplicate bindings...
 		layout_out <vec2> out_uv(2);
-		
+
 		out_uv = uv;
 	} break;
 
@@ -60,14 +60,14 @@ void fragment(RenderMode mode)
 	layout_out <vec4> fragment(0);
 
 	switch (mode) {
-	
+
 	case RenderMode::eNormalSmooth:
 	{
 		layout_in <vec3> normal(0);
 
 		fragment = vec4(0.5f + 0.5f * normal, 1.0f);
 	} break;
-	
+
 	case RenderMode::eNormalGeometric:
 	{
 		// Triangle index
@@ -91,7 +91,7 @@ void fragment(RenderMode mode)
 	{
 		// Object vertex index
 		layout_in <uint32_t, flat> id(0);
-		
+
 		auto palette = hsv_palette <16> (0.5, 1);
 
 		fragment = vec4(palette[id % palette.length], 1);
@@ -113,7 +113,7 @@ void fragment(RenderMode mode)
 	{
 		float near = 0.1f;
 		float far = 10000.0f;
-		
+
 		f32 d = gl_FragCoord.z;
 		f32 linearized = (near * far) / (far + d * (near - far));
 

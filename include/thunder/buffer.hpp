@@ -26,7 +26,7 @@ public:
 	Buffer();
 
 	index_t emit(const Atom &, bool = true);
-	
+
 	void clear();
 	void dump() const;
 

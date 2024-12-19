@@ -48,8 +48,8 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 		return std::nullopt;
 	}
 
-	if (!reader.Warning().empty())
-		fmt::println("tinyobj-warning: {}", reader.Warning());
+	// if (!reader.Warning().empty())
+	// 	fmt::println("tinyobj-warning: {}", reader.Warning());
 
 	auto &attrib = reader.GetAttrib();
 	auto &shapes = reader.GetShapes();

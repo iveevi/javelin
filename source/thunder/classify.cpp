@@ -5,6 +5,7 @@
 #include "thunder/properties.hpp"
 #include "thunder/qualified_type.hpp"
 #include "thunder/overload.hpp"
+#include <functional>
 
 namespace jvl::thunder {
 
@@ -104,6 +105,10 @@ QualifiedType Buffer::classify(index_t i) const
 				return static_cast <PlainDataType> (*out);
 			if (auto inout = qt.get <InOutArgType> ())
 				return static_cast <PlainDataType> (*inout);
+
+			// Or other special kind of resource
+			if (auto sampler = qt.get <SamplerType> ())
+				return static_cast <SamplerType> (*sampler);
 		}
 
 		return QualifiedType::concrete(constructor.type);
@@ -123,6 +128,14 @@ QualifiedType Buffer::classify(index_t i) const
 	{
 		auto &operation = atom.as <Operation> ();
 
+		JVL_ASSERT(operation.a >= 0 && operation.a < pointer,
+			"invalid operand argument in operation: {} (@{})", atom, i);
+
+		if (operation.code != unary_negation && operation.code != bool_not) {
+			JVL_ASSERT(operation.b >= 0 && operation.b < pointer,
+				"invalid operand argument in operation: {} (@{})", atom, i);
+		}
+
 		std::vector <QualifiedType> qts;
 		qts.push_back(types[operation.a]);
 		if (operation.b != -1)
@@ -132,7 +145,9 @@ QualifiedType Buffer::classify(index_t i) const
 		auto result = lookup_operation_overload(operation.code, qts);
 		if (!result)
 			dump();
+
 		JVL_ASSERT(result, "failed to find overload for operation: {} (@{})", atom, i);
+
 		return result;
 	}
 

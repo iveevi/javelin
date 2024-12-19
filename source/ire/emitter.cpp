@@ -67,7 +67,7 @@ Emitter::index_t Emitter::emit(const thunder::Branch &branch, const precondition
 
 		// else branch should not be waiting...
 	} return i;
-	
+
 	case thunder::loop_while:
 		control_flow_ends.push(cf_await(i, pre));
 		return i;
@@ -95,7 +95,7 @@ Emitter::index_t Emitter::emit(const thunder::Branch &branch, const precondition
 	default:
 		break;
 	}
-		
+
 	JVL_ABORT("unhandled case of control_flow_callback: {}", branch);
 }
 

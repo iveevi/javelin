@@ -84,7 +84,7 @@ static int move_to_func(const FT_Vector *to, Outline *o)
 
 	size_t ncontours = o->contours.size();
 	size_t npoints = o->points.size();
-	
+
 	fmt::println("\tafter c={},p={}",
 		o->contours.size(),
 		o->points.size());
@@ -93,7 +93,7 @@ static int move_to_func(const FT_Vector *to, Outline *o)
 		o->contours[ncontours - 1].end = npoints - 1;
 		o->add_point(p);
 	}
-	
+
 	fmt::println("\tafter c={},p={}",
 		o->contours.size(),
 		o->points.size());
@@ -106,7 +106,7 @@ static int move_to_func(const FT_Vector *to, Outline *o)
 	};
 
 	o->add_contour(range);
-	
+
 	p = convert_point(to);
 	o->add_point(p);
 
@@ -122,13 +122,13 @@ static int line_to_func(const FT_Vector *to, Outline *o)
 	uint32_t last = o->points.size() - 1;
 
 	float2 p, to_p;
-	
+
 	to_p = convert_point(to);
 	p = 0.5f * (o->points[last] + to_p);
 
 	o->add_point(p);
 	o->add_point(to_p);
-	
+
 	return 0;
 }
 
@@ -139,7 +139,7 @@ static int conic_to_func(const FT_Vector *control,
 	JVL_INFO("\t{}", __FUNCTION__);
 
 	float2 p;
-	
+
 	p = convert_point(control);
 	o->add_point(p);
 
@@ -205,7 +205,7 @@ int main()
 		FT_UInt glyph_index = FT_Get_Char_Index(face, c);
 		JVL_ASSERT_PLAIN(!FT_Load_Glyph(face, glyph_index, FT_LOAD_NO_HINTING));
 		fmt::println("processing character: {} -> {}", c, glyph_index);
-		
+
 		Outline outline;
 		decompose_outline(&face->glyph->outline, outline);
 	}
@@ -216,7 +216,7 @@ int main()
 		config.enable_logging = false;
 		config.abort_on_validation_error = true;
 	}
-	
+
 	// Load physical device
 	auto predicate = [](vk::PhysicalDevice phdev) {
 		return littlevk::physical_device_able(phdev, VK_EXTENSIONS);
@@ -229,7 +229,7 @@ int main()
 		.extent = vk::Extent2D(1920, 1080),
 		.extensions = VK_EXTENSIONS,
 	};
-	
+
 	auto drc = core::DeviceResourceCollection::from(info);
 
 	// Create the render pass and generate the pipelines
@@ -243,7 +243,7 @@ int main()
 
 	// Configure ImGui
 	engine::configure_imgui(drc, render_pass);
-	
+
 	// Framebuffer manager
 	DefaultFramebufferSet framebuffers;
 	framebuffers.resize(drc, render_pass);
@@ -252,11 +252,11 @@ int main()
 	auto command_buffers = littlevk::command_buffers(drc.device,
 		drc.command_pool,
 		vk::CommandBufferLevel::ePrimary, 2u);
-	
+
 	// Synchronization information
 	auto frame = 0u;
 	auto sync = littlevk::present_syncronization(drc.device, 2).unwrap(drc.dal);
-	
+
 	// Handling window resizing
 	auto resizer = [&]() { framebuffers.resize(drc, render_pass); };
 
@@ -277,10 +277,10 @@ int main()
 
 		auto &cmd = context.cmd;
 		auto &sync_frame = context.sync_frame;
-	
+
 		// Start the command buffer
 		cmd.begin(vk::CommandBufferBeginInfo());
-		
+
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(drc.window.extent));
 
@@ -291,10 +291,10 @@ int main()
 			.clear_color(0, std::array <float, 4> { 0, 0, 0, 1 })
 			.clear_depth(1, 1)
 			.begin(cmd);
-	
+
 		cmd.endRenderPass();
 		cmd.end();
-	
+
 		// Submit command buffer while signaling the semaphore
 		vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 		drc.graphics_queue.submit(vk::SubmitInfo {
@@ -302,7 +302,7 @@ int main()
 				wait_stage, cmd,
 				sync_frame.render_finished
 			}, sync_frame.in_flight);
-	
+
 		// Advance to the next frame
 		frame = 1 - frame;
 	}

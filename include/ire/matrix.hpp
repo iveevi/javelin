@@ -35,11 +35,9 @@ struct mat_base : tagged {
 		ctor.type = em.emit(tf);
 		ctor.args = em.emit(l);
 
-		return (this->ref = em.emit(ctor));
-	}
+		this->ref = em.emit(ctor);
 
-	void refresh(const cache_index_t::value_type &ci) {
-		ref = ci;
+		return this->ref;
 	}
 };
 

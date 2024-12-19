@@ -220,7 +220,7 @@ struct Ray {
 	}
 };
 
-struct ViewInfo {
+struct MaterialViewerViewInfo {
 	f32 aspect;
 	f32 theta;
 	f32 phi;
@@ -372,7 +372,7 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 
 		// TODO: deferred functions...
 		auto fs = procedure("main") << [albedo_sampler]() {
-			push_constant <ViewInfo> view;
+			push_constant <MaterialViewerViewInfo> view;
 
 			sampler2D environment(B_ENVIRONMENT);
 
@@ -429,7 +429,7 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 		auto assembler = littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
 			.with_render_pass(render_pass, 0)
 			.with_shader_bundle(shaders)
-			.with_push_constant <ViewInfo> (vk::ShaderStageFlagBits::eFragment)
+			.with_push_constant <MaterialViewerViewInfo> (vk::ShaderStageFlagBits::eFragment)
 			.with_dsl_binding(0, vk::DescriptorType::eCombinedImageSampler,
 					  1, vk::ShaderStageFlagBits::eFragment)
 			.cull_mode(vk::CullModeFlagBits::eNone)
@@ -591,7 +591,7 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 
 	cmd.beginRenderPass(begin_info, vk::SubpassContents::eInline);
 	{
-		solid_t <ViewInfo> view;
+		solid_t <MaterialViewerViewInfo> view;
 		view.get <0> () = viewer.aspect;
 		view.get <1> () = viewer.theta;
 		view.get <2> () = viewer.phi;
@@ -605,7 +605,7 @@ void MaterialRenderGroup::render(const RenderingInfo &info, MaterialViewer &view
 
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
 		
-		cmd.pushConstants <solid_t <ViewInfo>> (ppl.layout,
+		cmd.pushConstants <solid_t <MaterialViewerViewInfo>> (ppl.layout,
 			vk::ShaderStageFlagBits::eFragment,
 			0, view);
 

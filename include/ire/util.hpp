@@ -2,6 +2,7 @@
 
 #include "../thunder/atom.hpp"
 #include "../thunder/enumerations.hpp"
+#include "logging.hpp"
 #include "native.hpp"
 #include "tagged.hpp"
 #include "type_synthesis.hpp"
@@ -112,17 +113,22 @@ R operation_from_args(thunder::OperationCode type, const A &a)
 template <builtin R, builtin A, builtin B>
 R operation_from_args(thunder::OperationCode type, const A &a, const B &b)
 {
+	MODULE(operation_from_args);
+
 	auto &em = Emitter::active;
 
-	thunder::Operation operation;
-	operation.a = a.synthesize().id;
-	operation.b = b.synthesize().id;
-	operation.code = type;
+	size_t size = em.scopes.top().get().pointer;
 
-	cache_index_t cit;
-	cit = em.emit(operation);
+	thunder::index_t aid = a.synthesize().id;
 
-	return cit;
+	JVL_ASSERT(aid >= 0 && aid <= size,
+		"invalid index ({}) synthesized for operation (type: {})",
+		aid, thunder::tbl_operation_code[type]);
+
+	thunder::index_t bid = b.synthesize().id;
+	thunder::index_t rit = em.emit_operation(aid, bid, type);
+
+	return cache_index_t::from(rit);
 }
 
 template <builtin R, builtin ... Args>

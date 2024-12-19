@@ -31,10 +31,18 @@ struct ViewInfo {
 	mat4 proj;
 
 	vec4 project(vec3 position) {
+		// fmt::println("view info project (this = {})", (void *) this);
+		// fmt::println("  model = {}", (void *) &model);
+		// fmt::println("  view = {}", (void *) &view);
+		// fmt::println("  proj = {}", (void *) &proj);
 		return proj * (view * (model * vec4(position, 1.0)));
 	}
 
 	auto layout() const {
+		// fmt::println("[view info layout]");
+		// fmt::println("  model = {}", (void *) &model);
+		// fmt::println("  view = {}", (void *) &view);
+		// fmt::println("  proj = {}", (void *) &proj);
 		return uniform_layout(
 			"MVP",
 			named_field(model),
