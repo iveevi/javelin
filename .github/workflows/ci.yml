@@ -41,7 +41,7 @@ jobs:
           cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build }} -DENABLE_COVERAGE=ON .
           cmake --build build -j 4 -t test
       - name: test
-        run: ./build/test
+        run: ./build/testing/test
       - name: coverage
         if: ${{ (matrix.build == 'Debug') && (matrix.compiler.c == 'gcc') }}
         env:
