@@ -16,8 +16,3 @@ add_executable(higher higher.cpp ${ORIGIN}/thirdparty/glad/src/gl.c)
 set_property(TARGET higher PROPERTY ENABLE_EXPORTS ON)
 target_link_libraries(higher glfw fmt::fmt javelin-ire common-gfx gccjit ${VULKAN_LIBRARY_SET})
 target_compile_definitions(higher PRIVATE $<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
-
-# Experimental program for the JVL language
-add_executable(lang lang.cpp lex.cpp)
-target_compile_options(lang PRIVATE ${STATIC_ANALYSIS} $<$<CONFIG:Debug>:-Wall;-Werror;-fsanitize=address>)
-target_link_libraries(lang PRIVATE fmt::fmt $<$<CONFIG:Debug>:-fsanitize=address>)

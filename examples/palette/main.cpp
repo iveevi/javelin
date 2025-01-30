@@ -63,10 +63,10 @@ void vertex()
 {
 	// Vertex inputs
 	layout_in <vec3> position(0);
-	
+
 	// Object triangle index
 	layout_out <uint32_t, flat> out_id(0);
-	
+
 	// Projection information
 	push_constant <MVP> mvp;
 
@@ -81,10 +81,10 @@ void fragment(float saturation, float lightness, int splits)
 {
 	// Triangle index
 	layout_in <uint32_t, flat> id(0);
-	
+
 	// Resulting fragment color
 	layout_out <vec4> fragment(0);
-		
+
 	auto palette = hsl_palette(saturation, lightness, splits);
 
 	fragment = vec4(palette[id % palette.length], 1);
@@ -107,6 +107,9 @@ littlevk::Pipeline configure_pipeline(core::DeviceResourceCollection &drc,
 
 	std::string vertex_shader = link(vs_callable).generate_glsl();
 	std::string fragment_shader = link(fs_callable).generate_glsl();
+
+	fmt::println("{}", vertex_shader);
+	fmt::println("{}", fragment_shader);
 
 	// TODO: automatic generation by observing used layouts
 	auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
@@ -166,7 +169,7 @@ int main(int argc, char *argv[])
 		config.enable_logging = false;
 		config.abort_on_validation_error = true;
 	}
-	
+
 	// Load the asset and scene
 	std::filesystem::path path = argv[1];
 
@@ -182,7 +185,7 @@ int main(int argc, char *argv[])
 		.extent = vk::Extent2D(1920, 1080),
 		.extensions = VK_EXTENSIONS,
 	};
-	
+
 	auto drc = core::DeviceResourceCollection::from(info);
 
 	// Load the scene
@@ -218,7 +221,7 @@ int main(int argc, char *argv[])
 		saturation,
 		lightness,
 		splits);
-	
+
 	// Framebuffer manager
 	DefaultFramebufferSet framebuffers;
 	framebuffers.resize(drc, render_pass);
@@ -232,20 +235,20 @@ int main(int argc, char *argv[])
 	auto m_model = uniform_field(MVP, model);
 	auto m_view = uniform_field(MVP, view);
 	auto m_proj = uniform_field(MVP, proj);
-	
+
 	solid_t <MVP> mvp;
 
 	mvp[m_model] = model_transform.to_mat4();
-	
+
 	// Command buffers for the rendering loop
 	auto command_buffers = littlevk::command_buffers(drc.device,
 		drc.command_pool,
 		vk::CommandBufferLevel::ePrimary, 2u);
-	
+
 	// Synchronization information
 	auto frame = 0u;
 	auto sync = littlevk::present_syncronization(drc.device, 2).unwrap(drc.dal);
-	
+
 	// Handling camera events
 	engine::CameraController controller {
 		camera_transform,
@@ -255,7 +258,7 @@ int main(int argc, char *argv[])
 	glfwSetWindowUserPointer(drc.window.handle, &controller);
 	glfwSetMouseButtonCallback(drc.window.handle, glfw_button_callback);
 	glfwSetCursorPosCallback(drc.window.handle, glfw_cursor_callback);
-	
+
 	// Handling window resizing
 	auto resizer = [&]() { framebuffers.resize(drc, render_pass); };
 
@@ -278,10 +281,10 @@ int main(int argc, char *argv[])
 
 		auto &cmd = context.cmd;
 		auto &sync_frame = context.sync_frame;
-	
+
 		// Start the command buffer
 		cmd.begin(vk::CommandBufferBeginInfo());
-		
+
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(drc.window.extent));
 
@@ -292,15 +295,15 @@ int main(int argc, char *argv[])
 			.clear_color(0, std::array <float, 4> { 0, 0, 0, 1 })
 			.clear_depth(1, 1)
 			.begin(cmd);
-	
+
 		// Update the constants with the view matrix
 		auto &extent = drc.window.extent;
 		aperature.aspect = float(extent.width)/float(extent.height);
 		mvp[m_proj] = core::perspective(aperature);
 		mvp[m_view] = camera_transform.to_view_matrix();
-		
+
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
-	
+
 		for (auto &mesh : vk_scene.meshes) {
 			int mid = *mesh.material_usage.begin();
 
@@ -313,13 +316,13 @@ int main(int argc, char *argv[])
 			cmd.drawIndexed(mesh.count, 1, 0, 0, 0);
 		}
 
-		// ImGui window to configure the palette 
+		// ImGui window to configure the palette
 		{
 			engine::ImGuiRenderContext context(cmd);
 
 			// TODO: preview the colors in a grid
 			ImGui::Begin("Configure Palette");
-			
+
 			ImGui::SliderFloat("saturation", &saturation, 0, 1);
 			ImGui::SliderFloat("lightness", &lightness, 0, 1);
 			ImGui::SliderInt("splits", &splits, 4, 64);
@@ -337,7 +340,7 @@ int main(int argc, char *argv[])
 
 		cmd.endRenderPass();
 		cmd.end();
-	
+
 		// Submit command buffer while signaling the semaphore
 		vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 		drc.graphics_queue.submit(vk::SubmitInfo {
@@ -345,7 +348,7 @@ int main(int argc, char *argv[])
 				wait_stage, cmd,
 				sync_frame.render_finished
 			}, sync_frame.in_flight);
-	
+
 		// Advance to the next frame
 		frame = 1 - frame;
 	}

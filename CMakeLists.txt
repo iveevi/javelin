@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 project(javelin C CXX)
 
@@ -27,10 +28,10 @@ add_subdirectory(thirdparty/nativefiledialog-extended)
 # FreeType2 for font loading
 add_subdirectory(thirdparty/freetype)
 
-add_subdirectory(thirdparty/glslang)
+add_subdirectory(thirdparty/glslang EXCLUDE_FROM_ALL)
 
 # Include directories
-include_directories(.
+include_directories(PRIVATE .
 	include
 	thirdparty
 	thirdparty/imgui
@@ -54,8 +55,8 @@ if(ENABLE_COVERAGE)
 	set(COVERAGE_FLAGS --coverage)
 endif()
 
-# Intermediate Representation Emitter (IRE)
-add_library(javelin-ire STATIC
+# Intermediate Representation Emitter
+add_library(javelin-ire SHARED
 	source/ire/emitter.cpp
 	source/thunder/atom.cpp
 	source/thunder/autodiff_forward.cpp
