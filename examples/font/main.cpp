@@ -12,7 +12,6 @@
 #include "extensions.hpp"
 #include "default_framebuffer_set.hpp"
 #include "device_resource_collection.hpp"
-#include "frame_render_context.hpp"
 #include "imgui.hpp"
 
 using namespace jvl;
@@ -256,19 +255,15 @@ int main()
 	auto &window = drc.window;
 	while (!window.should_close()) {
 		window.poll();
-
-		engine::FrameRenderContext context {
-			drc,
-			command_buffers[frame],
-			sync[frame],
-			resizer
-		};
-
-		if (!context)
+		
+		const auto &cmd = command_buffers[frame];
+		const auto &sync_frame = sync[frame];
+		
+		auto sop = littlevk::acquire_image(drc.device, drc.swapchain.handle, sync_frame);
+		if (sop.status == littlevk::SurfaceOperation::eResize) {
+			resizer();
 			continue;
-
-		auto &cmd = context.cmd;
-		auto &sync_frame = context.sync_frame;
+		}
 
 		// Start the command buffer
 		cmd.begin(vk::CommandBufferBeginInfo());
@@ -278,7 +273,7 @@ int main()
 
 		littlevk::RenderPassBeginInfo(2)
 			.with_render_pass(render_pass)
-			.with_framebuffer(framebuffers[context.sop.index])
+			.with_framebuffer(framebuffers[sop.index])
 			.with_extent(drc.window.extent)
 			.clear_color(0, std::array <float, 4> { 0, 0, 0, 1 })
 			.clear_depth(1, 1)
@@ -289,11 +284,18 @@ int main()
 
 		// Submit command buffer while signaling the semaphore
 		vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-		drc.graphics_queue.submit(vk::SubmitInfo {
-				sync_frame.image_available,
-				wait_stage, cmd,
-				sync_frame.render_finished
-			}, sync_frame.in_flight);
+		
+		vk::SubmitInfo submit_info {
+			sync_frame.image_available,
+			wait_stage, cmd,
+			sync_frame.render_finished
+		};
+
+		drc.graphics_queue.submit(submit_info, sync_frame.in_flight);
+
+		sop = littlevk::present_image(drc.present_queue, drc.swapchain.handle, sync_frame, sop.index);
+		if (sop.status == littlevk::SurfaceOperation::eResize)
+			resizer();
 
 		// Advance to the next frame
 		frame = 1 - frame;
