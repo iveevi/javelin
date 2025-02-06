@@ -123,7 +123,8 @@ bool opt_transform_constructor_elision(Buffer &result)
 bool opt_transform_dce_exempt(const Atom &atom)
 {
 	if (auto intrinsic = atom.get <Intrinsic> ())
-		return intrinsic->opn == thunder::set_local_size;
+		return (intrinsic->opn == thunder::layout_local_size)
+			|| (intrinsic->opn == thunder::layout_mesh_shader_sizes);
 
 	return atom.is <Returns> ()
 		|| atom.is <Store> ()

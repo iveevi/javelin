@@ -463,7 +463,8 @@ template <>
 void c_like_generator_t::generate(const Intrinsic &intrinsic, index_t index)
 {
 	// Special cases
-	if (intrinsic.opn == thunder::set_local_size)
+	if ((intrinsic.opn == thunder::layout_local_size)
+		|| (intrinsic.opn == thunder::layout_mesh_shader_sizes))
 		return;
 
 	// Keyword intrinsic

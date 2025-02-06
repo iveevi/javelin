@@ -48,6 +48,7 @@ struct push_constant_info : local_layout_type {
 struct LinkageUnit {
 	// TODO: dirty flag for caching
 	std::optional <uint3> local_size;
+	std::optional <uint2> mesh_shader_size;
 
 	std::set <index_t> loaded;
 	std::vector <Function> functions;

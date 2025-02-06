@@ -124,7 +124,14 @@ inline void returns(const T &value)
 // Special control-flow related global states
 struct local_size {
 	local_size(uint32_t x = 1, uint32_t y = 1, uint32_t z = 1) {
-		ire::void_platform_intrinsic_from_args(thunder::set_local_size, u32(x), u32(y), u32(z));
+		ire::void_platform_intrinsic_from_args(thunder::layout_local_size, u32(x), u32(y), u32(z));
+	}
+};
+
+struct mesh_shader_size {
+	// TODO: primitive enum
+	mesh_shader_size(uint32_t max_vertices = 1, uint32_t max_primitives = 1) {
+		ire::void_platform_intrinsic_from_args(thunder::layout_mesh_shader_sizes, u32(max_vertices), u32(max_primitives));
 	}
 };
 

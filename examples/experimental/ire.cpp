@@ -8,6 +8,7 @@
 // TODO: out/inout parameter qualifiers
 // TODO: external constant specialization
 
+#include "ire/control_flow.hpp"
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
@@ -19,32 +20,27 @@
 using namespace jvl;
 using namespace jvl::ire;
 
-auto tea = procedure("tea") << [](u32 val0, u32 val1)
+template <generic T>
+struct task_payload {};
+
+auto task = procedure <void> ("task_shader") << []()
 {
-	u32 v0 = val0;
-	u32 v1 = val1;
-	u32 s0 = 0;
+	local_size(8, 8);
 
-	for (uint32_t i = 0; i < 16; i++) {
-		s0 += 0x9e3779b9;
-		v0 += ((v1 << 4u) + 0xa341316c) ^ (v1 + s0) ^ ((v1 >> 5u) + 0xc8013ea4);
-		v1 += ((v0 << 4u) + 0xad90777d) ^ (v0 + s0) ^ ((v0 >> 5u) + 0x7e95761e);
-	}
-
-	return v0;
+	mesh_shader_size(16, 8);
 };
 
-auto lambda = [](inout <u32> x)
+auto mesh = procedure <void> ("mesh_shader") << []()
 {
-	return tea(x, 1 - x);
-};
+	local_size(8, 8);
 
-auto ftn = procedure <void> ("rand") << lambda;
+	mesh_shader_size(16, 8);
+};
 
 int main()
 {
-	thunder::opt_transform(ftn);
-	ftn.dump();
+	thunder::opt_transform(mesh);
+	mesh.dump();
 
-	fmt::println("{}", link(ftn).generate_glsl());
+	fmt::println("{}", link(mesh).generate_glsl());
 }

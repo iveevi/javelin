@@ -1,3 +1,4 @@
+#include "thunder/enumerations.hpp"
 #include "thunder/overload.hpp"
 
 namespace jvl::thunder {
@@ -7,10 +8,14 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 {
         static const overload_table <IntrinsicOperation> table {
 		// Global startus
-		{ set_local_size, {
+		{ layout_local_size, {
 			overload::from(none, u32),
 			overload::from(none, u32, u32),
 			overload::from(none, u32, u32, u32),
+		} },
+		
+		{ layout_mesh_shader_sizes, {
+			overload::from(none, u32, u32),
 		} },
 
 		// Casting operations

@@ -216,6 +216,7 @@ enum BranchKind : int8_t {
 	__bk_end
 };
 
+// TODO: put into source file...
 static constexpr const char *tbl_branch_kind[] = {
 	"if",
 	"else if",
@@ -304,7 +305,8 @@ enum IntrinsicOperation : uint16_t {
 	discard,
 
 	// Global status
-	set_local_size,
+	layout_local_size,
+	layout_mesh_shader_sizes,
 
 	// Casting operations
 	cast_to_int,
@@ -370,6 +372,7 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"discard",
 
 	"local_size",
+	"mesh_shader_size",
 
 	"int",
 	"uint",

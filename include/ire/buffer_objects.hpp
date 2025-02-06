@@ -72,8 +72,6 @@ struct bound_buffer_object <T, K> : T {
 };
 
 // Bindless versions, for push constants
-
-// Specializations
 template <generic T>
 struct push_constant : bound_buffer_object <T, thunder::push_constant> {
 	template <typename ... Args>
@@ -88,6 +86,7 @@ struct push_constant : bound_buffer_object <T, thunder::push_constant> {
 	}
 };
 
+// Specializations
 template <generic T>
 using uniform = bound_buffer_object <T, thunder::uniform>;
 

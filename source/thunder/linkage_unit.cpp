@@ -7,6 +7,7 @@
 #include <libgccjit.h>
 
 #include "thunder/c_like_generator.hpp"
+#include "thunder/enumerations.hpp"
 #include "thunder/gcc_jit_generator.hpp"
 #include "thunder/linkage_unit.hpp"
 #include "thunder/properties.hpp"
@@ -186,7 +187,7 @@ std::set <index_t> LinkageUnit::process_function(const Function &ftn)
 		// Checking for special intrinsics
 		if (atom.is <Intrinsic> ()) {
 			auto it = atom.as <Intrinsic> ();
-			if (it.opn == thunder::set_local_size) {
+			if (it.opn == thunder::layout_local_size) {
 				thunder::index_t args = it.args;
 
 				uint3 size = uint3(1, 1, 1);
@@ -209,6 +210,29 @@ std::set <index_t> LinkageUnit::process_function(const Function &ftn)
 				}
 
 				local_size = size;
+			} else if (it.opn == thunder::layout_mesh_shader_sizes) {
+				thunder::index_t args = it.args;
+
+				uint2 size = uint2(1, 1);
+
+				int32_t j = 0;
+				while (args != -1 && j < 2) {
+					Atom local = function[args];
+
+					JVL_ASSERT_PLAIN(local.is <List> ());
+					auto list = local.as <List> ();
+					local = function[list.item];
+
+					JVL_ASSERT_PLAIN(local.is <Primitive> ());
+					auto value = local.as <Primitive> ();
+
+					JVL_ASSERT_PLAIN(value.type == u32);
+					size[j++] = value.udata;
+
+					args = list.next;
+				}
+
+				mesh_shader_size = size;
 			}
 		}
 
@@ -528,6 +552,16 @@ std::string LinkageUnit::generate_glsl() const
 			local_size->x,
 			local_size->y,
 			local_size->z);
+	}
+	
+	if (mesh_shader_size) {
+		result += fmt::format("layout ("
+			"triangles, "
+			"max_vertices = {}, "
+			"max_primitives = {}) in;"
+			"\n\n",
+			mesh_shader_size->x,
+			mesh_shader_size->y);
 	}
 
 	// Declare the aggregates used
