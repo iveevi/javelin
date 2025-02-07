@@ -312,6 +312,8 @@ enum IntrinsicOperation : uint16_t {
 	layout_local_size,
 	layout_mesh_shader_sizes,
 
+	emit_mesh_tasks,
+
 	// Casting operations
 	cast_to_int,
 	cast_to_uint,
@@ -377,6 +379,8 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 
 	"local_size",
 	"mesh_shader_size",
+
+	"EmitMeshTasksEXT",
 
 	"int",
 	"uint",
@@ -447,5 +451,7 @@ static constexpr const char *tbl_constructor_mode[] = {
 	"transient",
 	"__end",
 };
+
+static_assert(__cm_end + 1 == sizeof(tbl_constructor_mode) / sizeof(const char *));
 
 } // namespace jvl::thunder

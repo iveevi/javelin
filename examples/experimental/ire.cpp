@@ -8,8 +8,6 @@
 // TODO: out/inout parameter qualifiers
 // TODO: external constant specialization
 
-#include "ire/control_flow.hpp"
-#include "thunder/enumerations.hpp"
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
@@ -34,21 +32,14 @@ struct payload {
 
 auto task = procedure <void> ("task_shader") << []()
 {
-	// layout_out <i32> pld(0);
-	// pld = 9;
-	
-	task_payload <i32> pld;
-	pld = 9;
+	task_payload <payload> pld;
 
-	// task_payload <int> pld;
-	// pld = 9;
-	
-	// task_payload <uvec2> pld;
-	// pld.y = 9;
-	
-	// task_payload <payload> pld;
-	// pld.pindex = 14;
-	// pld.resolution = 16;
+	pld.pindex = 14;
+	pld.resolution = 16;
+
+	u32 groups = (pld.resolution - 1 + 6) / 7;
+
+	EmitMeshTasksExt(groups, groups, 1);
 };
 
 auto mesh = procedure <void> ("mesh_shader") << []()

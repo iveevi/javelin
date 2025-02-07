@@ -17,6 +17,10 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 		{ layout_mesh_shader_sizes, {
 			overload::from(none, u32, u32),
 		} },
+		
+		{ emit_mesh_tasks, {
+			overload::from(none, u32, u32, u32),
+		} },
 
 		// Casting operations
 		{ cast_to_int, {

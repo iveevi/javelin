@@ -214,4 +214,9 @@ vec <float, N> uintBitsToFloat(const vec <uint32_t, N> &v)
 	return platform_intrinsic_from_args <vec <float, N>> (thunder::glsl_uintBitsToFloat, v);
 }
 
+inline void EmitMeshTasksExt(const native_t <uint32_t> &x, const native_t <uint32_t> &y, const native_t <uint32_t> &z)
+{
+	return void_platform_intrinsic_from_args(thunder::emit_mesh_tasks, x, y, z);
+}
+
 } // namespace jvl::ire

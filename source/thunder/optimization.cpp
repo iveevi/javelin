@@ -122,9 +122,14 @@ bool opt_transform_constructor_elision(Buffer &result)
 
 bool opt_transform_dce_exempt(const Atom &atom)
 {
+	static const std::set <thunder::IntrinsicOperation> intrinsic_exempt {
+		thunder::layout_local_size,
+		thunder::layout_mesh_shader_sizes,
+		thunder::emit_mesh_tasks,
+	};
+
 	if (auto intrinsic = atom.get <Intrinsic> ())
-		return (intrinsic->opn == thunder::layout_local_size)
-			|| (intrinsic->opn == thunder::layout_mesh_shader_sizes);
+		return intrinsic_exempt.contains(intrinsic->opn);
 
 	return atom.is <Returns> ()
 		|| atom.is <Store> ()

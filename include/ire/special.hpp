@@ -51,4 +51,4 @@ struct task_payload <T> : T {
 	}
 };
 
-}
+} // namespace jvl::ire

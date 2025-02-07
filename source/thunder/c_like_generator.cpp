@@ -476,7 +476,15 @@ void c_like_generator_t::generate(const Intrinsic &intrinsic, index_t index)
 		return finish(tbl_intrinsic_operation[intrinsic.opn]);
 
 	auto &qt = types[index];
-	if (qt.is <NilType> ()) {
+
+	bool voided = qt.is <NilType> ();
+	if (auto pd = qt.get <PlainDataType> ()) {
+		if (auto p = pd->get <thunder::PrimitiveType> ()) {
+			voided |= (p == none);
+		}
+	}
+	
+	if (voided) {
 		// Void return type, so no assignment
 		auto args = arguments(intrinsic.args);
 		std::string v = tbl_intrinsic_operation[intrinsic.opn] + arguments_to_string(args);
