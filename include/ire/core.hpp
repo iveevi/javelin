@@ -14,9 +14,10 @@
 #include "sampler.hpp"
 #include "shared.hpp"
 #include "solidify.hpp"
+#include "special.hpp"
+#include "std.hpp"
 #include "uniform_layout.hpp"
 #include "vector.hpp"
-#include "std.hpp"
 
 #include "intrinsics/common.hpp"
 #include "intrinsics/glsl.hpp"
