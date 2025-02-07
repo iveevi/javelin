@@ -50,6 +50,10 @@ static std::optional <std::string> generate_global_reference(const Qualifier &qu
 	case sampler_3d:
 		return fmt::format("_sampler{}", qualifier.numerical);
 
+	// Special
+	case task_payload:
+		return "_task_payload";
+
 	// GLSL shader stage intrinsics
 	case glsl_intrinsic_gl_FragCoord:
 		return "gl_FragCoord";

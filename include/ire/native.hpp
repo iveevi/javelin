@@ -113,7 +113,7 @@ struct native_t : tagged {
 		auto &em = Emitter::active;
 		if (cached()) {
 			// At this point we are required to have storage for this
-			em.emit_store(ref.id, translate_primitive(v), false);
+			em.emit_store(ref.id, translate_primitive(v));
 		} else {
 			ref = translate_primitive(v);
 		}

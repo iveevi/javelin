@@ -7,6 +7,7 @@
 
 #include "../core/math.hpp"
 #include "buffer.hpp"
+#include "thunder/qualified_type.hpp"
 #include "tracked_buffer.hpp"
 
 namespace jvl::thunder {
@@ -34,6 +35,11 @@ struct local_layout_type {
 	size_t function;
 	index_t index;
 	QualifierKind kind;
+};
+
+struct special_type {
+	size_t function;
+	index_t index;
 };
 
 struct push_constant_info : local_layout_type {
@@ -65,6 +71,7 @@ struct LinkageUnit {
 		std::map <index_t, local_layout_type> buffers;
 		std::map <index_t, local_layout_type> shared;
 		std::map <index_t, QualifierKind> samplers;
+		std::map <QualifierKind, special_type> special;
 	} globals;
 
 	index_t new_aggregate(size_t, const std::vector <QualifiedType> &);

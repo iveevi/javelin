@@ -128,6 +128,12 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t index, i
 		globals.shared[id] = bf;
 	} break;
 
+	case task_payload:
+	{
+		special_type st(index, i);
+		globals.special[task_payload] = st;
+	} break;
+
 	default:
 		break;
 	}
@@ -378,9 +384,9 @@ void generate_layout_io(std::string &result,
 }
 
 void generate_push_constant(std::string &result,
-			   const generator_list &generators,
-			   const std::vector <Function> &functions,
-			   push_constant_info pc)
+			    const generator_list &generators,
+			    const std::vector <Function> &functions,
+			    push_constant_info pc)
 {
 	if (pc.index == -1)
 		return;
@@ -469,8 +475,7 @@ void generate_shared(std::string &result,
 		result += "\n";
 }
 
-void generat_samplers(std::string &result,
-		      const auto &samplers)
+void generate_samplers(std::string &result, const auto &samplers)
 {
 	for (const auto &[binding, kind] : samplers) {
 		result += fmt::format("layout (binding = {}) uniform {} _sampler{};\n",
@@ -479,6 +484,29 @@ void generat_samplers(std::string &result,
 
 	if (samplers.size())
 		result += "\n";
+}
+
+void generate_special(std::string &result,
+		      const generator_list &generators,
+		      const std::vector <Function> &functions,
+		      const auto &special)
+{
+	for (const auto &[kind, st] : special) {
+		auto &types = functions[st.function].types;
+		auto &generator = generators[st.function];
+
+		auto ts = generator.type_to_string(types[st.index]);
+
+		switch (kind) {
+		case task_payload:
+			result += fmt::format("taskPayloadSharedEXT {} _task_payload;\n\n",
+				ts.pre + ts.post);
+			break;
+		default:
+			JVL_WARNING("unsupported special global: {}", tbl_qualifier_kind[kind]);
+			break;
+		}
+	}
 }
 
 void generate_function(std::string &result,
@@ -582,25 +610,13 @@ std::string LinkageUnit::generate_glsl() const
 	generate_shared(result, generators, functions, globals.shared);
 
 	// Globals: samplers
-	generat_samplers(result, globals.samplers);
+	generate_samplers(result, globals.samplers);
+
+	// Globals: special
+	generate_special(result, generators, functions, globals.special);
 
 	// Fix dependencies to use local indices
 	auto resolved_dependencies = dependencies;
-
-	// fmt::println("functions to synthesize:");
-	// for (auto &[i, d] : resolved_dependencies) {
-	// 	fmt::print("{} @{} ->", functions[i].name, i);
-
-	// 	auto resolved = std::set <index_t> ();
-	// 	for (auto j : d)
-	// 		resolved.insert(cids.at(j));
-
-	// 	d = resolved;
-	// 	for (auto j : d)
-	// 		fmt::print(" {}", j);
-
-	// 	fmt::print("\n");
-	// }
 
 	// Generate each of the functions
 	auto sorted = topological_sort(resolved_dependencies);
@@ -612,7 +628,6 @@ std::string LinkageUnit::generate_glsl() const
 		auto &function = functions[i];
 		auto &generator = generators[i];
 
-		// TODO: topologically sort the functions before synthesis
 		generate_function(result, generator, function);
 
 		if (sorted.size())
