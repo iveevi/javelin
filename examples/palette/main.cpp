@@ -86,7 +86,7 @@ void fragment(float saturation, float lightness, int splits)
 
 	auto palette = hsl_palette(saturation, lightness, splits);
 
-	fragment = vec4(palette[id % palette.length], 1);
+	fragment = vec4(palette[id % u32(palette.length)], 1);
 }
 
 // Constructing the graphics pipeline

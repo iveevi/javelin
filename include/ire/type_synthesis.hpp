@@ -113,14 +113,16 @@ cache_index_t type_field_from_args_impl()
 
 		// If its a single struct, then we should not nest
 		if constexpr (I == 0 && sizeof...(Args) == 0) {
-			fmt::println("singel struct!");
+			JVL_INFO("single struct!");
 			return type_field_from_args(layout_t());
 		} else {
-			fmt::println("nested struct!");
+			JVL_INFO("nested struct!");
 			type_info.down = type_field_from_args(layout_t()).id;
 		}
 	} else {
 		using override = type_info_override <T>;
+
+		JVL_INFO("non-aggregate type, override={}", override::value);
 
 		if constexpr (override::value)
 			type_info.down = override::synthesize();

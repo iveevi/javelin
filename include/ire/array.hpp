@@ -20,9 +20,9 @@ struct array_base <T> : public tagged {
 	using element = native_t <T>;
 	using arithmetic_type = array <T>;
 
-	uint32_t length = 0;
+	int32_t length = 0;
 
-	array_base(size_t N) : length(N) {
+	array_base(int32_t N) : length(N) {
 		auto &em = Emitter::active;
 		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
 		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
@@ -45,9 +45,9 @@ struct array_base <T> : public tagged {
 	using element = T;
 	using arithmetic_type = array <T>;
 
-	uint32_t length = 0;
+	int32_t length = 0;
 
-	array_base(size_t N) : length(N) {
+	array_base(int32_t N) : length(N) {
 		auto &em = Emitter::active;
 		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
 		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
@@ -56,7 +56,7 @@ struct array_base <T> : public tagged {
 
 	// TODO: zero initializing constructor
 	template <generic ... Args>
-	array_base(size_t N, const Args &...args) : length(N) {
+	array_base(int32_t N, const Args &...args) : length(N) {
 		auto &em = Emitter::active;
 		thunder::index_t l = list_from_args(args...);
 		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
@@ -87,9 +87,9 @@ struct array_base <T> : public tagged {
 	using element = T;
 	using arithmetic_type = array <T>;
 
-	uint32_t length = 0;
+	int32_t length = 0;
 
-	array_base(size_t N) : length(N) {
+	array_base(int32_t N) : length(N) {
 		auto &em = Emitter::active;
 		auto layout = T().layout();
 		thunder::index_t underlying = type_field_from_args(layout).id;
@@ -99,7 +99,7 @@ struct array_base <T> : public tagged {
 
 	// TODO: zero initializing constructor
 	template <generic ... Args>
-	array_base(size_t N, const Args &...args) : length(N) {
+	array_base(int32_t N, const Args &...args) : length(N) {
 		auto &em = Emitter::active;
 		thunder::index_t l = list_from_args(args...);
 		auto layout = T().layout();
@@ -157,12 +157,17 @@ struct array : public array_base <T> {
 	}
 };
 
+template <generic T>
+struct unsized_array : array <T> {
+	unsized_array() : array <T> (-1) {}
+};
+
+// Using unsized arrays in global qualifiers
 template <typename T>
-struct type_info_override <array <T>> : std::true_type {
+struct type_info_override <unsized_array <T>> : std::true_type {
 	static int synthesize() {
 		auto &em = Emitter::active;
 		thunder::index_t underlying = type_field_from_args <T> ().id;
-		// NOTE: assuming unsized arrays here...
 		thunder::index_t qualifier = em.emit_qualifier(underlying, -1, thunder::arrays);
 		return qualifier;
 	}

@@ -280,7 +280,7 @@ void LinkageUnit::add(const TrackedBuffer &callable)
 //////////////////////////////////
 
 // Helper methods
-static std::string layout_interpolationstring(QualifierKind kind)
+static std::string layout_interpolation_string(QualifierKind kind)
 {
 	switch (kind) {
 	case layout_in_flat:
@@ -373,10 +373,10 @@ void generate_layout_io(std::string &result,
 		auto &generator = generators[llt.function];
 
 		auto ts = generator.type_to_string(types[llt.index]);
-		auto interpolation = layout_interpolationstring(llt.kind);
+		auto interpolation = layout_interpolation_string(llt.kind);
 
-		result += fmt::format("layout (location = {}) {} {}{} _l{}{};\n",
-			b, iot, interpolation, ts.pre + ts.post, iot, b);
+		result += fmt::format("layout (location = {}) {} {}{} _l{}{}{};\n",
+			b, iot, interpolation, ts.pre, iot, b, ts.post);
 	}
 
 	if (list.size())

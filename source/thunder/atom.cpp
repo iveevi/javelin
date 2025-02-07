@@ -51,7 +51,7 @@ std::string TypeInformation::to_string() const
         else if (down != -1)
                 result += fmt::format("%{}", down);
         else
-                result += fmt::format("<?>");
+                result += fmt::format("<? item={}, down={} ?>", tbl_primitive_types[item], down);
 
         if (next != -1)
                 result += fmt::format(", going to %{}", next);
