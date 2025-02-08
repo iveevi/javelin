@@ -31,6 +31,19 @@ struct Emitter {
 	void push(thunder::Buffer &, bool = true);
 	void pop();
 
+	// Emitting type hints
+	// TODO: templated with layout...
+	void emit_hint(index_t idx, uint64_t id, const std::string &name) {
+		auto &buf = scopes.top().get();
+		fmt::println("emitting type hint! (idx={}, id={}, name={})", idx, id, name);
+		if (!buf.decorations.contains(id)) {
+			auto th = thunder::Buffer::type_hint(name);
+			buf.decorations[id] = th;
+		}
+
+		buf.used_decorations[idx] = id;
+	}
+
 	// Emitting instructions during function invocation
 	index_t emit(const thunder::Atom &);
 	index_t emit(const thunder::Branch &, const precondition_t & = std::nullopt);

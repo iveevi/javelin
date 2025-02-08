@@ -309,7 +309,15 @@ public:
 		initial[3] = w_;
 	}
 
-	explicit swizzle_base(const native_t <T> x_,
+	explicit swizzle_base(const native_t <T> &x_)
+			: swizzle_base() {
+		auto &em = Emitter::active;
+		thunder::index_t type = type_field_from_args <vec <T, 4>> ().id;
+		thunder::index_t args = list_from_args(x_, x_, x_, x_);
+		ref = em.emit_construct(type, args, thunder::normal);
+	}
+
+	explicit swizzle_base(const native_t <T> &x_,
 			      const native_t <T> &y_,
 			      const native_t <T> &z_,
 			      const native_t <T> &w_)

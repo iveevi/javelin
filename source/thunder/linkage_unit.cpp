@@ -35,13 +35,13 @@ Function::Function(const Buffer &buffer, const std::string &name_, size_t cid_)
 		: Buffer(buffer), cid(cid_), name(name_) {}
 
 // Linkage unit methods
-index_t LinkageUnit::new_aggregate(size_t ftn, const std::vector <QualifiedType> &fields)
+index_t LinkageUnit::new_aggregate(size_t ftn, const std::string &name, const std::vector <QualifiedType> &fields)
 {
 	size_t index = aggregates.size();
 
 	Aggregate aggr {
 		.function = ftn,
-		.name = fmt::format("s{}_t", index),
+		.name = name,
 		.fields = fields
 	};
 
@@ -156,7 +156,17 @@ void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &funct
 		}
 	} while (qt.is <StructFieldType> ());
 
-	map[i] = new_aggregate(index, fields);
+	// Check for type hints
+	size_t size = aggregates.size();
+	
+	std::string name = fmt::format("s{}_t", size);
+	if (function.used_decorations.contains(i)) {
+		auto &id = function.used_decorations.at(i);
+		auto &decoration = function.decorations.at(id);
+		name = decoration.name;
+	}
+
+	map[i] = new_aggregate(index, name, fields);
 }
 
 // TODO: return referenced callables

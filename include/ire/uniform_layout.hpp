@@ -11,6 +11,13 @@ namespace jvl::ire {
 
 // TODO: detail namespace...
 
+// Unique IDs for layouts
+inline uint64_t unique_uniform_id()
+{
+	static uint64_t x = 0;
+	return x++;
+}
+
 // Ordinary layouts
 struct layout_field {
 	const char *name;
@@ -95,8 +102,6 @@ struct const_uniform_layout_t {
 	std::string name;
 	std::vector <layout_const_field> fields;
 
-	// cache_index_t list() const;
-
 	auto remove_const() const {
 		uniform_layout_t <Args...> layout;
 		layout.name = name;
@@ -173,6 +178,8 @@ void __const_init(layout_const_field *fields, int index, const __field <name, T>
 template <string_literal_group field_group, typename ... Args>
 struct higher_const_uniform_layout_t : const_uniform_layout_t <Args...> {
 	static constexpr auto group = field_group;
+	
+	static const inline uint64_t id = unique_uniform_id();
 };
 
 template <aggregate T, string_literal field>

@@ -109,16 +109,15 @@ cache_index_t type_field_from_args_impl()
 
 	thunder::TypeInformation type_info;
 	if constexpr (aggregate <T>) {
-		using layout_t = decltype(T().layout());
+		auto layout = T().layout();
+		auto cached = type_field_from_args(layout);
+		em.emit_hint(cached.id, layout.id, layout.name);
 
 		// If its a single struct, then we should not nest
-		if constexpr (I == 0 && sizeof...(Args) == 0) {
-			JVL_INFO("single struct!");
-			return type_field_from_args(layout_t());
-		} else {
-			JVL_INFO("nested struct!");
-			type_info.down = type_field_from_args(layout_t()).id;
-		}
+		if constexpr (I == 0 && sizeof...(Args) == 0)
+			return cached;
+		else
+			type_info.down = cached.id;
 	} else {
 		using override = type_info_override <T>;
 
