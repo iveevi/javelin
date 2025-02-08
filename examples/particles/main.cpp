@@ -4,6 +4,8 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_vulkan.h>
 
+#include <argparse/argparse.hpp>
+
 #include <ire/core.hpp>
 
 #include "aperature.hpp"
@@ -239,9 +241,41 @@ void jitter(std::vector <aligned_float3> &particles,
 	O2 += dt * V2;
 }
 
+struct Timer {
+	using clk = std::chrono::high_resolution_clock;
+
+	clk clock;
+	clk::time_point mark;
+
+	void reset() {
+		mark = clock.now();
+	}
+
+	double click() {
+		auto end = clock.now();
+		auto count = std::chrono::duration_cast <std::chrono::microseconds> (end - mark).count();
+		return double(count) / 1000.0;
+	}
+};
+
 int main(int argc, char *argv[])
 {
-	// Initialize Vulkan configuration
+	argparse::ArgumentParser program("particles");
+
+	program.add_argument("--limit")
+		.help("time limit (ms) for the execution of the program )")
+		.default_value(1000.0)
+		.scan <'g', double> ();
+
+	try {
+		program.parse_args(argc, argv);
+	} catch (const std::exception &e) {
+		std::cerr << e.what() << std::endl;
+		std::cerr << program;
+		return 1;
+	}
+
+        // Initialize Vulkan configuration
 	{
 		auto &config = littlevk::config();
 		config.enable_logging = true;
@@ -253,7 +287,7 @@ int main(int argc, char *argv[])
 		return littlevk::physical_device_able(phdev, VK_EXTENSIONS);
 	};
 
-	core::DeviceResourceCollectionInfo info{
+	core::DeviceResourceCollectionInfo info {
 		.phdev = littlevk::pick_physical_device(predicate),
 			.title = "Point Cloud Renderer",
 			.extent = vk::Extent2D(1920, 1080),
@@ -397,26 +431,16 @@ int main(int argc, char *argv[])
 	glfwSetCursorPosCallback(drc.window.handle, glfw_cursor_callback);
 
 	// Handling window resizing
-	auto resizer = [&]() { framebuffers.resize(drc, render_pass); };
+	auto resize = [&]() { framebuffers.resize(drc, render_pass); };
 
-	// Main loop
-	auto &window = drc.window;
-	while (!window.should_close()) {
-		window.poll();
+	Timer timer;
+	timer.reset();
 
-		controller.handle_movement(drc.window);
-
-		const auto &cmd = command_buffers[frame];
-		const auto &sync_frame = sync[frame];
-		
-		auto sop = littlevk::acquire_image(drc.device, drc.swapchain.handle, sync_frame);
-		if (sop.status == littlevk::SurfaceOperation::eResize) {
-			resizer();
-			continue;
-		}
-
-		// Start the command buffer
-		cmd.begin(vk::CommandBufferBeginInfo());
+	double limit = program.get <double> ("limit");
+	
+	auto render = [&](const vk::CommandBuffer &cmd, uint32_t index) {
+		if (limit >= 0 && timer.click() > limit)
+			glfwSetWindowShouldClose(drc.window.handle, true);
 
 		// Configure the rendering extent
 		vk::Extent2D extent = drc.window.extent;
@@ -425,7 +449,7 @@ int main(int argc, char *argv[])
 
 		littlevk::RenderPassBeginInfo(2)
 			.with_render_pass(render_pass)
-			.with_framebuffer(framebuffers[sop.index])
+			.with_framebuffer(framebuffers[index])
 			.with_extent(extent)
 			.clear_color(0, std::array <float, 4> { 0, 0, 0, 1 })
 			.clear_depth(1, 1)
@@ -504,32 +528,23 @@ int main(int argc, char *argv[])
 		}
 
 		cmd.endRenderPass();
-		cmd.end();
 
 		// Randomly jittering particles
 		jitter(particles, velocities, dt, mass);
 
 		littlevk::upload(drc.device, tb, particles);
 		littlevk::upload(drc.device, sb, velocities);
+	};
 	
-		// Submit command buffer while signaling the semaphore
-		vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-	
-		vk::SubmitInfo submit_info {
-			sync_frame.image_available,
-			wait_stage, cmd,
-			sync_frame.render_finished
-		};
-
-		drc.graphics_queue.submit(submit_info, sync_frame.in_flight);
-
-		sop = littlevk::present_image(drc.present_queue, drc.swapchain.handle, sync_frame, sop.index);
-		if (sop.status == littlevk::SurfaceOperation::eResize)
-			resizer();
-	
-		// Advance to the next frame
-		frame = 1 - frame;
-	}
+	littlevk::swapchain_render_loop(drc.device,
+		drc.graphics_queue,
+		drc.present_queue,
+		drc.command_pool,
+		drc.window,
+		drc.swapchain,
+		drc.dal,
+		render,
+		resize);
 
 	return 0;
 }

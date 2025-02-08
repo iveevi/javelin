@@ -18,11 +18,11 @@ add_subdirectory(thirdparty/glslang EXCLUDE_FROM_ALL)
 include_directories(PRIVATE .
 	include
 	thirdparty
-	thirdparty/imgui
-	thirdparty/tinyobjloader
-	thirdparty/glad/include
+	thirdparty/argparse/include
 	thirdparty/freetype/include
-	thirdparty/nativefiledialog-extended/src/include)
+	thirdparty/glad/include
+	thirdparty/imgui
+	thirdparty/tinyobjloader)
 
 # Bundle Vulkan necessities
 set(VULKAN_LIBRARY_SET
