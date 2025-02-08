@@ -12,10 +12,17 @@
 
 namespace jvl::thunder {
 
+struct Field : QualifiedType {
+	std::string name;
+
+	Field() = default;
+	Field(const QualifiedType &q, const std::string &s) : QualifiedType(q), name(s) {}
+};
+
 struct Aggregate {
 	size_t function;
 	std::string name;
-	std::vector <QualifiedType> fields;
+	std::vector <Field> fields;
 
 	bool operator==(const Aggregate &) const;
 };
@@ -74,7 +81,7 @@ struct LinkageUnit {
 		std::map <QualifierKind, special_type> special;
 	} globals;
 
-	index_t new_aggregate(size_t, const std::string &, const std::vector <QualifiedType> &);
+	index_t new_aggregate(size_t, const std::string &, const std::vector <Field> &);
 
 	void process_function_qualifier(Function &, size_t, index_t, const Qualifier &);
 	void process_function_aggregate(TypeMap &, const Function &, size_t, index_t, QualifiedType);

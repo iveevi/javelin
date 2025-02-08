@@ -8,7 +8,7 @@ namespace jvl::thunder {
 
 MODULE(buffer);
 
-Buffer::Buffer() : types(4), atoms(4), pointer(0) {}
+Buffer::Buffer() : pointer(0), atoms(4), types(4) {}
 
 index_t Buffer::emit(const Atom &atom, bool enable_classification)
 {

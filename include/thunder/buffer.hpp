@@ -18,21 +18,17 @@ class Buffer {
 	// Populate the synthesized set
 	void include(index_t);
 public:
-	std::vector <QualifiedType> types;
-	std::vector <Atom> atoms;
-	
 	struct type_hint {
 		std::string name;
 		std::vector <std::string> fields;
 	};
 
-	std::map <uint64_t, type_hint> decorations;
-
-	std::map <thunder::index_t, uint64_t> used_decorations;
-	
-	std::set <index_t> synthesized;
-	
 	size_t pointer;
+	std::map <thunder::index_t, uint64_t> used_decorations;
+	std::map <uint64_t, type_hint> decorations;
+	std::set <index_t> synthesized;
+	std::vector <Atom> atoms;
+	std::vector <QualifiedType> types;
 
 	Buffer();
 

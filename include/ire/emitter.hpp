@@ -33,11 +33,11 @@ struct Emitter {
 
 	// Emitting type hints
 	// TODO: templated with layout...
-	void emit_hint(index_t idx, uint64_t id, const std::string &name) {
+	void emit_hint(index_t idx, uint64_t id, const std::string &name, const std::vector <std::string> &fields) {
 		auto &buf = scopes.top().get();
 		fmt::println("emitting type hint! (idx={}, id={}, name={})", idx, id, name);
 		if (!buf.decorations.contains(id)) {
-			auto th = thunder::Buffer::type_hint(name);
+			auto th = thunder::Buffer::type_hint(name, fields);
 			buf.decorations[id] = th;
 		}
 

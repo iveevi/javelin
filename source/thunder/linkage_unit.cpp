@@ -35,7 +35,7 @@ Function::Function(const Buffer &buffer, const std::string &name_, size_t cid_)
 		: Buffer(buffer), cid(cid_), name(name_) {}
 
 // Linkage unit methods
-index_t LinkageUnit::new_aggregate(size_t ftn, const std::string &name, const std::vector <QualifiedType> &fields)
+index_t LinkageUnit::new_aggregate(size_t ftn, const std::string &name, const std::vector <Field> &fields)
 {
 	size_t index = aggregates.size();
 
@@ -141,18 +141,19 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t index, i
 
 void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &function, size_t index, index_t i, QualifiedType qt)
 {
-	std::vector <QualifiedType> fields {
-		qt.as <StructFieldType> ().base()
-	};
+	std::vector <Field> fields;
+
+	fields.emplace_back(qt.as <StructFieldType> ().base(), "f0");
 
 	do {
 		auto &sft = qt.as <StructFieldType> ();
+		auto name = fmt::format("f{}", fields.size());
 		qt = function.types[sft.next];
 		if (qt.is <StructFieldType> ()) {
 			auto &sft = qt.as <StructFieldType> ();
-			fields.push_back(sft.base());
+			fields.emplace_back(sft.base(), name);
 		} else {
-			fields.push_back(qt);
+			fields.emplace_back(qt, name);
 		}
 	} while (qt.is <StructFieldType> ());
 
@@ -164,6 +165,9 @@ void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &funct
 		auto &id = function.used_decorations.at(i);
 		auto &decoration = function.decorations.at(id);
 		name = decoration.name;
+
+		for (size_t i = 0; i < fields.size(); i++)
+			fields[i].name = decoration.fields[i];
 	}
 
 	map[i] = new_aggregate(index, name, fields);
@@ -363,8 +367,9 @@ void generate_aggregates(std::string &result,
 
 		result += "struct " + aggregate.name + " {\n";
 		for (size_t i = 0; i < aggregate.fields.size(); i++) {
-			auto ts = generator.type_to_string(aggregate.fields[i]);
-			result += fmt::format("    {} f{}{};\n", ts.pre, i, ts.post);
+			auto &field = aggregate.fields[i];
+			auto ts = generator.type_to_string(field);
+			result += fmt::format("    {} {}{};\n", ts.pre, field.name, ts.post);
 		}
 		result += "};\n\n";
 	}

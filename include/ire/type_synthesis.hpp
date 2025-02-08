@@ -111,7 +111,12 @@ cache_index_t type_field_from_args_impl()
 	if constexpr (aggregate <T>) {
 		auto layout = T().layout();
 		auto cached = type_field_from_args(layout);
-		em.emit_hint(cached.id, layout.id, layout.name);
+		auto fields = std::vector <std::string> ();
+
+		for (auto &f : layout.fields)
+			fields.push_back(f.name);
+
+		em.emit_hint(cached.id, layout.id, layout.name, fields);
 
 		// If its a single struct, then we should not nest
 		if constexpr (I == 0 && sizeof...(Args) == 0)
