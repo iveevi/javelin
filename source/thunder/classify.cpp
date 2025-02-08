@@ -10,8 +10,15 @@ namespace jvl::thunder {
 
 MODULE(classify-atoms);
 
-QualifiedType Buffer::classify(index_t i) const
+QualifiedType Buffer::classify(index_t i)
 {
+	auto transfer_decorations = [&](index_t src) {
+		if (!used_decorations.contains(src))
+			return;
+		
+		used_decorations[i] = used_decorations[src];
+	};
+
 	// Caching
 	if (types[i])
 		return types[i];
@@ -49,7 +56,6 @@ QualifiedType Buffer::classify(index_t i) const
 
 		QualifiedType decl = classify(qualifier.underlying);
 
-
 		// Handling arrays
 		if (qualifier.kind == arrays) {
 			if (decl.is <StructFieldType> ())
@@ -85,12 +91,18 @@ QualifiedType Buffer::classify(index_t i) const
 				|| decl.is <InOutArgType> ())
 			return decl;
 
+		// Transfer name hints in the default case
+		transfer_decorations(qualifier.underlying);
+
 		return base;
 	}
 
 	case Atom::type_index <Construct> ():
 	{
 		auto &constructor = atom.as <Construct> ();
+
+		// Always transfer name hints
+		transfer_decorations(constructor.type);
 
 		QualifiedType qt = classify(constructor.type);
 		if (qt.is <PlainDataType> ())

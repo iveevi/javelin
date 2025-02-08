@@ -56,8 +56,8 @@ void vertex()
 	layout_out <f32> out_speed(1);
 	layout_out <vec2> out_range(2);
 
-	read_only_buffer <array <vec3>> translations(0, -1);
-	read_only_buffer <array <vec3>> velocities(1, -1);
+	read_only_buffer <unsized_array <vec3>> translations(0);
+	read_only_buffer <unsized_array <vec3>> velocities(1);
 	
 	push_constant <MVP> view_info;
 

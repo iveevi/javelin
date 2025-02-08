@@ -228,11 +228,22 @@ std::string c_like_generator_t::reference(index_t index) const
 	{
 		auto &load = atom.as <Load> ();
 
-		std::string accessor;
-		if (load.idx != -1)
-			accessor = fmt::format(".f{}", load.idx);
+		std::string ref = reference(load.src);
 
-		return reference(load.src) + accessor;
+		// Default pathway
+		if (load.idx == -1)
+			return ref;
+
+		std::string accessor = fmt::format(".f{}", load.idx);
+		
+		// Check for name hints for the field
+		if (used_decorations.contains(load.src)) {
+			auto id = used_decorations.at(load.src);
+			auto th = decorations.at(id);
+			accessor = "." + th.fields[load.idx];
+		}
+
+		return ref + accessor;
 	}
 
 	case Atom::type_index <Swizzle> ():

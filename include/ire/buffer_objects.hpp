@@ -64,7 +64,7 @@ struct bound_buffer_object <T, K> : T {
 			: T(args...), binding(binding_) {
 		auto &em = Emitter::active;
 		auto layout = this->layout().remove_const();
-		thunder::index_t type = type_field_from_args(layout).id;
+		thunder::index_t type = type_field_from_args <T> ().id;
 		thunder::index_t pc = em.emit_qualifier(type, binding, K);
 		thunder::index_t value = em.emit_construct(pc, -1, thunder::transient);
 		layout.ref_with(cache_index_t::from(value));

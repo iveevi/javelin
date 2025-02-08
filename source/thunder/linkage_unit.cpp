@@ -467,7 +467,7 @@ void generate_buffers(std::string &result,
 		result += fmt::format("layout (binding = {}) {}buffer bblock{}\n",
 			b, buffer_qualifier(llt.kind), b);
 		result += "{\n";
-		result += fmt::format("    {} _buffer{};\n", ts.pre + ts.post, b);
+		result += fmt::format("    {} _buffer{}{};\n", ts.pre, b, ts.post);
 		result += "};\n\n";
 	}
 }
