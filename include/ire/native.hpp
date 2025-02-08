@@ -94,7 +94,7 @@ struct native_t : tagged {
 
 	native_t(T v = T()) : value(v) {}
 
-	// Explicit conversion operations
+	// Explicit conversion operations (and copy constructor)
 	template <native U>
 	requires std::is_convertible_v <U, T>
 	explicit native_t(const native_t <U> &other) {
@@ -107,6 +107,17 @@ struct native_t : tagged {
 			thunder::index_t cast = em.emit_intrinsic(args, caster(value));
 			em.emit_store(this->ref.id, cast);
 		}
+	}
+
+	// Two-step conversion: U -> native_t <X> -> X
+	template <builtin U>
+	requires std::is_convertible_v <typename U::arithmetic_type::native_type, T>
+	explicit native_t(const U &other) {
+		auto &em = Emitter::active;
+		synthesize();
+		thunder::index_t args = em.emit_list(other.synthesize().id);
+		thunder::index_t cast = em.emit_intrinsic(args, caster(value));
+		em.emit_store(this->ref.id, cast);
 	}
 
 	native_t &operator=(const T &v) {

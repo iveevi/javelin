@@ -244,6 +244,24 @@ public:
 		thunder::index_t args = list_from_args(x_, y_, z_);
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
+	
+	swizzle_base(const native_t <T> &x_,
+		     const swizzle_base <T, 2> &v_)
+			: swizzle_base() {
+		auto &em = Emitter::active;
+		thunder::index_t type = type_field_from_args <vec <T, 3>> ().id;
+		thunder::index_t args = list_from_args(x_, v_);
+		ref = em.emit_construct(type, args, thunder::normal);
+	}
+	
+	swizzle_base(const swizzle_base <T, 2> &v_,
+		     const native_t <T> &z_)
+			: swizzle_base() {
+		auto &em = Emitter::active;
+		thunder::index_t type = type_field_from_args <vec <T, 3>> ().id;
+		thunder::index_t args = list_from_args(v_, z_);
+		ref = em.emit_construct(type, args, thunder::normal);
+	}
 
 	swizzle_base(const swizzle_base &other) : swizzle_base() {
 		initial[0] = other.initial[0];

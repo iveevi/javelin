@@ -69,6 +69,12 @@ static std::optional <std::string> generate_global_reference(const Qualifier &qu
 		return "gl_VertexIndex";
 	case glsl_intrinsic_gl_GlobalInvocationID:
 		return "gl_GlobalInvocationID";
+	case glsl_intrinsic_gl_LocalInvocationID:
+		return "gl_LocalInvocationID";
+	case glsl_intrinsic_gl_LocalInvocationIndex:
+		return "gl_LocalInvocationIndex";
+	case glsl_intrinsic_gl_WorkGroupID:
+		return "gl_WorkGroupID";
 
 	case glsl_intrinsic_gl_Position:
 		return "gl_Position";
@@ -125,6 +131,9 @@ std::string generate_operation(OperationCode code, const std::string &a, const s
 
 		{ bit_shift_left,	"<<" },
 		{ bit_shift_right,	">>" },
+		
+		{ bool_and,		"&&" },
+		{ bool_or,		"||" },
 
 		{ bit_and,		"&" },
 		{ bit_or,		"|" },

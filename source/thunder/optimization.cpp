@@ -126,6 +126,7 @@ bool opt_transform_dce_exempt(const Atom &atom)
 		thunder::layout_local_size,
 		thunder::layout_mesh_shader_sizes,
 		thunder::emit_mesh_tasks,
+		thunder::set_mesh_outputs,
 	};
 
 	if (auto intrinsic = atom.get <Intrinsic> ())

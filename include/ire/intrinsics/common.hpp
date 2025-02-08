@@ -23,10 +23,12 @@ arithmetic_base <A> max(const A &a, const B &b)
 	return platform_intrinsic_from_args <R> (thunder::max, underlying(a), underlying(b));
 }
 
-template <native T>
-native_t <T> min(const native_t <T> &a, const native_t <T> &b)
+template <arithmetic A, arithmetic B>
+requires overload_compatible <A, B>
+arithmetic_base <A> min(const A &a, const B &b)
 {
-	return platform_intrinsic_from_args <native_t <T>> (thunder::min, a, b);
+	using R = decltype(underlying(a));
+	return platform_intrinsic_from_args <R> (thunder::min, underlying(a), underlying(b));
 }
 
 template <native T>

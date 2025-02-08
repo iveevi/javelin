@@ -21,6 +21,10 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 		{ emit_mesh_tasks, {
 			overload::from(none, u32, u32, u32),
 		} },
+		
+		{ set_mesh_outputs, {
+			overload::from(none, u32, u32),
+		} },
 
 		// Casting operations
 		{ cast_to_int, {
@@ -72,10 +76,14 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
                 } },
 
 		{ min, {
+                        overload::from(i32, i32, i32),
+                        overload::from(u32, u32, u32),
                         overload::from(f32, f32, f32)
                 } },
 
 		{ max, {
+                        overload::from(i32, i32, i32),
+                        overload::from(u32, u32, u32),
                         overload::from(f32, f32, f32)
                 } },
 

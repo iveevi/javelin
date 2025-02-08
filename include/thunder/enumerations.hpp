@@ -124,6 +124,9 @@ enum QualifierKind : int8_t {
 	glsl_intrinsic_gl_VertexID,
 	glsl_intrinsic_gl_VertexIndex,
 	glsl_intrinsic_gl_GlobalInvocationID,
+	glsl_intrinsic_gl_LocalInvocationID,
+	glsl_intrinsic_gl_LocalInvocationIndex,
+	glsl_intrinsic_gl_WorkGroupID,
 
 	glsl_intrinsic_gl_Position,
 
@@ -180,6 +183,9 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"glsl:gl_VertexID",
 	"glsl:gl_VertexIndex",
 	"glsl:gl_GlobalInvocationID",
+	"glsl:gl_LocalInvocationID",
+	"glsl:gl_LocalInvocationIndex",
+	"glsl:gl_WorkGroupID",
 
 	"glsl:gl_Position",
 
@@ -313,6 +319,7 @@ enum IntrinsicOperation : uint16_t {
 	layout_mesh_shader_sizes,
 
 	emit_mesh_tasks,
+	set_mesh_outputs,
 
 	// Casting operations
 	cast_to_int,
@@ -381,6 +388,7 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"mesh_shader_size",
 
 	"EmitMeshTasksEXT",
+	"SetMeshOutputsEXT",
 
 	"int",
 	"uint",

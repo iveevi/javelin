@@ -34,11 +34,12 @@ QualifiedType lookup_operation_overload(const OperationCode &key, const std::vec
 		overload::from(uvec3, uvec3, u32),
 		overload::from(uvec3, u32, uvec3),
 
-		overload::from(vec3, vec3, f32),
-		overload::from(vec3, f32, vec3),
-
 		overload::from(vec4, vec4, f32),
 		overload::from(vec4, f32, vec4),
+		overload::from(vec3, vec3, f32),
+		overload::from(vec3, f32, vec3),
+		overload::from(vec2, vec2, f32),
+		overload::from(vec2, f32, vec2),
 	};
 
 	static const overload_list matrix_multiplication_overloads {

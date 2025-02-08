@@ -100,6 +100,9 @@ template <thunder::QualifierKind code>
 using __glsl_int = __glsl_intrinsic_variable_t <int32_t, code>;
 
 template <thunder::QualifierKind code>
+using __glsl_uint = __glsl_intrinsic_variable_t <uint32_t, code>;
+
+template <thunder::QualifierKind code>
 using __glsl_float = __glsl_intrinsic_variable_t <float, code>;
 
 template <thunder::QualifierKind code>
@@ -119,6 +122,9 @@ static const __glsl_int   <thunder::glsl_intrinsic_gl_InstanceIndex>        	gl_
 static const __glsl_int   <thunder::glsl_intrinsic_gl_VertexID>   		gl_VertexID;
 static const __glsl_int   <thunder::glsl_intrinsic_gl_VertexIndex> 	        gl_VertexIndex;
 static const __glsl_uvec3 <thunder::glsl_intrinsic_gl_GlobalInvocationID>	gl_GlobalInvocationID;
+static const __glsl_uvec3 <thunder::glsl_intrinsic_gl_LocalInvocationID>	gl_LocalInvocationID;
+static const __glsl_uint  <thunder::glsl_intrinsic_gl_WorkGroupID>		gl_LocalInvocationIndex;
+static const __glsl_uvec3 <thunder::glsl_intrinsic_gl_WorkGroupID>		gl_WorkGroupID;
 
 // Mutable intrinsics
 static __glsl_vec4 <thunder::glsl_intrinsic_gl_Position>     			gl_Position;
@@ -214,9 +220,14 @@ vec <float, N> uintBitsToFloat(const vec <uint32_t, N> &v)
 	return platform_intrinsic_from_args <vec <float, N>> (thunder::glsl_uintBitsToFloat, v);
 }
 
-inline void EmitMeshTasksExt(const native_t <uint32_t> &x, const native_t <uint32_t> &y, const native_t <uint32_t> &z)
+inline void EmitMeshTasksEXT(const native_t <uint32_t> &x, const native_t <uint32_t> &y, const native_t <uint32_t> &z)
 {
 	return void_platform_intrinsic_from_args(thunder::emit_mesh_tasks, x, y, z);
+}
+
+inline void SetMeshOutputsEXT(const native_t <uint32_t> &x, const native_t <uint32_t> &y)
+{
+	return void_platform_intrinsic_from_args(thunder::set_mesh_outputs, x, y);
 }
 
 } // namespace jvl::ire
