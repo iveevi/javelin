@@ -73,6 +73,63 @@ auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
 	return vec3(uv, 1.0f);
 };
 
+// TODO: problems with one-element structs...
+struct gl_MeshPerVertexEXT {
+	vec4 gl_Position;
+	f32 gl_PointSize;
+
+	// TODO: needs to be special...
+
+	explicit gl_MeshPerVertexEXT() = default;
+
+	auto layout() const {
+		return uniform_layout("gl_MeshPerVertexEXT",
+			named_field(gl_Position),
+			named_field(gl_PointSize));
+	}
+
+	gl_MeshPerVertexEXT(const cache_index_t &c) {
+		layout().remove_const().ref_with(c);
+	}
+};
+
+static_assert(aggregate <gl_MeshPerVertexEXT>);
+
+struct __list_gl_MeshPerVertexEXT {
+	using element = gl_MeshPerVertexEXT;
+
+	cache_index_t synthesize() const {
+		auto &em = Emitter::active;
+		thunder::index_t type = type_field_from_args <gl_MeshPerVertexEXT> ().id;
+		thunder::index_t qualifier = em.emit_qualifier(type, -1, thunder::arrays);
+		thunder::index_t intr = em.emit_qualifier(qualifier, -1, thunder::glsl_intrinsic_gl_MeshVerticesEXT);
+		return cache_index_t::from(intr);
+	}
+	
+	template <integral_native U>
+	element operator[](const U &index) const {
+		MODULE(array);
+
+		auto &em = Emitter::active;
+		native_t <int32_t> location(index);
+		thunder::index_t l = location.synthesize().id;
+		thunder::index_t c = em.emit_array_access(synthesize().id, l);
+		return cache_index_t::from(c);
+	}
+
+	template <integral_arithmetic U>
+	element operator[](const U &index) const {
+		MODULE(array);
+
+		auto &em = Emitter::active;
+		thunder::index_t l = index.synthesize().id;
+		thunder::index_t c = em.emit_array_access(synthesize().id, l);
+		return element(cache_index_t::from(c));
+	}
+};
+
+static const __list_gl_MeshPerVertexEXT gl_MeshVerticesEXT;
+
 auto mesh = procedure <void> ("mesh_shader") << []()
 {
 	const uint32_t WORK_GROUP_SIZE = 8;
@@ -114,6 +171,7 @@ auto mesh = procedure <void> ("mesh_shader") << []()
 
 	vertices[gl_LocalInvocationIndex] = v;
 	pindex[gl_LocalInvocationIndex] = payload.pindex;
+	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = vec4(v, 1.0);
 };
 
 int main()

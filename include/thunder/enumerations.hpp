@@ -129,6 +129,7 @@ enum QualifierKind : int8_t {
 	glsl_intrinsic_gl_WorkGroupID,
 
 	glsl_intrinsic_gl_Position,
+	glsl_intrinsic_gl_MeshVerticesEXT,
 
 	__gq_end
 };
@@ -188,6 +189,7 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"glsl:gl_WorkGroupID",
 
 	"glsl:gl_Position",
+	"glsl:gl_MeshVerticesEXT",
 
 	"__end"
 };

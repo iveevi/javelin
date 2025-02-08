@@ -219,6 +219,10 @@ QualifiedType Buffer::classify(index_t i) const
 			if (pd->is <index_t> ()) {
 				qt = classify(pd->as <index_t> ());
 				pd = qt.get <PlainDataType> ();
+			} else {
+				dump();
+
+				JVL_ABORT("unexpected path, is the type an array?");
 			}
 		}
 

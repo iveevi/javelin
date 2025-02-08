@@ -78,6 +78,8 @@ static std::optional <std::string> generate_global_reference(const Qualifier &qu
 
 	case glsl_intrinsic_gl_Position:
 		return "gl_Position";
+	case glsl_intrinsic_gl_MeshVerticesEXT:
+		return "gl_MeshVerticesEXT";
 
 	default:
 		break;

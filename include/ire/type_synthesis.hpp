@@ -122,8 +122,6 @@ cache_index_t type_field_from_args_impl()
 	} else {
 		using override = type_info_override <T>;
 
-		JVL_INFO("non-aggregate type, override={}", override::value);
-
 		if constexpr (override::value)
 			type_info.down = override::synthesize();
 		else
