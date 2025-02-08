@@ -13,12 +13,15 @@
 [submodule "thirdparty/stb"]
 	path = thirdparty/stb
 	url = https://github.com/nothings/stb.git
-[submodule "thirdparty/nativefiledialog-extended"]
-	path = thirdparty/nativefiledialog-extended
-	url = https://github.com/btzy/nativefiledialog-extended
 [submodule "thirdparty/freetype"]
 	path = thirdparty/freetype
 	url = https://github.com/freetype/freetype
 [submodule "thirdparty/tinyexr"]
 	path = thirdparty/tinyexr
 	url = https://github.com/syoyo/tinyexr
+[submodule "thirdparty/fmt"]
+	path = thirdparty/fmt
+	url = https://github.com/fmtlib/fmt.git
+[submodule "thirdparty/googletest"]
+	path = thirdparty/googletest
+	url = https://github.com/google/googletest.git

@@ -8,26 +8,10 @@ project(javelin C CXX)
 find_package(Vulkan REQUIRED)
 find_package(OpenMP REQUIRED)
 
-include(FetchContent)
-
-# Google testing library
-FetchContent_Declare(googletest
-	GIT_REPOSITORY https://github.com/google/googletest.git
-	GIT_TAG main)
-FetchContent_MakeAvailable(googletest)
-
-# Fmt printing library
-FetchContent_Declare(fmt
-	GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-	GIT_TAG master)
-FetchContent_MakeAvailable(fmt)
-
-# Native File Dialog (extended)
-add_subdirectory(thirdparty/nativefiledialog-extended)
-
-# FreeType2 for font loading
+# Dependencies
+add_subdirectory(thirdparty/fmt)
 add_subdirectory(thirdparty/freetype)
-
+add_subdirectory(thirdparty/googletest EXCLUDE_FROM_ALL)
 add_subdirectory(thirdparty/glslang EXCLUDE_FROM_ALL)
 
 # Include directories
