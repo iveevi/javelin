@@ -2,8 +2,6 @@
 
 namespace jvl::thunder {
 
-// MODULE(include-atoms);
-
 index_t reference_of(const std::vector <Atom> &atoms, index_t i)
 {
 	auto &atom = atoms[i];
@@ -82,6 +80,10 @@ void Buffer::include(index_t i)
 
 	case Atom::type_index <Intrinsic> ():
 		synthesized.insert(i);
+		break;
+
+	case Atom::type_index <ArrayAccess> ():
+		synthesized.insert(atom.as <ArrayAccess> ().loc);
 		break;
 
 	default:
