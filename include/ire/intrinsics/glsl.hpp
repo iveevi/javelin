@@ -123,7 +123,7 @@ static const __glsl_int   <thunder::glsl_intrinsic_gl_VertexID>   		gl_VertexID;
 static const __glsl_int   <thunder::glsl_intrinsic_gl_VertexIndex> 	        gl_VertexIndex;
 static const __glsl_uvec3 <thunder::glsl_intrinsic_gl_GlobalInvocationID>	gl_GlobalInvocationID;
 static const __glsl_uvec3 <thunder::glsl_intrinsic_gl_LocalInvocationID>	gl_LocalInvocationID;
-static const __glsl_uint  <thunder::glsl_intrinsic_gl_WorkGroupID>		gl_LocalInvocationIndex;
+static const __glsl_uint  <thunder::glsl_intrinsic_gl_LocalInvocationIndex>	gl_LocalInvocationIndex;
 static const __glsl_uvec3 <thunder::glsl_intrinsic_gl_WorkGroupID>		gl_WorkGroupID;
 
 // Mutable intrinsics

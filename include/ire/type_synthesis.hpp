@@ -100,6 +100,19 @@ static inline bool valid(const thunder::TypeInformation &tf)
 template <typename T>
 struct type_info_override : std::false_type {};
 
+// Unique type index generation to track unique layouts
+inline int64_t unique_type_idx = 0;
+
+template <typename T>
+int64_t type_idx()
+{
+	// Force ID fetch at runtime
+	static int64_t c = -1;
+	if (c == -1)
+		c = unique_type_idx++;
+	return c;
+}
+
 template <size_t I, generic T, generic ... Args>
 cache_index_t type_field_from_args_impl()
 {
@@ -116,7 +129,7 @@ cache_index_t type_field_from_args_impl()
 		for (auto &f : layout.fields)
 			fields.push_back(f.name);
 
-		em.emit_hint(cached.id, layout.id, layout.name, fields);
+		em.emit_hint(cached.id, type_idx <T> (), layout.name, fields);
 
 		// If its a single struct, then we should not nest
 		if constexpr (I == 0 && sizeof...(Args) == 0)
