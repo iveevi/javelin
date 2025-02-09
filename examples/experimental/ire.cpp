@@ -80,29 +80,27 @@ auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
 // TODO: problems with arrays of one-element structs...
 
 // TODO: move to shaders/mesh.hpp
-struct gl_MeshPerVertexEXT {
-	vec4 gl_Position;
-	f32 gl_PointSize;
-
-	// TODO: needs to be special or phantom
-
-	explicit gl_MeshPerVertexEXT() = default;
-
-	auto layout() const {
-		// TODO: specification!
-		return uniform_layout("gl_MeshPerVertexEXT",
-			named_field(gl_Position),
-			named_field(gl_PointSize));
-	}
-
-	gl_MeshPerVertexEXT(const cache_index_t &c) {
-		layout().remove_const().ref_with(c);
-	}
-};
-
-static_assert(aggregate <gl_MeshPerVertexEXT>);
-
 struct __list_gl_MeshPerVertexEXT {
+	struct gl_MeshPerVertexEXT {
+		vec4 gl_Position;
+		f32 gl_PointSize;
+
+		// TODO: needs to be special or phantom
+
+		explicit gl_MeshPerVertexEXT() = default;
+
+		auto layout() const {
+			// TODO: specification!
+			return uniform_layout("gl_MeshPerVertexEXT",
+				named_field(gl_Position),
+				named_field(gl_PointSize));
+		}
+
+		gl_MeshPerVertexEXT(const cache_index_t &c) {
+			layout().remove_const().ref_with(c);
+		}
+	};
+
 	using element = gl_MeshPerVertexEXT;
 
 	cache_index_t synthesize() const {
@@ -136,6 +134,41 @@ struct __list_gl_MeshPerVertexEXT {
 };
 
 static const __list_gl_MeshPerVertexEXT gl_MeshVerticesEXT;
+
+struct __list_gl_PrimitiveTriangleIndicesEXT {
+	using element = uvec3;
+
+	cache_index_t synthesize() const {
+		auto &em = Emitter::active;
+		thunder::index_t type = type_field_from_args <uvec3> ().id;
+		thunder::index_t qualifier = em.emit_qualifier(type, -1, thunder::arrays);
+		thunder::index_t intr = em.emit_qualifier(qualifier, -1, thunder::glsl_intrinsic_gl_PrimitiveTriangleIndicesEXT);
+		return cache_index_t::from(intr);
+	}
+	
+	template <integral_native U>
+	element operator[](const U &index) const {
+		MODULE(array);
+
+		auto &em = Emitter::active;
+		native_t <int32_t> location(index);
+		thunder::index_t l = location.synthesize().id;
+		thunder::index_t c = em.emit_array_access(synthesize().id, l);
+		return cache_index_t::from(c);
+	}
+
+	template <integral_arithmetic U>
+	element operator[](const U &index) const {
+		MODULE(array);
+
+		auto &em = Emitter::active;
+		thunder::index_t l = index.synthesize().id;
+		thunder::index_t c = em.emit_array_access(synthesize().id, l);
+		return element(cache_index_t::from(c));
+	}
+};
+
+static const __list_gl_PrimitiveTriangleIndicesEXT gl_PrimitiveTriangleIndicesEXT;
 
 auto mesh = procedure <void> ("main") << []()
 {
@@ -226,13 +259,13 @@ auto mesh = procedure <void> ("main") << []()
 
 		cond(d0 > d1);
 		{
-			// gl_PrimitiveTriangleIndicesEXT[prim] = uvec3(gli, gli + 1, gli + WORK_GROUP_SIZE);
-			// gl_PrimitiveTriangleIndicesEXT[prim + 1] = uvec3(gli + 1, gli + WORK_GROUP_SIZE + 1, gli + WORK_GROUP_SIZE);
+			gl_PrimitiveTriangleIndicesEXT[prim] = uvec3(gli, gli + 1, gli + WORK_GROUP_SIZE);
+			gl_PrimitiveTriangleIndicesEXT[prim + 1] = uvec3(gli + 1, gli + WORK_GROUP_SIZE + 1, gli + WORK_GROUP_SIZE);
 		}
 		elif();
 		{
-			// gl_PrimitiveTriangleIndicesEXT[prim] = uvec3(gli, gli + 1, gli + WORK_GROUP_SIZE + 1);
-			// gl_PrimitiveTriangleIndicesEXT[prim + 1] = uvec3(gli, gli + WORK_GROUP_SIZE + 1, gli + WORK_GROUP_SIZE);
+			gl_PrimitiveTriangleIndicesEXT[prim] = uvec3(gli, gli + 1, gli + WORK_GROUP_SIZE + 1);
+			gl_PrimitiveTriangleIndicesEXT[prim + 1] = uvec3(gli, gli + WORK_GROUP_SIZE + 1, gli + WORK_GROUP_SIZE);
 		}
 		end();
 	}
