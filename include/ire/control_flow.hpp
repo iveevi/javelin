@@ -57,7 +57,7 @@ struct range {
 };
 
 template <builtin T>
-inline T loop(const range <T>  &range)
+inline T loop(const range <T> &range)
 {
 	auto &em = Emitter::active;
 

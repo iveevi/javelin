@@ -510,7 +510,7 @@ void generate_shared(std::string &result,
 
 		auto ts = generator.type_to_string(types[llt.index]);
 
-		result += fmt::format("shared {} _shared{};\n", ts.pre + ts.post, b);
+		result += fmt::format("shared {} _shared{}{};\n", ts.pre, b, ts.post);
 	}
 
 	if (list.size())

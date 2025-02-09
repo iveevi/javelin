@@ -162,6 +162,18 @@ struct unsized_array : array <T> {
 	unsized_array() : array <T> (-1) {}
 };
 
+// Using arbitrary arrays in global qualifiers
+template <typename T>
+struct type_info_override <array <T>> : std::true_type {
+	static int synthesize() {
+		// TODO: some way to enforce size restrictions? feed the data...
+		auto &em = Emitter::active;
+		thunder::index_t underlying = type_field_from_args <T> ().id;
+		thunder::index_t qualifier = em.emit_qualifier(underlying, -1, thunder::arrays);
+		return qualifier;
+	}
+};
+
 // Using unsized arrays in global qualifiers
 template <typename T>
 struct type_info_override <unsized_array <T>> : std::true_type {

@@ -46,9 +46,26 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 		} },
 
 		// Trigonometric functions
-                { sin, { overload::from(f32, f32) } },
-                { cos, { overload::from(f32, f32) } },
-                { tan, { overload::from(f32, f32) } },
+                { sin, {
+			overload::from(f32, f32),
+			overload::from(vec2, vec2),
+			overload::from(vec3, vec3),
+			overload::from(vec4, vec4),
+		} },
+                
+		{ cos, {
+			overload::from(f32, f32),
+			overload::from(vec2, vec2),
+			overload::from(vec3, vec3),
+			overload::from(vec4, vec4),
+		} },
+                
+		{ tan, {
+			overload::from(f32, f32),
+			overload::from(vec2, vec2),
+			overload::from(vec3, vec3),
+			overload::from(vec4, vec4),
+		} },
 
 		// Inverse trigonometric functions
                 { asin, { overload::from(f32, f32) } },
@@ -78,13 +95,21 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 		{ min, {
                         overload::from(i32, i32, i32),
                         overload::from(u32, u32, u32),
-                        overload::from(f32, f32, f32)
+                        overload::from(f32, f32, f32),
+
+                        overload::from(vec2, vec2, vec2),
+                        overload::from(vec3, vec3, vec3),
+                        overload::from(vec4, vec4, vec4),
                 } },
 
 		{ max, {
                         overload::from(i32, i32, i32),
                         overload::from(u32, u32, u32),
-                        overload::from(f32, f32, f32)
+                        overload::from(f32, f32, f32),
+
+                        overload::from(vec2, vec2, vec2),
+                        overload::from(vec3, vec3, vec3),
+                        overload::from(vec4, vec4, vec4),
                 } },
 
 		{ fract, {
@@ -150,6 +175,7 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 		} },
 
 		{ mix, {
+			overload::from(f32, f32, f32, f32),
 			overload::from(vec2, vec2, vec2, f32),
 			overload::from(vec3, vec3, vec3, f32),
 			overload::from(vec4, vec4, vec4, f32),
@@ -235,6 +261,8 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 			overload::from(vec3, vec3, u32),
 			overload::from(vec4, vec4, u32),
 		} },
+		
+		{ glsl_barrier, { overload::from(none) } },
 
 		{ discard, { overload::from(none) } },
         };

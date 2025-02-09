@@ -161,6 +161,7 @@ using gl_GlobalInvocationID_t	= __glsl_uvec3 <thunder::glsl_intrinsic_gl_GlobalI
 using gl_LocalInvocationID_t	= __glsl_uvec3 <thunder::glsl_intrinsic_gl_LocalInvocationID>;
 using gl_LocalInvocationIndex_t	= __glsl_uint  <thunder::glsl_intrinsic_gl_LocalInvocationIndex>;
 using gl_WorkGroupID_t		= __glsl_uvec3 <thunder::glsl_intrinsic_gl_WorkGroupID>;
+using gl_WorkGroupSize_t	= __glsl_uvec3 <thunder::glsl_intrinsic_gl_WorkGroupSize>;
 using gl_SubgroupInvocationID_t	= __glsl_uint <thunder::glsl_intrinsic_gl_SubgroupInvocationID>;
 
 static const gl_FragCoord_t		gl_FragCoord;
@@ -173,6 +174,7 @@ static const gl_GlobalInvocationID_t	gl_GlobalInvocationID;
 static const gl_LocalInvocationID_t	gl_LocalInvocationID;
 static const gl_LocalInvocationIndex_t	gl_LocalInvocationIndex;
 static const gl_WorkGroupID_t		gl_WorkGroupID;
+static const gl_WorkGroupSize_t		gl_WorkGroupSize;
 static const gl_SubgroupInvocationID_t	gl_SubgroupInvocationID;
 
 // Mutable intrinsics
@@ -287,6 +289,12 @@ template <native T, size_t N>
 vec <T, N> subgroupShuffle(const vec <T, N> &v, const native_t <uint32_t> &id)
 {
 	return platform_intrinsic_from_args <vec <T, N>> (thunder::glsl_subgroupShuffle, v, id);
+}
+
+// Synchronization functions
+inline void barrier()
+{
+	return void_platform_intrinsic_from_args(thunder::glsl_barrier);
 }
 
 } // namespace jvl::ire

@@ -63,18 +63,188 @@ auto task = procedure <void> ("main") << []()
 	EmitMeshTasksEXT(groups, groups, 1);
 };
 
-auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
+static_assert(floating_arithmetic <vec3>);
+
+template <floating_arithmetic T>
+auto leaky_relu(const T &v)
+{
+	return max(v, 0.01 * v);
+}
+
+auto eval = procedure("eval") << [](const task_payload <payload> &payload, const vec2 &uv) -> vec3
 {
 	const uint32_t FEATURE_SIZE = 20;
 	const uint32_t ENCODING_LEVELS = 8;
 	const uint32_t FFIN = FEATURE_SIZE + 3 * 2 * ENCODING_LEVELS;
 	const uint32_t MSIZE = FFIN;
 
+	// Neural network weights
+	isampler1D ctex(0);
+	sampler1D vtex(1);
+	sampler2D ftex(2);
+	sampler1D biases(3);
+	sampler2D w0(4);
+	sampler2D w1(5);
+	sampler2D w2(6);
+	sampler2D w3(7);
+
 	array <float> A(MSIZE);
+
+	shared <array <vec4>> row(MSIZE);
 
 	array <vec4> B(16);
 
-	return vec3(uv, 1.0f);
+	ivec4 complex = texelFetch(ctex, i32(payload.pindex), 0);
+
+	vec4 v04 = texelFetch(vtex, complex.x, 0);
+	vec4 v14 = texelFetch(vtex, complex.y, 0);
+	vec4 v24 = texelFetch(vtex, complex.z, 0);
+	vec4 v34 = texelFetch(vtex, complex.w, 0);
+
+	// TODO: swizzle methods...
+	vec3 v0 = vec3(v04.x, v04.y, v04.z);
+	vec3 v1 = vec3(v14.x, v14.y, v14.z);
+	vec3 v2 = vec3(v24.x, v24.y, v24.z);
+	vec3 v3 = vec3(v34.x, v34.y, v34.z);
+
+	vec3 vertex = mix(mix(v0, v1, uv.y), mix(v3, v2, uv.y), uv.x);
+
+	{
+		// TODO: native overload
+		auto i = loop(range(u32(0u), u32(FEATURE_SIZE), u32(1u)));
+		{
+			vec4 fv = texelFetch(ftex, ivec2(i32(i), i32(payload.pindex)), 0);
+			A[i] = mix(mix(fv.x, fv.y, uv.y), mix(fv.w, fv.z, uv.y), uv.x);
+		}
+		end();
+	}
+
+	// Positional encoding
+	array <f32> powers = std::array <f32, 8> { 1, 2, 4, 8, 16, 32, 64, 128 };
+
+	u32 k = FEATURE_SIZE;
+	{
+		auto i = loop(range(u32(0u), u32(ENCODING_LEVELS), u32(1u)));
+		{
+			f32 p = powers[i];
+			vec3 sin_v = sin(p * vertex);
+			vec3 cos_v = cos(p * vertex);
+			
+			A[k] = sin_v.x; k += 1;
+			A[k] = sin_v.y; k += 1;
+			A[k] = sin_v.z; k += 1;
+
+			A[k] = cos_v.x; k += 1;
+			A[k] = cos_v.y; k += 1;
+			A[k] = cos_v.z; k += 1;
+		}
+		end();
+	}
+
+	// Network evaluation
+	u32 tid = gl_LocalInvocationID.x + gl_LocalInvocationID.y * gl_WorkGroupSize.x;
+	u32 stride = gl_WorkGroupSize.x * gl_WorkGroupSize.y;
+
+	// // Layer 0
+	// for (uint i = 0; i < 16; i++) {
+	// 	uint k = i << 2;
+
+	// 	// Load matrix row into shared memory
+	// 	if (tid == 0) {
+	// 		for (uint j = 0; j < FFIN; j++)
+	// 			row[j] = texelFetch(w0, ivec2(i, j), 0);
+	// 	}
+
+	// 	barrier();
+
+	// 	// Evaluate
+	// 	vec4 v = texelFetch(biases, int(i), 0);
+	// 	for (uint j = 0; j < FFIN; j++)
+	// 		v += A[j] * row[j];
+
+	// 	B[i] = leaky_relu(v);
+	// }
+
+	{
+		auto i = loop(range(i32(0), i32(16), i32(1)));
+		{
+			u32 k = u32(i) << 2;
+
+			// Load matrix row into shared memory
+			cond(tid == 0);
+			{
+				auto j = loop(range(i32(0), i32(FFIN), i32(1)));
+					row[j] = texelFetch(w0, ivec2(i, j), 0);
+				end();
+			}
+			end();
+	
+			barrier();
+
+			// Evaluate
+			vec4 v = texelFetch(biases, i32(i), 0);
+			{
+				auto j = loop(range(i32(0), i32(FFIN), i32(1)));
+				{
+					v += A[j] * row[j];
+				}
+				end();
+			}
+
+			B[i] = leaky_relu(v);
+		}
+		end();
+	}
+
+	// // Layer 1
+	// for (uint i = 0; i < 16; i++) {
+	// 	uint k = i << 2;
+
+	// 	// Evaluate
+	// 	vec4 v = texelFetch(biases, int(i) + 16, 0);
+	// 	for (uint j = 0; j < 16; j++) {
+	// 		uint l = j << 2;
+	// 		vec4 v0 = texelFetch(w1, ivec2(i, l + 0), 0);
+	// 		vec4 v1 = texelFetch(w1, ivec2(i, l + 1), 0);
+	// 		vec4 v2 = texelFetch(w1, ivec2(i, l + 2), 0);
+	// 		vec4 v3 = texelFetch(w1, ivec2(i, l + 3), 0);
+	// 		vec4 s = B[j];
+
+	// 		v += s.x * v0 + s.y * v1 + s.z * v2 + s.w * v3;
+	// 	}
+
+	// 	vec4 lv = leaky_relu(v);
+	// 	A[k + 0] = lv.x;
+	// 	A[k + 1] = lv.y;
+	// 	A[k + 2] = lv.z;
+	// 	A[k + 3] = lv.w;
+	// }
+
+	// // Layer 2
+	// for (uint i = 0; i < 16; i++) {
+	// 	uint k = i << 2;
+
+	// 	// Evaluate
+	// 	vec4 v = texelFetch(biases, int(i) + 32, 0);
+	// 	for (uint j = 0; j < 64; j++)
+	// 		v += A[j] * texelFetch(w2, ivec2(i, j), 0);
+
+	// 	vec4 lv = leaky_relu(v);
+
+	// 	// Fuse with the last layer
+	// 	vec4 wx = texelFetch(w3, ivec2(i, 0), 0);
+	// 	vec4 wy = texelFetch(w3, ivec2(i, 1), 0);
+	// 	vec4 wz = texelFetch(w3, ivec2(i, 2), 0);
+
+	// 	vertex.x += dot(wx, lv);
+	// 	vertex.y += dot(wy, lv);
+	// 	vertex.z += dot(wz, lv);
+	// }
+	
+	vec4 b4 = texelFetch(biases, 3 << 6, 0);
+	vec3 bias = vec3(b4.x, b4.y, b4.z);
+
+	return vertex + bias;
 };
 
 // TODO: problems with arrays of one-element structs...
@@ -116,7 +286,7 @@ auto mesh = procedure <void> ("main") << []()
 
 	vec2 uv = vec2(f32(offset.x), f32(offset.y)) / f32(payload.resolution - 1);
 
-	vec3 v = eval(uv);
+	vec3 v = eval(payload, uv);
 
 	vertices[gl_LocalInvocationIndex] = v;
 	pindex[gl_LocalInvocationIndex] = payload.pindex;

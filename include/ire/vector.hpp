@@ -31,6 +31,7 @@ class swizzle_element {
 
 	swizzle_element(Up *upper_) : upper(upper_) {}
 public:
+	using native_type = T;
 	using arithmetic_type = native_t <T>;
 
 	swizzle_element() = default;
@@ -151,6 +152,8 @@ class swizzle_base <T, 2> : public tagged {
 
 	T initial[2] = { T(), T() };
 public:
+	using native_type = T;
+
 	swizzle_element <T, self, thunder::SwizzleCode::x> x;
 	swizzle_element <T, self, thunder::SwizzleCode::y> y;
 
@@ -209,6 +212,8 @@ class swizzle_base <T, 3> : public tagged {
 
 	T initial[3] = { T(), T(), T() };
 public:
+	using native_type = T;
+
 	swizzle_element <T, self, thunder::SwizzleCode::x> x;
 	swizzle_element <T, self, thunder::SwizzleCode::y> y;
 	swizzle_element <T, self, thunder::SwizzleCode::z> z;
@@ -296,6 +301,8 @@ class swizzle_base <T, 4> : public tagged {
 
 	T initial[4] = { T(), T(), T(), T() };
 public:
+	using native_type = T;
+
 	swizzle_element <T, self, thunder::SwizzleCode::x> x;
 	swizzle_element <T, self, thunder::SwizzleCode::y> y;
 	swizzle_element <T, self, thunder::SwizzleCode::z> z;

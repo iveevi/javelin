@@ -13,7 +13,8 @@ struct shared : bound_buffer_object <T, thunder::shared> {
 		// TODO: callbacks on scopes...
 	}
 
-	shared() : bound_buffer_object <T, thunder::shared> (id()) {}
+	template <typename ... Args>
+	shared(const Args &...args) : bound_buffer_object <T, thunder::shared> (id(), args...) {}
 };
 
 } // namespace jvl::ire

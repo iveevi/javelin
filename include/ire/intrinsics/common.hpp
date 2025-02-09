@@ -80,16 +80,18 @@ auto sin(const T &a)
 	return platform_intrinsic_from_args <result> (thunder::sin, underlying(a));
 }
 
-template <native T>
-native_t <T> cos(const native_t <T> &x)
+template <floating_arithmetic T>
+auto cos(const T &a)
 {
-	return platform_intrinsic_from_args <native_t <T>> (thunder::cos, x);
+	using result = decltype(underlying(a));
+	return platform_intrinsic_from_args <result> (thunder::cos, underlying(a));
 }
 
-template <native T>
-native_t <T> tan(const native_t <T> &x)
+template <floating_arithmetic T>
+auto tan(const T &a)
 {
-	return platform_intrinsic_from_args <native_t <T>> (thunder::tan, x);
+	using result = decltype(underlying(a));
+	return platform_intrinsic_from_args <result> (thunder::tan, underlying(a));
 }
 
 template <native T>
@@ -172,13 +174,21 @@ vec <T, N> normalize(const vec <T, N> &v)
 	return platform_intrinsic_from_args <vec <T, N>> (thunder::normalize, v);
 }
 
-template <native T, size_t N, arithmetic U>
-requires std::same_as <typename arithmetic_base <U> ::native_type, float>
+// Mix
+template <floating_arithmetic T, floating_arithmetic U, floating_arithmetic V>
+auto mix(const T &x, const U &y, const V &a)
+{
+	return platform_intrinsic_from_args <arithmetic_base <T>>
+		(thunder::mix, underlying(x), underlying(y), underlying(a));
+}
+
+template <floating_native T, size_t N, floating_arithmetic U>
 vec <T, N> mix(const vec <T, N> &x, const vec <T, N> &y, const U &a)
 {
 	return platform_intrinsic_from_args <vec <T, N>> (thunder::mix, x, y, underlying(a));
 }
 
+// Discard
 inline void discard()
 {
 	platform_intrinsic_keyword(thunder::discard);

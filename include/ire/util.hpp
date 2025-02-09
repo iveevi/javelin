@@ -144,7 +144,11 @@ template <builtin ... Args>
 void void_platform_intrinsic_from_args(thunder::IntrinsicOperation code, const Args &... args)
 {
 	auto &em = Emitter::active;
-	thunder::index_t operands = list_from_args(args...);
+
+	thunder::index_t operands = -1;
+	if constexpr (sizeof...(Args))
+		operands = list_from_args(args...);
+		
 	em.emit_intrinsic(operands, code);
 }
 
