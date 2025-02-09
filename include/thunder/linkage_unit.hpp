@@ -69,6 +69,7 @@ struct LinkageUnit {
 	std::vector <TypeMap> maps;
 	std::map <index_t, index_t> cids;
 	std::map <index_t, std::set <index_t>> dependencies;
+	std::set <std::string> extensions;
 
 	struct {
 		push_constant_info push_constant = push_constant_info::from();
@@ -84,6 +85,7 @@ struct LinkageUnit {
 	index_t new_aggregate(size_t, const std::string &, const std::vector <Field> &);
 
 	void process_function_qualifier(Function &, size_t, index_t, const Qualifier &);
+	void process_function_intrinsic(Function &, size_t, index_t, const Intrinsic &);
 	void process_function_aggregate(TypeMap &, const Function &, size_t, index_t, QualifiedType);
 
 	std::set <index_t> process_function(const Function &);

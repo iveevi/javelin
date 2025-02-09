@@ -45,7 +45,7 @@ struct config {
 	}
 };
 
-auto task = procedure <void> ("task_shader") << []()
+auto task = procedure <void> ("main") << []()
 {
 	push_constant <config> pc;
 
@@ -78,11 +78,12 @@ struct gl_MeshPerVertexEXT {
 	vec4 gl_Position;
 	f32 gl_PointSize;
 
-	// TODO: needs to be special...
+	// TODO: needs to be special or phantom
 
 	explicit gl_MeshPerVertexEXT() = default;
 
 	auto layout() const {
+		// TODO: specification!
 		return uniform_layout("gl_MeshPerVertexEXT",
 			named_field(gl_Position),
 			named_field(gl_PointSize));
@@ -130,50 +131,48 @@ struct __list_gl_MeshPerVertexEXT {
 
 static const __list_gl_MeshPerVertexEXT gl_MeshVerticesEXT;
 
-auto mesh = procedure <void> ("mesh_shader") << []()
+auto mesh = procedure <void> ("main") << []()
 {
-	// const uint32_t WORK_GROUP_SIZE = 8;
+	const uint32_t WORK_GROUP_SIZE = 8;
 
-	// task_payload <payload> payload;
+	task_payload <payload> payload;
 
-	// local_size(WORK_GROUP_SIZE, WORK_GROUP_SIZE);
+	local_size(WORK_GROUP_SIZE, WORK_GROUP_SIZE);
 
-	// mesh_shader_size(64, 98);
+	mesh_shader_size(64, 98);
 	
-	// push_constant <config> pc;
+	push_constant <config> pc;
 
-	// layout_out <unsized_array <vec3>> vertices(0);
-	// layout_out <unsized_array <u32>> pindex(1);
+	layout_out <unsized_array <vec3>> vertices(0);
+	layout_out <unsized_array <u32>> pindex(1);
 
-	// const uint32_t MAX_QSIZE = WORK_GROUP_SIZE - 1;
+	const uint32_t MAX_QSIZE = WORK_GROUP_SIZE - 1;
 
-	// uvec2 offset = uvec2(gl_LocalInvocationID.x, gl_LocalInvocationID.y)
-	// 	+ MAX_QSIZE * uvec2(gl_WorkGroupID.x, gl_WorkGroupID.y);
+	uvec2 offset = uvec2(gl_LocalInvocationID.x, gl_LocalInvocationID.y)
+		+ MAX_QSIZE * uvec2(gl_WorkGroupID.x, gl_WorkGroupID.y);
 
-	// cond(offset.x > payload.resolution || offset.y > payload.resolution);
-	// 	returns();
-	// end();
+	cond(offset.x > payload.resolution || offset.y > payload.resolution);
+		returns();
+	end();
 	
-	// uvec2 offset_triangles = MAX_QSIZE * uvec2(gl_WorkGroupID.x, gl_WorkGroupID.y);
+	uvec2 offset_triangles = MAX_QSIZE * uvec2(gl_WorkGroupID.x, gl_WorkGroupID.y);
 
-	// u32 total_qsize = payload.resolution - 1;
-	// u32 qwidth = min(MAX_QSIZE, total_qsize - offset_triangles.x);
-	// u32 qheight = min(MAX_QSIZE, total_qsize - offset_triangles.y);
+	u32 total_qsize = payload.resolution - 1;
+	u32 qwidth = min(MAX_QSIZE, total_qsize - offset_triangles.x);
+	u32 qheight = min(MAX_QSIZE, total_qsize - offset_triangles.y);
 
-	// u32 vwidth = qwidth + 1;
-	// u32 vheight = qheight + 1;
+	u32 vwidth = qwidth + 1;
+	u32 vheight = qheight + 1;
 
-	// SetMeshOutputsEXT(vwidth * vheight, 2 * qwidth * qheight);
+	SetMeshOutputsEXT(vwidth * vheight, 2 * qwidth * qheight);
 
-	// vec2 uv = vec2(f32(offset.x), f32(offset.y)) / f32(payload.resolution - 1);
+	vec2 uv = vec2(f32(offset.x), f32(offset.y)) / f32(payload.resolution - 1);
 
-	// vec3 v = eval(uv);
+	vec3 v = eval(uv);
 
-	// vertices[gl_LocalInvocationIndex] = v;
-	// pindex[gl_LocalInvocationIndex] = payload.pindex;
-	// gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = vec4(v, 1.0);
-	
-	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = vec4(1.0);
+	vertices[gl_LocalInvocationIndex] = v;
+	pindex[gl_LocalInvocationIndex] = payload.pindex;
+	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = vec4(v, 1.0);
 };
 
 int main()
@@ -186,5 +185,5 @@ int main()
 	thunder::opt_transform(mesh);
 	mesh.dump();
 	fmt::println("{}", link(mesh).generate_glsl());
-	// link(mesh).generate_spirv(vk::ShaderStageFlagBits::eMeshEXT);
+	link(mesh).generate_spirv(vk::ShaderStageFlagBits::eMeshEXT);
 }

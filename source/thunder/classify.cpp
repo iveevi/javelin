@@ -191,6 +191,7 @@ QualifiedType Buffer::classify(index_t i)
 	case Atom::type_index <Load> ():
 	{
 		auto &load = atom.as <Load> ();
+
 		QualifiedType qt = classify(load.src);
 		if (load.idx == -1)
 			return qt;
@@ -218,6 +219,7 @@ QualifiedType Buffer::classify(index_t i)
 		}
 
 		dump();
+
 		JVL_ABORT("unfinished implementation for load: {}", atom);
 	}
 
@@ -238,14 +240,21 @@ QualifiedType Buffer::classify(index_t i)
 			}
 		}
 
-		if (!qt.is <ArrayType> ())
+		if (!qt.is <ArrayType> ()) {
 			dump();
 
-		JVL_ASSERT(qt.is <ArrayType> (),
-			"array accesses must operate on array "
-			"types, but source is of type {}", qt);
+			JVL_ABORT("array accesses must operate on array "
+				"types, but source is of type {}", qt);
+		}
 
-		return qt.as <ArrayType> ().base();
+		// Check for possible name hints
+		auto base = qt.as <ArrayType> ().base();
+
+		auto concrete = base.get <index_t> ();
+		if (concrete && used_decorations.contains(*concrete))
+			transfer_decorations(*concrete);
+
+		return base;
 	}
 
 	case Atom::type_index <Returns> ():

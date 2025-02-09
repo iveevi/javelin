@@ -132,8 +132,75 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t index, i
 	{
 		special_type st(index, i);
 		globals.special[task_payload] = st;
+		extensions.insert("GL_EXT_mesh_shader");
 	} break;
 
+	default:
+		break;
+	}
+}
+
+void LinkageUnit::process_function_intrinsic(Function &function, size_t index, index_t i, const Intrinsic &intr)
+{
+	switch (intr.opn) {
+
+	case thunder::layout_local_size:
+	{
+		thunder::index_t args = intr.args;
+
+		uint3 size = uint3(1, 1, 1);
+
+		int32_t j = 0;
+		while (args != -1 && j < 3) {
+			Atom local = function[args];
+
+			JVL_ASSERT_PLAIN(local.is <List> ());
+			auto list = local.as <List> ();
+			local = function[list.item];
+
+			JVL_ASSERT_PLAIN(local.is <Primitive> ());
+			auto value = local.as <Primitive> ();
+
+			JVL_ASSERT_PLAIN(value.type == u32);
+			size[j++] = value.udata;
+
+			args = list.next;
+		}
+
+		local_size = size;
+	} break;
+
+	case thunder::layout_mesh_shader_sizes:
+	{
+		thunder::index_t args = intr.args;
+
+		uint2 size = uint2(1, 1);
+
+		int32_t j = 0;
+		while (args != -1 && j < 2) {
+			Atom local = function[args];
+
+			JVL_ASSERT_PLAIN(local.is <List> ());
+			auto list = local.as <List> ();
+			local = function[list.item];
+
+			JVL_ASSERT_PLAIN(local.is <Primitive> ());
+			auto value = local.as <Primitive> ();
+
+			JVL_ASSERT_PLAIN(value.type == u32);
+			size[j++] = value.udata;
+
+			args = list.next;
+		}
+
+		mesh_shader_size = size;
+	} break;
+
+	case thunder::emit_mesh_tasks:
+	case thunder::set_mesh_outputs:
+		extensions.insert("GL_EXT_mesh_shader");
+		break;
+	
 	default:
 		break;
 	}
@@ -205,63 +272,15 @@ std::set <index_t> LinkageUnit::process_function(const Function &ftn)
 		}
 
 		// Checking for special intrinsics
-		if (atom.is <Intrinsic> ()) {
-			auto it = atom.as <Intrinsic> ();
-			if (it.opn == thunder::layout_local_size) {
-				thunder::index_t args = it.args;
-
-				uint3 size = uint3(1, 1, 1);
-
-				int32_t j = 0;
-				while (args != -1 && j < 3) {
-					Atom local = function[args];
-
-					JVL_ASSERT_PLAIN(local.is <List> ());
-					auto list = local.as <List> ();
-					local = function[list.item];
-
-					JVL_ASSERT_PLAIN(local.is <Primitive> ());
-					auto value = local.as <Primitive> ();
-
-					JVL_ASSERT_PLAIN(value.type == u32);
-					size[j++] = value.udata;
-
-					args = list.next;
-				}
-
-				local_size = size;
-			} else if (it.opn == thunder::layout_mesh_shader_sizes) {
-				thunder::index_t args = it.args;
-
-				uint2 size = uint2(1, 1);
-
-				int32_t j = 0;
-				while (args != -1 && j < 2) {
-					Atom local = function[args];
-
-					JVL_ASSERT_PLAIN(local.is <List> ());
-					auto list = local.as <List> ();
-					local = function[list.item];
-
-					JVL_ASSERT_PLAIN(local.is <Primitive> ());
-					auto value = local.as <Primitive> ();
-
-					JVL_ASSERT_PLAIN(value.type == u32);
-					size[j++] = value.udata;
-
-					args = list.next;
-				}
-
-				mesh_shader_size = size;
-			}
-		}
+		if (atom.is <Intrinsic> ())
+			process_function_intrinsic(function, index, i, atom.as <Intrinsic> ());
 
 		// Checking for structs used by the function
 		auto qt = function.types[i];
 		if (qt.is <StructFieldType> ())
 			process_function_aggregate(map, function, index, i, qt);
 
-		// TODO: static initializers
+		// TODO: static initializers (e.g. arrays and constants)
 	}
 
 	// Mark the dependencies
@@ -582,6 +601,13 @@ std::string LinkageUnit::generate_glsl() const
 	result += "#version 450\n";
 	result += "\n";
 
+	// Include required extensions
+	for (auto &ext : extensions)
+		result += fmt::format("#extension {} : require\n", ext);
+
+	if (extensions.size())
+		result += "\n";
+
 	// Create the generators
 	auto generators = configure_generators();
 
@@ -601,7 +627,7 @@ std::string LinkageUnit::generate_glsl() const
 		result += fmt::format("layout ("
 			"triangles, "
 			"max_vertices = {}, "
-			"max_primitives = {}) in;"
+			"max_primitives = {}) out;"
 			"\n\n",
 			mesh_shader_size->x,
 			mesh_shader_size->y);
@@ -655,6 +681,8 @@ std::string LinkageUnit::generate_glsl() const
 /////////////////////////////////
 // Generation: C++ source code //
 /////////////////////////////////
+
+// TODO: separate source...
 
 // Constructing primitive types in C++
 template <typename T>
