@@ -75,6 +75,8 @@ static std::optional <std::string> generate_global_reference(const Qualifier &qu
 		return "gl_LocalInvocationIndex";
 	case glsl_intrinsic_gl_WorkGroupID:
 		return "gl_WorkGroupID";
+	case glsl_intrinsic_gl_SubgroupInvocationID:
+		return "gl_SubgroupInvocationID";
 
 	case glsl_intrinsic_gl_Position:
 		return "gl_Position";

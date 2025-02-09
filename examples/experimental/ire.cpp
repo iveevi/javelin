@@ -36,6 +36,10 @@ struct config {
 	mat4 proj;
 	u32 resolution;
 
+	vec4 project(vec3 v) const {
+		return proj * (view * (model * vec4(v, 1)));
+	}
+
 	auto layout() const {
 		return uniform_layout("config",
 			named_field(model),
@@ -74,6 +78,8 @@ auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
 };
 
 // TODO: problems with arrays of one-element structs...
+
+// TODO: move to shaders/mesh.hpp
 struct gl_MeshPerVertexEXT {
 	vec4 gl_Position;
 	f32 gl_PointSize;
@@ -172,7 +178,65 @@ auto mesh = procedure <void> ("main") << []()
 
 	vertices[gl_LocalInvocationIndex] = v;
 	pindex[gl_LocalInvocationIndex] = payload.pindex;
-	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = vec4(v, 1.0);
+	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = pc.project(v);
+
+	u32 gli = gl_LocalInvocationIndex;
+	cond(gl_LocalInvocationID.x < qwidth && gl_LocalInvocationID.y < qheight);
+	{
+		u32 prim = 2 * (gl_LocalInvocationID.x + qwidth * gl_LocalInvocationID.y);
+
+		// Assumes that the subgroup size is 32
+		u32 gsi = gl_SubgroupInvocationID;
+
+		f32 sign = 1;
+		u32 side = gsi + 1;
+
+		cond(side >= 32 || gl_LocalInvocationID.x >= qwidth);
+		{
+			side = gsi - 1;
+			sign *= -1;
+		}
+		end();
+
+		u32 vert = gsi + WORK_GROUP_SIZE;
+
+		cond(vert >= 32);
+		{
+			vert = gsi - WORK_GROUP_SIZE;
+			sign *= -1;
+		}
+		end();
+
+		u32 sidevert = gsi + WORK_GROUP_SIZE + 1;
+
+		cond(sidevert >= 32);
+			sidevert = gsi - WORK_GROUP_SIZE + 1;
+		end();
+
+		cond(sidevert >= 32);
+			sidevert = gsi - WORK_GROUP_SIZE - 1;
+		end();
+
+		vec3 sv = subgroupShuffle(v, side);
+		vec3 vv = subgroupShuffle(v, vert);
+		vec3 svv = subgroupShuffle(v, sidevert);
+
+		f32 d0 = length(v - svv);
+		f32 d1 = length(sv - vv);
+
+		cond(d0 > d1);
+		{
+			// gl_PrimitiveTriangleIndicesEXT[prim] = uvec3(gli, gli + 1, gli + WORK_GROUP_SIZE);
+			// gl_PrimitiveTriangleIndicesEXT[prim + 1] = uvec3(gli + 1, gli + WORK_GROUP_SIZE + 1, gli + WORK_GROUP_SIZE);
+		}
+		elif();
+		{
+			// gl_PrimitiveTriangleIndicesEXT[prim] = uvec3(gli, gli + 1, gli + WORK_GROUP_SIZE + 1);
+			// gl_PrimitiveTriangleIndicesEXT[prim + 1] = uvec3(gli, gli + WORK_GROUP_SIZE + 1, gli + WORK_GROUP_SIZE);
+		}
+		end();
+	}
+	end();
 };
 
 int main()

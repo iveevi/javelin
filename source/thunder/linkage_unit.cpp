@@ -135,6 +135,10 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t index, i
 		extensions.insert("GL_EXT_mesh_shader");
 	} break;
 
+	case glsl_intrinsic_gl_SubgroupInvocationID:
+		extensions.insert("GL_KHR_shader_subgroup_basic");
+		break;
+
 	default:
 		break;
 	}
@@ -199,6 +203,10 @@ void LinkageUnit::process_function_intrinsic(Function &function, size_t index, i
 	case thunder::emit_mesh_tasks:
 	case thunder::set_mesh_outputs:
 		extensions.insert("GL_EXT_mesh_shader");
+		break;
+
+	case thunder::glsl_subgroupShuffle:
+		extensions.insert("GL_KHR_shader_subgroup_shuffle");
 		break;
 	
 	default:

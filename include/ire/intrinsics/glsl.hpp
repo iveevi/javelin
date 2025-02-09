@@ -125,6 +125,7 @@ static const __glsl_uvec3 <thunder::glsl_intrinsic_gl_GlobalInvocationID>	gl_Glo
 static const __glsl_uvec3 <thunder::glsl_intrinsic_gl_LocalInvocationID>	gl_LocalInvocationID;
 static const __glsl_uint  <thunder::glsl_intrinsic_gl_LocalInvocationIndex>	gl_LocalInvocationIndex;
 static const __glsl_uvec3 <thunder::glsl_intrinsic_gl_WorkGroupID>		gl_WorkGroupID;
+static const __glsl_uint <thunder::glsl_intrinsic_gl_SubgroupInvocationID>	gl_SubgroupInvocationID;
 
 // Mutable intrinsics
 static __glsl_vec4 <thunder::glsl_intrinsic_gl_Position>     			gl_Position;
@@ -220,6 +221,7 @@ vec <float, N> uintBitsToFloat(const vec <uint32_t, N> &v)
 	return platform_intrinsic_from_args <vec <float, N>> (thunder::glsl_uintBitsToFloat, v);
 }
 
+// Mesh shader intrinsic functions
 inline void EmitMeshTasksEXT(const native_t <uint32_t> &x, const native_t <uint32_t> &y, const native_t <uint32_t> &z)
 {
 	return void_platform_intrinsic_from_args(thunder::emit_mesh_tasks, x, y, z);
@@ -228,6 +230,13 @@ inline void EmitMeshTasksEXT(const native_t <uint32_t> &x, const native_t <uint3
 inline void SetMeshOutputsEXT(const native_t <uint32_t> &x, const native_t <uint32_t> &y)
 {
 	return void_platform_intrinsic_from_args(thunder::set_mesh_outputs, x, y);
+}
+
+// Subgroup intrinsic functions
+template <native T, size_t N>
+vec <T, N> subgroupShuffle(const vec <T, N> &v, const native_t <uint32_t> &id)
+{
+	return platform_intrinsic_from_args <vec <T, N>> (thunder::glsl_subgroupShuffle, v, id);
 }
 
 } // namespace jvl::ire

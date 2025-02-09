@@ -230,6 +230,12 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 			overload::from(vec3, vec3),
 		} },
 
+		{ glsl_subgroupShuffle, {
+			overload::from(vec2, vec2, u32),
+			overload::from(vec3, vec3, u32),
+			overload::from(vec4, vec4, u32),
+		} },
+
 		{ discard, { overload::from(none) } },
         };
 

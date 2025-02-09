@@ -127,6 +127,7 @@ enum QualifierKind : int8_t {
 	glsl_intrinsic_gl_LocalInvocationID,
 	glsl_intrinsic_gl_LocalInvocationIndex,
 	glsl_intrinsic_gl_WorkGroupID,
+	glsl_intrinsic_gl_SubgroupInvocationID,
 
 	glsl_intrinsic_gl_Position,
 	glsl_intrinsic_gl_MeshVerticesEXT,
@@ -187,6 +188,7 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"glsl:gl_LocalInvocationID",
 	"glsl:gl_LocalInvocationIndex",
 	"glsl:gl_WorkGroupID",
+	"glsl:gl_SubgroupInvocationID",
 
 	"glsl:gl_Position",
 	"glsl:gl_MeshVerticesEXT",
@@ -380,6 +382,9 @@ enum IntrinsicOperation : uint16_t {
 	glsl_intBitsToFloat,
 	glsl_uintBitsToFloat,
 
+	// GLSL subgroup operations
+	glsl_subgroupShuffle,
+
 	__io_end
 };
 
@@ -438,6 +443,8 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"floatBitsToUint",
 	"intBitsToFloat",
 	"uintBitsToFloat",
+
+	"subgroupShuffle",
 
 	"__end"
 };
