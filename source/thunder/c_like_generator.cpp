@@ -499,8 +499,8 @@ void c_like_generator_t::generate(const Intrinsic &intrinsic, index_t index)
 		|| (intrinsic.opn == thunder::layout_mesh_shader_sizes))
 		return;
 
-	// Keyword intrinsic
-	if (intrinsic.args == -1)
+	// Keyword intrinsics
+	if (intrinsic.opn == thunder::discard)
 		return finish(tbl_intrinsic_operation[intrinsic.opn]);
 
 	auto &qt = types[index];
