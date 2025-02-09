@@ -21,6 +21,7 @@
 
 #include "intrinsics/common.hpp"
 #include "intrinsics/glsl.hpp"
+#include "intrinsics/stages/mesh.hpp"
 
 // TODO: organize into different targets, i.e. core/glsl.hpp, core/spirv.hpp, etc.
 // TODO: debug only

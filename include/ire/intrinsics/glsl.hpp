@@ -2,6 +2,7 @@
 
 #include "../../thunder/atom.hpp"
 #include "../../thunder/enumerations.hpp"
+#include "../array.hpp"
 #include "../tagged.hpp"
 #include "../type_synthesis.hpp"
 #include "../util.hpp"
@@ -96,6 +97,38 @@ struct __glsl_intrinsic_variable_t <vec <T, 4>, code> {
 	}
 };
 
+// Implementation for array types
+template <generic T, thunder::QualifierKind code>
+struct __glsl_intrinsic_variable_t <unsized_array <T>, code> {
+	using element = T;
+	
+	cache_index_t synthesize() const {
+		auto &em = Emitter::active;
+		thunder::index_t type = type_field_from_args <T> ().id;
+		thunder::index_t qualifier = em.emit_qualifier(type, -1, thunder::arrays);
+		thunder::index_t intr = em.emit_qualifier(qualifier, -1, code);
+		return cache_index_t::from(intr);
+	}
+	
+	template <integral_native U>
+	element operator[](const U &index) const {
+		auto &em = Emitter::active;
+		native_t <int32_t> location(index);
+		thunder::index_t l = location.synthesize().id;
+		thunder::index_t c = em.emit_array_access(synthesize().id, l);
+		return cache_index_t::from(c);
+	}
+
+	template <integral_arithmetic U>
+	element operator[](const U &index) const {
+		auto &em = Emitter::active;
+		thunder::index_t l = index.synthesize().id;
+		thunder::index_t c = em.emit_array_access(synthesize().id, l);
+		return element(cache_index_t::from(c));
+	}
+};
+
+// Shorthands
 template <thunder::QualifierKind code>
 using __glsl_int = __glsl_intrinsic_variable_t <int32_t, code>;
 
@@ -111,24 +144,41 @@ using __glsl_vec4 = __glsl_intrinsic_variable_t <vec <float, 4>, code>;
 template <thunder::QualifierKind code>
 using __glsl_uvec3 = __glsl_intrinsic_variable_t <vec <uint32_t, 3>, code>;
 
+template <generic T, thunder::QualifierKind code>
+using __glsl_array = __glsl_intrinsic_variable_t <unsized_array <T>, code>;
+
 ////////////////////////////////////////////////
 // GLSL shader intrinsic variable definitions //
 ////////////////////////////////////////////////
 
-static const __glsl_vec4  <thunder::glsl_intrinsic_gl_FragCoord>   	        gl_FragCoord;
-static const __glsl_float <thunder::glsl_intrinsic_gl_FragDepth>   	        gl_FragDepth;
-static const __glsl_int   <thunder::glsl_intrinsic_gl_InstanceID>  	        gl_InstanceID;
-static const __glsl_int   <thunder::glsl_intrinsic_gl_InstanceIndex>        	gl_InstanceIndex;
-static const __glsl_int   <thunder::glsl_intrinsic_gl_VertexID>   		gl_VertexID;
-static const __glsl_int   <thunder::glsl_intrinsic_gl_VertexIndex> 	        gl_VertexIndex;
-static const __glsl_uvec3 <thunder::glsl_intrinsic_gl_GlobalInvocationID>	gl_GlobalInvocationID;
-static const __glsl_uvec3 <thunder::glsl_intrinsic_gl_LocalInvocationID>	gl_LocalInvocationID;
-static const __glsl_uint  <thunder::glsl_intrinsic_gl_LocalInvocationIndex>	gl_LocalInvocationIndex;
-static const __glsl_uvec3 <thunder::glsl_intrinsic_gl_WorkGroupID>		gl_WorkGroupID;
-static const __glsl_uint <thunder::glsl_intrinsic_gl_SubgroupInvocationID>	gl_SubgroupInvocationID;
+using gl_FragCoord_t		= __glsl_vec4  <thunder::glsl_intrinsic_gl_FragCoord>;
+using gl_FragDept_t		= __glsl_float <thunder::glsl_intrinsic_gl_FragDepth>;
+using gl_InstanceID_t		= __glsl_int   <thunder::glsl_intrinsic_gl_InstanceID>;
+using gl_InstanceIndex_t	= __glsl_int   <thunder::glsl_intrinsic_gl_InstanceIndex>;
+using gl_VertexID_t		= __glsl_int   <thunder::glsl_intrinsic_gl_VertexID>;
+using gl_VertexIndex_t		= __glsl_int   <thunder::glsl_intrinsic_gl_VertexIndex>;
+using gl_GlobalInvocationID_t	= __glsl_uvec3 <thunder::glsl_intrinsic_gl_GlobalInvocationID>;
+using gl_LocalInvocationID_t	= __glsl_uvec3 <thunder::glsl_intrinsic_gl_LocalInvocationID>;
+using gl_LocalInvocationIndex_t	= __glsl_uint  <thunder::glsl_intrinsic_gl_LocalInvocationIndex>;
+using gl_WorkGroupID_t		= __glsl_uvec3 <thunder::glsl_intrinsic_gl_WorkGroupID>;
+using gl_SubgroupInvocationID_t	= __glsl_uint <thunder::glsl_intrinsic_gl_SubgroupInvocationID>;
+
+static const gl_FragCoord_t		gl_FragCoord;
+static const gl_FragDept_t		gl_FragDepth;
+static const gl_InstanceID_t		gl_InstanceID;
+static const gl_InstanceIndex_t		gl_InstanceIndex;
+static const gl_VertexID_t		gl_VertexID;
+static const gl_VertexIndex_t		gl_VertexIndex;
+static const gl_GlobalInvocationID_t	gl_GlobalInvocationID;
+static const gl_LocalInvocationID_t	gl_LocalInvocationID;
+static const gl_LocalInvocationIndex_t	gl_LocalInvocationIndex;
+static const gl_WorkGroupID_t		gl_WorkGroupID;
+static const gl_SubgroupInvocationID_t	gl_SubgroupInvocationID;
 
 // Mutable intrinsics
-static __glsl_vec4 <thunder::glsl_intrinsic_gl_Position>     			gl_Position;
+using gl_Position_t = __glsl_vec4 <thunder::glsl_intrinsic_gl_Position>;
+
+static gl_Position_t	gl_Position;
 
 /////////////////////////////////////
 // GLSL shader intrinsic functions //
