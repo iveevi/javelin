@@ -15,7 +15,7 @@
 #include "imgui.hpp"
 
 using namespace jvl;
-// using namespace jvl::ire;
+using namespace jvl::ire;
 
 MODULE(font-rendering);
 

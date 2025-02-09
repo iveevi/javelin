@@ -1,0 +1,13 @@
+#!/bin/sh
+top=$(cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P)
+
+cd "$top/.."
+
+set -x
+
+# Run all examples
+./build/examples/colored/colored resources/meshes/nefertiti.obj --limit 1e3
+./build/examples/normals/normals resources/meshes/nefertiti.obj --limit 1e3
+./build/examples/palette/palette resources/meshes/nefertiti.obj --limit 1e3
+./build/examples/particles/particles --limit 1e3
+./build/examples/compute/compute --limit 1e3

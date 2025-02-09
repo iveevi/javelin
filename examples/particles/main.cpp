@@ -1,5 +1,3 @@
-#include <omp.h>
-
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_vulkan.h>
@@ -15,6 +13,7 @@
 #include "device_resource_collection.hpp"
 #include "extensions.hpp"
 #include "imgui.hpp"
+#include "timer.hpp"
 #include "transform.hpp"
 #include "triangle_mesh.hpp"
 
@@ -189,8 +188,6 @@ void jitter(std::vector <aligned_float3> &particles,
 
 	float3 mid = 0.5f * (O1 + O2);
 	float R = 20.0f + length(O1 - O2);
-
-	omp_set_num_threads(omp_get_max_threads());
 	
 	std::random_device rd;
 	std::default_random_engine gen(rd());
@@ -241,30 +238,13 @@ void jitter(std::vector <aligned_float3> &particles,
 	O2 += dt * V2;
 }
 
-struct Timer {
-	using clk = std::chrono::high_resolution_clock;
-
-	clk clock;
-	clk::time_point mark;
-
-	void reset() {
-		mark = clock.now();
-	}
-
-	double click() {
-		auto end = clock.now();
-		auto count = std::chrono::duration_cast <std::chrono::microseconds> (end - mark).count();
-		return double(count) / 1000.0;
-	}
-};
-
 int main(int argc, char *argv[])
 {
 	argparse::ArgumentParser program("particles");
 
 	program.add_argument("--limit")
 		.help("time limit (ms) for the execution of the program )")
-		.default_value(1000.0)
+		.default_value(-1.0)
 		.scan <'g', double> ();
 
 	try {
@@ -442,6 +422,8 @@ int main(int argc, char *argv[])
 		if (limit >= 0 && timer.click() > limit)
 			glfwSetWindowShouldClose(drc.window.handle, true);
 
+		controller.handle_movement(drc.window);
+		
 		// Configure the rendering extent
 		vk::Extent2D extent = drc.window.extent;
 
@@ -536,15 +518,7 @@ int main(int argc, char *argv[])
 		littlevk::upload(drc.device, sb, velocities);
 	};
 	
-	littlevk::swapchain_render_loop(drc.device,
-		drc.graphics_queue,
-		drc.present_queue,
-		drc.command_pool,
-		drc.window,
-		drc.swapchain,
-		drc.dal,
-		render,
-		resize);
+	drc.swapchain_render_loop(timed(drc.window, render, program.get <double> ("limit")), resize);
 
 	return 0;
 }

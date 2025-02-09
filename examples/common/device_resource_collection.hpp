@@ -41,6 +41,18 @@ public:
 	vk::CommandBuffer new_command_buffer();
 
 	// TODO: duplication method for another thread
+	template <typename F, typename G>
+	void swapchain_render_loop(const F &render, const G &resize) {
+		littlevk::swapchain_render_loop(device,
+			graphics_queue,
+			present_queue,
+			command_pool,
+			window,
+			swapchain,
+			dal,
+			render,
+			resize);
+	}
 
 	static DeviceResourceCollection from(const DeviceResourceCollectionInfo &);
 };

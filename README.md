@@ -1,11 +1,6 @@
 # Javelin
 
-Javelin is a system for **graphics programming**; to this serve this purpose, it aims to provide the following:
-
-* A **just-in-time (JIT) compilation framework** for shader and kernel programming
-* Common graphics constructs for fast prototyping of visual applications and research
-* A programming language for end-to-end graphics applications, shaders included
-* An editor for managing and viewing 3D scenes
+Javelin is a **just-in-time (JIT) compilation framework** for shader and kernel programming.
 
 Many components of Javelin are a work in progress. See the [road map](docs/road_map.md) to get an idea of what is coming next.
 

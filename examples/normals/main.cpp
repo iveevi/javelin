@@ -2,18 +2,21 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_vulkan.h>
 
+#include <argparse/argparse.hpp>
+
 #include <ire/core.hpp>
 
-#include "extensions.hpp"
-#include "default_framebuffer_set.hpp"
 #include "aperature.hpp"
-#include "device_resource_collection.hpp"
-#include "scene.hpp"
-#include "transform.hpp"
 #include "camera_controller.hpp"
+#include "cpu/scene.hpp"
+#include "default_framebuffer_set.hpp"
+#include "device_resource_collection.hpp"
+#include "extensions.hpp"
 #include "imgui.hpp"
 #include "imported_asset.hpp"
-#include "cpu/scene.hpp"
+#include "scene.hpp"
+#include "timer.hpp"
+#include "transform.hpp"
 #include "vulkan/scene.hpp"
 
 using namespace jvl;
@@ -134,7 +137,23 @@ void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 
 int main(int argc, char *argv[])
 {
-	assert(argc >= 2);
+	argparse::ArgumentParser program("particles");
+	
+	program.add_argument("mesh")
+		.help("input mesh");
+
+	program.add_argument("--limit")
+		.help("time limit (ms) for the execution of the program")
+		.default_value(-1.0)
+		.scan <'g', double> ();
+
+	try {
+		program.parse_args(argc, argv);
+	} catch (const std::exception &e) {
+		std::cerr << e.what() << std::endl;
+		std::cerr << program;
+		return 1;
+	}
 
 	// littlevk configuration
 	{
@@ -144,7 +163,7 @@ int main(int argc, char *argv[])
 	}
 	
 	// Load the asset and scene
-	std::filesystem::path path = argv[1];
+	std::filesystem::path path = program.get("mesh");
 
 	// Load physical device
 	auto predicate = [](vk::PhysicalDevice phdev) {
@@ -223,33 +242,18 @@ int main(int argc, char *argv[])
 	glfwSetCursorPosCallback(drc.window.handle, glfw_cursor_callback);
 	
 	// Handling window resizing
-	auto resizer = [&]() { framebuffers.resize(drc, render_pass); };
+	auto resize = [&]() { framebuffers.resize(drc, render_pass); };
 
 	// Main loop
-	auto &window = drc.window;
-	while (!window.should_close()) {
-		window.poll();
-
+	auto render = [&](const vk::CommandBuffer &cmd, uint32_t index) {
 		controller.handle_movement(drc.window);
 	
-		const auto &cmd = command_buffers[frame];
-		const auto &sync_frame = sync[frame];
-		
-		auto sop = littlevk::acquire_image(drc.device, drc.swapchain.handle, sync_frame);
-		if (sop.status == littlevk::SurfaceOperation::eResize) {
-			resizer();
-			continue;
-		}
-	
-		// Start the command buffer
-		cmd.begin(vk::CommandBufferBeginInfo());
-		
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(drc.window.extent));
 
 		littlevk::RenderPassBeginInfo(2)
 			.with_render_pass(render_pass)
-			.with_framebuffer(framebuffers[sop.index])
+			.with_framebuffer(framebuffers[index])
 			.with_extent(drc.window.extent)
 			.clear_color(0, std::array <float, 4> { 0, 0, 0, 1 })
 			.clear_depth(1, 1)
@@ -276,24 +280,9 @@ int main(int argc, char *argv[])
 		}
 
 		cmd.endRenderPass();
-		cmd.end();
-	
-		// Submit command buffer while signaling the semaphore
-		vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-		
-		vk::SubmitInfo submit_info {
-			sync_frame.image_available,
-			wait_stage, cmd,
-			sync_frame.render_finished
-		};
+	};
 
-		drc.graphics_queue.submit(submit_info, sync_frame.in_flight);
+	drc.swapchain_render_loop(timed(drc.window, render, program.get <double> ("limit")), resize);
 
-		sop = littlevk::present_image(drc.present_queue, drc.swapchain.handle, sync_frame, sop.index);
-		if (sop.status == littlevk::SurfaceOperation::eResize)
-			resizer();
-	
-		// Advance to the next frame
-		frame = 1 - frame;
-	}
+	return 0;
 }
