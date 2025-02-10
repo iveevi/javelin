@@ -50,7 +50,6 @@ int main(int argc, char *argv[])
 		config.abort_on_validation_error = true;
 	}
 	
-	// Load the asset and scene
 	std::filesystem::path path = program.get("mesh");
 
 	// Load physical device

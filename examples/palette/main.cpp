@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
 	// Camera transform and aperature
 	Transform camera_transform;
 	Transform model_transform;
-	core::Aperature aperature;
+	Aperature aperature;
 
 	// MVP structure used for push constants
 	auto m_model = uniform_field(MVP, model);

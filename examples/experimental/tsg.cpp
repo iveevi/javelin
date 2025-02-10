@@ -294,7 +294,7 @@ int main(int argc, char *argv[])
 
 	// Camera controllers
 	Transform camera_transform;
-	core::Aperature camera_aperature;
+	Aperature camera_aperature;
 	
 	CameraController controller {
 		camera_transform,

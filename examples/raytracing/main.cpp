@@ -117,5 +117,5 @@ int main(int argc, char *argv[])
 	// Camera transform and aperature
 	Transform camera_transform;
 	Transform model_transform;
-	core::Aperature aperature;
+	Aperature aperature;
 }

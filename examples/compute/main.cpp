@@ -243,7 +243,6 @@ int main(int argc, char *argv[])
 		config.abort_on_validation_error = true;
 	}
 
-	// Load the asset and scene
 	auto predicate = [](vk::PhysicalDevice phdev) {
 		return littlevk::physical_device_able(phdev, VK_EXTENSIONS);
 	};
@@ -386,7 +385,7 @@ int main(int argc, char *argv[])
 
 	// Camera transform and aperture
 	Transform camera_transform;
-	core::Aperature aperature;
+	Aperature aperature;
 
 	// MVP structure used for push constants
 	auto m_view = uniform_field(MVP, view);
