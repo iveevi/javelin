@@ -2,9 +2,9 @@
 
 #include <string>
 #include <vector>
-#include <map>
 
-#include <core/math.hpp>
+#include <glm/glm.hpp>
+
 #include <core/wrapped.hpp>
 
 namespace jvl {
@@ -15,13 +15,13 @@ using property = jvl::wrapped::tree <std::string, T>;
 
 // General buffer structures
 using typed_vector = jvl::wrapped::variant <
-	std::vector <float4>,
-	std::vector <float3>,
-	std::vector <float2>,
+	std::vector <glm::vec4>,
+	std::vector <glm::vec3>,
+	std::vector <glm::vec2>,
 	std::vector <float>,
-	std::vector <int3>,
-	std::vector <int2>,
-	std::vector <int4>,
+	std::vector <glm::ivec4>,
+	std::vector <glm::ivec3>,
+	std::vector <glm::ivec2>,
 	std::vector <int>
 >;
 

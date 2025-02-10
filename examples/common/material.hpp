@@ -6,10 +6,10 @@
 namespace jvl::core {
 
 // General value information
-struct color3 : float3 {
-	using float3::vector;
+struct color3 : glm::vec3 {
+	using glm::vec3::vec3;
 
-	color3(const float3 &other) : float3(other) {}
+	color3(const glm::vec3 &other) : glm::vec3(other) {}
 };
 
 struct name : std::string {

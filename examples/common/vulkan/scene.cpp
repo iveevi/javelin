@@ -13,7 +13,7 @@ Scene Scene::from(DeviceResourceCollection &drc, const cpu::Scene &other, SceneF
 		int64_t original = other.mesh_to_object[m];
 
 		if (flags == SceneFlags::eOneMaterialPerMesh && m.material_usage.size() > 1) {
-			std::map <int, std::vector <int3>> triangles;
+			std::map <int, std::vector <glm::ivec3>> triangles;
 
 			// TODO: put in the same device memory, but different ranges...
 			size_t size = m.triangles.size();

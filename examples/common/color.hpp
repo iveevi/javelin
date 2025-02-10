@@ -1,11 +1,9 @@
 #pragma once
 
-#include <core/math.hpp>
-
-namespace jvl::core {
+#include <glm/glm.hpp>
 
 // HSL palette generation
-inline float3 hsl_to_rgb(const float3 &hsl)
+inline glm::vec3 hsl_to_rgb(const glm::vec3 &hsl)
 {
 	float h = hsl.x;
 	float s = hsl.y;
@@ -44,7 +42,5 @@ inline float3 hsl_to_rgb(const float3 &hsl)
 		b = x;
 	}
 
-	return float3((r + m), (g + m), (b + m));
+	return glm::vec3((r + m), (g + m), (b + m));
 }
-
-} // namespace jvl::core

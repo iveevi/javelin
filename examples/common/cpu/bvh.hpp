@@ -2,10 +2,7 @@
 
 #include <vector>
 
-#include <core/math.hpp>
-
 #include "../aabb.hpp"
-#include "intersection.hpp"
 
 namespace jvl::gfx::cpu {
 

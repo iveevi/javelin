@@ -2,6 +2,7 @@
 
 #include "../scene.hpp"
 #include "../ray.hpp"
+#include "intersection.hpp"
 #include "triangle_mesh.hpp"
 #include "material.hpp"
 #include "bvh.hpp"

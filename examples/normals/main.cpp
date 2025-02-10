@@ -132,7 +132,7 @@ void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 	io.MousePos = ImVec2(x, y);
 
 	auto controller = reinterpret_cast <CameraController *> (glfwGetWindowUserPointer(window));
-	controller->handle_cursor(float2(x, y));
+	controller->handle_cursor(glm::vec2(x, y));
 }
 
 // TODO: class based approach... then macrofy the main method
@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
 	
 	solid_t <MVP> mvp;
 
-	mvp[m_model] = model_transform.to_mat4();
+	mvp[m_model] = model_transform.matrix();
 	
 	// Command buffers for the rendering loop
 	auto command_buffers = littlevk::command_buffers(drc.device,
@@ -263,8 +263,8 @@ int main(int argc, char *argv[])
 		// Update the constants with the view matrix
 		auto &extent = drc.window.extent;
 		aperature.aspect = float(extent.width)/float(extent.height);
-		mvp[m_proj] = core::perspective(aperature);
-		mvp[m_view] = camera_transform.to_view_matrix();
+		mvp[m_proj] = aperature.perspective();
+		mvp[m_view] = camera_transform.view_matrix();
 		
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
 	

@@ -5,7 +5,6 @@
 #include <fmt/printf.h>
 
 #include <core/logging.hpp>
-#include <core/math.hpp>
 
 #include "scene.hpp"
 #include "material.hpp"
@@ -128,19 +127,19 @@ void write_typed_buffer(std::ofstream &fout, const typed_vector &buf)
 	// TODO: visitor pattern...
 	if (auto ib = buf.get <std::vector <int>> ())
 		return write_buffer(fout, ib.value());
-	else if (auto ib2 = buf.get <std::vector <int2>> ())
+	else if (auto ib2 = buf.get <std::vector <glm::ivec2>> ())
 		return write_buffer(fout, ib2.value());
-	else if (auto ib3 = buf.get <std::vector <int3>> ())
+	else if (auto ib3 = buf.get <std::vector <glm::ivec3>> ())
 		return write_buffer(fout, ib3.value());
-	else if (auto ib4 = buf.get <std::vector <int4>> ())
+	else if (auto ib4 = buf.get <std::vector <glm::ivec3>> ())
 		return write_buffer(fout, ib4.value());
 	else if (auto fb = buf.get <std::vector <float>> ())
 		return write_buffer(fout, fb.value());
-	else if (auto fb2 = buf.get <std::vector <float2>> ())
+	else if (auto fb2 = buf.get <std::vector <glm::vec2>> ())
 		return write_buffer(fout, fb2.value());
-	else if (auto fb3 = buf.get <std::vector <float3>> ())
+	else if (auto fb3 = buf.get <std::vector <glm::vec3>> ())
 		return write_buffer(fout, fb3.value());
-	else if (auto fb4 = buf.get <std::vector <float4>> ())
+	else if (auto fb4 = buf.get <std::vector <glm::vec4>> ())
 		return write_buffer(fout, fb4.value());
 	else
 		abort();

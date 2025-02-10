@@ -84,7 +84,7 @@ void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)
 void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 {
 	auto controller = reinterpret_cast <CameraController *> (glfwGetWindowUserPointer(window));
-	controller->handle_cursor(float2(x, y));
+	controller->handle_cursor(glm::vec2(x, y));
 }
 
 // Attachment description without format
@@ -365,11 +365,11 @@ int main(int argc, char *argv[])
 
 				camera_aperature.aspect = float(extent.width) / float(extent.height);
 
-				mvp[m_model] = float4x4::identity();
-				mvp[m_proj] = core::perspective(camera_aperature);
-				mvp[m_view] = camera_transform.to_view_matrix();
+				mvp[m_model] = glm::mat4(1.0f);
+				mvp[m_proj] = camera_aperature.perspective();
+				mvp[m_view] = camera_transform.view_matrix();
 				
-				solid_t <vec3> color = float3(0.5, 0.5, 1.0);
+				solid_t <vec3> color = glm::vec3(0.5, 0.5, 1.0);
 
 				// Run the pipeline
 				auto cmd_ppl = cmd_rp.bindPipeline(pipeline);

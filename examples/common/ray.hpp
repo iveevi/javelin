@@ -1,12 +1,12 @@
 #pragma once
 
-#include <core/math.hpp>
+#include <glm/glm.hpp>
 
 namespace jvl::core {
 
 struct Ray {
-	float3 direction;
-	float3 origin;
+	glm::vec3 direction;
+	glm::vec3 origin;
 };
 
 } // namespace jvl::core

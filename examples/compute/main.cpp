@@ -86,9 +86,9 @@ void fragment(vec3 (*cmap)(f32))
 }
 
 // Function to generate random points and use them as positions for spheres
-std::vector <float3> generate_random_points(int N, float spread)
+std::vector <glm::vec3> generate_random_points(int N, float spread)
 {
-	std::vector <float3> points;
+	std::vector <glm::vec3> points;
 	std::random_device rd;
 	std::mt19937 gen(rd());
 	std::uniform_real_distribution <float> dis(-spread, spread);
@@ -98,7 +98,7 @@ std::vector <float3> generate_random_points(int N, float spread)
 			float x = dis(gen);
 			float y = dis(gen);
 			float z = dis(gen);
-			float3 p = float3(x, y, z);
+			glm::vec3 p = glm::vec3(x, y, z);
 			if (length(p) > spread / 2.0f) {
 				points.push_back(p);
 				break;
@@ -216,7 +216,7 @@ void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 	io.MousePos = ImVec2(x, y);
 
 	auto controller = reinterpret_cast <CameraController *> (glfwGetWindowUserPointer(window));
-	controller->handle_cursor(float2(x, y));
+	controller->handle_cursor(glm::vec2(x, y));
 }
 
 int main(int argc, char *argv[])
@@ -273,9 +273,9 @@ int main(int argc, char *argv[])
 	int N = 200'000;
 
 	// TODO: solidify... (alignment issues)
-	std::vector <float3> points = generate_random_points(N, 10.0f);
-	std::vector <aligned_float3> velocities;
-	std::vector <aligned_float3> particles;
+	std::vector <glm::vec3> points = generate_random_points(N, 10.0f);
+	std::vector <aligned_vec3> velocities;
+	std::vector <aligned_vec3> particles;
 	
 	std::random_device rd;
 	std::default_random_engine gen(rd());
@@ -292,7 +292,7 @@ int main(int argc, char *argv[])
 		float y = std::sin(phi) * std::sin(theta);
 		float z = std::cos(phi);
 
-		float3 v = float3(x, y, z);
+		glm::vec3 v = glm::vec3(x, y, z);
 		
 		velocities.push_back(v);
 	}
@@ -321,12 +321,12 @@ int main(int argc, char *argv[])
 	auto tb_info = vk::DescriptorBufferInfo()
 		.setBuffer(tb.buffer)
 		.setOffset(0)
-		.setRange(sizeof(aligned_float3) * points.size());
+		.setRange(sizeof(aligned_vec3) * points.size());
 	
 	auto sb_info = vk::DescriptorBufferInfo()
 		.setBuffer(sb.buffer)
 		.setOffset(0)
-		.setRange(sizeof(aligned_float3) * points.size());
+		.setRange(sizeof(aligned_vec3) * points.size());
 
 	std::array <vk::WriteDescriptorSet, 2> writes;
 
@@ -423,11 +423,11 @@ int main(int argc, char *argv[])
 	auto resize = [&]() { framebuffers.resize(drc, render_pass); };
 
 	// Gravity points
-	static float3 O1 = float3 { -5, 0, 0 };
-	static float3 V1 = float3 { -1, -2, 2 };
+	static glm::vec3 O1 = glm::vec3 { -5, 0, 0 };
+	static glm::vec3 V1 = glm::vec3 { -1, -2, 2 };
 	
-	static float3 O2 = float3 { 5, 0, 0 };
-	static float3 V2 = float3 { 1, 2, -2 };
+	static glm::vec3 O2 = glm::vec3 { 5, 0, 0 };
+	static glm::vec3 V2 = glm::vec3 { 1, 2, -2 };
 
 	auto render = [&](const vk::CommandBuffer &cmd, uint32_t index) {
 		static bool down = false;
@@ -459,8 +459,8 @@ int main(int argc, char *argv[])
 		// Update the constants with the view matrix
 		aperature.aspect = float(extent.width) / float(extent.height);
 
-		auto proj = perspective(aperature);
-		auto view = camera_transform.to_view_matrix();
+		auto proj = aperature.perspective();
+		auto view = camera_transform.view_matrix();
 
 		view_info[m_proj] = proj;
 		view_info[m_view] = view;
@@ -471,7 +471,7 @@ int main(int argc, char *argv[])
 		littlevk::download(drc.device, sb, velocities);
 
 		for (const auto &v : velocities) {
-			float s = length(v);
+			float s = length(glm::vec3(v));
 			smin = std::min(smin, s);
 			smax = std::max(smax, s);
 		}
@@ -562,12 +562,12 @@ int main(int argc, char *argv[])
 		}
 
 		// Update primary particles
-		float3 mid = 0.5f * (O1 + O2);
+		glm::vec3 mid = 0.5f * (O1 + O2);
 		float R = 20.0f + length(O1 - O2);
 
-		float3 D = (O1 - O2);
+		glm::vec3 D = (O1 - O2);
 		float L = length(D);
-		float3 A = mass * mass * D / powf(L, 3.0f);
+		glm::vec3 A = mass * mass * D / powf(L, 3.0f);
 
 		V1 -= dt * A / mass;
 		V2 += dt * A / mass;

@@ -1,21 +1,19 @@
 #pragma once
 
-#include <core/math.hpp>
-
 #include "ray.hpp"
 
 namespace jvl::gfx::cpu {
 
 struct Intersection {
 	float time;
-	float3 normal;
-	float3 point;
-	float3 barycentric;
+	glm::vec3 normal;
+	glm::vec3 point;
+	glm::vec3 barycentric;
 	bool backfacing;
 	int material;
 
 	// TODO: handle if backfacing
-	float3 offset() const {
+	glm::vec3 offset() const {
 		static constexpr float epsilon = 1e-3f;
 		return point + epsilon * normal;
 	}
@@ -42,8 +40,8 @@ struct Intersection {
 };
 
 Intersection ray_triangle_intersection(const core::Ray &,
-				       const float3 &,
-				       const float3 &,
-				       const float3 &);
+				       const glm::vec3 &,
+				       const glm::vec3 &,
+				       const glm::vec3 &);
 
 } // namespace jvl::gfx::cpu

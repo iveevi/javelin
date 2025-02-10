@@ -4,8 +4,9 @@
 #include <map>
 #include <queue>
 
+#include <glm/glm.hpp>
+
 #include <core/wrapped.hpp>
-#include <core/math.hpp>
 
 #include <fmt/printf.h>
 
@@ -72,8 +73,8 @@ enum MessageKind : int64_t {
 
 using MessageValue = wrapped::variant <
 	int64_t,
-	int32_t, int2,
-	float, float2
+	int32_t, glm::ivec2,
+	float, glm::vec2
 >;
 
 struct Message {

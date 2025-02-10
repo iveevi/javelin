@@ -152,7 +152,7 @@ void LinkageUnit::process_function_intrinsic(Function &function, size_t index, i
 	{
 		thunder::index_t args = intr.args;
 
-		uint3 size = uint3(1, 1, 1);
+		glm::uvec3 size = glm::uvec3(1, 1, 1);
 
 		int32_t j = 0;
 		while (args != -1 && j < 3) {
@@ -178,7 +178,7 @@ void LinkageUnit::process_function_intrinsic(Function &function, size_t index, i
 	{
 		thunder::index_t args = intr.args;
 
-		uint2 size = uint2(1, 1);
+		glm::uvec2 size = glm::uvec2(1, 1);
 
 		int32_t j = 0;
 		while (args != -1 && j < 2) {

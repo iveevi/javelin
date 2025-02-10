@@ -22,7 +22,7 @@ TEST(ire_solidification, proxy_A)
 		}
 	};
 
-	static_assert(std::same_as <solid_t <proxy_A>, aggregate_storage <aligned_float3, float3>>);
+	static_assert(std::same_as <solid_t <proxy_A>, aggregate_storage <aligned_vec3, glm::vec3>>);
 
 	using solid_A = solid_t <proxy_A>;
 
@@ -43,7 +43,7 @@ TEST(ire_solidification, proxy_B)
 		}
 	};
 
-	static_assert(std::same_as <solid_t <proxy_B>, aggregate_storage <aligned_uint32_t <16>, float3>>);
+	static_assert(std::same_as <solid_t <proxy_B>, aggregate_storage <aligned_uint32_t <16>, glm::vec3>>);
 
 	using solid_B = solid_t <proxy_B>;
 
@@ -64,7 +64,7 @@ TEST(ire_solidification, proxy_C)
 		}
 	};
 
-	static_assert(std::same_as <solid_t <proxy_C>, aggregate_storage <float3, uint32_t>>);
+	static_assert(std::same_as <solid_t <proxy_C>, aggregate_storage <glm::vec3, uint32_t>>);
 
 	using solid_C = solid_t <proxy_C>;
 
@@ -86,7 +86,7 @@ TEST(ire_solidification, proxy_D)
 		}
 	};
 
-	static_assert(std::same_as <solid_t <proxy_D>, aggregate_storage <aligned_float3, float3, uint32_t>>);
+	static_assert(std::same_as <solid_t <proxy_D>, aggregate_storage <aligned_vec3, glm::vec3, uint32_t>>);
 
 	using solid_D = solid_t <proxy_D>;
 
@@ -110,7 +110,7 @@ TEST(ire_solidification, proxy_E)
 		}
 	};
 
-	static_assert(std::same_as <solid_t <proxy_E>, aggregate_storage <float3, uint32_t, float3>>);
+	static_assert(std::same_as <solid_t <proxy_E>, aggregate_storage <glm::vec3, uint32_t, glm::vec3>>);
 
 	using solid_E = solid_t <proxy_E>;
 
@@ -134,7 +134,7 @@ TEST(ire_solidification, proxy_F)
 		}
 	};
 
-	static_assert(std::same_as <solid_t <proxy_F>, aggregate_storage <aligned_uint32_t <16>, aligned_float3, float3>>);
+	static_assert(std::same_as <solid_t <proxy_F>, aggregate_storage <aligned_uint32_t <16>, aligned_vec3, glm::vec3>>);
 
 	using solid_F = solid_t <proxy_F>;
 

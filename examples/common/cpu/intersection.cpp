@@ -3,28 +3,28 @@
 namespace jvl::gfx::cpu {
 
 Intersection ray_triangle_intersection(const core::Ray &ray,
-				       const float3 &v0,
-				       const float3 &v1,
-				       const float3 &v2)
+				       const glm::vec3 &v0,
+				       const glm::vec3 &v1,
+				       const glm::vec3 &v2)
 {
 	Intersection sh = Intersection::miss();
 
-	float3 e1 = v1 - v0;
-	float3 e2 = v2 - v0;
-	float3 p = cross(ray.direction, e2);
+	glm::vec3 e1 = v1 - v0;
+	glm::vec3 e2 = v2 - v0;
+	glm::vec3 p = cross(ray.direction, e2);
 
 	float a = dot(e1, p);
 	if (std::abs(a) < 1e-6)
 		return sh;
 
 	float f = 1.0 / a;
-	float3 s = ray.origin - v0;
+	glm::vec3 s = ray.origin - v0;
 	float u = f * dot(s, p);
 
 	if (u < 0.0 || u > 1.0)
 		return sh;
 
-	float3 q = cross(s, e1);
+	glm::vec3 q = cross(s, e1);
 	float v = f * dot(ray.direction, q);
 
 	if (v < 0.0 || u + v > 1.0)

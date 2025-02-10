@@ -5,12 +5,12 @@ namespace jvl::core {
 AABB AABB::combine(const AABB &a, const AABB &b)
 {
 	return AABB {
-		float3 {
+		glm::vec3 {
 			std::min(a.min.x, b.min.x),
 			std::min(a.min.y, b.min.y),
 			std::min(a.min.z, b.min.z)
 		},
-		float3 {
+		glm::vec3 {
 			std::max(a.max.x, b.max.x),
 			std::max(a.max.y, b.max.y),
 			std::max(a.max.z, b.max.z)

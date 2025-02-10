@@ -57,7 +57,7 @@ void vertex()
 	gl_Position = mvp.project(position);
 }
 
-void fragment(float3 color)
+void fragment(glm::vec3 color)
 {
 	// Resulting fragment color
 	layout_out <vec4> fragment(0);
@@ -68,7 +68,7 @@ void fragment(float3 color)
 // Constructing the graphics pipeline
 littlevk::Pipeline configure_pipeline(DeviceResourceCollection &drc,
 				      const vk::RenderPass &render_pass,
-				      float3 color)
+				      glm::vec3 color)
 {
 	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
 
@@ -120,7 +120,7 @@ void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 	io.MousePos = ImVec2(x, y);
 
 	auto controller = reinterpret_cast <CameraController *> (glfwGetWindowUserPointer(window));
-	controller->handle_cursor(float2(x, y));
+	controller->handle_cursor(glm::vec2(x, y));
 }
 
 int main(int argc, char *argv[])
@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
 	engine::configure_imgui(drc, render_pass);
 
 	// Initial pipeline
-	float3 color = float3(1, 0, 0);
+	glm::vec3 color = glm::vec3(1, 0, 0);
 
 	auto ppl = configure_pipeline(drc, render_pass, color);
 	
@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
 	
 	solid_t <MVP> mvp;
 
-	mvp[m_model] = model_transform.to_mat4();
+	mvp[m_model] = model_transform.matrix();
 	
 	// Command buffers for the rendering loop
 	auto command_buffers = littlevk::command_buffers(drc.device,
@@ -252,8 +252,8 @@ int main(int argc, char *argv[])
 		// Update the constants with the view matrix
 		auto &extent = drc.window.extent;
 		aperature.aspect = float(extent.width)/float(extent.height);
-		mvp[m_proj] = core::perspective(aperature);
-		mvp[m_view] = camera_transform.to_view_matrix();
+		mvp[m_proj] = aperature.perspective();
+		mvp[m_view] = camera_transform.view_matrix();
 		
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
 	

@@ -3,9 +3,10 @@
 #include <map>
 #include <set>
 
+#include <glm/glm.hpp>
+
 #include <vulkan/vulkan.hpp>
 
-#include "../core/math.hpp"
 #include "buffer.hpp"
 #include "thunder/qualified_type.hpp"
 #include "tracked_buffer.hpp"
@@ -60,8 +61,8 @@ struct push_constant_info : local_layout_type {
 
 struct LinkageUnit {
 	// TODO: dirty flag for caching
-	std::optional <uint3> local_size;
-	std::optional <uint2> mesh_shader_size;
+	std::optional <glm::uvec3> local_size;
+	std::optional <glm::uvec2> mesh_shader_size;
 
 	std::set <index_t> loaded;
 	std::vector <Function> functions;

@@ -83,7 +83,7 @@ struct PipelineAssembler <ShaderStageFlags::eGraphicsVertexFragment, Specifiers.
 		vertex_binding = vk::VertexInputBindingDescription()
 			.setBinding(0)
 			.setInputRate(vk::VertexInputRate::eVertex)
-			.setStride(sizeof(float3));
+			.setStride(sizeof(glm::vec3));
 
 		vertex_attributes.resize(1);
 		vertex_attributes[0] = vk::VertexInputAttributeDescription()

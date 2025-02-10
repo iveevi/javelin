@@ -6,6 +6,9 @@
 #include <fmt/printf.h>
 #include <fmt/std.h>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
+
 #include "imported_asset.hpp"
 
 template <>
@@ -57,15 +60,15 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 	std::set <int32_t> referenced_materials;
 
 	for (size_t s = 0; s < shapes.size(); s++) {
-		std::vector <float3> positions;
-		std::vector <float3> normals;
-		std::vector <float2> uvs;
+		std::vector <glm::vec3> positions;
+		std::vector <glm::vec3> normals;
+		std::vector <glm::vec2> uvs;
 
-		std::vector <int3> triangles;
-		std::vector <int4> quadrilaterals;
+		std::vector <glm::ivec3> triangles;
+		std::vector <glm::ivec4> quadrilaterals;
 		std::vector <int> materials;
 
-		std::unordered_map <float3, int32_t> position_map;
+		std::unordered_map <glm::vec3, int32_t> position_map;
 		std::unordered_map <tinyobj::index_t, int32_t> index_map;
 
 		const tinyobj::shape_t &shape = shapes[s];
@@ -94,7 +97,7 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
                                 tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
                                 tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
 
-                                float3 p { vx, vy, vz };
+                                glm::vec3 p { vx, vy, vz };
 
 				if (position_map.count(p)) {
 					indices[v] = position_map[p];
@@ -124,10 +127,10 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 			}
 
 			if (indices[3] == -1) {
-				int3 f { indices[0], indices[1], indices[2] };
+				glm::ivec3 f { indices[0], indices[1], indices[2] };
 				triangles.push_back(f);
 			} else {
-				int4 f { indices[0], indices[1], indices[2], indices[3]};
+				glm::ivec4 f { indices[0], indices[1], indices[2], indices[3]};
 				quadrilaterals.push_back(f);
 			}
 
@@ -209,7 +212,7 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 			m.values[Material::roughness_key] = resolved_texture(material.roughness_texname);
 
 		// Emission should only be added if it is non-zero
-		float3 emission = convert_to_color3(material.emission);
+		glm::vec3 emission = convert_to_color3(material.emission);
 		if (length(emission) > 0)
 			m.values[Material::emission_key] = emission;
 
@@ -221,8 +224,8 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 		// TODO: default_phong()
 		Material m("default");
 		m.values[Material::brdf_key] = core::name("Phong");
-		m.values[Material::diffuse_key] = float3(1, 0, 1);
-		m.values[Material::specular_key] = float3(0, 0, 0);
+		m.values[Material::diffuse_key] = glm::vec3(1, 0, 1);
+		m.values[Material::specular_key] = glm::vec3(0, 0, 0);
 		m.values[Material::roughness_key] = 1.0f;
 
 		imported_asset.materials.push_back(m);

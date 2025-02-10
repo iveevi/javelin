@@ -21,6 +21,7 @@ include_directories(PRIVATE .
 	thirdparty/argparse/include
 	thirdparty/freetype/include
 	thirdparty/glad/include
+	thirdparty/glm/
 	thirdparty/imgui
 	thirdparty/tinyobjloader)
 

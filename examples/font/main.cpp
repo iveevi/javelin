@@ -40,10 +40,10 @@ struct ContourRange {
 
 struct Outline {
 	Rectangle bbox;
-	std::vector <float2> points;
+	std::vector <glm::vec2> points;
 	std::vector <ContourRange> contours;
 
-	void add_point(const float2 &point) {
+	void add_point(const glm::vec2 &point) {
 		points.emplace_back(point);
 	}
 
@@ -60,9 +60,9 @@ struct Outline {
 // 	}
 // }
 
-static inline float2 convert_point(const FT_Vector *v)
+static inline glm::vec2 convert_point(const FT_Vector *v)
 {
-	return float2(v->x / 64.0f, v->y / 64.0f);
+	return glm::vec2(v->x / 64.0f, v->y / 64.0f);
 }
 
 static int move_to_func(const FT_Vector *to, Outline *o)
@@ -71,7 +71,7 @@ static int move_to_func(const FT_Vector *to, Outline *o)
 		o->contours.size(),
 		o->points.size());
 
-	float2 p { 0, 0 };
+	glm::vec2 p { 0, 0 };
 
 	size_t ncontours = o->contours.size();
 	size_t npoints = o->points.size();
@@ -112,7 +112,7 @@ static int line_to_func(const FT_Vector *to, Outline *o)
 
 	uint32_t last = o->points.size() - 1;
 
-	float2 p, to_p;
+	glm::vec2 p, to_p;
 
 	to_p = convert_point(to);
 	p = 0.5f * (o->points[last] + to_p);
@@ -129,7 +129,7 @@ static int conic_to_func(const FT_Vector *control,
 {
 	JVL_INFO("\t{}", __FUNCTION__);
 
-	float2 p;
+	glm::vec2 p;
 
 	p = convert_point(control);
 	o->add_point(p);

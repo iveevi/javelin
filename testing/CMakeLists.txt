@@ -7,7 +7,6 @@ add_executable(test
 	ire_solidification.cpp
 	ire_synthesize_cpp.cpp
 	ire_synthesize_glsl.cpp
-	math_matrix.cpp
 	../thirdparty/glad/src/gl.c)
 
 set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)

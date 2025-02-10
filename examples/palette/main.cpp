@@ -32,8 +32,8 @@ array <vec3> hsl_palette(float saturation, float lightness, int N)
 
 	float step = 360.0f / float(N);
 	for (int32_t i = 0; i < N; i++) {
-		float3 hsl = float3(i * step, saturation, lightness);
-		float3 rgb = core::hsl_to_rgb(hsl);
+		glm::vec3 hsl = glm::vec3(i * step, saturation, lightness);
+		glm::vec3 rgb = hsl_to_rgb(hsl);
 		palette[i] = vec3(rgb.x, rgb.y, rgb.z);
 	}
 
@@ -158,7 +158,7 @@ void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 	io.MousePos = ImVec2(x, y);
 
 	auto controller = reinterpret_cast <CameraController *> (glfwGetWindowUserPointer(window));
-	controller->handle_cursor(float2(x, y));
+	controller->handle_cursor(glm::vec2(x, y));
 }
 
 int main(int argc, char *argv[])
@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
 
 	solid_t <MVP> mvp;
 
-	mvp[m_model] = model_transform.to_mat4();
+	mvp[m_model] = model_transform.matrix();
 
 	// Command buffers for the rendering loop
 	auto command_buffers = littlevk::command_buffers(drc.device,
@@ -298,8 +298,8 @@ int main(int argc, char *argv[])
 		// Update the constants with the view matrix
 		auto &extent = drc.window.extent;
 		aperature.aspect = float(extent.width)/float(extent.height);
-		mvp[m_proj] = core::perspective(aperature);
-		mvp[m_view] = camera_transform.to_view_matrix();
+		mvp[m_proj] = aperature.perspective();
+		mvp[m_view] = camera_transform.view_matrix();
 
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
 

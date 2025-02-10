@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../core/math.hpp"
+#include <glm/glm.hpp>
+
 #include "aggregate.hpp"
 #include "aliases.hpp"
 #include "uniform_layout.hpp"
@@ -8,16 +9,16 @@
 namespace jvl::ire {
 
 // Forcing fields to be aligned
-struct alignas(16) aligned_float3 : float3 {
-	using float3::float3;
+struct alignas(16) aligned_vec3 : glm::vec3 {
+	using glm::vec3::vec3;
 
-	aligned_float3(const float3 &v) : float3(v) {}
+	aligned_vec3(const glm::vec3 &v) : glm::vec3(v) {}
 };
 
-struct alignas(16) aligned_int3 : int3 {
-	using int3::int3;
+struct alignas(16) aligned_ivec3 : glm::ivec3 {
+	using glm::ivec3::ivec3;
 
-	aligned_int3(const int3 &v) : int3(v) {}
+	aligned_ivec3(const glm::ivec3 &v) : glm::ivec3(v) {}
 };
 
 template <size_t A>
@@ -131,7 +132,7 @@ struct solid_builder <Offset, vec3, Args...> {
 	static constexpr size_t rounded = ((Offset + 16 - 1) / 16) * 16;
 	static constexpr size_t pad = (Offset % 16 == 0) ? 0 : (rounded - Offset);
 	using rest = solid_builder <rounded + 12, Args...>;
-	using elem = std::conditional_t <rest::pad == 0, float3, aligned_float3>;
+	using elem = std::conditional_t <rest::pad == 0, glm::vec3, aligned_vec3>;
 	using type = aggregate_insert <elem, typename rest::type> ::type;
 };
 
@@ -140,7 +141,7 @@ struct solid_builder <Offset, mat4, Args...> {
 	static constexpr size_t rounded = ((Offset +  64 - 1) / 64) * 64;
 	static constexpr size_t pad = (Offset % 16 == 0) ? 0 : (rounded - Offset);
 	using rest = solid_builder <rounded + 64, Args...>;
-	using type = aggregate_insert <float4x4, typename rest::type> ::type;
+	using type = aggregate_insert <glm::mat4, typename rest::type> ::type;
 };
 
 template <size_t Offset, string_literal_group group, typename ... Args>

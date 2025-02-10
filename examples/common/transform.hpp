@@ -1,56 +1,37 @@
 #pragma once
 
-#include <core/math.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 struct Transform {
-	jvl::float3 translate = jvl::float3(0, 0, 0);
-	jvl::float3 scale = jvl::float3(1, 1, 1);
-	jvl::fquat rotation = jvl::fquat(0, 0, 0, 1);
+	glm::vec3 translate = glm::vec3(0, 0, 0);
+	glm::vec3 scale = glm::vec3(1, 1, 1);
+	glm::quat rotation = glm::quat(0, 0, 0, 1);
 
-	jvl::float3 forward() const {
-		constexpr jvl::float3 forwardv { 0, 0, 1 };
-		return rotation.rotate(forwardv);
+	glm::vec3 forward() const {
+		return glm::normalize(glm::vec3(rotation * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f)));
 	}
 
-	jvl::float3 right() const {
-		constexpr jvl::float3 rightv { 1, 0, 0 };
-		return rotation.rotate(rightv);
+	glm::vec3 right() const {
+		return glm::normalize(glm::vec3(rotation * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f)));
 	}
 
-	jvl::float3 up() const {
-		constexpr jvl::float3 upv { 0, 1, 0 };
-		return rotation.rotate(upv);
+	glm::vec3 up() const {
+		return glm::normalize(glm::vec3(rotation * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f)));
 	}
 
-	jvl::float4x4 to_mat4() const {
-		jvl::float4x4 tmat = translate_to_mat4(translate);
-		jvl::float4x4 rmat = rotation_to_mat4(rotation);
-		jvl::float4x4 smat = scale_to_mat4(scale);
-		return tmat * rmat * smat;
+	glm::mat4 matrix() const {
+		glm::mat4 pmat = glm::translate(glm::mat4(1.0f), translate);
+		glm::mat4 rmat = glm::mat4_cast(rotation);
+		glm::mat4 smat = glm::scale(glm::mat4(1.0f), scale);
+		return pmat * rmat * smat;
 	}
 
-	jvl::float4x4 to_view_matrix() const {
-		constexpr jvl::float3 forward { 0, 0, 1 };
-		constexpr jvl::float3 up { 0, 1, 0 };
-		return look_at(translate,
-			translate + rotation.rotate(forward),
-			rotation.rotate(up));
+	glm::mat4 view_matrix() const {
+		return glm::lookAt(translate, translate + forward(), up());
 	}
 
-	std::tuple <jvl::float3, jvl::float3, jvl::float3> axes() const {
-		// X is horizontal
-		// Y is vertical
-		// Z is front/back
-		constexpr jvl::float3 forward {0, 0, 1};
-		constexpr jvl::float3 right {1, 0, 0};
-		constexpr jvl::float3 up {0, 1, 0};
-
-		return {
-			rotation.rotate(forward),
-			rotation.rotate(right),
-			rotation.rotate(up),
-		};
+	std::tuple <glm::vec3, glm::vec3, glm::vec3> axes() const {
+		return { forward(), right(), up() };
 	}
 };
-
-// TODO: caching transform with dirty bit
