@@ -7,6 +7,7 @@
 // TODO: partial evaluation of callables through substitution methods
 // TODO: out/inout parameter qualifiers
 // TODO: external constant specialization
+// TODO: revised type generation system...
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
@@ -19,7 +20,7 @@
 using namespace jvl;
 using namespace jvl::ire;
 
-struct payload {
+struct Payload {
 	u32 pindex;
 	u32 resolution;
 
@@ -30,7 +31,7 @@ struct payload {
 	}
 };
 
-struct config {
+struct ViewInfo {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
@@ -51,9 +52,9 @@ struct config {
 
 auto task = procedure <void> ("main") << []()
 {
-	push_constant <config> pc;
+	push_constant <ViewInfo> pc;
 
-	task_payload <payload> payload;
+	task_payload <Payload> payload;
 
 	payload.pindex = gl_GlobalInvocationID.x;
 	payload.resolution = pc.resolution;
@@ -63,15 +64,13 @@ auto task = procedure <void> ("main") << []()
 	EmitMeshTasksEXT(groups, groups, 1);
 };
 
-static_assert(floating_arithmetic <vec3>);
-
 template <floating_arithmetic T>
 auto leaky_relu(const T &v)
 {
 	return max(v, 0.01 * v);
 }
 
-auto eval = procedure("eval") << [](const task_payload <payload> &payload, const vec2 &uv) -> vec3
+auto eval = procedure("eval") << [](const task_payload <Payload> &payload, const vec2 &uv) -> vec3
 {
 	const uint32_t FEATURE_SIZE = 20;
 	const uint32_t ENCODING_LEVELS = 8;
@@ -228,13 +227,13 @@ auto mesh = procedure <void> ("main") << []()
 {
 	const uint32_t WORK_GROUP_SIZE = 8;
 
-	task_payload <payload> payload;
+	task_payload <Payload> payload;
 
 	local_size(WORK_GROUP_SIZE, WORK_GROUP_SIZE);
 
 	mesh_shader_size(64, 98);
 	
-	push_constant <config> pc;
+	push_constant <ViewInfo> pc;
 
 	layout_out <unsized_array <vec3>> vertices(0);
 	layout_out <unsized_array <u32>> pindex(1);

@@ -1,7 +1,5 @@
 #include "device_resource_collection.hpp"
 
-namespace jvl::core {
-
 // DeviceResourceCollection implementations
 littlevk::LinkedDeviceAllocator <> DeviceResourceCollection::allocator()
 {
@@ -72,6 +70,3 @@ DeviceResourceCollection DeviceResourceCollection::from(const DeviceResourceColl
 
 	return drc;
 }
-
-
-} // namespace jvl::engine

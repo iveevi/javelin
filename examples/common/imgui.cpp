@@ -21,7 +21,7 @@ ImGuiRenderContext::~ImGuiRenderContext()
 }
 
 // ImGui utilities
-void configure_imgui(core::DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
+void configure_imgui(DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
 {
 	ImGui::CreateContext();
 

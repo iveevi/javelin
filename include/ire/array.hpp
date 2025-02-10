@@ -9,7 +9,6 @@ namespace jvl::ire {
 template <generic T>
 struct array;
 
-// TODO: unsized arrays as well with array <T, -1>
 template <generic T>
 struct array_base {
 	using element = void;
@@ -170,7 +169,6 @@ struct type_info_override <array <T>> : std::true_type {
 	type_info_override(const array <T> &a) : length(a.length) {}
 
 	int synthesize() const {
-		// TODO: some way to enforce size restrictions? feed the data...
 		auto &em = Emitter::active;
 		thunder::index_t underlying = type_field_from_args <T> ().id;
 		thunder::index_t qualifier = em.emit_qualifier(underlying, length, thunder::arrays);

@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <unordered_map>
 
+// TODO: replace with glm...
+
 namespace jvl {
 
 #define TEMPLATE_DATA_INDEX                         \

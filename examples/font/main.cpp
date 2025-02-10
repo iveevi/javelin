@@ -214,14 +214,14 @@ int main()
 	};
 
 	// Configure the resource collection
-	core::DeviceResourceCollectionInfo info {
+	DeviceResourceCollectionInfo info {
 		.phdev = littlevk::pick_physical_device(predicate),
 		.title = "Font Rendering",
 		.extent = vk::Extent2D(1920, 1080),
 		.extensions = VK_EXTENSIONS,
 	};
 
-	auto drc = core::DeviceResourceCollection::from(info);
+	auto drc = DeviceResourceCollection::from(info);
 
 	// Create the render pass and generate the pipelines
 	vk::RenderPass render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)

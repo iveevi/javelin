@@ -69,7 +69,7 @@ std::vector <const char *> VK_EXTENSIONS {
 
 void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)
 {
-	auto controller = reinterpret_cast <engine::CameraController *> (glfwGetWindowUserPointer(window));
+	auto controller = reinterpret_cast <CameraController *> (glfwGetWindowUserPointer(window));
 
 	if (button == GLFW_MOUSE_BUTTON_LEFT) {
 		if (action == GLFW_PRESS) {
@@ -83,7 +83,7 @@ void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)
 
 void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 {
-	auto controller = reinterpret_cast <engine::CameraController *> (glfwGetWindowUserPointer(window));
+	auto controller = reinterpret_cast <CameraController *> (glfwGetWindowUserPointer(window));
 	controller->handle_cursor(float2(x, y));
 }
 
@@ -184,14 +184,14 @@ int main(int argc, char *argv[])
 	};
 
 	// Configure the resource collection
-	core::DeviceResourceCollectionInfo drc_info {
+	DeviceResourceCollectionInfo drc_info {
 		.phdev = littlevk::pick_physical_device(predicate),
 		.title = "Editor",
 		.extent = vk::Extent2D(1920, 1080),
 		.extensions = VK_EXTENSIONS,
 	};
 	
-	auto drc = core::DeviceResourceCollection::from(drc_info);
+	auto drc = DeviceResourceCollection::from(drc_info);
 
 	// Shader compilation
 	auto vs = compile_function("main", vertex_shader);
@@ -293,12 +293,12 @@ int main(int argc, char *argv[])
 		gfx::vulkan::SceneFlags::eDefault);
 
 	// Camera controllers
-	core::Transform camera_transform;
+	Transform camera_transform;
 	core::Aperature camera_aperature;
 	
-	engine::CameraController controller {
+	CameraController controller {
 		camera_transform,
-		engine::CameraControllerSettings()
+		CameraControllerSettings()
 	};
 
 	controller.settings.speed = 1000.0f;

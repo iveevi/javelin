@@ -4,8 +4,6 @@
 
 #include "device_resource_collection.hpp"
 
-using namespace jvl;
-
 // Assumes ownership of the swapchain (resizing only for now)
 struct DefaultFramebufferSet {
 	std::optional <littlevk::Image> depth;
@@ -15,7 +13,7 @@ struct DefaultFramebufferSet {
 		return handles[i];
 	}
 
-	void resize(core::DeviceResourceCollection &drc, const vk::RenderPass &render_pass) {
+	void resize(DeviceResourceCollection &drc, const vk::RenderPass &render_pass) {
 		// Handle swapchain resizing here
 		drc.combined().resize(drc.surface, drc.window, drc.swapchain);
 

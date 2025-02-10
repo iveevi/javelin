@@ -25,7 +25,7 @@ struct Scene {
 
 	// TODO: explicit update method... skips things already in the equivalence (which arent dirty)
 
-	static Scene from(core::DeviceResourceCollection &, const cpu::Scene &, SceneFlags);
+	static Scene from(DeviceResourceCollection &, const cpu::Scene &, SceneFlags);
 };
 
 } // namespace jvl::gfx::vulkan

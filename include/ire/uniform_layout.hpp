@@ -28,6 +28,8 @@ struct layout_field {
 	void ref_with(cache_index_t);
 };
 
+// TODO: detail module...
+// TODO: put a main(origin) type...
 template <typename ... Args>
 requires (sizeof...(Args) > 0)
 struct uniform_layout_t {
@@ -80,6 +82,7 @@ struct layout_const_field {
 	const void *ptr;
 };
 
+// TODO: what exactly does this do?
 template <typename T, typename ... Args>
 thunder::index_t reconstruct_fields(size_t i, const std::vector <layout_const_field> &fields)
 {
@@ -96,6 +99,8 @@ thunder::index_t reconstruct_fields(size_t i, const std::vector <layout_const_fi
 
 	return Emitter::active.emit(list);
 }
+
+// Concept for uniform layouts...
 
 template <typename ... Args>
 requires (sizeof...(Args) > 0)
@@ -134,9 +139,15 @@ concept aggregate = requires(T &ref, const T &cref) {
 template <string_literal name, typename T>
 struct __field {
 	static constexpr string_literal literal = name;
+	// TODO: union, then static methods from_ref(), from_agr()...
 	const tagged *ref;
 	const void *agr;
-	
+
+	// union {
+	// 	const tagged *reference;
+	// 	const void *layout;
+	// };
+	// // switch based on T
 };
 
 // Concept for fields

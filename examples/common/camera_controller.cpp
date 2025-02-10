@@ -1,13 +1,11 @@
 #include "constants.hpp"
 #include "camera_controller.hpp"
 
-namespace jvl::engine {
-
-CameraController::CameraController(core::Transform &transform_,
+CameraController::CameraController(Transform &transform_,
 				   const CameraControllerSettings &binding_)
 		: transform(transform_), settings(binding_) {}
 
-bool CameraController::handle_cursor(float2 mouse)
+bool CameraController::handle_cursor(jvl::float2 mouse)
 {
 	if (!dragging)
 		return false;
@@ -28,15 +26,15 @@ bool CameraController::handle_cursor(float2 mouse)
 	pitch -= dx * settings.sensitivity / 1e+3f;
 	yaw -= dy * settings.sensitivity / 1e+3f;
 
-	float pi_e = pi <float> / 2.0f - 1e-3f;
+	float pi_e = jvl::pi <float> / 2.0f - 1e-3f;
 	yaw = std::min(pi_e, std::max(-pi_e, yaw));
 
-	transform.rotation = fquat::euler_angles(yaw, pitch, 0);
+	transform.rotation = jvl::fquat::euler_angles(yaw, pitch, 0);
 
 	return std::abs(dx) > 0 or std::abs(dy) > 0;
 }
 
-bool CameraController::handle_delta(float2 delta)
+bool CameraController::handle_delta(jvl::float2 delta)
 {
 	float dx = delta.x;
 	float dy = delta.y;
@@ -48,15 +46,15 @@ bool CameraController::handle_delta(float2 delta)
 	pitch -= dx * settings.sensitivity / 1e+3f;
 	yaw -= dy * settings.sensitivity / 1e+3f;
 
-	float pi_e = pi <float> / 2.0f - 1e-3f;
+	float pi_e = jvl::pi <float> / 2.0f - 1e-3f;
 	yaw = std::min(pi_e, std::max(-pi_e, yaw));
 
-	transform.rotation = fquat::euler_angles(yaw, pitch, 0);
+	transform.rotation = jvl::fquat::euler_angles(yaw, pitch, 0);
 
 	return std::abs(dx) > 0 or std::abs(dy) > 0;
 }
 
-void CameraController::handle_movement(const core::InteractiveWindow &window)
+void CameraController::handle_movement(const InteractiveWindow &window)
 {
 	float delta = settings.speed * float(glfwGetTime() - last_t);
 	last_t = glfwGetTime();
@@ -79,5 +77,3 @@ void CameraController::handle_movement(const core::InteractiveWindow &window)
 
 	transform.translate += transform.rotation.rotate(velocity);
 }
-
-} // namespace jvl::engine

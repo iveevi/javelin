@@ -23,7 +23,7 @@ VULKAN_EXTENSIONS(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
 void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)
 {
-	auto controller = reinterpret_cast <engine::CameraController *> (glfwGetWindowUserPointer(window));
+	auto controller = reinterpret_cast <CameraController *> (glfwGetWindowUserPointer(window));
 
 	ImGuiIO &io = ImGui::GetIO();
 	if (io.WantCaptureMouse) {
@@ -48,7 +48,7 @@ void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 	ImGuiIO &io = ImGui::GetIO();
 	io.MousePos = ImVec2(x, y);
 
-	auto controller = reinterpret_cast <engine::CameraController *> (glfwGetWindowUserPointer(window));
+	auto controller = reinterpret_cast <CameraController *> (glfwGetWindowUserPointer(window));
 	controller->handle_cursor(float2(x, y));
 }
 
@@ -72,14 +72,14 @@ int main(int argc, char *argv[])
 	};
 
 	// Configure the resource collection
-	core::DeviceResourceCollectionInfo info {
+	DeviceResourceCollectionInfo info {
 		.phdev = littlevk::pick_physical_device(predicate),
-		.title = "Editor",
+		.title = "Raytracing",
 		.extent = vk::Extent2D(1920, 1080),
 		.extensions = VK_EXTENSIONS,
 	};
 	
-	auto drc = core::DeviceResourceCollection::from(info);
+	auto drc = DeviceResourceCollection::from(info);
 
 	// Load the scene
 	auto asset = engine::ImportedAsset::from(path).value();
@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
 	framebuffers.resize(drc, render_pass);
 
 	// Camera transform and aperature
-	core::Transform camera_transform;
-	core::Transform model_transform;
+	Transform camera_transform;
+	Transform model_transform;
 	core::Aperature aperature;
 }

@@ -110,7 +110,7 @@ std::vector <float3> generate_random_points(int N, float spread)
 }
 
 // Pipeline configuration for rendering spheres
-littlevk::Pipeline configure_pipeline(core::DeviceResourceCollection &drc,
+littlevk::Pipeline configure_pipeline(DeviceResourceCollection &drc,
 				      const vk::RenderPass &render_pass,
 				      auto cmap)
 {
@@ -144,7 +144,7 @@ littlevk::Pipeline configure_pipeline(core::DeviceResourceCollection &drc,
 
 void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)
 {
-	auto controller = reinterpret_cast <engine::CameraController *> (glfwGetWindowUserPointer(window));
+	auto controller = reinterpret_cast <CameraController *> (glfwGetWindowUserPointer(window));
 
 	ImGuiIO &io = ImGui::GetIO();
 	if (io.WantCaptureMouse) {
@@ -169,7 +169,7 @@ void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 	ImGuiIO &io = ImGui::GetIO();
 	io.MousePos = ImVec2(x, y);
 
-	auto controller = reinterpret_cast <engine::CameraController *> (glfwGetWindowUserPointer(window));
+	auto controller = reinterpret_cast <CameraController *> (glfwGetWindowUserPointer(window));
 	controller->handle_cursor(float2(x, y));
 }
 
@@ -267,14 +267,14 @@ int main(int argc, char *argv[])
 		return littlevk::physical_device_able(phdev, VK_EXTENSIONS);
 	};
 
-	core::DeviceResourceCollectionInfo info {
+	DeviceResourceCollectionInfo info {
 		.phdev = littlevk::pick_physical_device(predicate),
 			.title = "Point Cloud Renderer",
 			.extent = vk::Extent2D(1920, 1080),
 			.extensions = VK_EXTENSIONS,
 	};
 
-	auto drc = core::DeviceResourceCollection::from(info);
+	auto drc = DeviceResourceCollection::from(info);
 
 	// Create the render pass and generate the pipelines
 	vk::RenderPass render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
@@ -377,7 +377,7 @@ int main(int argc, char *argv[])
 	framebuffers.resize(drc, render_pass);
 
 	// Camera transform and aperture
-	core::Transform camera_transform;
+	Transform camera_transform;
 	core::Aperature aperature;
 
 	// MVP structure used for push constants
@@ -401,9 +401,9 @@ int main(int argc, char *argv[])
 	float mass = 500.0f;
 
 	// Handling camera events
-	engine::CameraController controller {
+	CameraController controller {
 		camera_transform,
-		engine::CameraControllerSettings()
+		CameraControllerSettings()
 	};
 
 	glfwSetWindowUserPointer(drc.window.handle, &controller);

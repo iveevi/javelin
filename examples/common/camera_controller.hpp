@@ -5,8 +5,6 @@
 #include "transform.hpp"
 #include "interactive_window.hpp"
 
-namespace jvl::engine {
-
 struct CameraControllerSettings {
 	int forward = GLFW_KEY_W;
 	int backward = GLFW_KEY_S;
@@ -32,15 +30,13 @@ struct CameraController {
 	float pitch = 0.0f;
 	float yaw = 0.0f;
 
-	core::Transform &transform;
+	Transform &transform;
 
 	CameraControllerSettings settings;
 
-	CameraController(core::Transform &, const CameraControllerSettings &);
+	CameraController(Transform &, const CameraControllerSettings &);
 
-	bool handle_cursor(float2);
-	bool handle_delta(float2);
-	void handle_movement(const core::InteractiveWindow &);
+	bool handle_cursor(jvl::float2);
+	bool handle_delta(jvl::float2);
+	void handle_movement(const InteractiveWindow &);
 };
-
-} // namespace jvl::engine
