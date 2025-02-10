@@ -4,9 +4,9 @@
 #include <cstdlib>
 #include <filesystem>
 
-#include <vulkan/vulkan.hpp>
+#include <bestd/tree.hpp>
 
-#include <core/wrapped.hpp>
+#include <vulkan/vulkan.hpp>
 
 namespace jvl::core {
 
@@ -24,8 +24,8 @@ struct Texture {
 };
 
 // Optional texture caches
-class TextureBank : public wrapped::thread_safe_tree <std::string, Texture> {
-	using wrapped::thread_safe_tree <std::string, Texture> ::thread_safe_tree;
+class TextureBank : public bestd::tree <std::string, Texture> {
+	using bestd::tree <std::string, Texture> ::tree;
 };
 
 } // namespace jvl::core

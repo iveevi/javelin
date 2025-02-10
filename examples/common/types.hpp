@@ -1,20 +1,20 @@
 #pragma once
 
 #include <string>
-#include <vector>
 
 #include <glm/glm.hpp>
 
-#include <core/wrapped.hpp>
+#include <bestd/tree.hpp>
+#include <bestd/variant.hpp>
 
 namespace jvl {
 
 // General key-value structure
 template <typename T>
-using property = jvl::wrapped::tree <std::string, T>;
+using property = bestd::tree <std::string, T>;
 
 // General buffer structures
-using typed_vector = jvl::wrapped::variant <
+using typed_vector = bestd::variant <
 	std::vector <glm::vec4>,
 	std::vector <glm::vec3>,
 	std::vector <glm::vec2>,

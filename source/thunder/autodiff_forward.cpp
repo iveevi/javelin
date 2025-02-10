@@ -40,7 +40,7 @@ index_t synthesize_dual_type(const QualifiedType &qt)
 
 struct ad_fwd_iteration_context_t : Buffer {
 	std::deque <index_t> queue;
-	std::unordered_set <index_t> diffed;
+	std::set <index_t> diffed;
 
 	ad_fwd_iteration_context_t(const Buffer &buffer) : Buffer(buffer) {}
 };

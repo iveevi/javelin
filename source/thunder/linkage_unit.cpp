@@ -1,3 +1,5 @@
+#include <deque>
+
 // Glslang and SPIRV-Tools
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/Public/ShaderLang.h>

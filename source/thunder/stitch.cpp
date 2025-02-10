@@ -15,7 +15,7 @@ void stitch_mapped_instructions(Buffer &result, std::vector <mapped_instruction_
 		auto &g = mapped[i].refs;
 
 		// Create a map which offsets
-		wrapped::reindex <index_t> reindex;
+		reindex <index_t> reindex;
 		for (size_t i = 0; i < m.pointer; i++)
 			reindex[i] = i + offset;
 

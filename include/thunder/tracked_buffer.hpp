@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 #include "buffer.hpp"
 
 namespace jvl::thunder {
@@ -7,7 +9,7 @@ namespace jvl::thunder {
 struct TrackedBuffer : Buffer {
 	// Global list of callables
 	static auto &tracked() {
-		static std::unordered_map <size_t, TrackedBuffer *> map;
+		static std::map <size_t, TrackedBuffer *> map;
 		return map;
 	}
 

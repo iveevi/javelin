@@ -1,5 +1,7 @@
 #pragma once
 
+#include <bestd/variant.hpp>
+
 #include "atom.hpp"
 #include "enumerations.hpp"
 
@@ -13,7 +15,7 @@ struct NilType {
 };
 
 // Either a primitive type or a user-defined structure
-using plain_data_type_base = wrapped::variant <PrimitiveType, index_t>;
+using plain_data_type_base = bestd::variant <PrimitiveType, index_t>;
 
 struct PlainDataType : public plain_data_type_base {
 	using plain_data_type_base::plain_data_type_base;
@@ -90,7 +92,7 @@ struct InOutArgType : public PlainDataType {
 };
 
 // Full qualified type
-using qualified_type_base = wrapped::variant <
+using qualified_type_base = bestd::variant <
 	NilType,
 	PlainDataType,
 	StructFieldType,

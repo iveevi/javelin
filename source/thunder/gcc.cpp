@@ -179,7 +179,7 @@ gcc_jit_object *generate_operation(gcc_jit_context *const context,
 				   gcc_jit_rvalue *one,
 				   gcc_jit_rvalue *two)
 {
-	static const wrapped::hash_table <OperationCode, gcc_jit_binary_op> table {
+	static const bestd::hash_table <OperationCode, gcc_jit_binary_op> table {
 		{ addition,		GCC_JIT_BINARY_OP_PLUS		},
 		{ subtraction,		GCC_JIT_BINARY_OP_MINUS		},
 		{ multiplication,	GCC_JIT_BINARY_OP_MULT		},
@@ -258,7 +258,7 @@ gcc_jit_function *intrinsic_lookup(gcc_jit_context *const context, const intrins
 	{
 		static const auto float_overload = overload(f32);
 			
-		static const wrapped::hash_table <IntrinsicOperation, const char *const> float_names {
+		static const bestd::hash_table <IntrinsicOperation, const char *const> float_names {
 			{ sin, "sinf" },
 			{ cos, "cosf" },
 			{ tan, "tanf" },
@@ -639,7 +639,7 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const Returns &returns, i
 // Expand generation list
 auto gcc_jit_function_generator_t::work_list()
 {
-	auto used = std::unordered_set <index_t> ();
+	auto used = std::set <index_t> ();
 
 	std::queue <index_t> work;
 	for (auto i : synthesized)

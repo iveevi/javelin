@@ -1,3 +1,5 @@
+#include <bestd/hash_table.hpp>
+
 #include "thunder/atom.hpp"
 #include "thunder/c_like_generator.hpp"
 #include "thunder/enumerations.hpp"
@@ -129,7 +131,7 @@ std::string generate_primitive(const Primitive &p)
 std::string generate_operation(OperationCode code, const std::string &a, const std::string &b)
 {
 	// Binary operator strings
-	static const wrapped::hash_table <OperationCode, const char *> operators {
+	static const bestd::hash_table <OperationCode, const char *> operators {
 		{ addition,		"+" },
 		{ subtraction,		"-" },
 		{ multiplication,	"*" },

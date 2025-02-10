@@ -6,7 +6,7 @@
 namespace jvl::thunder {
 
 // Usage graph
-using usage_set = std::unordered_set <index_t>;
+using usage_set = std::set <index_t>;
 using usage_graph = std::vector <usage_set>;
 
 // Structure for recording instruction transformations

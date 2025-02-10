@@ -1,6 +1,7 @@
 #include <queue>
 #include <unordered_set>
 
+#include "core/reindex.hpp"
 #include "core/logging.hpp"
 #include "thunder/enumerations.hpp"
 #include "thunder/opt.hpp"
@@ -13,7 +14,7 @@ bool opt_transform_compact(Buffer &result)
 {
 	bool marked = false;
 
-	wrapped::reindex <index_t> relocation;
+	reindex <index_t> relocation;
 	for (size_t i = 0; i < result.pointer; i++) {
 		if (relocation.contains(i))
 			continue;
@@ -63,7 +64,8 @@ bool opt_transform_constructor_elision(Buffer &result)
 			return false;
 
 		usage_set loaders = graph[user];
-		wrapped::reindex <index_t> relocation;
+
+		reindex <index_t> relocation;
 		for (size_t i = 0; i < result.pointer; i++)
 			relocation[i] = i;
 
@@ -211,7 +213,7 @@ bool opt_transform_dead_code_elimination(Buffer &result)
 	// Reconstruct with the reduced set
 	index_t pointer = 0;
 
-	wrapped::reindex <index_t> relocation;
+	reindex <index_t> relocation;
 	for (size_t i = 0; i < result.pointer; i++) {
 		if (include[i])
 			relocation[i] = pointer++;

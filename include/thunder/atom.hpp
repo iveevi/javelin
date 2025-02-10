@@ -3,7 +3,9 @@
 #include <fmt/printf.h>
 #include <fmt/format.h>
 
-#include "../core/wrapped.hpp"
+#include <bestd/variant.hpp>
+
+#include "../core/reindex.hpp"
 #include "../core/logging.hpp"
 #include "enumerations.hpp"
 
@@ -277,7 +279,7 @@ struct Returns {
 static_assert(atom_instruction <Returns>);
 
 // Atom instructions
-using atom_base = wrapped::variant <
+using atom_base = bestd::variant <
 	Qualifier,
 	TypeInformation,
 	Primitive,
@@ -305,7 +307,7 @@ struct alignas(4) Atom : atom_base {
 		return std::visit(ftn, *this);
 	}
 
-	void reindex(const wrapped::reindex <index_t> &reindexer) {
+	void reindex(const reindex <index_t> &reindexer) {
 		auto &&addrs = addresses();
 		if (addrs.a0 != -1) reindexer(addrs.a0);
 		if (addrs.a1 != -1) reindexer(addrs.a1);

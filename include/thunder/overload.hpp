@@ -1,5 +1,7 @@
 #pragma once
 
+#include <bestd/hash_table.hpp>
+
 #include "qualified_type.hpp"
 
 namespace jvl::thunder {
@@ -46,8 +48,8 @@ inline overload_list concat(const overload_list &A, const overload_list &B)
 }
 
 template <typename T>
-struct overload_table : public wrapped::hash_table <T, overload_list> {
-	using wrapped::hash_table <T, overload_list> ::hash_table;
+struct overload_table : public bestd::hash_table <T, overload_list> {
+	using bestd::hash_table <T, overload_list> ::hash_table;
 
 	QualifiedType lookup(const T &key, const std::vector <QualifiedType> &args) const {
 		MODULE(overload-table);

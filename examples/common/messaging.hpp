@@ -6,7 +6,8 @@
 
 #include <glm/glm.hpp>
 
-#include <core/wrapped.hpp>
+#include <bestd/variant.hpp>
+#include <bestd/hash_table.hpp>
 
 #include <fmt/printf.h>
 
@@ -71,7 +72,7 @@ enum MessageKind : int64_t {
 	editor_open_material_inspector,
 };
 
-using MessageValue = wrapped::variant <
+using MessageValue = bestd::variant <
 	int64_t,
 	int32_t, glm::ivec2,
 	float, glm::vec2
@@ -87,7 +88,7 @@ struct Message {
 class MessageSystem {
 	using message_queue = std::queue <Message>;
 
-	wrapped::hash_table <int64_t, message_queue> queues;
+	bestd::hash_table <int64_t, message_queue> queues;
 public:
 	void send_to_origin(const Message &msg) {
 		queues[-1].push(msg);

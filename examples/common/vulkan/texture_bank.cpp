@@ -35,13 +35,11 @@ static auto allocate(littlevk::LinkedDeviceAllocator <> allocator,
 
 bool TextureBank::ready(const std::string &path) const
 {
-	std::lock_guard guard(this->lock);
 	return !processing.contains(path);
 }
 
 void TextureBank::mark_ready(const std::string &path)
 {
-	std::lock_guard guard(this->lock);
 	processing.erase(path);
 }
 

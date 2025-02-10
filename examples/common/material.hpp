@@ -24,7 +24,7 @@ struct texture : std::string {
 	texture(const std::string &other) : std::string(other) {}
 };
 
-using material_property = jvl::wrapped::variant <
+using material_property = bestd::variant <
 	float,
 	color3,
 	name,
@@ -35,7 +35,7 @@ template <typename T>
 concept material = requires(const property <material_property> &values) {
 	{
 		T::from(values)
-	} -> std::same_as <wrapped::optional <T>>;
+	} -> std::same_as <bestd::optional <T>>;
 };
 
 // Generic material description

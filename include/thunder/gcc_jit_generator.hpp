@@ -2,6 +2,8 @@
 
 #include <libgccjit.h>
 
+#include <bestd/hash_table.hpp>
+
 #include "buffer.hpp"
 
 namespace jvl::thunder::detail {
@@ -20,8 +22,8 @@ struct gcc_jit_function_generator_t : Buffer {
 
 	std::vector <gcc_jit_param *> parameters;
 
-	wrapped::hash_table <index_t, gcc_jit_object *> values;
-	wrapped::hash_table <QualifiedType, gcc_type_info> mapped_types;
+	bestd::hash_table <index_t, gcc_jit_object *> values;
+	bestd::hash_table <QualifiedType, gcc_type_info> mapped_types;
 
 	gcc_jit_function_generator_t(gcc_jit_context *const , const Buffer &);
 

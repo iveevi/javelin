@@ -1,5 +1,7 @@
 #pragma once
 
+#include <bestd/tree.hpp>
+
 #include "../core/logging.hpp"
 #include "../thunder/atom.hpp"
 #include "aggregate.hpp"
@@ -43,7 +45,7 @@ struct uniform_layout_t {
 		auto &em = Emitter::active;
 
 		// TODO: name hints in the active emitter...
-		wrapped::tree <const void *, int> listed;
+		bestd::tree <const void *, int> listed;
 
 		for (size_t i = 0; i < fields.size(); i++) {
 			layout_field f = fields[i];

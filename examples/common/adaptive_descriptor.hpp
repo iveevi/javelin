@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include <core/wrapped.hpp>
+#include <bestd/tree.hpp>
 
 namespace jvl::core {
 
@@ -11,8 +11,8 @@ class AdaptiveDescriptor {
 	vk::DescriptorSetLayout layout;
 
 	// TODO: need to add binding information as well for each key
-	wrapped::tree <std::string, uint32_t> bindings;
-	wrapped::tree <std::string, uint32_t> missing;
+	bestd::tree <std::string, uint32_t> bindings;
+	bestd::tree <std::string, uint32_t> missing;
 public:
 	// Common extra keys for material-centric descriptor sets
 	static constexpr const char *environment_key = "Environment";
@@ -67,6 +67,6 @@ public:
 	}
 };
 
-using DescriptorTable = jvl::wrapped::tree <std::string, AdaptiveDescriptor>;
+using DescriptorTable = bestd::tree <std::string, AdaptiveDescriptor>;
 
 } // namespace jvl::core

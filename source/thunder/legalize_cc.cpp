@@ -167,7 +167,7 @@ bool legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 	bool transformed = false;
 
 	// Intrinsics which can be successfully legalized
-	static const std::unordered_set <IntrinsicOperation> legalizable {
+	static const std::set <IntrinsicOperation> legalizable {
 		clamp,
 		min, max,
 		dot,
