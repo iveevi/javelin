@@ -43,7 +43,8 @@ struct bound_buffer_object <T, K> : T {
 	bound_buffer_object(size_t binding_, const Args &... args)
 			: T(args...), binding(binding_) {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <T> ().id;
+		// thunder::index_t type = type_field_from_args <T> ().id;
+		thunder::index_t type = type_field_from_arg_refs_impl <0> (static_cast <T> (*this)).id;
 		thunder::index_t pc = em.emit_qualifier(type, binding, K);
 		thunder::index_t value = em.emit_construct(pc, -1, thunder::transient);
 		this->ref = value;
@@ -64,7 +65,7 @@ struct bound_buffer_object <T, K> : T {
 			: T(args...), binding(binding_) {
 		auto &em = Emitter::active;
 		auto layout = this->layout().remove_const();
-		thunder::index_t type = type_field_from_args <T> ().id;
+		thunder::index_t type = type_field_from_args(layout).id;
 		thunder::index_t pc = em.emit_qualifier(type, binding, K);
 		thunder::index_t value = em.emit_construct(pc, -1, thunder::transient);
 		layout.ref_with(cache_index_t::from(value));

@@ -206,7 +206,7 @@ std::string Construct::to_string() const
 {
         std::string result;
 
-        result += fmt::format("{:15} {}: type: %{} args: ",
+        result += fmt::format("{:15} [{}] type: %{} args: ",
                 "CONSTRUCT",
                 tbl_constructor_mode[mode],
                 type);

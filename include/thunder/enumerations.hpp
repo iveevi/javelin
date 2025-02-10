@@ -464,6 +464,7 @@ static_assert(__io_end + 1 == sizeof(tbl_intrinsic_operation) / sizeof(const cha
 // Constructor modes //
 ///////////////////////
 
+// TODO: static
 enum ConstructorMode : uint8_t {
 	normal,
 	assignment,

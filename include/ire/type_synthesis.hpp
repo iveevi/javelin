@@ -98,7 +98,9 @@ static inline bool valid(const thunder::TypeInformation &tf)
 }
 
 template <typename T>
-struct type_info_override : std::false_type {};
+struct type_info_override : std::false_type {
+	type_info_override(const T &) {}
+};
 
 // Unique type index generation to track unique layouts
 inline int64_t unique_type_idx = 0;
@@ -140,7 +142,7 @@ cache_index_t type_field_from_args_impl()
 		using override = type_info_override <T>;
 
 		if constexpr (override::value)
-			type_info.down = override::synthesize();
+			type_info.down = override(T()).synthesize();
 		else
 			type_info.item = synthesize_primitive_type <T> ();
 	}
@@ -149,6 +151,51 @@ cache_index_t type_field_from_args_impl()
 
 	if constexpr (sizeof...(Args))
 		type_info.next = type_field_from_args_impl <I + 1, Args...> ().id;
+	else
+		type_info.next = -1;
+
+	cache_index_t cached;
+	cached = em.emit(type_info);
+	return cached;
+}
+
+// Concrete alternative using concrete references...
+template <size_t I, generic T, generic ... Args>
+cache_index_t type_field_from_arg_refs_impl(const T &ref, const Args &... args)
+{
+	MODULE(type-field-from-args-impl);
+
+	auto &em = Emitter::active;
+
+	thunder::TypeInformation type_info;
+	if constexpr (aggregate <T>) {
+		auto layout = T().layout();
+		auto cached = type_field_from_args(layout);
+		auto fields = std::vector <std::string> ();
+
+		for (auto &f : layout.fields)
+			fields.push_back(f.name);
+
+		em.emit_hint(cached.id, type_idx <T> (), layout.name, fields);
+
+		// If its a single struct, then we should not nest
+		if constexpr (I == 0 && sizeof...(Args) == 0)
+			return cached;
+		else
+			type_info.down = cached.id;
+	} else {
+		using override = type_info_override <T>;
+
+		if constexpr (override::value)
+			type_info.down = override(ref).synthesize();
+		else
+			type_info.item = synthesize_primitive_type <T> ();
+	}
+
+	JVL_ASSERT(valid(type_info), "invalid type information was generated");
+
+	if constexpr (sizeof...(Args))
+		type_info.next = type_field_from_arg_refs_impl <I + 1, Args...> (args...).id;
 	else
 		type_info.next = -1;
 

@@ -389,7 +389,7 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 
 		std::string array = fmt::format("[{}]", at.size);
 
-		// Unsize arrays
+		// Unsized arrays
 		if (at.size < 0)
 			array = "[]";
 
