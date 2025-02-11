@@ -10,17 +10,15 @@
 #include "camera_controller.hpp"
 #include "default_framebuffer_set.hpp"
 #include "vulkan_resources.hpp"
-#include "extensions.hpp"
 #include "imgui.hpp"
 #include "imported_asset.hpp"
 #include "timer.hpp"
 #include "transform.hpp"
 #include "vulkan_triangle_mesh.hpp"
+#include "application.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;
-
-VULKAN_EXTENSIONS(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
 // Model-view-projection structure
 struct MVP {
@@ -133,133 +131,96 @@ void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 	controller->handle_cursor(glm::vec2(x, y));
 }
 
-// TODO: class based approach... then macrofy the main method
-int main(int argc, char *argv[])
-{
-	argparse::ArgumentParser program("particles");
-	
-	program.add_argument("mesh")
-		.help("input mesh");
-
-	program.add_argument("--limit")
-		.help("time limit (ms) for the execution of the program")
-		.default_value(-1.0)
-		.scan <'g', double> ();
-
-	try {
-		program.parse_args(argc, argv);
-	} catch (const std::exception &e) {
-		std::cerr << e.what() << std::endl;
-		std::cerr << program;
-		return 1;
-	}
-
-	// littlevk configuration
-	{
-		auto &config = littlevk::config();
-		config.enable_logging = false;
-		config.abort_on_validation_error = true;
-	}
-	
-	// Load the asset and scene
-	std::filesystem::path path = program.get("mesh");
-
-	// Configure the resource collection
-	auto drc = VulkanResources::from("Normals", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
-
-	// Load the scene
-	auto asset = ImportedAsset::from(path).value();
-	
-	std::vector <VulkanTriangleMesh> meshes;
-
-	for (auto &g : asset.geometries) {
-		auto m = TriangleMesh::from(g).value();
-		auto v = VulkanTriangleMesh::from(drc.allocator(), m, VertexFlags::eAll).value();
-		meshes.emplace_back(v);
-	}
-
-	// Create the render pass and generate the pipelines
-	vk::RenderPass render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
-		.add_attachment(littlevk::default_color_attachment(drc.swapchain.format))
-		.add_attachment(littlevk::default_depth_attachment())
-		.add_subpass(vk::PipelineBindPoint::eGraphics)
-			.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
-			.depth_attachment(1, vk::ImageLayout::eDepthStencilAttachmentOptimal)
-			.done();
-
-	// Configure ImGui
-	configure_imgui(drc, render_pass);
-
-	// Initial pipeline
-	auto ppl = configure_pipeline(drc, render_pass);
-	
-	// Framebuffer manager
+struct Application : BaseApplication {
+	littlevk::Pipeline raster;
+	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
-	framebuffers.resize(drc, render_pass);
-
-	// Camera transform and aperature
+	
 	Transform camera_transform;
 	Transform model_transform;
 	Aperature aperature;
 
-	// MVP structure used for push constants
-	auto m_model = uniform_field(MVP, model);
-	auto m_view = uniform_field(MVP, view);
-	auto m_proj = uniform_field(MVP, proj);
-	
-	solid_t <MVP> mvp;
+	CameraController controller;
 
-	mvp[m_model] = model_transform.matrix();
-	
-	// Command buffers for the rendering loop
-	auto command_buffers = littlevk::command_buffers(drc.device,
-		drc.command_pool,
-		vk::CommandBufferLevel::ePrimary, 2u);
-	
-	// Synchronization information
-	auto frame = 0u;
-	auto sync = littlevk::present_syncronization(drc.device, 2).unwrap(drc.dal);
-	
-	// Handling camera events
-	CameraController controller {
-		camera_transform,
-		CameraControllerSettings()
-	};
+	std::vector <VulkanTriangleMesh> meshes;
 
-	glfwSetWindowUserPointer(drc.window.handle, &controller);
-	glfwSetMouseButtonCallback(drc.window.handle, glfw_button_callback);
-	glfwSetCursorPosCallback(drc.window.handle, glfw_cursor_callback);
-	
-	// Handling window resizing
-	auto resize = [&]() { framebuffers.resize(drc, render_pass); };
+	Application() : BaseApplication("Normals", { VK_KHR_SWAPCHAIN_EXTENSION_NAME }),
+			controller(camera_transform, CameraControllerSettings())
+	{
+		render_pass = littlevk::RenderPassAssembler(resources.device, resources.dal)
+			.add_attachment(littlevk::default_color_attachment(resources.swapchain.format))
+			.add_attachment(littlevk::default_depth_attachment())
+			.add_subpass(vk::PipelineBindPoint::eGraphics)
+				.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
+				.depth_attachment(1, vk::ImageLayout::eDepthStencilAttachmentOptimal)
+				.done();
 
-	// Main loop
-	auto render = [&](const vk::CommandBuffer &cmd, uint32_t index) {
-		controller.handle_movement(drc.window);
+		// Configure ImGui
+		configure_imgui(resources, render_pass);
+
+		// Configure pipeline
+		raster = configure_pipeline(resources, render_pass);
+		
+		// Framebuffer manager
+		framebuffers.resize(resources, render_pass);
+
+		auto handle = resources.window.handle;
+		glfwSetWindowUserPointer(handle, &controller);
+		glfwSetMouseButtonCallback(handle, glfw_button_callback);
+		glfwSetCursorPosCallback(handle, glfw_cursor_callback);
+	}
+
+	void configure(argparse::ArgumentParser &program) override {
+		program.add_argument("mesh")
+			.help("input mesh");
+	}
+
+	void preload(const argparse::ArgumentParser &program) override {
+		// Load the asset and scene
+		std::filesystem::path path = program.get("mesh");
 	
+		auto asset = ImportedAsset::from(path).value();
+
+		for (auto &g : asset.geometries) {
+			auto m = TriangleMesh::from(g).value();
+			auto v = VulkanTriangleMesh::from(resources.allocator(), m, VertexFlags::ePosition).value();
+			meshes.emplace_back(v);
+		}
+	}
+	
+	void render(const vk::CommandBuffer &cmd, uint32_t index) override {
+		controller.handle_movement(resources.window);
+		
 		// Configure the rendering extent
-		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(drc.window.extent));
+		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(resources.window.extent));
 
 		littlevk::RenderPassBeginInfo(2)
 			.with_render_pass(render_pass)
 			.with_framebuffer(framebuffers[index])
-			.with_extent(drc.window.extent)
-			.clear_color(0, std::array <float, 4> { 0, 0, 0, 1 })
+			.with_extent(resources.window.extent)
+			.clear_color(0, std::array <float, 4> { 0, 0, 0, 0 })
 			.clear_depth(1, 1)
 			.begin(cmd);
 	
-		// Update the constants with the view matrix
-		auto &extent = drc.window.extent;
+		// MVP structure used for push constants
+		auto m_model = uniform_field(MVP, model);
+		auto m_view = uniform_field(MVP, view);
+		auto m_proj = uniform_field(MVP, proj);
+		
+		solid_t <MVP> mvp;
+
+		mvp[m_model] = model_transform.matrix();
+		
+		auto &extent = resources.window.extent;
 		aperature.aspect = float(extent.width)/float(extent.height);
+
 		mvp[m_proj] = aperature.perspective();
 		mvp[m_view] = camera_transform.view_matrix();
 		
-		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, raster.handle);
 	
 		for (auto &mesh : meshes) {
-			int mid = *mesh.material_usage.begin();
-
-			cmd.pushConstants <solid_t <MVP>> (ppl.layout,
+			cmd.pushConstants <solid_t <MVP>> (raster.layout,
 				vk::ShaderStageFlagBits::eVertex,
 				0, mvp);
 
@@ -267,11 +228,13 @@ int main(int argc, char *argv[])
 			cmd.bindIndexBuffer(mesh.triangles.buffer, 0, vk::IndexType::eUint32);
 			cmd.drawIndexed(mesh.count, 1, 0, 0, 0);
 		}
-
+		
 		cmd.endRenderPass();
-	};
+	}
 
-	drc.swapchain_render_loop(timed(drc.window, render, program.get <double> ("limit")), resize);
+	void resize() override {
+		framebuffers.resize(resources, render_pass);
+	}
+};
 
-	return 0;
-}
+APPLICATION_MAIN()

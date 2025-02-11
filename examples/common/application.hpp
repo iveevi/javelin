@@ -16,7 +16,7 @@ struct BaseApplication {
 		// littlevk configuration
 		{
 			auto &config = littlevk::config();
-			config.enable_logging = false;
+			config.enable_logging = true;
 			config.abort_on_validation_error = true;
 		}
 	}

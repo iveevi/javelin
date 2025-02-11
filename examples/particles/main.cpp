@@ -11,18 +11,15 @@
 #include "cmaps.hpp"
 #include "default_framebuffer_set.hpp"
 #include "vulkan_resources.hpp"
-#include "extensions.hpp"
 #include "imgui.hpp"
-#include "timer.hpp"
 #include "transform.hpp"
 #include "triangle_mesh.hpp"
+#include "application.hpp"
 
 #include <random>
 
 using namespace jvl;
 using namespace jvl::ire;
-
-VULKAN_EXTENSIONS(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
 // View and projection information
 struct MVP {
@@ -110,7 +107,7 @@ std::vector <glm::vec3> generate_random_points(int N, float spread)
 }
 
 // Pipeline configuration for rendering spheres
-littlevk::Pipeline configure_pipeline(VulkanResources &drc,
+littlevk::Pipeline configure_pipeline(VulkanResources &resources,
 				      const vk::RenderPass &render_pass,
 				      auto cmap)
 {
@@ -122,14 +119,14 @@ littlevk::Pipeline configure_pipeline(VulkanResources &drc,
 	std::string vertex_shader = link(vs_callable).generate_glsl();
 	std::string fragment_shader = link(fs_callable).generate_glsl();
 
-	auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
+	auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
 		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
 		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 
 	fmt::println("{}", vertex_shader);
 	fmt::println("{}", fragment_shader);
 
-	return littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
+	return littlevk::PipelineAssembler <littlevk::eGraphics> (resources.device, resources.window, resources.dal)
 		.with_render_pass(render_pass, 0)
 		.with_vertex_layout(vertex_layout)
 		.with_shader_bundle(bundle)
@@ -238,180 +235,409 @@ void jitter(std::vector <aligned_vec3> &particles,
 	O2 += dt * V2;
 }
 
-int main(int argc, char *argv[])
-{
-	argparse::ArgumentParser program("particles");
+// int main(int argc, char *argv[])
+// {
+// 	argparse::ArgumentParser program("particles");
 
-	program.add_argument("--limit")
-		.help("time limit (ms) for the execution of the program )")
-		.default_value(-1.0)
-		.scan <'g', double> ();
+// 	program.add_argument("--limit")
+// 		.help("time limit (ms) for the execution of the program )")
+// 		.default_value(-1.0)
+// 		.scan <'g', double> ();
 
-	try {
-		program.parse_args(argc, argv);
-	} catch (const std::exception &e) {
-		std::cerr << e.what() << std::endl;
-		std::cerr << program;
-		return 1;
-	}
+// 	try {
+// 		program.parse_args(argc, argv);
+// 	} catch (const std::exception &e) {
+// 		std::cerr << e.what() << std::endl;
+// 		std::cerr << program;
+// 		return 1;
+// 	}
 
-        // Initialize Vulkan configuration
-	{
-		auto &config = littlevk::config();
-		config.enable_logging = true;
-		config.abort_on_validation_error = true;
-	}
+//         // Initialize Vulkan configuration
+// 	{
+// 		auto &config = littlevk::config();
+// 		config.enable_logging = true;
+// 		config.abort_on_validation_error = true;
+// 	}
 
-	auto drc = VulkanResources::from("Particles", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
+// 	auto resources = VulkanResources::from("Particles", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
 
-	// Create the render pass and generate the pipelines
-	vk::RenderPass render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
-		.add_attachment(littlevk::default_color_attachment(drc.swapchain.format))
-		.add_attachment(littlevk::default_depth_attachment())
-		.add_subpass(vk::PipelineBindPoint::eGraphics)
-		.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
-		.depth_attachment(1, vk::ImageLayout::eDepthStencilAttachmentOptimal)
-		.done();
+// 	// Create the render pass and generate the pipelines
+// 	vk::RenderPass render_pass = littlevk::RenderPassAssembler(resources.device, drc.dal)
+// 		.add_attachment(littlevk::default_color_attachment(resources.swapchain.format))
+// 		.add_attachment(littlevk::default_depth_attachment())
+// 		.add_subpass(vk::PipelineBindPoint::eGraphics)
+// 		.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
+// 		.depth_attachment(1, vk::ImageLayout::eDepthStencilAttachmentOptimal)
+// 		.done();
 
-	// Configure ImGui
-	configure_imgui(drc, render_pass);
+// 	// Configure ImGui
+// 	configure_imgui(resources, render_pass);
 
-	// Generate random points for the point cloud
+// 	// Generate random points for the point cloud
+// 	int N = 150'000;
+
+// 	// TODO: solidify... (alignment issues)
+// 	std::vector <glm::vec3> points = generate_random_points(N, 10.0f);
+// 	std::vector <aligned_vec3> velocities;
+// 	std::vector <aligned_vec3> particles;
+	
+// 	std::random_device rd;
+// 	std::default_random_engine gen(rd());
+
+// 	for (auto p : points) {
+// 		particles.push_back(p);
+
+// 		std::uniform_real_distribution <float> distribution(-1.0f, 1.0f);
+
+// 		float theta = distribution(gen) * 2.0f * M_PI;
+// 		float phi = std::acos(distribution(gen));
+
+// 		float x = std::sin(phi) * std::cos(theta);
+// 		float y = std::sin(phi) * std::sin(theta);
+// 		float z = std::cos(phi);
+		
+// 		velocities.emplace_back(x, y, z);
+// 	}
+
+// 	// Prepare the sphere geometry
+// 	auto sphere = TriangleMesh::uv_sphere(25, 0.025f);
+
+// 	littlevk::Buffer vb;
+// 	littlevk::Buffer ib;
+// 	littlevk::Buffer tb;
+// 	littlevk::Buffer sb;
+// 	std::tie(vb, ib, tb, sb) = resources.allocator()
+// 		.buffer(sphere.positions,
+// 			vk::BufferUsageFlagBits::eVertexBuffer
+// 			| vk::BufferUsageFlagBits::eTransferDst)
+// 		.buffer(sphere.triangles,
+// 			vk::BufferUsageFlagBits::eIndexBuffer
+// 			| vk::BufferUsageFlagBits::eTransferDst)
+// 		.buffer(particles,
+// 			vk::BufferUsageFlagBits::eStorageBuffer
+// 			| vk::BufferUsageFlagBits::eTransferDst)
+// 		.buffer(velocities,
+// 			vk::BufferUsageFlagBits::eStorageBuffer
+// 			| vk::BufferUsageFlagBits::eTransferDst);
+
+// 	// Configure pipeline
+// 	auto pipeline = configure_pipeline(resources, render_pass, jet);
+
+// 	vk::DescriptorSet set = littlevk::bind(resources.device, drc.descriptor_pool)
+// 		.allocate_descriptor_sets(pipeline.dsl.value())
+// 		.front();
+
+// 	auto tb_info = vk::DescriptorBufferInfo()
+// 		.setBuffer(tb.buffer)
+// 		.setOffset(0)
+// 		.setRange(sizeof(glm::vec4) * points.size());
+	
+// 	auto sb_info = vk::DescriptorBufferInfo()
+// 		.setBuffer(sb.buffer)
+// 		.setOffset(0)
+// 		.setRange(sizeof(glm::vec4) * points.size());
+
+// 	std::array <vk::WriteDescriptorSet, 2> writes;
+
+// 	writes[0] = vk::WriteDescriptorSet()
+// 		.setDstSet(set)
+// 		.setDescriptorCount(1)
+// 		.setDstBinding(0)
+// 		.setDescriptorType(vk::DescriptorType::eStorageBuffer)
+// 		.setBufferInfo(tb_info);
+	
+// 	writes[1] = vk::WriteDescriptorSet()
+// 		.setDstSet(set)
+// 		.setDescriptorCount(1)
+// 		.setDstBinding(1)
+// 		.setDescriptorType(vk::DescriptorType::eStorageBuffer)
+// 		.setBufferInfo(sb_info);
+
+// 	resources.device.updateDescriptorSets(writes, {}, {});
+
+// 	// Framebuffer manager
+// 	DefaultFramebufferSet framebuffers;
+// 	framebuffers.resize(resources, render_pass);
+
+// 	// Camera transform and aperture
+// 	Transform camera_transform;
+// 	Aperature aperature;
+
+// 	// MVP structure used for push constants
+// 	auto m_view = uniform_field(MVP, view);
+// 	auto m_proj = uniform_field(MVP, proj);
+
+// 	solid_t <MVP> view_info;
+
+// 	// Command buffers for the rendering loop
+// 	auto command_buffers = littlevk::command_buffers(resources.device,
+// 		resources.command_pool,
+// 		vk::CommandBufferLevel::ePrimary, 2u);
+
+// 	// Synchronization information
+// 	auto frame = 0u;
+// 	auto sync = littlevk::present_syncronization(resources.device, 2).unwrap(drc.dal);
+
+// 	// Simulation
+// 	std::string cmap = "jet";
+// 	float dt = 0.02f;
+// 	float mass = 500.0f;
+
+// 	// Handling camera events
+// 	CameraController controller {
+// 		camera_transform,
+// 		CameraControllerSettings()
+// 	};
+
+// 	glfwSetWindowUserPointer(resources.window.handle, &controller);
+// 	glfwSetMouseButtonCallback(resources.window.handle, glfw_button_callback);
+// 	glfwSetCursorPosCallback(resources.window.handle, glfw_cursor_callback);
+
+// 	// Handling window resizing
+// 	auto resize = [&]() { framebuffers.resize(resources, render_pass); };
+
+// 	Timer timer;
+// 	timer.reset();
+
+// 	double limit = program.get <double> ("limit");
+	
+// 	auto render = [&](const vk::CommandBuffer &cmd, uint32_t index) {
+// 		if (limit >= 0 && timer.click() > limit)
+// 			glfwSetWindowShouldClose(resources.window.handle, true);
+
+// 		controller.handle_movement(resources.window);
+		
+// 		// Configure the rendering extent
+// 		vk::Extent2D extent = resources.window.extent;
+
+// 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(extent));
+
+// 		littlevk::RenderPassBeginInfo(2)
+// 			.with_render_pass(render_pass)
+// 			.with_framebuffer(framebuffers[index])
+// 			.with_extent(extent)
+// 			.clear_color(0, std::array <float, 4> { 0, 0, 0, 1 })
+// 			.clear_depth(1, 1)
+// 			.begin(cmd);
+
+// 		// Update the constants with the view matrix
+// 		aperature.aspect = float(extent.width) / float(extent.height);
+
+// 		auto proj = aperature.perspective();
+// 		auto view = camera_transform.view_matrix();
+
+// 		view_info[m_proj] = proj;
+// 		view_info[m_view] = view;
+
+// 		float smin = 1e10f;
+// 		float smax = 0;
+
+// 		for (const auto &v : velocities) {
+// 			float s = length(glm::vec3(v));
+// 			smin = std::min(smin, s);
+// 			smax = std::max(smax, s);
+// 		}
+
+// 		view_info.get <2> () = smin;
+// 		view_info.get <3> () = smax;
+
+// 		// Render each point as a sphere
+// 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.handle);
+
+// 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+// 			pipeline.layout,
+// 			0, set, {});
+		
+// 		cmd.pushConstants <solid_t <MVP>> (pipeline.layout,
+// 			vk::ShaderStageFlagBits::eVertex,
+// 			0, view_info);
+		
+// 		cmd.bindVertexBuffers(0, vb.buffer, { 0 });
+// 		cmd.bindIndexBuffer(ib.buffer, 0, vk::IndexType::eUint32);
+// 		cmd.drawIndexed(3 * sphere.triangles.size(), N, 0, 0, 0);
+
+// 		// ImGui
+// 		{
+// 			ImGuiRenderContext context(cmd);
+
+// 			ImGui::Begin("Configure Simulation");
+
+// 			static const std::map <std::string, vec3 (*)(f32)> maps {
+// 				{ "cividis",	cividis  },
+// 				{ "coolwarm",	coolwarm },
+// 				{ "inferno",	inferno  },
+// 				{ "jet",	jet      },
+// 				{ "magma",	magma    },
+// 				{ "parula",	parula   },
+// 				{ "plasma",	plasma	 },
+// 				{ "spectral",	spectral },
+// 				{ "turbo",	turbo    },
+// 				{ "viridis",	viridis  },
+// 			};
+
+// 			if (ImGui::BeginCombo("Color Map", cmap.c_str())) {
+// 				for (auto &[k, m] : maps) {
+// 					if (ImGui::Selectable(k.c_str(), k == cmap)) {
+// 						pipeline = configure_pipeline(resources, render_pass, m);
+// 						cmap = k;
+// 					}
+// 				}
+
+// 				ImGui::EndCombo();
+// 			}
+
+// 			ImGui::SliderFloat("Time Step", &dt, 0.01, 0.1);
+// 			ImGui::SliderFloat("Planetary Mass", &mass, 100, 1000);
+
+// 			ImGui::End();
+// 		}
+
+// 		cmd.endRenderPass();
+
+// 		// Randomly jittering particles
+// 		jitter(particles, velocities, dt, mass);
+
+// 		littlevk::upload(resources.device, tb, particles);
+// 		littlevk::upload(resources.device, sb, velocities);
+// 	};
+	
+// 	resources.swapchain_render_loop(timed(drc.window, render, program.get <double> ("limit")), resize);
+
+// 	return 0;
+// }
+
+struct Application : BaseApplication {
+	littlevk::Pipeline raster;
+	vk::RenderPass render_pass;
+	DefaultFramebufferSet framebuffers;
+	
+	Transform camera_transform;
+	Transform model_transform;
+	Aperature aperature;
+
+	CameraController controller;
+
+	// TODO: argument for number of particles
 	int N = 150'000;
 
 	// TODO: solidify... (alignment issues)
 	std::vector <glm::vec3> points = generate_random_points(N, 10.0f);
 	std::vector <aligned_vec3> velocities;
 	std::vector <aligned_vec3> particles;
-	
-	std::random_device rd;
-	std::default_random_engine gen(rd());
 
-	for (auto p : points) {
-		particles.push_back(p);
-
-		std::uniform_real_distribution <float> distribution(-1.0f, 1.0f);
-
-		float theta = distribution(gen) * 2.0f * M_PI;
-		float phi = std::acos(distribution(gen));
-
-		float x = std::sin(phi) * std::cos(theta);
-		float y = std::sin(phi) * std::sin(theta);
-		float z = std::cos(phi);
-		
-		velocities.emplace_back(x, y, z);
-	}
-
-	// Prepare the sphere geometry
-	auto sphere = TriangleMesh::uv_sphere(25, 0.025f);
+	TriangleMesh sphere;
 
 	littlevk::Buffer vb;
 	littlevk::Buffer ib;
 	littlevk::Buffer tb;
 	littlevk::Buffer sb;
-	std::tie(vb, ib, tb, sb) = drc.allocator()
-		.buffer(sphere.positions,
-			vk::BufferUsageFlagBits::eVertexBuffer
-			| vk::BufferUsageFlagBits::eTransferDst)
-		.buffer(sphere.triangles,
-			vk::BufferUsageFlagBits::eIndexBuffer
-			| vk::BufferUsageFlagBits::eTransferDst)
-		.buffer(particles,
-			vk::BufferUsageFlagBits::eStorageBuffer
-			| vk::BufferUsageFlagBits::eTransferDst)
-		.buffer(velocities,
-			vk::BufferUsageFlagBits::eStorageBuffer
-			| vk::BufferUsageFlagBits::eTransferDst);
 
-	// Configure pipeline
-	auto pipeline = configure_pipeline(drc, render_pass, jet);
+	vk::DescriptorSet raster_dset;
 
-	vk::DescriptorSet set = littlevk::bind(drc.device, drc.descriptor_pool)
-		.allocate_descriptor_sets(pipeline.dsl.value())
-		.front();
-
-	auto tb_info = vk::DescriptorBufferInfo()
-		.setBuffer(tb.buffer)
-		.setOffset(0)
-		.setRange(sizeof(glm::vec4) * points.size());
-	
-	auto sb_info = vk::DescriptorBufferInfo()
-		.setBuffer(sb.buffer)
-		.setOffset(0)
-		.setRange(sizeof(glm::vec4) * points.size());
-
-	std::array <vk::WriteDescriptorSet, 2> writes;
-
-	writes[0] = vk::WriteDescriptorSet()
-		.setDstSet(set)
-		.setDescriptorCount(1)
-		.setDstBinding(0)
-		.setDescriptorType(vk::DescriptorType::eStorageBuffer)
-		.setBufferInfo(tb_info);
-	
-	writes[1] = vk::WriteDescriptorSet()
-		.setDstSet(set)
-		.setDescriptorCount(1)
-		.setDstBinding(1)
-		.setDescriptorType(vk::DescriptorType::eStorageBuffer)
-		.setBufferInfo(sb_info);
-
-	drc.device.updateDescriptorSets(writes, {}, {});
-
-	// Framebuffer manager
-	DefaultFramebufferSet framebuffers;
-	framebuffers.resize(drc, render_pass);
-
-	// Camera transform and aperture
-	Transform camera_transform;
-	Aperature aperature;
-
-	// MVP structure used for push constants
-	auto m_view = uniform_field(MVP, view);
-	auto m_proj = uniform_field(MVP, proj);
-
-	solid_t <MVP> view_info;
-
-	// Command buffers for the rendering loop
-	auto command_buffers = littlevk::command_buffers(drc.device,
-		drc.command_pool,
-		vk::CommandBufferLevel::ePrimary, 2u);
-
-	// Synchronization information
-	auto frame = 0u;
-	auto sync = littlevk::present_syncronization(drc.device, 2).unwrap(drc.dal);
-
-	// Simulation
 	std::string cmap = "jet";
 	float dt = 0.02f;
 	float mass = 500.0f;
 
-	// Handling camera events
-	CameraController controller {
-		camera_transform,
-		CameraControllerSettings()
-	};
+	Application() : BaseApplication("Particles", { VK_KHR_SWAPCHAIN_EXTENSION_NAME }),
+			controller(camera_transform, CameraControllerSettings())
+	{
+		render_pass = littlevk::RenderPassAssembler(resources.device, resources.dal)
+			.add_attachment(littlevk::default_color_attachment(resources.swapchain.format))
+			.add_attachment(littlevk::default_depth_attachment())
+			.add_subpass(vk::PipelineBindPoint::eGraphics)
+			.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
+			.depth_attachment(1, vk::ImageLayout::eDepthStencilAttachmentOptimal)
+			.done();
 
-	glfwSetWindowUserPointer(drc.window.handle, &controller);
-	glfwSetMouseButtonCallback(drc.window.handle, glfw_button_callback);
-	glfwSetCursorPosCallback(drc.window.handle, glfw_cursor_callback);
+		framebuffers.resize(resources, render_pass);
 
-	// Handling window resizing
-	auto resize = [&]() { framebuffers.resize(drc, render_pass); };
+		raster = configure_pipeline(resources, render_pass, jet);
 
-	Timer timer;
-	timer.reset();
+		// Configure ImGui
+		configure_imgui(resources, render_pass);
 
-	double limit = program.get <double> ("limit");
+		// Prepare the sphere geometry
+		sphere = TriangleMesh::uv_sphere(25, 0.025f);
+
+		std::tie(vb, ib) = resources.allocator()
+			.buffer(sphere.positions,
+				vk::BufferUsageFlagBits::eVertexBuffer
+				| vk::BufferUsageFlagBits::eTransferDst)
+			.buffer(sphere.triangles,
+				vk::BufferUsageFlagBits::eIndexBuffer
+				| vk::BufferUsageFlagBits::eTransferDst);
+	}
+
+	void preload(const argparse::ArgumentParser &program) override {
+		std::random_device rd;
+		std::default_random_engine gen(rd());
+
+		for (auto p : points) {
+			particles.push_back(p);
+
+			std::uniform_real_distribution <float> distribution(-1.0f, 1.0f);
+
+			float theta = distribution(gen) * 2.0f * M_PI;
+			float phi = std::acos(distribution(gen));
+
+			float x = std::sin(phi) * std::cos(theta);
+			float y = std::sin(phi) * std::sin(theta);
+			float z = std::cos(phi);
+			
+			velocities.emplace_back(x, y, z);
+		}
+
+		std::tie(tb, sb) = resources.allocator()
+			.buffer(particles,
+				vk::BufferUsageFlagBits::eStorageBuffer
+				| vk::BufferUsageFlagBits::eTransferDst)
+			.buffer(velocities,
+				vk::BufferUsageFlagBits::eStorageBuffer
+				| vk::BufferUsageFlagBits::eTransferDst);
+
+		raster_dset = littlevk::bind(resources.device, resources.descriptor_pool)
+			.allocate_descriptor_sets(raster.dsl.value())
+			.front();
+
+		auto tb_info = vk::DescriptorBufferInfo()
+			.setBuffer(tb.buffer)
+			.setOffset(0)
+			.setRange(sizeof(glm::vec4) * points.size());
+		
+		auto sb_info = vk::DescriptorBufferInfo()
+			.setBuffer(sb.buffer)
+			.setOffset(0)
+			.setRange(sizeof(glm::vec4) * points.size());
+
+		std::array <vk::WriteDescriptorSet, 2> writes;
+
+		writes[0] = vk::WriteDescriptorSet()
+			.setDstSet(raster_dset)
+			.setDescriptorCount(1)
+			.setDstBinding(0)
+			.setDescriptorType(vk::DescriptorType::eStorageBuffer)
+			.setBufferInfo(tb_info);
+		
+		writes[1] = vk::WriteDescriptorSet()
+			.setDstSet(raster_dset)
+			.setDescriptorCount(1)
+			.setDstBinding(1)
+			.setDescriptorType(vk::DescriptorType::eStorageBuffer)
+			.setBufferInfo(sb_info);
+
+		resources.device.updateDescriptorSets(writes, {}, {});
+	}
 	
-	auto render = [&](const vk::CommandBuffer &cmd, uint32_t index) {
-		if (limit >= 0 && timer.click() > limit)
-			glfwSetWindowShouldClose(drc.window.handle, true);
+	void render(const vk::CommandBuffer &cmd, uint32_t index) override {
+		auto m_view = uniform_field(MVP, view);
+		auto m_proj = uniform_field(MVP, proj);
 
-		controller.handle_movement(drc.window);
+		solid_t <MVP> view_info;
+
+		controller.handle_movement(resources.window);
 		
 		// Configure the rendering extent
-		vk::Extent2D extent = drc.window.extent;
+		vk::Extent2D extent = resources.window.extent;
 
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(extent));
 
@@ -445,13 +671,13 @@ int main(int argc, char *argv[])
 		view_info.get <3> () = smax;
 
 		// Render each point as a sphere
-		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.handle);
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, raster.handle);
 
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-			pipeline.layout,
-			0, set, {});
+			raster.layout,
+			0, raster_dset, {});
 		
-		cmd.pushConstants <solid_t <MVP>> (pipeline.layout,
+		cmd.pushConstants <solid_t <MVP>> (raster.layout,
 			vk::ShaderStageFlagBits::eVertex,
 			0, view_info);
 		
@@ -481,7 +707,7 @@ int main(int argc, char *argv[])
 			if (ImGui::BeginCombo("Color Map", cmap.c_str())) {
 				for (auto &[k, m] : maps) {
 					if (ImGui::Selectable(k.c_str(), k == cmap)) {
-						pipeline = configure_pipeline(drc, render_pass, m);
+						raster = configure_pipeline(resources, render_pass, m);
 						cmap = k;
 					}
 				}
@@ -500,11 +726,13 @@ int main(int argc, char *argv[])
 		// Randomly jittering particles
 		jitter(particles, velocities, dt, mass);
 
-		littlevk::upload(drc.device, tb, particles);
-		littlevk::upload(drc.device, sb, velocities);
-	};
+		littlevk::upload(resources.device, tb, particles);
+		littlevk::upload(resources.device, sb, velocities);
+	}
 	
-	drc.swapchain_render_loop(timed(drc.window, render, program.get <double> ("limit")), resize);
+	void resize() override {
+		framebuffers.resize(resources, render_pass);
+	}
+};
 
-	return 0;
-}
+APPLICATION_MAIN()

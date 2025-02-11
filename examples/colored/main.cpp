@@ -119,7 +119,7 @@ void glfw_cursor_callback(GLFWwindow *window, double x, double y)
 }
 
 struct Application : BaseApplication {
-	littlevk::Pipeline ppl;
+	littlevk::Pipeline raster;
 	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
 
@@ -147,10 +147,10 @@ struct Application : BaseApplication {
 		// Configure ImGui
 		configure_imgui(resources, render_pass);
 
-		// Initial pipeline
+		// Configure pipeline
 		color = glm::vec3(1, 0, 0);
 
-		ppl = configure_pipeline(resources, render_pass, color);
+		raster = configure_pipeline(resources, render_pass, color);
 		
 		// Framebuffer manager
 		framebuffers.resize(resources, render_pass);
@@ -159,7 +159,6 @@ struct Application : BaseApplication {
 		glfwSetWindowUserPointer(handle, &controller);
 		glfwSetMouseButtonCallback(handle, glfw_button_callback);
 		glfwSetCursorPosCallback(handle, glfw_cursor_callback);
-	
 	}
 
 	void configure(argparse::ArgumentParser &program) override {
@@ -203,17 +202,16 @@ struct Application : BaseApplication {
 
 		mvp[m_model] = model_transform.matrix();
 	
-		// Update the constants with the view matrix
 		auto &extent = resources.window.extent;
 		aperature.aspect = float(extent.width)/float(extent.height);
 
 		mvp[m_proj] = aperature.perspective();
 		mvp[m_view] = camera_transform.view_matrix();
 		
-		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, raster.handle);
 	
 		for (auto &mesh : meshes) {
-			cmd.pushConstants <solid_t <MVP>> (ppl.layout,
+			cmd.pushConstants <solid_t <MVP>> (raster.layout,
 				vk::ShaderStageFlagBits::eVertex,
 				0, mvp);
 
@@ -230,7 +228,7 @@ struct Application : BaseApplication {
 			
 			ImGui::ColorEdit3("color", reinterpret_cast <float *> (&color));
 			if (ImGui::Button("Confirm"))
-				ppl = configure_pipeline(resources, render_pass, color);
+				raster = configure_pipeline(resources, render_pass, color);
 
 			ImGui::End();
 		}

@@ -1,12 +1,12 @@
 #!/bin/sh
-set -x
+set -x -e
 
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P)/.."
 
 # Run all examples
 ./build/examples/colored/colored resources/meshes/nefertiti.obj --frames 300
-./build/examples/normals/normals resources/meshes/nefertiti.obj --limit 1e3
-./build/examples/palette/palette resources/meshes/nefertiti.obj --limit 1e3
-./build/examples/particles/particles --limit 1e3
-./build/examples/compute/compute --limit 1e3
+./build/examples/normals/normals resources/meshes/nefertiti.obj --frames 300
+./build/examples/palette/palette resources/meshes/nefertiti.obj --frames 300
 ./build/examples/ngf/ngf resources/meshes/armadillo-ngf.bin --frames 120
+./build/examples/particles/particles --frames 120
+./build/examples/compute/compute --frames 120
