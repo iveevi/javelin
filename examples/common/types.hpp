@@ -7,8 +7,6 @@
 #include <bestd/tree.hpp>
 #include <bestd/variant.hpp>
 
-namespace jvl {
-
 // General key-value structure
 template <typename T>
 using property = bestd::tree <std::string, T>;
@@ -24,12 +22,3 @@ using typed_vector = bestd::variant <
 	std::vector <glm::ivec2>,
 	std::vector <int>
 >;
-
-// Size of buffers
-inline size_t typed_buffer_size(const typed_vector &buffer)
-{
-	auto ftn = [](auto b) { return b.size(); };
-	return std::visit(ftn, buffer);
-}
-
-} // namespace jvl

@@ -170,13 +170,13 @@ int main(int argc, char *argv[])
 	auto drc = VulkanResources::from("Normals", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
 
 	// Load the scene
-	auto asset = engine::ImportedAsset::from(path).value();
+	auto asset = ImportedAsset::from(path).value();
 	auto scene = core::Scene();
 	scene.add(asset);
 
 	// Prepare host and device scenes
-	auto host_scene = gfx::cpu::Scene::from(scene);
-	auto vk_scene = gfx::vulkan::Scene::from(drc, host_scene, gfx::vulkan::SceneFlags::eDefault);
+	auto host_scene = cpu::Scene::from(scene);
+	auto vk_scene = vulkan::Scene::from(drc, host_scene, vulkan::SceneFlags::eDefault);
 
 	// Create the render pass and generate the pipelines
 	vk::RenderPass render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)

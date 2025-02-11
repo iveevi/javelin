@@ -268,16 +268,16 @@ int main(int argc, char *argv[])
 	auto m_proj = uniform_field(MVP, proj);
 
 	// Configuring assets
-	auto mesh = engine::ImportedAsset::from(argv[1]).value();
+	auto mesh = ImportedAsset::from(argv[1]).value();
 
 	auto scene = core::Scene();
 	scene.add(mesh);
 
-	auto host_scene = gfx::cpu::Scene::from(scene);
+	auto host_scene = cpu::Scene::from(scene);
 	
-	auto device_scene = gfx::vulkan::Scene::from(drc,
+	auto device_scene = vulkan::Scene::from(drc,
 		host_scene,
-		gfx::vulkan::SceneFlags::eDefault);
+		vulkan::SceneFlags::eDefault);
 
 	// Camera controllers
 	Transform camera_transform;

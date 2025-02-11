@@ -6,7 +6,7 @@
 #include "../triangle_mesh.hpp"
 #include "vertex_flags.hpp"
 
-namespace jvl::gfx::vulkan {
+namespace jvl::vulkan {
 
 struct InterleaveResult {
 	std::vector <float> data;
@@ -103,4 +103,4 @@ struct TriangleMesh : core::Unique {
 	}
 };
 
-} // namespace jvl::gfx::vulkan
+} // namespace jvl::vulkan

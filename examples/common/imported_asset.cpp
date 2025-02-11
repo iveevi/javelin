@@ -29,12 +29,9 @@ inline bool operator==(const tinyobj::index_t &a, const tinyobj::index_t &b)
 
 } // namespace tinyobj
 
-namespace jvl::engine {
-
 std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &path)
 {
-	using core::Mesh;
-	using core::Material;
+	using jvl::core::Material;
 
 	ImportedAsset imported_asset;
 	imported_asset.path = path;
@@ -147,29 +144,29 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 		}
 
 		// Compose the final mesh
-		Mesh mesh;
+		ImportedMesh mesh;
 
 		mesh.vertex_count = positions.size();
 
 		if (positions.size())
-			mesh.vertex_properties[Mesh::position_key] = positions;
+			mesh.vertex_properties[ImportedMesh::position_key] = positions;
 		if (normals.size())
-			mesh.vertex_properties[Mesh::normal_key] = normals;
+			mesh.vertex_properties[ImportedMesh::normal_key] = normals;
 		if (uvs.size())
-			mesh.vertex_properties[Mesh::uv_key] = uvs;
+			mesh.vertex_properties[ImportedMesh::uv_key] = uvs;
 
 		if (triangles.size())
-			mesh.face_properties[Mesh::triangle_key] = triangles;
+			mesh.face_properties[ImportedMesh::triangle_key] = triangles;
 		if (quadrilaterals.size())
-			mesh.face_properties[Mesh::quadrilateral_key] = quadrilaterals;
+			mesh.face_properties[ImportedMesh::quadrilateral_key] = quadrilaterals;
 		if (materials.size())
-			mesh.face_properties[Mesh::material_key] = materials;
+			mesh.face_properties[ImportedMesh::material_key] = materials;
 
 		imported_asset.geometries.push_back(mesh);
 	}
 
 	auto convert_to_color3 = [](const tinyobj::real_t *const values) {
-		return core::color3(values[0], values[1], values[2]);
+		return jvl::core::color3(values[0], values[1], values[2]);
 	};
 
 
@@ -177,7 +174,7 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 		std::string fixed = in;
 		std::replace(fixed.begin(), fixed.end(), '\\', '/');
 		std::string full = path.parent_path() / fixed;
-		return core::texture(full);
+		return jvl::core::texture(full);
 	};
 
 	auto &materials = reader.GetMaterials();
@@ -185,7 +182,7 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 		Material m(material.name);
 
 		// TODO: check for textures
-		m.values[Material::brdf_key] = core::name("Phong");
+		m.values[Material::brdf_key] = jvl::core::name("Phong");
 
 		// Diffuse value
 		if (material.diffuse_texname.empty())
@@ -223,7 +220,7 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 	while (imported_asset.materials.size() < referenced_materials.size()) {
 		// TODO: default_phong()
 		Material m("default");
-		m.values[Material::brdf_key] = core::name("Phong");
+		m.values[Material::brdf_key] = jvl::core::name("Phong");
 		m.values[Material::diffuse_key] = glm::vec3(1, 0, 1);
 		m.values[Material::specular_key] = glm::vec3(0, 0, 0);
 		m.values[Material::roughness_key] = 1.0f;
@@ -233,5 +230,3 @@ std::optional <ImportedAsset> ImportedAsset::from(const std::filesystem::path &p
 
 	return imported_asset;
 }
-
-} // namespace jvl::core

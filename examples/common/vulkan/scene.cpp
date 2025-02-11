@@ -1,6 +1,6 @@
 #include "scene.hpp"
 
-namespace jvl::gfx::vulkan {
+namespace jvl::vulkan {
 
 Scene Scene::from(VulkanResources &drc, const cpu::Scene &other, SceneFlags flags)
 {
@@ -46,4 +46,4 @@ Scene Scene::from(VulkanResources &drc, const cpu::Scene &other, SceneFlags flag
 	return result;
 }
 
-} // namespace jvl::gfx::vulkan
+} // namespace jvl::vulkan

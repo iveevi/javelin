@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace jvl::gfx::vulkan {
+namespace jvl::vulkan {
 
 enum class MaterialFlags : uint64_t {
 	eNone = 0b0,
@@ -23,4 +23,4 @@ inline MaterialFlags operator|(MaterialFlags one, MaterialFlags two)
 	return MaterialFlags(uint64_t(one) | uint64_t(two));
 }
 
-} // namespace jvl::gfx::vulkan
+} // namespace jvl::vulkan

@@ -5,7 +5,7 @@
 
 #include "material_flags.hpp"
 
-namespace jvl::gfx::vulkan {
+namespace jvl::vulkan {
 
 struct Material : core::Material {
 	MaterialFlags flags;
@@ -15,4 +15,4 @@ struct Material : core::Material {
 	Material(const core::Material &);
 };
 
-} // namespace jvl::gfx::vulkan
+} // namespace jvl::vulkan

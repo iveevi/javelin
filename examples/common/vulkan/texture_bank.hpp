@@ -8,7 +8,7 @@
 
 #include "texture.hpp"
 
-namespace jvl::gfx::vulkan {
+namespace jvl::vulkan {
 
 class TextureBank : public bestd::tree <std::string, littlevk::Image> {
 	// Textures which are yet to finish transitions
@@ -31,4 +31,4 @@ public:
 		const core::Texture &);
 };
 
-} // namespace jvl::gfx::vulkan
+} // namespace jvl::vulkan

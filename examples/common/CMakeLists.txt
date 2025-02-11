@@ -15,8 +15,6 @@ add_library(common-gfx STATIC
 	${IMGUI_SOURCES}
 	aabb.cpp
 	camera_controller.cpp
-	cpu/bvh.cpp
-	cpu/intersection.cpp
 	cpu/scene.cpp
 	formats.cpp
 	imgui.cpp

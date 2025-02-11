@@ -1,6 +1,6 @@
 #include "material.hpp"
 
-namespace jvl::gfx::vulkan {
+namespace jvl::vulkan {
 	
 Material::Material(const core::Material &other)
 		: core::Material(other)
@@ -24,4 +24,4 @@ Material::Material(const core::Material &other)
 		flags = flags | MaterialFlags::eRoughnessSampler;
 }
 
-} // namespace jvl::gfx::vulkan
+} // namespace jvl::vulkan

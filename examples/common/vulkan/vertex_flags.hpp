@@ -9,7 +9,7 @@
 
 #include <core/logging.hpp>
 
-namespace jvl::gfx::vulkan {
+namespace jvl::vulkan {
 
 enum class VertexFlags : uint64_t {
 	eNone		= 0b0,
@@ -78,4 +78,4 @@ inline auto binding_and_attributes(VertexFlags flags)
 	return std::make_tuple(binding, attributes);
 }
 
-} // namespace jvl::gfx::vulkan
+} // namespace jvl::vulkan

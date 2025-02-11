@@ -2,7 +2,7 @@
 
 #include <set>
 
-#include "mesh.hpp"
+#include "imported_mesh.hpp"
 #include "messaging.hpp"
 
 #include <fmt/printf.h>
@@ -19,7 +19,7 @@ struct TriangleMesh : Unique {
 
 	TriangleMesh() : Unique(new_uuid <TriangleMesh> ()) {}
 
-	static std::optional <TriangleMesh> from(const Mesh &m) {
+	static std::optional <TriangleMesh> from(const ImportedMesh &m) {
 		TriangleMesh tm;
 
 		tm.uuid = new_uuid <TriangleMesh> ();
@@ -28,29 +28,29 @@ struct TriangleMesh : Unique {
 		auto &fprops = m.face_properties;
 
 		if (auto opt_pos = vprops
-			.get(Mesh::position_key)
+			.get(ImportedMesh::position_key)
 			.as <std::vector  <glm::vec3>> ())
 			tm.positions = opt_pos.value();
 		else
 			return std::nullopt;
 
 		if (auto opt_normals = vprops
-			.get(Mesh::normal_key)
+			.get(ImportedMesh::normal_key)
 			.as <std::vector <glm::vec3>> ())
 			tm.normals = opt_normals.value();
 		
 		if (auto opt_uvs = vprops
-			.get(Mesh::uv_key)
+			.get(ImportedMesh::uv_key)
 			.as <std::vector <glm::vec2>> ())
 			tm.uvs = opt_uvs.value();
 
 		if (auto opt_tris = fprops
-			.get(Mesh::triangle_key)
+			.get(ImportedMesh::triangle_key)
 			.as <std::vector <glm::ivec3>> ())
 			tm.triangles = opt_tris.value();
 
 		if (auto opt_materials = fprops
-			.get(Mesh::material_key)
+			.get(ImportedMesh::material_key)
 			.as <std::vector <int>> ()) {
 			tm.materials = opt_materials.value();
 			for (auto i : tm.materials)

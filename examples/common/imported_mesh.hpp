@@ -2,9 +2,7 @@
 
 #include "types.hpp"
 
-namespace jvl::core {
-
-struct Mesh {
+struct ImportedMesh {
 	// Vertex property keys
 	static constexpr char position_key[] = "position";
 	static constexpr char normal_key[] = "normal";
@@ -19,5 +17,3 @@ struct Mesh {
 	property <typed_vector> vertex_properties;
 	property <typed_vector> face_properties;
 };
-
-} // namespace jvl::core

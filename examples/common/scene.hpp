@@ -6,24 +6,21 @@
 #include <set>
 #include <vector>
 
-#include "mesh.hpp"
+#include "imported_mesh.hpp"
 #include "material.hpp"
 #include "messaging.hpp"
 #include "archetype.hpp"
 
 // Forward declarations
-namespace jvl::engine {
-
 struct ImportedAsset;
-
-}
 
 // Primary declaration
 namespace jvl::core {
 
 struct Scene {
 	// Archetype layout
-	std::vector <Mesh> geometries;
+	std::vector <ImportedMesh> geometries;
+
 	// std::vector <Material> materials;
 	Archetype <Material> materials;
 
@@ -90,12 +87,10 @@ struct Scene {
 	Object &add();
 	Object &add_root();
 
-	void add(const engine::ImportedAsset &);
+	void add(const ImportedAsset &);
 
 	Object &operator[](int64_t);
 	const Object &operator[](int64_t) const;
-
-	void write(const std::filesystem::path &);
 };
 
 } // namespace jvl::core

@@ -7,7 +7,7 @@
 #include "material.hpp"
 #include "triangle_mesh.hpp"
 
-namespace jvl::gfx::vulkan {
+namespace jvl::vulkan {
 
 enum class SceneFlags : uint32_t {
 	eDefault,		// Fine for most formats
@@ -27,4 +27,4 @@ struct Scene {
 	static Scene from(VulkanResources &, const cpu::Scene &, SceneFlags);
 };
 
-} // namespace jvl::gfx::vulkan
+} // namespace jvl::vulkan

@@ -94,7 +94,7 @@ void fragment(float saturation, float lightness, int splits)
 
 // Constructing the graphics pipeline
 littlevk::Pipeline configure_pipeline(VulkanResources &drc,
-				      gfx::vulkan::VertexFlags flags,
+				      vulkan::VertexFlags flags,
 				      const vk::RenderPass &render_pass,
 				      float saturation,
 				      float lightness,
@@ -118,7 +118,7 @@ littlevk::Pipeline configure_pipeline(VulkanResources &drc,
 		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
 		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 
-	auto [binding, attributes] = gfx::vulkan::binding_and_attributes(flags);
+	auto [binding, attributes] = vulkan::binding_and_attributes(flags);
 
 	return littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
 		.with_render_pass(render_pass, 0)
@@ -194,13 +194,13 @@ int main(int argc, char *argv[])
 	auto drc = VulkanResources::from("Palette", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
 
 	// Load the scene
-	auto asset = engine::ImportedAsset::from(path).value();
+	auto asset = ImportedAsset::from(path).value();
 	auto scene = core::Scene();
 	scene.add(asset);
 
 	// Prepare host and device scenes
-	auto host_scene = gfx::cpu::Scene::from(scene);
-	auto vk_scene = gfx::vulkan::Scene::from(drc, host_scene, gfx::vulkan::SceneFlags::eDefault);
+	auto host_scene = cpu::Scene::from(scene);
+	auto vk_scene = vulkan::Scene::from(drc, host_scene, vulkan::SceneFlags::eDefault);
 
 	// Create the render pass and generate the pipelines
 	vk::RenderPass render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)

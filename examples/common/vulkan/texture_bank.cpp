@@ -1,7 +1,7 @@
 #include "../formats.hpp"
 #include "texture_bank.hpp"
 
-namespace jvl::gfx::vulkan {
+namespace jvl::vulkan {
 
 static auto allocate(littlevk::LinkedDeviceAllocator <> allocator,
 		     const std::string &path,
@@ -102,4 +102,4 @@ bool TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
 	return true;
 }
 
-} // namespace jvl::gfx::vulkan
+} // namespace jvl::vulkan
