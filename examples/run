@@ -1,13 +1,10 @@
 #!/bin/sh
-top=$(cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P)
-
-cd "$top/.."
-
 set -x
 
+cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P)/.."
+
 # Run all examples
-# TODO: limit should be based on framess (--frames)
-./build/examples/colored/colored resources/meshes/nefertiti.obj --limit 1e3
+./build/examples/colored/colored resources/meshes/nefertiti.obj --frames 300
 ./build/examples/normals/normals resources/meshes/nefertiti.obj --limit 1e3
 ./build/examples/palette/palette resources/meshes/nefertiti.obj --limit 1e3
 ./build/examples/particles/particles --limit 1e3
