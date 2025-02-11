@@ -15,7 +15,6 @@
 #include <ire/core.hpp>
 #include <thunder/opt.hpp>
 #include <thunder/linkage_unit.hpp>
-#include <constants.hpp>
 
 using namespace jvl;
 using namespace jvl::ire;

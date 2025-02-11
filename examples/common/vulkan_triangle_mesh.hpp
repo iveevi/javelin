@@ -2,18 +2,15 @@
 
 #include <littlevk/littlevk.hpp>
 
-#include "../messaging.hpp"
-#include "../triangle_mesh.hpp"
+#include "triangle_mesh.hpp"
 #include "vertex_flags.hpp"
-
-namespace jvl::vulkan {
 
 struct InterleaveResult {
 	std::vector <float> data;
 	VertexFlags enabled;
 };
 
-inline InterleaveResult interleave(const core::TriangleMesh &tmesh, VertexFlags flags)
+inline InterleaveResult interleave(const TriangleMesh &tmesh, VertexFlags flags)
 {
 	std::vector <float> bf;
 
@@ -63,7 +60,7 @@ inline InterleaveResult interleave(const core::TriangleMesh &tmesh, VertexFlags 
 	return InterleaveResult(bf, flags);
 }
 
-struct TriangleMesh : core::Unique {
+struct VulkanTriangleMesh {
 	VertexFlags flags;
 	littlevk::Buffer vertices;
 	
@@ -72,20 +69,15 @@ struct TriangleMesh : core::Unique {
 	
 	std::set <int> material_usage;
 
-	TriangleMesh() : core::Unique(core::new_uuid <TriangleMesh> ()) {}
+	VulkanTriangleMesh() = default;
 
-	static std::optional <TriangleMesh> from(littlevk::LinkedDeviceAllocator <> allocator,
-						 const core::TriangleMesh &tmesh,
-						 const VertexFlags &maximal_flags = VertexFlags::eAll) {
-		TriangleMesh vmesh;
+	static bestd::optional <VulkanTriangleMesh> from(littlevk::LinkedDeviceAllocator <> allocator,
+						   const ::TriangleMesh &tmesh,
+						   const VertexFlags &maximal_flags = VertexFlags::eAll) {
+		VulkanTriangleMesh vmesh;
 
 		auto result = interleave(tmesh, maximal_flags);
 
-		// fmt::println("result of interleaving: {} -- {:08b}",
-		// 	result.buffer.size(),
-		// 	int32_t(result.enabled));
-
-		vmesh.uuid = core::new_uuid <TriangleMesh> ();
 		vmesh.flags = result.enabled;
 		vmesh.count = 3 * tmesh.triangles.size();
 
@@ -102,5 +94,3 @@ struct TriangleMesh : core::Unique {
 		return vmesh;
 	}
 };
-
-} // namespace jvl::vulkan

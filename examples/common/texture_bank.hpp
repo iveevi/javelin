@@ -8,9 +8,7 @@
 
 #include "texture.hpp"
 
-namespace jvl::vulkan {
-
-class TextureBank : public bestd::tree <std::string, littlevk::Image> {
+class VulkanTextureBank : public bestd::tree <std::string, littlevk::Image> {
 	// Textures which are yet to finish transitions
 	std::set <std::string> processing;
 public:
@@ -23,12 +21,10 @@ public:
 	bool upload(littlevk::LinkedDeviceAllocator <>,
 		littlevk::LinkedCommandQueue,
 		const std::string &,
-		const core::Texture &);
+		const Texture &);
 	
 	bool upload(littlevk::LinkedDeviceAllocator <>,
 		const vk::CommandBuffer &,
 		const std::string &,
-		const core::Texture &);
+		const Texture &);
 };
-
-} // namespace jvl::vulkan

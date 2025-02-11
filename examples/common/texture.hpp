@@ -8,8 +8,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-namespace jvl::core {
-
 // Forward declarartions
 class TextureBank;
 
@@ -27,5 +25,3 @@ struct Texture {
 class TextureBank : public bestd::tree <std::string, Texture> {
 	using bestd::tree <std::string, Texture> ::tree;
 };
-
-} // namespace jvl::core

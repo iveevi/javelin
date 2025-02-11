@@ -12,8 +12,6 @@
 
 #include "texture.hpp"
 
-namespace jvl::core {
-
 MODULE(texture);
 
 Texture Texture::from(const std::filesystem::path &path)
@@ -77,5 +75,3 @@ Texture &Texture::from(TextureBank &bank, const std::filesystem::path &path)
 	bank[path] = Texture::from(path);
 	return bank[path];
 }
-
-} // namespace jvl::core

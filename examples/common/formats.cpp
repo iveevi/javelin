@@ -4,8 +4,6 @@
 
 #include "formats.hpp"
 
-namespace jvl::core {
-
 size_t FormatInfo::bytes(const vk::Extent2D &extent) const
 {
 	return size * extent.width * extent.height;
@@ -28,5 +26,3 @@ FormatInfo FormatInfo::fetch(const vk::Format &format)
 
 	return format_infos.at(format);
 }
-
-} // namespace jvl::core

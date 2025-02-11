@@ -1,11 +1,9 @@
-#include "../formats.hpp"
+#include "formats.hpp"
 #include "texture_bank.hpp"
-
-namespace jvl::vulkan {
 
 static auto allocate(littlevk::LinkedDeviceAllocator <> allocator,
 		     const std::string &path,
-		     const core::Texture &texture)
+		     const Texture &texture)
 {
 	littlevk::ImageCreateInfo image_info {
 		uint32_t(texture.width),
@@ -21,7 +19,7 @@ static auto allocate(littlevk::LinkedDeviceAllocator <> allocator,
 	littlevk::Image image;
 	littlevk::Buffer staging;
 
-	auto info = core::FormatInfo::fetch(texture.format);
+	auto info = FormatInfo::fetch(texture.format);
 
 	std::tie(staging, image) = allocator
 		.buffer(texture.data,
@@ -33,20 +31,20 @@ static auto allocate(littlevk::LinkedDeviceAllocator <> allocator,
 	return std::make_tuple(staging, image);
 }
 
-bool TextureBank::ready(const std::string &path) const
+bool VulkanTextureBank::ready(const std::string &path) const
 {
 	return !processing.contains(path);
 }
 
-void TextureBank::mark_ready(const std::string &path)
+void VulkanTextureBank::mark_ready(const std::string &path)
 {
 	processing.erase(path);
 }
 
-bool TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
+bool VulkanTextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
 			 littlevk::LinkedCommandQueue commander,
 			 const std::string &path,
-			 const core::Texture &texture)
+			 const Texture &texture)
 {
 	if (contains(path))
 		return false;
@@ -70,10 +68,10 @@ bool TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
 	return true;
 }
 
-bool TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
+bool VulkanTextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
 			 const vk::CommandBuffer &cmd,
 			 const std::string &path,
-			 const core::Texture &texture)
+			 const Texture &texture)
 {
 	if (contains(path))
 		return false;
@@ -101,5 +99,3 @@ bool TextureBank::upload(littlevk::LinkedDeviceAllocator <> allocator,
 
 	return true;
 }
-
-} // namespace jvl::vulkan

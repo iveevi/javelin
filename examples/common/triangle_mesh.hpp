@@ -3,13 +3,10 @@
 #include <set>
 
 #include "imported_mesh.hpp"
-#include "messaging.hpp"
 
 #include <fmt/printf.h>
 
-namespace jvl::core {
-
-struct TriangleMesh : Unique {
+struct TriangleMesh {
 	std::vector <glm::vec3> positions;
 	std::vector <glm::vec3> normals;
 	std::vector <glm::vec2> uvs;
@@ -17,12 +14,10 @@ struct TriangleMesh : Unique {
 	std::vector <int> materials;
 	std::set <int> material_usage;
 
-	TriangleMesh() : Unique(new_uuid <TriangleMesh> ()) {}
+	TriangleMesh() = default;
 
 	static std::optional <TriangleMesh> from(const ImportedMesh &m) {
 		TriangleMesh tm;
-
-		tm.uuid = new_uuid <TriangleMesh> ();
 
 		auto &vprops = m.vertex_properties;
 		auto &fprops = m.face_properties;
@@ -97,5 +92,3 @@ struct TriangleMesh : Unique {
 		return mesh;
 	}
 };
-
-} // namespace jvl::core

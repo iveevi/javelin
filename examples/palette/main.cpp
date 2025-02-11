@@ -16,7 +16,7 @@
 #include "imported_asset.hpp"
 #include "timer.hpp"
 #include "transform.hpp"
-#include "vulkan/triangle_mesh.hpp"
+#include "vulkan_triangle_mesh.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -92,7 +92,7 @@ void fragment(float saturation, float lightness, int splits)
 
 // Constructing the graphics pipeline
 littlevk::Pipeline configure_pipeline(VulkanResources &drc,
-				      vulkan::VertexFlags flags,
+				      VertexFlags flags,
 				      const vk::RenderPass &render_pass,
 				      float saturation,
 				      float lightness,
@@ -116,7 +116,7 @@ littlevk::Pipeline configure_pipeline(VulkanResources &drc,
 		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
 		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 
-	auto [binding, attributes] = vulkan::binding_and_attributes(flags);
+	auto [binding, attributes] = binding_and_attributes(flags);
 
 	return littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
 		.with_render_pass(render_pass, 0)
@@ -194,11 +194,11 @@ int main(int argc, char *argv[])
 	// Load the scene
 	auto asset = ImportedAsset::from(path).value();
 	
-	std::vector <vulkan::TriangleMesh> meshes;
+	std::vector <VulkanTriangleMesh> meshes;
 
 	for (auto &g : asset.geometries) {
-		auto m = core::TriangleMesh::from(g).value();
-		auto v = vulkan::TriangleMesh::from(drc.allocator(), m, vulkan::VertexFlags::eAll).value();
+		auto m = TriangleMesh::from(g).value();
+		auto v = VulkanTriangleMesh::from(drc.allocator(), m, VertexFlags::eAll).value();
 		meshes.emplace_back(v);
 	}
 

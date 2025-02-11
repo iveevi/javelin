@@ -303,7 +303,7 @@ int main(int argc, char *argv[])
 	}
 
 	// Prepare the sphere geometry
-	auto sphere = core::TriangleMesh::uv_sphere(25, 0.025f);
+	auto sphere = TriangleMesh::uv_sphere(25, 0.025f);
 
 	littlevk::Buffer vb;
 	littlevk::Buffer ib;

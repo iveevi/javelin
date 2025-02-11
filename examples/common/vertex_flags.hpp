@@ -9,8 +9,6 @@
 
 #include <core/logging.hpp>
 
-namespace jvl::vulkan {
-
 enum class VertexFlags : uint64_t {
 	eNone		= 0b0,
 	ePosition	= 0b1,
@@ -42,32 +40,32 @@ inline auto binding_and_attributes(VertexFlags flags)
 {
 	MODULE(binding-and-attributes);
 
-	JVL_ASSERT_PLAIN(enabled(flags, vulkan::VertexFlags::ePosition));
+	JVL_ASSERT_PLAIN(enabled(flags, VertexFlags::ePosition));
 	
 	uint32_t offset = 0;
 	uint32_t index = 0;
 
 	std::vector <vk::VertexInputAttributeDescription> attributes;
 
-	if (enabled(flags, vulkan::VertexFlags::ePosition)) {
+	if (enabled(flags, VertexFlags::ePosition)) {
 		attributes.emplace_back(index++, 0, vk::Format::eR32G32B32Sfloat, offset);
-		flags = flags - vulkan::VertexFlags::ePosition;
+		flags = flags - VertexFlags::ePosition;
 		offset += sizeof(glm::vec3);
 	}
 	
-	if (enabled(flags, vulkan::VertexFlags::eNormal)) {
+	if (enabled(flags, VertexFlags::eNormal)) {
 		attributes.emplace_back(index++, 0, vk::Format::eR32G32B32Sfloat, offset);
-		flags = flags - vulkan::VertexFlags::eNormal;
+		flags = flags - VertexFlags::eNormal;
 		offset += sizeof(glm::vec3);
 	}
 	
-	if (enabled(flags, vulkan::VertexFlags::eUV)) {
+	if (enabled(flags, VertexFlags::eUV)) {
 		attributes.emplace_back(index++, 0, vk::Format::eR32G32Sfloat, offset);
-		flags = flags - vulkan::VertexFlags::eUV;
+		flags = flags - VertexFlags::eUV;
 		offset += sizeof(glm::vec2);
 	}
 
-	JVL_ASSERT(flags == vulkan::VertexFlags::eNone,
+	JVL_ASSERT(flags == VertexFlags::eNone,
 		"unhandled flags in vertex layout: {:08b}",
 		uint32_t(flags));
 
@@ -77,5 +75,3 @@ inline auto binding_and_attributes(VertexFlags flags)
 
 	return std::make_tuple(binding, attributes);
 }
-
-} // namespace jvl::vulkan

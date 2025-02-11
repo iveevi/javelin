@@ -2,8 +2,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-namespace jvl::core {
-
 struct FormatInfo {
 	size_t size;
 	size_t channels;
@@ -12,5 +10,3 @@ struct FormatInfo {
 
 	static FormatInfo fetch(const vk::Format &);
 };
-
-} // namespace jvl::core

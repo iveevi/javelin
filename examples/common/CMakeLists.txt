@@ -13,15 +13,14 @@ set(IMGUI_SOURCES
 # Javelin graphics stack
 add_library(common-gfx STATIC
 	${IMGUI_SOURCES}
-	aabb.cpp
 	camera_controller.cpp
 	formats.cpp
 	imgui.cpp
 	imported_asset.cpp
 	interactive_window.cpp
+	material.cpp
 	texture.cpp
-	vulkan/material.cpp
-	vulkan/texture_bank.cpp
+	texture_bank.cpp
 	vulkan_resources.cpp)
 
 target_compile_options(common-gfx PRIVATE

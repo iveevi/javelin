@@ -1,4 +1,3 @@
-#include "constants.hpp"
 #include "camera_controller.hpp"
 
 CameraController::CameraController(Transform &transform_,
@@ -26,7 +25,7 @@ bool CameraController::handle_cursor(glm::vec2 mouse)
 	pitch -= dx * settings.sensitivity / 1e+3f;
 	yaw -= dy * settings.sensitivity / 1e+3f;
 
-	float pi_e = jvl::pi <float> / 2.0f - 1e-3f;
+	float pi_e = glm::pi <float> () / 2.0f - 1e-3f;
 	yaw = std::min(pi_e, std::max(-pi_e, yaw));
 
 	transform.rotation = glm::quat(glm::vec3(yaw, pitch, 0));
@@ -46,7 +45,7 @@ bool CameraController::handle_delta(glm::vec2 delta)
 	pitch -= dx * settings.sensitivity / 1e+3f;
 	yaw -= dy * settings.sensitivity / 1e+3f;
 
-	float pi_e = jvl::pi <float> / 2.0f - 1e-3f;
+	float pi_e = glm::pi <float> () / 2.0f - 1e-3f;
 	yaw = std::min(pi_e, std::max(-pi_e, yaw));
 
 	transform.rotation = glm::quat(glm::vec3(yaw, pitch, 0));

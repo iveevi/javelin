@@ -13,7 +13,7 @@
 #include "transform.hpp"
 #include "camera_controller.hpp"
 #include "imported_asset.hpp"
-#include "vulkan/triangle_mesh.hpp"
+#include "triangle_mesh.hpp"
 
 using namespace jvl;
 using namespace tsg;

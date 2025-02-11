@@ -13,7 +13,7 @@
 #include "imported_asset.hpp"
 #include "transform.hpp"
 #include "vulkan_resources.hpp"
-#include "vulkan/triangle_mesh.hpp"
+#include "vulkan_triangle_mesh.hpp"
 
 using namespace jvl;
 using namespace tsg;
@@ -268,11 +268,11 @@ int main(int argc, char *argv[])
 	// Configuring assets
 	auto asset = ImportedAsset::from(argv[1]).value();
 
-	std::vector <vulkan::TriangleMesh> meshes;
+	std::vector <VulkanTriangleMesh> meshes;
 
 	for (auto &g : asset.geometries) {
-		auto m = core::TriangleMesh::from(g).value();
-		auto v = vulkan::TriangleMesh::from(drc.allocator(), m, vulkan::VertexFlags::eAll).value();
+		auto m = TriangleMesh::from(g).value();
+		auto v = VulkanTriangleMesh::from(drc.allocator(), m, VertexFlags::eAll).value();
 		meshes.emplace_back(v);
 	}
 

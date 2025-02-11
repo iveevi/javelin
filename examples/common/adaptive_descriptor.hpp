@@ -4,8 +4,6 @@
 
 #include <bestd/tree.hpp>
 
-namespace jvl::core {
-
 class AdaptiveDescriptor {
 	vk::DescriptorSet handle;
 	vk::DescriptorSetLayout layout;
@@ -68,5 +66,3 @@ public:
 };
 
 using DescriptorTable = bestd::tree <std::string, AdaptiveDescriptor>;
-
-} // namespace jvl::core
