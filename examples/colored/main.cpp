@@ -8,16 +8,14 @@
 
 #include "aperature.hpp"
 #include "camera_controller.hpp"
-#include "cpu/scene.hpp"
 #include "default_framebuffer_set.hpp"
 #include "vulkan_resources.hpp"
 #include "extensions.hpp"
 #include "imgui.hpp"
 #include "imported_asset.hpp"
-#include "scene.hpp"
 #include "timer.hpp"
 #include "transform.hpp"
-#include "vulkan/scene.hpp"
+#include "vulkan/triangle_mesh.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -159,14 +157,13 @@ int main(int argc, char *argv[])
 	// Load the scene
 	auto asset = ImportedAsset::from(path).value();
 
-	// std::vector <vulkan::TriangleMesh>
+	std::vector <vulkan::TriangleMesh> meshes;
 
-	core::Scene scene;
-	scene.add(asset);
-
-	// Prepare host and device scenes
-	auto host_scene = cpu::Scene::from(scene);
-	auto vk_scene = vulkan::Scene::from(drc, host_scene, vulkan::SceneFlags::eDefault);
+	for (auto &g : asset.geometries) {
+		auto m = core::TriangleMesh::from(g).value();
+		auto v = vulkan::TriangleMesh::from(drc.allocator(), m, vulkan::VertexFlags::eAll).value();
+		meshes.emplace_back(v);
+	}
 
 	// Create the render pass and generate the pipelines
 	vk::RenderPass render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
@@ -247,7 +244,7 @@ int main(int argc, char *argv[])
 		
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, ppl.handle);
 	
-		for (auto &mesh : vk_scene.meshes) {
+		for (auto &mesh : meshes) {
 			cmd.pushConstants <solid_t <MVP>> (ppl.layout,
 				vk::ShaderStageFlagBits::eVertex,
 				0, mvp);

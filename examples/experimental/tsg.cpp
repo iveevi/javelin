@@ -10,12 +10,10 @@
 
 #include "aperature.hpp"
 #include "camera_controller.hpp"
-#include "cpu/scene.hpp"
 #include "imported_asset.hpp"
-#include "scene.hpp"
 #include "transform.hpp"
-#include "vulkan/scene.hpp"
 #include "vulkan_resources.hpp"
+#include "vulkan/triangle_mesh.hpp"
 
 using namespace jvl;
 using namespace tsg;
@@ -176,7 +174,7 @@ struct Framebuffer {
 
 int main(int argc, char *argv[])
 {
-	JVL_ASSERT_PLAIN(argc == 2);
+	JVL_ASSERT_PLAIN(argc >= 2);
 
 	auto drc = VulkanResources::from("TSG", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
 
@@ -268,16 +266,15 @@ int main(int argc, char *argv[])
 	auto m_proj = uniform_field(MVP, proj);
 
 	// Configuring assets
-	auto mesh = ImportedAsset::from(argv[1]).value();
+	auto asset = ImportedAsset::from(argv[1]).value();
 
-	auto scene = core::Scene();
-	scene.add(mesh);
+	std::vector <vulkan::TriangleMesh> meshes;
 
-	auto host_scene = cpu::Scene::from(scene);
-	
-	auto device_scene = vulkan::Scene::from(drc,
-		host_scene,
-		vulkan::SceneFlags::eDefault);
+	for (auto &g : asset.geometries) {
+		auto m = core::TriangleMesh::from(g).value();
+		auto v = vulkan::TriangleMesh::from(drc.allocator(), m, vulkan::VertexFlags::eAll).value();
+		meshes.emplace_back(v);
+	}
 
 	// Camera controllers
 	Transform camera_transform;
@@ -362,7 +359,7 @@ int main(int argc, char *argv[])
 				auto cmd_ppl = cmd_rp.bindPipeline(pipeline);
 
 				// Render all the meshes
-				for (auto &mesh : device_scene.meshes) {
+				for (auto &mesh : meshes) {
 					int mid = *mesh.material_usage.begin();
 					// TODO: draw state valid only if constants have been pushed...
 					cmd_ppl // ...

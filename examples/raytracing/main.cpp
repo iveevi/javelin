@@ -8,13 +8,10 @@
 #include "default_framebuffer_set.hpp"
 #include "aperature.hpp"
 #include "vulkan_resources.hpp"
-#include "scene.hpp"
 #include "transform.hpp"
 #include "camera_controller.hpp"
 #include "imgui.hpp"
 #include "imported_asset.hpp"
-#include "cpu/scene.hpp"
-#include "vulkan/scene.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -72,13 +69,6 @@ int main(int argc, char *argv[])
 	// Load the scene
 	auto asset = ImportedAsset::from(path).value();
 
-	auto scene = core::Scene();
-	scene.add(asset);
-
-	// Prepare host and device scenes
-	auto host_scene = cpu::Scene::from(scene);
-	auto vk_scene = vulkan::Scene::from(drc, host_scene, vulkan::SceneFlags::eDefault);
-
 	// Create the render pass and generate the pipelines
 	vk::RenderPass render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
 		.add_attachment(littlevk::default_color_attachment(drc.swapchain.format))
@@ -91,14 +81,6 @@ int main(int argc, char *argv[])
 	// Configure ImGui
 	configure_imgui(drc, render_pass);
 
-	auto &sampled = vk_scene.meshes[0];
-	// auto ppl = configure_pipeline(drc,
-	// 	sampled.flags,
-	// 	render_pass,
-	// 	saturation,
-	// 	lightness,
-	// 	splits);
-	
 	// Framebuffer manager
 	DefaultFramebufferSet framebuffers;
 	framebuffers.resize(drc, render_pass);

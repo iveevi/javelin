@@ -15,15 +15,12 @@ add_library(common-gfx STATIC
 	${IMGUI_SOURCES}
 	aabb.cpp
 	camera_controller.cpp
-	cpu/scene.cpp
 	formats.cpp
 	imgui.cpp
 	imported_asset.cpp
 	interactive_window.cpp
-	scene.cpp
 	texture.cpp
 	vulkan/material.cpp
-	vulkan/scene.cpp
 	vulkan/texture_bank.cpp
 	vulkan_resources.cpp)
 

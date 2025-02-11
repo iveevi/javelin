@@ -10,12 +10,10 @@
 
 #include "aperature.hpp"
 #include "vulkan_resources.hpp"
-#include "scene.hpp"
 #include "transform.hpp"
 #include "camera_controller.hpp"
 #include "imported_asset.hpp"
-#include "cpu/scene.hpp"
-#include "vulkan/scene.hpp"
+#include "vulkan/triangle_mesh.hpp"
 
 using namespace jvl;
 using namespace tsg;
