@@ -4,16 +4,7 @@
 
 #include "interactive_window.hpp"
 
-struct DeviceResourceCollectionInfo {
-	// TODO: move selection to from(...)
-	vk::PhysicalDevice phdev;
-	std::string title;
-	vk::Extent2D extent;
-	std::vector <const char *> extensions;
-};
-
-// TODO: refactor to VulkanResources
-class DeviceResourceCollection {
+class VulkanResources {
 	void configure_device(const std::vector <const char *> &);
 public:
 	vk::PhysicalDevice phdev;
@@ -53,5 +44,7 @@ public:
 			resize);
 	}
 
-	static DeviceResourceCollection from(const DeviceResourceCollectionInfo &);
+	static VulkanResources from(const std::string &,
+		const vk::Extent2D &,
+		const std::vector <const char *> &);
 };

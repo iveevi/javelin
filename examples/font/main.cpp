@@ -11,7 +11,7 @@
 
 #include "extensions.hpp"
 #include "default_framebuffer_set.hpp"
-#include "device_resource_collection.hpp"
+#include "vulkan_resources.hpp"
 #include "imgui.hpp"
 
 using namespace jvl;
@@ -208,20 +208,8 @@ int main()
 		config.abort_on_validation_error = true;
 	}
 
-	// Load physical device
-	auto predicate = [](vk::PhysicalDevice phdev) {
-		return littlevk::physical_device_able(phdev, VK_EXTENSIONS);
-	};
-
 	// Configure the resource collection
-	DeviceResourceCollectionInfo info {
-		.phdev = littlevk::pick_physical_device(predicate),
-		.title = "Font Rendering",
-		.extent = vk::Extent2D(1920, 1080),
-		.extensions = VK_EXTENSIONS,
-	};
-
-	auto drc = DeviceResourceCollection::from(info);
+	auto drc = VulkanResources::from("Font", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
 
 	// Create the render pass and generate the pipelines
 	vk::RenderPass render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
@@ -233,7 +221,7 @@ int main()
 			.done();
 
 	// Configure ImGui
-	engine::configure_imgui(drc, render_pass);
+	configure_imgui(drc, render_pass);
 
 	// Framebuffer manager
 	DefaultFramebufferSet framebuffers;

@@ -2,7 +2,7 @@
 
 #include <littlevk/littlevk.hpp>
 
-#include "device_resource_collection.hpp"
+#include "vulkan_resources.hpp"
 
 // Assumes ownership of the swapchain (resizing only for now)
 struct DefaultFramebufferSet {
@@ -13,7 +13,7 @@ struct DefaultFramebufferSet {
 		return handles[i];
 	}
 
-	void resize(DeviceResourceCollection &drc, const vk::RenderPass &render_pass) {
+	void resize(VulkanResources &drc, const vk::RenderPass &render_pass) {
 		// Handle swapchain resizing here
 		drc.combined().resize(drc.surface, drc.window, drc.swapchain);
 

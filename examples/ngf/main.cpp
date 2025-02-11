@@ -2,7 +2,7 @@
 
 #include <littlevk/littlevk.hpp>
 
-#include "device_resource_collection.hpp"
+#include "vulkan_resources.hpp"
 #include "extensions.hpp"
 #include "shaders.hpp"
 
@@ -50,20 +50,8 @@ int main(int argc, char *argv[])
 		config.abort_on_validation_error = true;
 	}
 	
-	std::filesystem::path path = program.get("mesh");
-
-	// Load physical device
-	auto predicate = [](vk::PhysicalDevice phdev) {
-		return littlevk::physical_device_able(phdev, VK_EXTENSIONS);
-	};
+	std::filesystem::path path = program.get("binary");
 
 	// Configure the resource collection
-	DeviceResourceCollectionInfo info {
-		.phdev = littlevk::pick_physical_device(predicate),
-		.title = "Editor",
-		.extent = vk::Extent2D(1920, 1080),
-		.extensions = VK_EXTENSIONS,
-	};
-	
-	auto drc = DeviceResourceCollection::from(info);
+	auto drc = VulkanResources::from("NGF", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
 }

@@ -2,7 +2,7 @@
 
 namespace jvl::gfx::vulkan {
 
-Scene Scene::from(DeviceResourceCollection &drc, const cpu::Scene &other, SceneFlags flags)
+Scene Scene::from(VulkanResources &drc, const cpu::Scene &other, SceneFlags flags)
 {
 	Scene result;
 	result.flags = flags;

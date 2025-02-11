@@ -1,6 +1,6 @@
 #pragma once
 
-#include "device_resource_collection.hpp"
+#include "vulkan_resources.hpp"
 
 #include <chrono>
 

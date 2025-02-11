@@ -10,7 +10,7 @@
 #include "camera_controller.hpp"
 #include "cmaps.hpp"
 #include "default_framebuffer_set.hpp"
-#include "device_resource_collection.hpp"
+#include "vulkan_resources.hpp"
 #include "extensions.hpp"
 #include "imgui.hpp"
 #include "timer.hpp"
@@ -110,7 +110,7 @@ std::vector <glm::vec3> generate_random_points(int N, float spread)
 }
 
 // Pipeline configuration for rendering spheres
-littlevk::Pipeline configure_pipeline(DeviceResourceCollection &drc,
+littlevk::Pipeline configure_pipeline(VulkanResources &drc,
 				      const vk::RenderPass &render_pass,
 				      auto cmap)
 {
@@ -262,19 +262,7 @@ int main(int argc, char *argv[])
 		config.abort_on_validation_error = true;
 	}
 
-	// Load the asset and scene
-	auto predicate = [](vk::PhysicalDevice phdev) {
-		return littlevk::physical_device_able(phdev, VK_EXTENSIONS);
-	};
-
-	DeviceResourceCollectionInfo info {
-		.phdev = littlevk::pick_physical_device(predicate),
-			.title = "Point Cloud Renderer",
-			.extent = vk::Extent2D(1920, 1080),
-			.extensions = VK_EXTENSIONS,
-	};
-
-	auto drc = DeviceResourceCollection::from(info);
+	auto drc = VulkanResources::from("Particles", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
 
 	// Create the render pass and generate the pipelines
 	vk::RenderPass render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)
@@ -286,7 +274,7 @@ int main(int argc, char *argv[])
 		.done();
 
 	// Configure ImGui
-	engine::configure_imgui(drc, render_pass);
+	configure_imgui(drc, render_pass);
 
 	// Generate random points for the point cloud
 	int N = 150'000;
@@ -473,7 +461,7 @@ int main(int argc, char *argv[])
 
 		// ImGui
 		{
-			engine::ImGuiRenderContext context(cmd);
+			ImGuiRenderContext context(cmd);
 
 			ImGui::Begin("Configure Simulation");
 

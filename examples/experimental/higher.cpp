@@ -9,7 +9,7 @@
 #include <tsg/commands.hpp>
 
 #include "aperature.hpp"
-#include "device_resource_collection.hpp"
+#include "vulkan_resources.hpp"
 #include "scene.hpp"
 #include "transform.hpp"
 #include "camera_controller.hpp"

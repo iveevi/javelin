@@ -11,7 +11,7 @@
 #include "color.hpp"
 #include "cpu/scene.hpp"
 #include "default_framebuffer_set.hpp"
-#include "device_resource_collection.hpp"
+#include "vulkan_resources.hpp"
 #include "extensions.hpp"
 #include "imgui.hpp"
 #include "imported_asset.hpp"
@@ -93,7 +93,7 @@ void fragment(float saturation, float lightness, int splits)
 }
 
 // Constructing the graphics pipeline
-littlevk::Pipeline configure_pipeline(DeviceResourceCollection &drc,
+littlevk::Pipeline configure_pipeline(VulkanResources &drc,
 				      gfx::vulkan::VertexFlags flags,
 				      const vk::RenderPass &render_pass,
 				      float saturation,
@@ -191,20 +191,7 @@ int main(int argc, char *argv[])
 	// Load the asset and scene
 	std::filesystem::path path = program.get("mesh");
 
-	// Load physical device
-	auto predicate = [](vk::PhysicalDevice phdev) {
-		return littlevk::physical_device_able(phdev, VK_EXTENSIONS);
-	};
-
-	// Configure the resource collection
-	DeviceResourceCollectionInfo info {
-		.phdev = littlevk::pick_physical_device(predicate),
-		.title = "Editor",
-		.extent = vk::Extent2D(1920, 1080),
-		.extensions = VK_EXTENSIONS,
-	};
-
-	auto drc = DeviceResourceCollection::from(info);
+	auto drc = VulkanResources::from("Palette", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
 
 	// Load the scene
 	auto asset = engine::ImportedAsset::from(path).value();
@@ -225,7 +212,7 @@ int main(int argc, char *argv[])
 			.done();
 
 	// Configure ImGui
-	engine::configure_imgui(drc, render_pass);
+	configure_imgui(drc, render_pass);
 
 	// Initial pipeline
 	float saturation = 0.5f;
@@ -317,7 +304,7 @@ int main(int argc, char *argv[])
 
 		// ImGui window to configure the palette
 		{
-			engine::ImGuiRenderContext context(cmd);
+			ImGuiRenderContext context(cmd);
 
 			// TODO: preview the colors in a grid
 			ImGui::Begin("Configure Palette");

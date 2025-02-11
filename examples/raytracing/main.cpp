@@ -7,7 +7,7 @@
 #include "extensions.hpp"
 #include "default_framebuffer_set.hpp"
 #include "aperature.hpp"
-#include "device_resource_collection.hpp"
+#include "vulkan_resources.hpp"
 #include "scene.hpp"
 #include "transform.hpp"
 #include "camera_controller.hpp"
@@ -66,20 +66,8 @@ int main(int argc, char *argv[])
 	// Load the asset and scene
 	std::filesystem::path path = argv[1];
 
-	// Load physical device
-	auto predicate = [](vk::PhysicalDevice phdev) {
-		return littlevk::physical_device_able(phdev, VK_EXTENSIONS);
-	};
-
 	// Configure the resource collection
-	DeviceResourceCollectionInfo info {
-		.phdev = littlevk::pick_physical_device(predicate),
-		.title = "Raytracing",
-		.extent = vk::Extent2D(1920, 1080),
-		.extensions = VK_EXTENSIONS,
-	};
-	
-	auto drc = DeviceResourceCollection::from(info);
+	auto drc = VulkanResources::from("Raytracing", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
 
 	// Load the scene
 	auto asset = engine::ImportedAsset::from(path).value();
@@ -100,7 +88,7 @@ int main(int argc, char *argv[])
 			.done();
 
 	// Configure ImGui
-	engine::configure_imgui(drc, render_pass);
+	configure_imgui(drc, render_pass);
 
 	auto &sampled = vk_scene.meshes[0];
 	// auto ppl = configure_pipeline(drc,

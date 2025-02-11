@@ -1,22 +1,22 @@
-#include "device_resource_collection.hpp"
+#include "vulkan_resources.hpp"
 
 // DeviceResourceCollection implementations
-littlevk::LinkedDeviceAllocator <> DeviceResourceCollection::allocator()
+littlevk::LinkedDeviceAllocator <> VulkanResources::allocator()
 {
 	return littlevk::bind(device, memory_properties, dal);
 }
 
-littlevk::LinkedDevices DeviceResourceCollection::combined()
+littlevk::LinkedDevices VulkanResources::combined()
 {
 	return littlevk::bind(phdev, device);
 }
 
-littlevk::LinkedCommandQueue DeviceResourceCollection::commander()
+littlevk::LinkedCommandQueue VulkanResources::commander()
 {
 	return littlevk::bind(device, command_pool, graphics_queue);
 }
 
-vk::CommandBuffer DeviceResourceCollection::new_command_buffer()
+vk::CommandBuffer VulkanResources::new_command_buffer()
 {
 	return device.allocateCommandBuffers(
 		vk::CommandBufferAllocateInfo {
@@ -25,7 +25,7 @@ vk::CommandBuffer DeviceResourceCollection::new_command_buffer()
 		}).front();
 }
 
-void DeviceResourceCollection::configure_device(const std::vector <const char *> &EXTENSIONS)
+void VulkanResources::configure_device(const std::vector <const char *> &EXTENSIONS)
 {
 	auto queue_family = littlevk::find_queue_families(phdev, surface);
 
@@ -60,13 +60,19 @@ void DeviceResourceCollection::configure_device(const std::vector <const char *>
 		}).unwrap(dal);
 }
 
-DeviceResourceCollection DeviceResourceCollection::from(const DeviceResourceCollectionInfo &info)
+VulkanResources VulkanResources::from(const std::string &title,
+							const vk::Extent2D &extent,
+							const std::vector <const char *> &extensions)
 {
-	DeviceResourceCollection drc;
+	VulkanResources drc;
+	
+	auto predicate = [&](vk::PhysicalDevice phdev) {
+		return littlevk::physical_device_able(phdev, extensions);
+	};
 
-	drc.phdev = info.phdev;
-	std::tie(drc.surface, drc.window) = littlevk::surface_handles(info.extent, info.title.c_str());
-	drc.configure_device(info.extensions);
+	drc.phdev = littlevk::pick_physical_device(predicate);
+	std::tie(drc.surface, drc.window) = littlevk::surface_handles(extent, title.c_str());
+	drc.configure_device(extensions);
 
 	return drc;
 }

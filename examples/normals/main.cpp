@@ -10,7 +10,7 @@
 #include "camera_controller.hpp"
 #include "cpu/scene.hpp"
 #include "default_framebuffer_set.hpp"
-#include "device_resource_collection.hpp"
+#include "vulkan_resources.hpp"
 #include "extensions.hpp"
 #include "imgui.hpp"
 #include "imported_asset.hpp"
@@ -79,7 +79,7 @@ void fragment()
 }
 
 // Constructing the graphics pipeline
-littlevk::Pipeline configure_pipeline(DeviceResourceCollection &drc,
+littlevk::Pipeline configure_pipeline(VulkanResources &drc,
 				      const vk::RenderPass &render_pass)
 {
 	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
@@ -166,20 +166,8 @@ int main(int argc, char *argv[])
 	// Load the asset and scene
 	std::filesystem::path path = program.get("mesh");
 
-	// Load physical device
-	auto predicate = [](vk::PhysicalDevice phdev) {
-		return littlevk::physical_device_able(phdev, VK_EXTENSIONS);
-	};
-
 	// Configure the resource collection
-	DeviceResourceCollectionInfo info {
-		.phdev = littlevk::pick_physical_device(predicate),
-		.title = "Editor",
-		.extent = vk::Extent2D(1920, 1080),
-		.extensions = VK_EXTENSIONS,
-	};
-	
-	auto drc = DeviceResourceCollection::from(info);
+	auto drc = VulkanResources::from("Normals", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
 
 	// Load the scene
 	auto asset = engine::ImportedAsset::from(path).value();
@@ -200,7 +188,7 @@ int main(int argc, char *argv[])
 			.done();
 
 	// Configure ImGui
-	engine::configure_imgui(drc, render_pass);
+	configure_imgui(drc, render_pass);
 
 	// Initial pipeline
 	auto ppl = configure_pipeline(drc, render_pass);

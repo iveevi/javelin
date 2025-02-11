@@ -12,4 +12,4 @@ set -x
 ./build/examples/palette/palette resources/meshes/nefertiti.obj --limit 1e3
 ./build/examples/particles/particles --limit 1e3
 ./build/examples/compute/compute --limit 1e3
-./build/examples/ngf/ngf --frames 120
+./build/examples/ngf/ngf resources/meshes/armadillo-ngf.bin --frames 120

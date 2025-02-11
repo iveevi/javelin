@@ -14,20 +14,20 @@ set(IMGUI_SOURCES
 add_library(common-gfx STATIC
 	${IMGUI_SOURCES}
 	aabb.cpp
-	device_resource_collection.cpp
-	formats.cpp
-	interactive_window.cpp
-	scene.cpp
-	texture.cpp
 	camera_controller.cpp
-	imgui.cpp
-	imported_asset.cpp
 	cpu/bvh.cpp
 	cpu/intersection.cpp
 	cpu/scene.cpp
+	formats.cpp
+	imgui.cpp
+	imported_asset.cpp
+	interactive_window.cpp
+	scene.cpp
+	texture.cpp
 	vulkan/material.cpp
 	vulkan/scene.cpp
-	vulkan/texture_bank.cpp)
+	vulkan/texture_bank.cpp
+	vulkan_resources.cpp)
 
 target_compile_options(common-gfx PRIVATE
 	${STATIC_ANALYSIS}

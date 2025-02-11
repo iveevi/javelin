@@ -3,8 +3,6 @@
 
 #include "imgui.hpp"
 
-namespace jvl::engine {
-
 // Rendering context using RAII
 ImGuiRenderContext::ImGuiRenderContext(const vk::CommandBuffer &cmd_)
 		: cmd(cmd_)
@@ -21,7 +19,7 @@ ImGuiRenderContext::~ImGuiRenderContext()
 }
 
 // ImGui utilities
-void configure_imgui(DeviceResourceCollection &drc, const vk::RenderPass &render_pass)
+void configure_imgui(VulkanResources &drc, const vk::RenderPass &render_pass)
 {
 	ImGui::CreateContext();
 
@@ -158,5 +156,3 @@ vk::DescriptorSet imgui_texture_descriptor(const vk::Sampler &sampler, const vk:
 			                   static_cast <VkImageView> (view),
 					   static_cast <VkImageLayout> (layout));
 }
-
-} // namespace jvl::engine

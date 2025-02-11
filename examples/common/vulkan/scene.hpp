@@ -2,7 +2,7 @@
 
 #include <littlevk/littlevk.hpp>
 
-#include "../device_resource_collection.hpp"
+#include "../vulkan_resources.hpp"
 #include "../cpu/scene.hpp"
 #include "material.hpp"
 #include "triangle_mesh.hpp"
@@ -15,7 +15,6 @@ enum class SceneFlags : uint32_t {
 };
 
 struct Scene {
-	// TODO: these should be archetypes...
 	std::vector <TriangleMesh> meshes;
 	std::vector <Material> materials;
 	SceneFlags flags;
@@ -25,7 +24,7 @@ struct Scene {
 
 	// TODO: explicit update method... skips things already in the equivalence (which arent dirty)
 
-	static Scene from(DeviceResourceCollection &, const cpu::Scene &, SceneFlags);
+	static Scene from(VulkanResources &, const cpu::Scene &, SceneFlags);
 };
 
 } // namespace jvl::gfx::vulkan

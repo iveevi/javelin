@@ -9,13 +9,13 @@
 #include <tsg/commands.hpp>
 
 #include "aperature.hpp"
-#include "device_resource_collection.hpp"
+#include "camera_controller.hpp"
+#include "cpu/scene.hpp"
+#include "imported_asset.hpp"
 #include "scene.hpp"
 #include "transform.hpp"
-#include "camera_controller.hpp"
-#include "imported_asset.hpp"
-#include "cpu/scene.hpp"
 #include "vulkan/scene.hpp"
+#include "vulkan_resources.hpp"
 
 using namespace jvl;
 using namespace tsg;
@@ -178,20 +178,7 @@ int main(int argc, char *argv[])
 {
 	JVL_ASSERT_PLAIN(argc == 2);
 
-	// Load physical device
-	auto predicate = [](vk::PhysicalDevice phdev) {
-		return littlevk::physical_device_able(phdev, VK_EXTENSIONS);
-	};
-
-	// Configure the resource collection
-	DeviceResourceCollectionInfo drc_info {
-		.phdev = littlevk::pick_physical_device(predicate),
-		.title = "Editor",
-		.extent = vk::Extent2D(1920, 1080),
-		.extensions = VK_EXTENSIONS,
-	};
-	
-	auto drc = DeviceResourceCollection::from(drc_info);
+	auto drc = VulkanResources::from("TSG", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
 
 	// Shader compilation
 	auto vs = compile_function("main", vertex_shader);
