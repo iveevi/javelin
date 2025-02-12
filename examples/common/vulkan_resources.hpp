@@ -2,10 +2,13 @@
 
 #include <vector>
 
+#include <bestd/optional.hpp>
+
 #include "interactive_window.hpp"
 
 class VulkanResources {
-	void configure_device(const std::vector <const char *> &);
+	void configure_device(const std::vector <const char *> &,
+			      const bestd::optional <vk::PhysicalDeviceFeatures2KHR> &);
 public:
 	vk::PhysicalDevice phdev;
 	vk::SurfaceKHR surface;
@@ -44,7 +47,9 @@ public:
 			resize);
 	}
 
-	static VulkanResources from(const std::string &,
+	static VulkanResources from(const vk::PhysicalDevice &,
+		const std::string &,
 		const vk::Extent2D &,
-		const std::vector <const char *> &);
+		const std::vector <const char *> &,
+		const bestd::optional <vk::PhysicalDeviceFeatures2KHR> & = std::nullopt);
 };

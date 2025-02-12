@@ -176,7 +176,13 @@ int main(int argc, char *argv[])
 {
 	JVL_ASSERT_PLAIN(argc >= 2);
 
-	auto drc = VulkanResources::from("TSG", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
+	auto predicate = [&](vk::PhysicalDevice phdev) {
+		return littlevk::physical_device_able(phdev, VK_EXTENSIONS);
+	};
+
+	auto phdev = littlevk::pick_physical_device(predicate);
+
+	auto drc = VulkanResources::from(phdev, "TSG", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
 
 	// Shader compilation
 	auto vs = compile_function("main", vertex_shader);

@@ -4,14 +4,69 @@
 
 #include "vulkan_resources.hpp"
 
+struct VulkanFeatureBase {
+	VkStructureType sType;
+	void *pNext;
+};
+
+struct VulkanFeatureChain : std::vector <VulkanFeatureBase *> {
+	vk::PhysicalDeviceFeatures2KHR top;
+
+	~VulkanFeatureChain() {
+		for (auto &ptr : *this)
+			delete ptr;
+	}
+
+	template <typename F>
+	void add() {
+		VulkanFeatureBase *ptr = (VulkanFeatureBase *) new F();
+
+		// pNext chain
+		if (size() > 0) {
+			VulkanFeatureBase *pptr = back();
+			pptr->pNext = ptr;
+		} else {
+			top.setPNext(ptr);
+		}
+
+		push_back(ptr);
+	}
+};
+
+#define feature_case(Type)				\
+	case (VkStructureType) Type::structureType:	\
+		(*reinterpret_cast <Type *> (ptr))
+
 struct BaseApplication {
 	std::string name;
 
 	VulkanResources resources;
 
 	BaseApplication(const std::string &name_,
-			const std::vector <const char *> &extensions) : name(name_) {
-		resources = VulkanResources::from(name, vk::Extent2D(1920, 1080), extensions);
+			const std::vector <const char *> &extensions,
+			void (*features_include)(VulkanFeatureChain &) = nullptr,
+			void (*features_activate)(VulkanFeatureChain &) = nullptr) : name(name_)
+	{
+		// Find a suitable physical device
+		auto predicate = [&](vk::PhysicalDevice phdev) {
+			return littlevk::physical_device_able(phdev, extensions);
+		};
+
+		auto phdev = littlevk::pick_physical_device(predicate);
+
+		// Configure logical device features
+		VulkanFeatureChain features;
+
+		if (features_include)
+			features_include(features);
+
+		phdev.getFeatures2(&features.top);
+
+		if (features_activate)
+			features_activate(features);
+
+		// Initializethe resources
+		resources = VulkanResources::from(phdev, name, vk::Extent2D(1920, 1080), extensions, features.top);
 
 		// littlevk configuration
 		{

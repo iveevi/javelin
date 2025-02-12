@@ -209,7 +209,13 @@ int main()
 	}
 
 	// Configure the resource collection
-	auto drc = VulkanResources::from("Font", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
+	auto predicate = [&](vk::PhysicalDevice phdev) {
+		return littlevk::physical_device_able(phdev, VK_EXTENSIONS);
+	};
+
+	auto phdev = littlevk::pick_physical_device(predicate);
+
+	auto drc = VulkanResources::from(phdev, "Font", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
 
 	// Create the render pass and generate the pipelines
 	vk::RenderPass render_pass = littlevk::RenderPassAssembler(drc.device, drc.dal)

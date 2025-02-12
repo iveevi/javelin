@@ -25,14 +25,15 @@ vk::CommandBuffer VulkanResources::new_command_buffer()
 		}).front();
 }
 
-void VulkanResources::configure_device(const std::vector <const char *> &EXTENSIONS)
+void VulkanResources::configure_device(const std::vector <const char *> &EXTENSIONS,
+				       const bestd::optional <vk::PhysicalDeviceFeatures2KHR> &features)
 {
 	auto queue_family = littlevk::find_queue_families(phdev, surface);
 
 	graphics_index = queue_family.graphics;
 
 	memory_properties = phdev.getMemoryProperties();
-	device = littlevk::device(phdev, queue_family, EXTENSIONS);
+	device = littlevk::device(phdev, queue_family, EXTENSIONS, features);
 	dal = littlevk::Deallocator(device);
 
 	swapchain = combined().swapchain(surface, queue_family);
@@ -60,19 +61,17 @@ void VulkanResources::configure_device(const std::vector <const char *> &EXTENSI
 		}).unwrap(dal);
 }
 
-VulkanResources VulkanResources::from(const std::string &title,
-							const vk::Extent2D &extent,
-							const std::vector <const char *> &extensions)
+VulkanResources VulkanResources::from(const vk::PhysicalDevice &phdev,
+				      const std::string &title,
+				      const vk::Extent2D &extent,
+				      const std::vector <const char *> &extensions,
+				      const bestd::optional <vk::PhysicalDeviceFeatures2KHR> &features)
 {
 	VulkanResources drc;
 	
-	auto predicate = [&](vk::PhysicalDevice phdev) {
-		return littlevk::physical_device_able(phdev, extensions);
-	};
-
-	drc.phdev = littlevk::pick_physical_device(predicate);
+	drc.phdev = phdev;
 	std::tie(drc.surface, drc.window) = littlevk::surface_handles(extent, title.c_str());
-	drc.configure_device(extensions);
+	drc.configure_device(extensions, features);
 
 	return drc;
 }

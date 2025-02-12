@@ -38,3 +38,5 @@ struct ViewInfo {
 
 // Actual shaders
 extern Procedure <void> task;
+extern Procedure <void> mesh;
+extern Procedure <void> fragment;

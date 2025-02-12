@@ -64,7 +64,13 @@ int main(int argc, char *argv[])
 	std::filesystem::path path = argv[1];
 
 	// Configure the resource collection
-	auto drc = VulkanResources::from("Raytracing", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
+	auto predicate = [&](vk::PhysicalDevice phdev) {
+		return littlevk::physical_device_able(phdev, VK_EXTENSIONS);
+	};
+
+	auto phdev = littlevk::pick_physical_device(predicate);
+
+	auto drc = VulkanResources::from(phdev, "Raytracing", vk::Extent2D(1920, 1080), VK_EXTENSIONS);
 
 	// Load the scene
 	auto asset = ImportedAsset::from(path).value();
