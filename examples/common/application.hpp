@@ -1,5 +1,9 @@
 #pragma once
 
+#include <glm/glm.hpp>
+
+#include <imgui.h>
+
 #include <argparse/argparse.hpp>
 
 #include "vulkan_resources.hpp"
@@ -74,6 +78,11 @@ struct BaseApplication {
 			config.enable_logging = true;
 			config.abort_on_validation_error = true;
 		}
+
+		auto handle = resources.window.handle;
+		glfwSetWindowUserPointer(handle, this);
+		glfwSetMouseButtonCallback(handle, glfw_button_callback);
+		glfwSetCursorPosCallback(handle, glfw_cursor_callback);
 	}
 
 	// Render loop resources
@@ -182,6 +191,40 @@ struct BaseApplication {
 	// Render loop required methods
 	virtual void render(const vk::CommandBuffer &, uint32_t) = 0;
 	virtual void resize() = 0;
+
+	// Mouse controls
+	virtual void mouse_inactive() {}
+	virtual void mouse_left_press() {}
+	virtual void mouse_left_release() {}
+	virtual void mouse_cursor(const glm::vec2 &) {}
+
+	// Default GLFW callbacks
+	static void glfw_button_callback(GLFWwindow *window, int button, int action, int mods) {
+		BaseApplication *user = reinterpret_cast <BaseApplication *> (glfwGetWindowUserPointer(window));
+
+		ImGuiIO &io = ImGui::GetIO();
+		if (io.WantCaptureMouse) {
+			io.AddMouseButtonEvent(button, action);
+			user->mouse_inactive();
+			return;
+		}
+
+		if (button == GLFW_MOUSE_BUTTON_LEFT) {
+			if (action == GLFW_PRESS)
+				user->mouse_left_press();
+			else if (action == GLFW_RELEASE)
+				user->mouse_left_release();
+		}
+	}
+
+	static void glfw_cursor_callback(GLFWwindow *window, double x, double y) {
+		ImGuiIO &io = ImGui::GetIO();
+		io.MousePos = ImVec2(x, y);
+
+		BaseApplication *user = reinterpret_cast <BaseApplication *> (glfwGetWindowUserPointer(window));
+
+		user->mouse_cursor(glm::vec2(x, y));
+	}
 };
 
 #define APPLICATION_MAIN()				\

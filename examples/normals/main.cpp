@@ -100,37 +100,6 @@ littlevk::Pipeline configure_pipeline(VulkanResources &drc,
 		.cull_mode(vk::CullModeFlagBits::eNone);
 }
 
-void glfw_button_callback(GLFWwindow *window, int button, int action, int mods)
-{
-	auto controller = reinterpret_cast <CameraController *> (glfwGetWindowUserPointer(window));
-
-	ImGuiIO &io = ImGui::GetIO();
-	if (io.WantCaptureMouse) {
-		io.AddMouseButtonEvent(button, action);
-		controller->voided = true;
-		controller->dragging = false;
-		return;
-	}
-
-	if (button == GLFW_MOUSE_BUTTON_LEFT) {
-		if (action == GLFW_PRESS) {
-			controller->dragging = true;
-		} else if (action == GLFW_RELEASE) {
-			controller->dragging = false;
-			controller->voided = true;
-		}
-	}
-}
-
-void glfw_cursor_callback(GLFWwindow *window, double x, double y)
-{
-	ImGuiIO &io = ImGui::GetIO();
-	io.MousePos = ImVec2(x, y);
-
-	auto controller = reinterpret_cast <CameraController *> (glfwGetWindowUserPointer(window));
-	controller->handle_cursor(glm::vec2(x, y));
-}
-
 struct Application : BaseApplication {
 	littlevk::Pipeline raster;
 	vk::RenderPass render_pass;
@@ -234,6 +203,25 @@ struct Application : BaseApplication {
 
 	void resize() override {
 		framebuffers.resize(resources, render_pass);
+	}
+	
+	// Mouse button callbacks
+	void mouse_inactive() override {
+		controller.voided = true;
+		controller.dragging = false;
+	}
+	
+	void mouse_left_press() override {
+		controller.dragging = true;
+	}
+	
+	void mouse_left_release() override {
+		controller.voided = true;
+		controller.dragging = false;
+	}
+
+	void mouse_cursor(const glm::vec2 &xy) override {
+		controller.handle_cursor(xy);
 	}
 };
 
