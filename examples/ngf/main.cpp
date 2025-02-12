@@ -1,19 +1,14 @@
-#include <imgui/imgui.h>
-#include <imgui/backends/imgui_impl_glfw.h>
-#include <imgui/backends/imgui_impl_vulkan.h>
-
 #include <argparse/argparse.hpp>
 
-#include <littlevk/littlevk.hpp>
+#include "common/aperature.hpp"
+#include "common/application.hpp"
+#include "common/camera_controller.hpp"
+#include "common/default_framebuffer_set.hpp"
+#include "common/imgui.hpp"
+#include "common/transform.hpp"
 
-#include "aperature.hpp"
-#include "application.hpp"
-#include "camera_controller.hpp"
-#include "default_framebuffer_set.hpp"
-#include "imgui.hpp"
 #include "ngf.hpp"
 #include "shaders.hpp"
-#include "transform.hpp"
 
 MODULE(ngf);
 

@@ -1,101 +1,25 @@
-#include <imgui/imgui.h>
-#include <imgui/backends/imgui_impl_glfw.h>
-#include <imgui/backends/imgui_impl_vulkan.h>
+#include <glm/gtc/random.hpp>
 
-#include <argparse/argparse.hpp>
+#include "common/aperature.hpp"
+#include "common/camera_controller.hpp"
+#include "common/cmaps.hpp"
+#include "common/default_framebuffer_set.hpp"
+#include "common/vulkan_resources.hpp"
+#include "common/imgui.hpp"
+#include "common/transform.hpp"
+#include "common/triangle_mesh.hpp"
+#include "common/application.hpp"
 
-#include <ire/core.hpp>
-
-#include "aperature.hpp"
-#include "camera_controller.hpp"
-#include "cmaps.hpp"
-#include "default_framebuffer_set.hpp"
-#include "vulkan_resources.hpp"
-#include "imgui.hpp"
-#include "transform.hpp"
-#include "triangle_mesh.hpp"
-#include "application.hpp"
-
-#include <random>
-
-using namespace jvl;
-using namespace jvl::ire;
-
-// View and projection information
-struct MVP {
-	mat4 view;
-	mat4 proj;
-	f32 smin;
-	f32 smax;
-
-	auto layout() const {
-		return uniform_layout(
-			"ViewInfo",
-			named_field(view),
-			named_field(proj),
-			named_field(smin),
-			named_field(smax));
-	}
-};
-
-auto project_vertex = [](MVP &info, vec3 &translate, vec3 position)
-{
-	// TODO: put the buffer here...
-	vec4 p = vec4(position + translate, 1);
-	return info.proj * (info.view * p);
-};
-
-// Shader kernels for the sphere rendering
-void vertex()
-{
-	layout_in <vec3> position(0);
-
-	layout_out <vec3> out_position(0);
-	layout_out <f32> out_speed(1);
-	layout_out <vec2> out_range(2);
-
-	read_only_buffer <unsized_array <vec3>> translations(0);
-	read_only_buffer <unsized_array <vec3>> velocities(1);
-	
-	push_constant <MVP> view_info;
-
-	vec3 translate = translations[gl_InstanceIndex];
-	vec3 velocity = velocities[gl_InstanceIndex];
-	
-	gl_Position = project_vertex(view_info, translate, position);
-
-	out_position = position;
-	out_speed = length(velocity);
-	out_range = vec2(view_info.smin, view_info.smax);
-}
-
-void fragment(vec3 (*cmap)(f32))
-{
-	layout_in <vec3> position(0);
-	layout_in <f32> speed(1);
-	layout_in <vec2> range(2);
-
-	layout_out <vec4> fragment(0);
-
-	f32 t = (speed - range.x) / (range.y - range.x);
-
-	fragment = vec4(cmap(t), 1.0f);
-}
+#include "shaders.hpp"
 
 // Function to generate random points and use them as positions for spheres
 std::vector <glm::vec3> generate_random_points(int N, float spread)
 {
 	std::vector <glm::vec3> points;
-	std::random_device rd;
-	std::mt19937 gen(rd());
-	std::uniform_real_distribution <float> dis(-spread, spread);
 
 	for (int i = 0; i < N; i++) {
 		while (true) {
-			float x = dis(gen);
-			float y = dis(gen);
-			float z = dis(gen);
-			glm::vec3 p = glm::vec3(x, y, z);
+			glm::vec3 p = glm::linearRand(-glm::vec3(spread), glm::vec3(spread));
 			if (length(p) > spread / 2.0f) {
 				points.push_back(p);
 				break;
@@ -139,10 +63,10 @@ littlevk::Pipeline configure_pipeline(VulkanResources &resources,
 		.cull_mode(vk::CullModeFlagBits::eNone);
 }
 
-void jitter(std::vector <aligned_vec3> &particles,
-	    std::vector <aligned_vec3> &velocities,
-	    float dt,
-	    float M)
+void integrator(std::vector <aligned_vec3> &particles,
+		std::vector <aligned_vec3> &velocities,
+		float dt,
+		float M)
 {
 	float t = glfwGetTime();
 
@@ -154,11 +78,6 @@ void jitter(std::vector <aligned_vec3> &particles,
 
 	glm::vec3 mid = 0.5f * (O1 + O2);
 	float R = 20.0f + length(O1 - O2);
-	
-	std::random_device rd;
-	std::default_random_engine gen(rd());
-	std::uniform_real_distribution <float> unit(0.0f, 1.0f);
-	std::uniform_real_distribution <float> distribution(-1.0f, 1.0f);
 
 	#pragma omp parallel for
 	for (size_t i = 0; i < particles.size(); ++i) {
@@ -181,13 +100,13 @@ void jitter(std::vector <aligned_vec3> &particles,
 
 		// Bounding
 		if (length(p - mid) > R) {
-			float theta = distribution(gen) * 2.0f * M_PI;
-			float phi = std::acos(distribution(gen));
+			float theta = glm::linearRand(-1.0, 1.0) * 2.0f * M_PI;
+			float phi = std::acos(glm::linearRand(-1.0, 1.0));
 
 			float x = std::sin(phi) * std::cos(theta);
 			float y = std::sin(phi) * std::sin(theta);
 			float z = std::cos(phi);
-			float r = R * std::sqrt(unit(gen));
+			float r = R * std::sqrt(glm::linearRand(0.0, 1.0));
 
 			p = r * glm::vec3(x, y, z) + mid;
 		}
@@ -267,16 +186,11 @@ struct Application : BaseApplication {
 	}
 
 	void preload(const argparse::ArgumentParser &program) override {
-		std::random_device rd;
-		std::default_random_engine gen(rd());
-
 		for (auto p : points) {
 			particles.push_back(p);
 
-			std::uniform_real_distribution <float> distribution(-1.0f, 1.0f);
-
-			float theta = distribution(gen) * 2.0f * M_PI;
-			float phi = std::acos(distribution(gen));
+			float theta = glm::linearRand(-1.0, 1.0) * 2.0f * M_PI;
+			float phi = std::acos(glm::linearRand(-1.0, 1.0));
 
 			float x = std::sin(phi) * std::cos(theta);
 			float y = std::sin(phi) * std::sin(theta);
@@ -422,7 +336,7 @@ struct Application : BaseApplication {
 		cmd.endRenderPass();
 
 		// Randomly jittering particles
-		jitter(particles, velocities, dt, mass);
+		integrator(particles, velocities, dt, mass);
 
 		littlevk::upload(resources.device, tb, particles);
 		littlevk::upload(resources.device, sb, velocities);

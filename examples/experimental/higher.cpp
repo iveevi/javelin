@@ -8,12 +8,12 @@
 #include <tsg/program.hpp>
 #include <tsg/commands.hpp>
 
-#include "aperature.hpp"
-#include "vulkan_resources.hpp"
-#include "transform.hpp"
-#include "camera_controller.hpp"
-#include "imported_asset.hpp"
-#include "triangle_mesh.hpp"
+#include "common/aperature.hpp"
+#include "common/vulkan_resources.hpp"
+#include "common/transform.hpp"
+#include "common/camera_controller.hpp"
+#include "common/imported_asset.hpp"
+#include "common/triangle_mesh.hpp"
 
 using namespace jvl;
 using namespace tsg;

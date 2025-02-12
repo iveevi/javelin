@@ -1,91 +1,16 @@
-#include <imgui/imgui.h>
-#include <imgui/backends/imgui_impl_glfw.h>
-#include <imgui/backends/imgui_impl_vulkan.h>
-
 #include <argparse/argparse.hpp>
 
-#include <ire/core.hpp>
+#include "common/aperature.hpp"
+#include "common/application.hpp"
+#include "common/camera_controller.hpp"
+#include "common/default_framebuffer_set.hpp"
+#include "common/imgui.hpp"
+#include "common/imported_asset.hpp"
+#include "common/transform.hpp"
+#include "common/vulkan_resources.hpp"
+#include "common/vulkan_triangle_mesh.hpp"
 
-#include "aperature.hpp"
-#include "application.hpp"
-#include "camera_controller.hpp"
-#include "default_framebuffer_set.hpp"
-#include "imgui.hpp"
-#include "imported_asset.hpp"
-#include "transform.hpp"
-#include "vulkan_resources.hpp"
-#include "vulkan_triangle_mesh.hpp"
-
-using namespace jvl;
-using namespace jvl::ire;
-
-// Model-view-projection structure
-struct MVP {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-
-	vec4 project(vec3 position) {
-		return proj * (view * (model * vec4(position, 1.0)));
-	}
-
-	auto layout() const {
-		return uniform_layout(
-			"MVP",
-			named_field(model),
-			named_field(view),
-			named_field(proj)
-		);
-	}
-};
-
-// Shader kernels
-void vertex()
-{
-	// Vertex inputs
-	layout_in <vec3> position(0);
-	
-	// Projection information
-	push_constant <MVP> mvp;
-
-	// Projecting the vertex
-	gl_Position = mvp.project(position);
-}
-
-void fragment(glm::vec3 color)
-{
-	// Resulting fragment color
-	layout_out <vec4> fragment(0);
-
-	fragment = vec4(color.x, color.y, color.z, 1);
-}
-
-// Constructing the graphics pipeline
-littlevk::Pipeline configure_pipeline(VulkanResources &resources,
-				      const vk::RenderPass &render_pass,
-				      glm::vec3 color)
-{
-	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
-
-	auto vs_callable = procedure("main") << vertex;
-	auto fs_callable = procedure("main") << std::make_tuple(color) << fragment;
-
-	std::string vertex_shader = link(vs_callable).generate_glsl();
-	std::string fragment_shader = link(fs_callable).generate_glsl();
-
-	// TODO: automatic generation by observing used layouts
-	auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
-		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
-		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
-
-	return littlevk::PipelineAssembler <littlevk::eGraphics> (resources.device, resources.window, resources.dal)
-		.with_render_pass(render_pass, 0)
-		.with_vertex_layout(vertex_layout)
-		.with_shader_bundle(bundle)
-		.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
-		.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t <MVP>))
-		.cull_mode(vk::CullModeFlagBits::eNone);
-}
+#include "shaders.hpp"
 
 struct Application : BaseApplication {
 	littlevk::Pipeline raster;
@@ -119,15 +44,33 @@ struct Application : BaseApplication {
 		// Configure pipeline
 		color = glm::vec3(1, 0, 0);
 
-		raster = configure_pipeline(resources, render_pass, color);
+		compile_pipeline(color);
 		
 		// Framebuffer manager
 		framebuffers.resize(resources, render_pass);
+	}
 
-		auto handle = resources.window.handle;
-		glfwSetWindowUserPointer(handle, &controller);
-		glfwSetMouseButtonCallback(handle, glfw_button_callback);
-		glfwSetCursorPosCallback(handle, glfw_cursor_callback);
+	void compile_pipeline(const glm::vec3 &color) {
+		auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
+
+		auto vs_callable = procedure("main") << vertex;
+		auto fs_callable = procedure("main") << std::make_tuple(color) << fragment;
+
+		std::string vertex_shader = link(vs_callable).generate_glsl();
+		std::string fragment_shader = link(fs_callable).generate_glsl();
+
+		// TODO: automatic generation by observing used layouts
+		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
+			.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
+			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
+
+		raster = littlevk::PipelineAssembler <littlevk::eGraphics> (resources.device, resources.window, resources.dal)
+			.with_render_pass(render_pass, 0)
+			.with_vertex_layout(vertex_layout)
+			.with_shader_bundle(bundle)
+			.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
+			.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t <MVP>))
+			.cull_mode(vk::CullModeFlagBits::eNone);
 	}
 
 	void configure(argparse::ArgumentParser &program) override {
@@ -197,7 +140,7 @@ struct Application : BaseApplication {
 			
 			ImGui::ColorEdit3("color", reinterpret_cast <float *> (&color));
 			if (ImGui::Button("Confirm"))
-				raster = configure_pipeline(resources, render_pass, color);
+				compile_pipeline(color);
 
 			ImGui::End();
 		}

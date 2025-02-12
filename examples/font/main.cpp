@@ -1,7 +1,3 @@
-#include <imgui/imgui.h>
-#include <imgui/backends/imgui_impl_glfw.h>
-#include <imgui/backends/imgui_impl_vulkan.h>
-
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_BBOX_H
@@ -9,10 +5,10 @@
 
 #include <ire/core.hpp>
 
-#include "extensions.hpp"
-#include "default_framebuffer_set.hpp"
-#include "vulkan_resources.hpp"
-#include "imgui.hpp"
+#include "common/extensions.hpp"
+#include "common/default_framebuffer_set.hpp"
+#include "common/vulkan_resources.hpp"
+#include "common/imgui.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;

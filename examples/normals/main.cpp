@@ -1,78 +1,14 @@
-#include <imgui/imgui.h>
-#include <imgui/backends/imgui_impl_glfw.h>
-#include <imgui/backends/imgui_impl_vulkan.h>
+#include "common/aperature.hpp"
+#include "common/camera_controller.hpp"
+#include "common/default_framebuffer_set.hpp"
+#include "common/vulkan_resources.hpp"
+#include "common/imgui.hpp"
+#include "common/imported_asset.hpp"
+#include "common/transform.hpp"
+#include "common/vulkan_triangle_mesh.hpp"
+#include "common/application.hpp"
 
-#include <argparse/argparse.hpp>
-
-#include <ire/core.hpp>
-
-#include "aperature.hpp"
-#include "camera_controller.hpp"
-#include "default_framebuffer_set.hpp"
-#include "vulkan_resources.hpp"
-#include "imgui.hpp"
-#include "imported_asset.hpp"
-#include "timer.hpp"
-#include "transform.hpp"
-#include "vulkan_triangle_mesh.hpp"
-#include "application.hpp"
-
-using namespace jvl;
-using namespace jvl::ire;
-
-// Model-view-projection structure
-struct MVP {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-
-	vec4 project(vec3 position) {
-		return proj * (view * (model * vec4(position, 1.0)));
-	}
-
-	auto layout() const {
-		return uniform_layout(
-			"MVP",
-			named_field(model),
-			named_field(view),
-			named_field(proj)
-		);
-	}
-};
-
-// Shader kernels
-void vertex()
-{
-	// Vertex inputs
-	layout_in <vec3> position(0);
-	
-	// Stage outputs
-	layout_out <vec3> out_position(0);
-	
-	// Projection information
-	push_constant <MVP> mvp;
-
-	// Projecting the vertex
-	gl_Position = mvp.project(position);
-
-	// Regurgitate positions
-	out_position = position;
-}
-
-void fragment()
-{
-	// Triangle index
-	layout_in <vec3> position(0);
-	
-	// Resulting fragment color
-	layout_out <vec4> fragment(0);
-
-	// Render the normal vectors
-	vec3 dU = dFdxFine(position);
-	vec3 dV = dFdyFine(position);
-	vec3 N = normalize(cross(dV, dU));
-	fragment = vec4(0.5f + 0.5f * N, 1.0f);
-}
+#include "shaders.hpp"
 
 // Constructing the graphics pipeline
 littlevk::Pipeline configure_pipeline(VulkanResources &drc,
@@ -132,11 +68,6 @@ struct Application : BaseApplication {
 		
 		// Framebuffer manager
 		framebuffers.resize(resources, render_pass);
-
-		auto handle = resources.window.handle;
-		glfwSetWindowUserPointer(handle, &controller);
-		glfwSetMouseButtonCallback(handle, glfw_button_callback);
-		glfwSetCursorPosCallback(handle, glfw_cursor_callback);
 	}
 
 	void configure(argparse::ArgumentParser &program) override {

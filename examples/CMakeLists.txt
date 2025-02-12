@@ -1,6 +1,6 @@
 project(examples CXX)
 
-include_directories(common)
+include_directories(.)
 
 add_subdirectory(colored)
 add_subdirectory(common)
