@@ -21,7 +21,6 @@ void vertex()
 
 void fragment()
 {
-	// Triangle index
 	layout_in <vec3> position(0);
 	
 	// Resulting fragment color
@@ -31,5 +30,6 @@ void fragment()
 	vec3 dU = dFdxFine(position);
 	vec3 dV = dFdyFine(position);
 	vec3 N = normalize(cross(dV, dU));
+	
 	fragment = vec4(0.5f + 0.5f * N, 1.0f);
 }

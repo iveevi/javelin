@@ -227,6 +227,8 @@ struct BaseApplication {
 	}
 };
 
+// TODO: camera application
+
 #define APPLICATION_MAIN()				\
 	int main(int argc, char *argv[])		\
 	{						\

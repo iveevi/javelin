@@ -33,29 +33,30 @@ inline InterleaveResult interleave(const TriangleMesh &tmesh, VertexFlags flags)
 			bf.push_back(p.z);
 		}
 
-		if (!skip_normals && enabled(flags, VertexFlags::eNormal)) {
-			assert(i < normals.size());
-
-			auto &n = normals[i];
-			bf.push_back(n.x);
-			bf.push_back(n.y);
-			bf.push_back(n.z);
+		if (enabled(flags, VertexFlags::eNormal)) {
+			if (normals.empty()) {
+				bf.push_back(0);
+				bf.push_back(0);
+				bf.push_back(0);
+			} else {
+				auto &n = normals[i];
+				bf.push_back(n.x);
+				bf.push_back(n.y);
+				bf.push_back(n.z);
+			}
 		}
 		
-		if (!skip_uvs && enabled(flags, VertexFlags::eUV)) {
-			assert(i < uvs.size());
-
-			auto &t = uvs[i];
-			bf.push_back(t.x);
-			bf.push_back(t.y);
+		if (enabled(flags, VertexFlags::eUV)) {
+			if (uvs.empty()) {
+				bf.push_back(0);
+				bf.push_back(0);
+			} else {
+				auto &t = uvs[i];
+				bf.push_back(t.x);
+				bf.push_back(t.y);
+			}
 		}
 	}
-
-	if (skip_normals)
-		flags = flags - VertexFlags::eNormal;
-	
-	if (skip_uvs)
-		flags = flags - VertexFlags::eUV;
 
 	return InterleaveResult(bf, flags);
 }
@@ -72,8 +73,8 @@ struct VulkanTriangleMesh {
 	VulkanTriangleMesh() = default;
 
 	static bestd::optional <VulkanTriangleMesh> from(littlevk::LinkedDeviceAllocator <> allocator,
-						   const ::TriangleMesh &tmesh,
-						   const VertexFlags &maximal_flags = VertexFlags::eAll) {
+							 const ::TriangleMesh &tmesh,
+							 const VertexFlags &maximal_flags = VertexFlags::eAll) {
 		VulkanTriangleMesh vmesh;
 
 		auto result = interleave(tmesh, maximal_flags);

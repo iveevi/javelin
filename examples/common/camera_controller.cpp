@@ -1,8 +1,16 @@
+#include <fmt/printf.h>
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/string_cast.hpp>
+
 #include "camera_controller.hpp"
 
 CameraController::CameraController(Transform &transform_,
 				   const CameraControllerSettings &binding_)
-		: transform(transform_), settings(binding_) {}
+		: transform(transform_), settings(binding_)
+{
+	transform.rotation = glm::quat(glm::vec3(yaw, pitch, 0));
+}
 
 bool CameraController::handle_cursor(glm::vec2 mouse)
 {
@@ -21,16 +29,7 @@ bool CameraController::handle_cursor(glm::vec2 mouse)
 	last_x = mouse.x;
 	last_y = mouse.y;
 
-	// Dragging state
-	pitch -= dx * settings.sensitivity / 1e+3f;
-	yaw -= dy * settings.sensitivity / 1e+3f;
-
-	float pi_e = glm::pi <float> () / 2.0f - 1e-3f;
-	yaw = std::min(pi_e, std::max(-pi_e, yaw));
-
-	transform.rotation = glm::quat(glm::vec3(yaw, pitch, 0));
-
-	return std::abs(dx) > 0 or std::abs(dy) > 0;
+	return handle_delta(glm::vec2(dx, dy));
 }
 
 bool CameraController::handle_delta(glm::vec2 delta)
@@ -42,11 +41,11 @@ bool CameraController::handle_delta(glm::vec2 delta)
 		dy = -dy;
 
 	// Dragging state
-	pitch -= dx * settings.sensitivity / 1e+3f;
-	yaw -= dy * settings.sensitivity / 1e+3f;
+	pitch -= dx * settings.sensitivity / 1e3f;
+	yaw -= dy * settings.sensitivity / 1e3f;
 
 	float pi_e = glm::pi <float> () / 2.0f - 1e-3f;
-	yaw = std::min(pi_e, std::max(-pi_e, yaw));
+	yaw = std::clamp(yaw, -glm::pi <float> () + pi_e, glm::pi <float> () + pi_e);
 
 	transform.rotation = glm::quat(glm::vec3(yaw, pitch, 0));
 

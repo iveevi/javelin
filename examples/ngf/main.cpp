@@ -108,7 +108,7 @@ static const auto allocator(VulkanResources &resources,
 };
 
 struct Application : BaseApplication {
-	littlevk::Pipeline pipeline;
+	littlevk::Pipeline traditional;
 	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
 	
@@ -201,7 +201,7 @@ struct Application : BaseApplication {
 			.source(mesh_shader, vk::ShaderStageFlagBits::eMeshEXT)
 			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 
-		pipeline = littlevk::PipelineAssembler <littlevk::eGraphics> (resources.device, resources.window, resources.dal)
+		traditional = littlevk::PipelineAssembler <littlevk::eGraphics> (resources.device, resources.window, resources.dal)
 			.with_render_pass(render_pass, 0)
 			.with_shader_bundle(bundle)
 			.with_dsl_bindings(meshlet_bindings)
@@ -236,7 +236,7 @@ struct Application : BaseApplication {
 
 		// Bind the resources
 		descriptor = littlevk::bind(resources.device, resources.descriptor_pool)
-			.allocate_descriptor_sets(pipeline.dsl.value()).front();
+			.allocate_descriptor_sets(traditional.dsl.value()).front();
 
 		vk::Sampler integer_sampler = littlevk::SamplerAssembler(resources.device, resources.dal)
 			.filtering(vk::Filter::eNearest)
@@ -268,12 +268,12 @@ struct Application : BaseApplication {
 			.with_render_pass(render_pass)
 			.with_framebuffer(framebuffers[index])
 			.with_extent(resources.window.extent)
-			.clear_color(0, std::array <float, 4> { 0, 0, 0, 0 })
+			.clear_color(0, std::array <float, 4> { 1, 1, 1, 1 })
 			.clear_depth(1, 1)
 			.begin(cmd);
 
-		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.handle);
-		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.layout, 0, descriptor, { });
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, traditional.handle);
+		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, traditional.layout, 0, descriptor, { });
 		cmd.drawMeshTasksEXT(ingf.patch_count, 1, 1);
 		
 		cmd.endRenderPass();

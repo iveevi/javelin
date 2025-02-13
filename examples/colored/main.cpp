@@ -51,8 +51,6 @@ struct Application : BaseApplication {
 	}
 
 	void compile_pipeline(const glm::vec3 &color) {
-		auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
-
 		auto vs_callable = procedure("main") << vertex;
 		auto fs_callable = procedure("main") << std::make_tuple(color) << fragment;
 
@@ -63,10 +61,13 @@ struct Application : BaseApplication {
 		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
 			.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
 			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
+		
+		auto [binding, attributes] = binding_and_attributes(VertexFlags::ePosition);
 
 		raster = littlevk::PipelineAssembler <littlevk::eGraphics> (resources.device, resources.window, resources.dal)
 			.with_render_pass(render_pass, 0)
-			.with_vertex_layout(vertex_layout)
+			.with_vertex_binding(binding)
+			.with_vertex_attributes(attributes)
 			.with_shader_bundle(bundle)
 			.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
 			.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t <MVP>))
@@ -86,7 +87,7 @@ struct Application : BaseApplication {
 
 		for (auto &g : asset.geometries) {
 			auto m = TriangleMesh::from(g).value();
-			auto v = VulkanTriangleMesh::from(resources.allocator(), m, VertexFlags::eAll).value();
+			auto v = VulkanTriangleMesh::from(resources.allocator(), m, VertexFlags::ePosition).value();
 			meshes.emplace_back(v);
 		}
 	}
@@ -101,7 +102,7 @@ struct Application : BaseApplication {
 			.with_render_pass(render_pass)
 			.with_framebuffer(framebuffers[index])
 			.with_extent(resources.window.extent)
-			.clear_color(0, std::array <float, 4> { 0, 0, 0, 0 })
+			.clear_color(0, std::array <float, 4> { 1, 1, 1, 1 })
 			.clear_depth(1, 1)
 			.begin(cmd);
 	

@@ -14,7 +14,7 @@
 littlevk::Pipeline configure_pipeline(VulkanResources &drc,
 				      const vk::RenderPass &render_pass)
 {
-	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
+	auto [binding, attributes] = binding_and_attributes(VertexFlags::ePosition);
 
 	auto vs_callable = procedure("main") << vertex;
 	auto fs_callable = procedure("main") << fragment;
@@ -29,7 +29,8 @@ littlevk::Pipeline configure_pipeline(VulkanResources &drc,
 
 	return littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
 		.with_render_pass(render_pass, 0)
-		.with_vertex_layout(vertex_layout)
+		.with_vertex_binding(binding)
+		.with_vertex_attributes(attributes)
 		.with_shader_bundle(bundle)
 		.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
 		.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t <MVP>))
@@ -98,7 +99,7 @@ struct Application : BaseApplication {
 			.with_render_pass(render_pass)
 			.with_framebuffer(framebuffers[index])
 			.with_extent(resources.window.extent)
-			.clear_color(0, std::array <float, 4> { 0, 0, 0, 0 })
+			.clear_color(0, std::array <float, 4> { 1, 1, 1, 1 })
 			.clear_depth(1, 1)
 			.begin(cmd);
 	

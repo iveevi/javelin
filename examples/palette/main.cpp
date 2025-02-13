@@ -49,7 +49,7 @@ littlevk::Pipeline configure_pipeline(VulkanResources &drc,
 }
 
 struct Application : BaseApplication {
-	littlevk::Pipeline pipeline;
+	littlevk::Pipeline traditional;
 	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
 	
@@ -100,7 +100,7 @@ struct Application : BaseApplication {
 			meshes.emplace_back(v);
 		}
 
-		pipeline = configure_pipeline(resources,
+		traditional = configure_pipeline(resources,
 			meshes[0].flags,
 			render_pass,
 			saturation,
@@ -118,7 +118,7 @@ struct Application : BaseApplication {
 			.with_render_pass(render_pass)
 			.with_framebuffer(framebuffers[index])
 			.with_extent(resources.window.extent)
-			.clear_color(0, std::array <float, 4> { 0, 0, 0, 0 })
+			.clear_color(0, std::array <float, 4> { 1, 1, 1, 1 })
 			.clear_depth(1, 1)
 			.begin(cmd);
 	
@@ -137,10 +137,10 @@ struct Application : BaseApplication {
 		mvp[m_proj] = aperature.perspective();
 		mvp[m_view] = camera_transform.view_matrix();
 		
-		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.handle);
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, traditional.handle);
 	
 		for (auto &mesh : meshes) {
-			cmd.pushConstants <solid_t <MVP>> (pipeline.layout,
+			cmd.pushConstants <solid_t <MVP>> (traditional.layout,
 				vk::ShaderStageFlagBits::eVertex,
 				0, mvp);
 
@@ -160,7 +160,7 @@ struct Application : BaseApplication {
 			ImGui::SliderFloat("lightness", &lightness, 0, 1);
 			ImGui::SliderInt("splits", &splits, 4, 64);
 			if (ImGui::Button("Confirm")) {
-				pipeline = configure_pipeline(resources,
+				traditional = configure_pipeline(resources,
 					meshes[0].flags,
 					render_pass,
 					saturation,

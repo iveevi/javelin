@@ -15,7 +15,7 @@ struct CameraControllerSettings {
 
 	bool invert_y = false;
 	
-	float speed = 100.0f;
+	float speed = 500.0f;
 	float sensitivity = 2.5f;
 };
 
@@ -27,8 +27,8 @@ struct CameraController {
 	float last_x = 0.0f;
 	float last_y = 0.0f;
 
-	float pitch = 0.0f;
-	float yaw = 0.0f;
+	float pitch = glm::pi <float> ();
+	float yaw = 0;
 
 	Transform &transform;
 
