@@ -128,17 +128,13 @@ Procedure <void> fragment = procedure <void> ("main") << []()
 	fragment = vec4(color, 1);
 };
 
-struct Application : BaseApplication {
+struct Application : CameraApplication {
 	littlevk::Pipeline meshlet;
 
 	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
 	
-	Transform camera_transform;
 	Transform model_transform;
-	Aperature aperature;
-
-	CameraController controller;
 
 	littlevk::Buffer meshlet_triangles;
 	littlevk::Buffer meshlet_vertices;
@@ -165,11 +161,10 @@ struct Application : BaseApplication {
 			.setStageFlags(vk::ShaderStageFlagBits::eTaskEXT),
 	};
 
-	Application() : BaseApplication("Meshlet", {
+	Application() : CameraApplication("Meshlet", {
 				VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 				VK_EXT_MESH_SHADER_EXTENSION_NAME,
-			}, features_include, features_activate),
-			controller(camera_transform, CameraControllerSettings())
+			}, features_include, features_activate)
 	{
 		render_pass = littlevk::RenderPassAssembler(resources.device, resources.dal)
 			.add_attachment(littlevk::default_color_attachment(resources.swapchain.format))
@@ -301,7 +296,7 @@ struct Application : BaseApplication {
 	}
 
 	void render(const vk::CommandBuffer &cmd, uint32_t index) override {
-		controller.handle_movement(resources.window);
+		camera.controller.handle_movement(resources.window);
 		
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(resources.window.extent));
@@ -317,7 +312,7 @@ struct Application : BaseApplication {
 		// MVP structure used for push constants
 		auto &extent = resources.window.extent;
 		
-		aperature.aspect = float(extent.width)/float(extent.height);
+		camera.aperature.aspect = float(extent.width)/float(extent.height);
 
 		auto m_model = uniform_field(ViewInfo, model);
 		auto m_view = uniform_field(ViewInfo, view);
@@ -326,8 +321,8 @@ struct Application : BaseApplication {
 		solid_t <ViewInfo> view_info;
 
 		view_info[m_model] = model_transform.matrix();
-		view_info[m_proj] = aperature.perspective();
-		view_info[m_view] = camera_transform.view_matrix();
+		view_info[m_proj] = camera.aperature.perspective();
+		view_info[m_view] = camera.transform.view_matrix();
 
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, meshlet.handle);
 		cmd.pushConstants <solid_t <ViewInfo>> (meshlet.layout, vk::ShaderStageFlagBits::eMeshEXT, 0, view_info);
@@ -341,25 +336,6 @@ struct Application : BaseApplication {
 
 	void resize() override {
 
-	}
-
-	// Mouse button callbacks
-	void mouse_inactive() override {
-		controller.voided = true;
-		controller.dragging = false;
-	}
-	
-	void mouse_left_press() override {
-		controller.dragging = true;
-	}
-	
-	void mouse_left_release() override {
-		controller.voided = true;
-		controller.dragging = false;
-	}
-
-	void mouse_cursor(const glm::vec2 &xy) override {
-		controller.handle_cursor(xy);
 	}
 };
 

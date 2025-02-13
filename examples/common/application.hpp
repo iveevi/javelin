@@ -6,40 +6,11 @@
 
 #include <argparse/argparse.hpp>
 
+#include "aperature.hpp"
+#include "camera_controller.hpp"
+#include "features.hpp"
+#include "transform.hpp"
 #include "vulkan_resources.hpp"
-
-struct VulkanFeatureBase {
-	VkStructureType sType;
-	void *pNext;
-};
-
-struct VulkanFeatureChain : std::vector <VulkanFeatureBase *> {
-	vk::PhysicalDeviceFeatures2KHR top;
-
-	~VulkanFeatureChain() {
-		for (auto &ptr : *this)
-			delete ptr;
-	}
-
-	template <typename F>
-	void add() {
-		VulkanFeatureBase *ptr = (VulkanFeatureBase *) new F();
-
-		// pNext chain
-		if (size() > 0) {
-			VulkanFeatureBase *pptr = back();
-			pptr->pNext = ptr;
-		} else {
-			top.setPNext(ptr);
-		}
-
-		push_back(ptr);
-	}
-};
-
-#define feature_case(Type)				\
-	case (VkStructureType) Type::structureType:	\
-		(*reinterpret_cast <Type *> (ptr))
 
 struct BaseApplication {
 	std::string name;
@@ -227,7 +198,39 @@ struct BaseApplication {
 	}
 };
 
-// TODO: camera application
+struct CameraApplication : BaseApplication {
+	struct {
+		Transform transform;
+		Aperature aperature;
+		CameraController controller;
+	} camera;
+
+	CameraApplication(const std::string &name_,
+			const std::vector <const char *> &extensions,
+			void (*features_include)(VulkanFeatureChain &) = nullptr,
+			void (*features_activate)(VulkanFeatureChain &) = nullptr)
+			: BaseApplication(name_, extensions, features_include, features_activate),
+			camera { .controller = CameraController(camera.transform, CameraControllerSettings()) } {}
+
+	// Mouse button callbacks
+	void mouse_inactive() override {
+		camera.controller.voided = true;
+		camera.controller.dragging = false;
+	}
+	
+	void mouse_left_press() override {
+		camera.controller.dragging = true;
+	}
+	
+	void mouse_left_release() override {
+		camera.controller.voided = true;
+		camera.controller.dragging = false;
+	}
+
+	void mouse_cursor(const glm::vec2 &xy) override {
+		camera.controller.handle_cursor(xy);
+	}
+};
 
 #define APPLICATION_MAIN()				\
 	int main(int argc, char *argv[])		\
