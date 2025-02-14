@@ -107,29 +107,24 @@ static const auto allocator(VulkanResources &resources,
 		format);
 };
 
-struct Application : BaseApplication {
+struct Application : CameraApplication {
 	littlevk::Pipeline traditional;
 	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
 	
-	Transform camera_transform;
 	Transform model_transform;
-	Aperature aperature;
-
-	CameraController controller;
 
 	ImportedNGF ingf;
 	HomogenizedNGF hngf;
 
 	vk::DescriptorSet descriptor;
 
-	Application() : BaseApplication("Neural Geometry Fields", {
+	Application() : CameraApplication("Neural Geometry Fields", {
 				VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 				VK_EXT_MESH_SHADER_EXTENSION_NAME,
 				VK_KHR_MAINTENANCE_4_EXTENSION_NAME,
 				VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,
-			}, features_include, features_activate),
-			controller(camera_transform, CameraControllerSettings())
+			}, features_include, features_activate)
 	{
 		render_pass = littlevk::RenderPassAssembler(resources.device, resources.dal)
 			.add_attachment(littlevk::default_color_attachment(resources.swapchain.format))
@@ -191,6 +186,9 @@ struct Application : BaseApplication {
 		// TODO: fix bugs with unoptimized version (variables instantiated inside block)
 		thunder::opt_transform(task);
 		thunder::opt_transform(mesh);
+
+		task.dump();
+		mesh.dump();
 
 		std::string task_shader = link(task).generate_glsl();
 		std::string mesh_shader = link(mesh).generate_glsl();
@@ -259,7 +257,7 @@ struct Application : BaseApplication {
 	}
 
 	void render(const vk::CommandBuffer &cmd, uint32_t index) override {
-		controller.handle_movement(resources.window);
+		camera.controller.handle_movement(resources.window);
 		
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(resources.window.extent));
@@ -271,35 +269,35 @@ struct Application : BaseApplication {
 			.clear_color(0, std::array <float, 4> { 1, 1, 1, 1 })
 			.clear_depth(1, 1)
 			.begin(cmd);
+		
+		auto m_model = uniform_field(ViewInfo, model);
+		auto m_view = uniform_field(ViewInfo, view);
+		auto m_proj = uniform_field(ViewInfo, proj);
+		auto m_resl = uniform_field(ViewInfo, resolution);
+		
+		solid_t <ViewInfo> view_info;
+
+		view_info[m_model] = model_transform.matrix();
+		view_info[m_proj] = camera.aperature.perspective();
+		view_info[m_view] = camera.transform.view_matrix();
+		view_info[m_resl] = 2;
 
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, traditional.handle);
+
+		cmd.pushConstants <solid_t <ViewInfo>> (traditional.layout,
+			vk::ShaderStageFlagBits::eTaskEXT
+			| vk::ShaderStageFlagBits::eMeshEXT,
+			0, view_info);
+
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, traditional.layout, 0, descriptor, { });
-		cmd.drawMeshTasksEXT(ingf.patch_count, 1, 1);
+		// cmd.drawMeshTasksEXT(ingf.patch_count, 1, 1);
+		cmd.drawMeshTasksEXT(1, 1, 1);
 		
 		cmd.endRenderPass();
 	}
 
 	void resize() override {
 		framebuffers.resize(resources, render_pass);
-	}
-	
-	// Mouse button callbacks
-	void mouse_inactive() override {
-		controller.voided = true;
-		controller.dragging = false;
-	}
-	
-	void mouse_left_press() override {
-		controller.dragging = true;
-	}
-	
-	void mouse_left_release() override {
-		controller.voided = true;
-		controller.dragging = false;
-	}
-
-	void mouse_cursor(const glm::vec2 &xy) override {
-		controller.handle_cursor(xy);
 	}
 };
 

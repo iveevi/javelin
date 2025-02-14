@@ -5,6 +5,10 @@
 namespace jvl::thunder {
 
 // TODO: top level formatter...
+auto header(auto name, auto color)
+{
+        return fmt::format(fmt::emphasis::bold | fmt::fg(color), "{:15}", name);
+}
 
 // Qualifier
 bool Qualifier::operator==(const Qualifier &other) const
@@ -21,11 +25,10 @@ Addresses Qualifier::addresses()
 
 std::string Qualifier::to_string() const
 {
-        return fmt::format("{:15} {}[{}]: %{}",
-                "QUALIFIER",
-                tbl_qualifier_kind[kind],
-                numerical,
-                underlying);
+        return header("QUALIFIER", fmt::color::orange)
+                + fmt::format("\n          :: kind: {}", tbl_qualifier_kind[kind])
+                + fmt::format("\n          :: numerical: {}", numerical)
+                + fmt::format("\n          :: underlying: %{}", underlying);
 }
 
 // TypeInformation
@@ -45,17 +48,18 @@ std::string TypeInformation::to_string() const
 {
         std::string result;
 
-        result += fmt::format("{:15} ", "TYPE");
+        result += header("TYPE", fmt::color::antique_white);
+
         if (item != bad)
-                result += fmt::format("{}", tbl_primitive_types[item]);
+                result += fmt::format("\n          :: item: {}", tbl_primitive_types[item]);
         else if (down != -1)
-                result += fmt::format("%{}", down);
+                result += fmt::format("\n          :: nested: %{}", down);
         else
-                result += fmt::format("<? item={}, down={} ?>", tbl_primitive_types[item], down);
+                result += fmt::format("\n          :: BAD");
 
         if (next != -1)
-                result += fmt::format(", going to %{}", next);
-
+                result += fmt::format("\n          :: next: %{}", next);
+        
         return result;
 }
 
@@ -83,23 +87,24 @@ Addresses Primitive::addresses()
 std::string Primitive::to_string() const
 {
         std::string result;
-        result = fmt::format("{:15} value: ", "PRIMITIVE");
-
+        
+        result += header("PRIMITIVE", fmt::color::purple);
+        
         switch (type) {
         case boolean:
-                result += fmt::format("{}", bdata);
+                result += fmt::format("\n          :: bool: {}", bdata);
                 break;
         case i32:
-                result += fmt::format("{}", idata);
+                result += fmt::format("\n          :: i32: {}", idata);
                 break;
         case u32:
-                result += fmt::format("{}", udata);
+                result += fmt::format("\n          :: u32: {}", udata);
                 break;
         case f32:
-                result += fmt::format("{:.6f}", fdata);
+                result += fmt::format("\n          :: f32: {}", fdata);
                 break;
         default:
-                result += fmt::format("?");
+                result += fmt::format("\n          :: UNKNOWN");
                 break;
         }
 
@@ -120,8 +125,9 @@ Addresses Swizzle::addresses()
 
 std::string Swizzle::to_string() const
 {
-        return fmt::format("{:15} src: %{} component: #{}",
-                "SWIZZLE", src, tbl_swizzle_code[code]);
+        return header("SWIZZLE", fmt::color::azure)
+                + fmt::format("\n          :: src: %{}", src)
+                + fmt::format("\n          :: swizzle: {}", tbl_swizzle_code[code]);
 }
 
 // Operation
@@ -139,10 +145,10 @@ Addresses Operation::addresses()
         
 std::string Operation::to_string() const
 {
-        return fmt::format("{:15} {}(%{}, %{})",
-                "OPERATION",
-                tbl_operation_code[code],
-                a, b);
+        return header("OPERATION", fmt::color::indigo)
+                + fmt::format("\n          :: code: {}", tbl_operation_code[code])
+                + fmt::format("\n          :: first: %{}", a)
+                + fmt::format("\n          :: second: %{}", b);
 }
 
 // Intrinsic
@@ -158,10 +164,9 @@ Addresses Intrinsic::addresses()
         
 std::string Intrinsic::to_string() const
 {
-        return fmt::format("{:15} {}(%{})",
-                "INTRINSIC",
-                tbl_intrinsic_operation[opn],
-                args);
+        return header("INTRINSIC", fmt::color::yellow)
+                + fmt::format("\n          :: code: {}", tbl_intrinsic_operation[opn])
+                + fmt::format("\n          :: args: %{}", args);
 }
 
 // List
@@ -180,11 +185,10 @@ std::string List::to_string() const
 {
         std::string result;
 
-        result += fmt::format("{:15} item: %{} next: ", "LIST", item);
+        result += header("LIST", fmt::color::brown);
+        result += fmt::format("\n          :: item: %{}", item);
         if (next >= 0)
-                result += fmt::format("%{}", next);
-        else
-                result += fmt::format("(nil)");
+                result += fmt::format("\n          :: next: %{}", next);
 
         return result;
 }
@@ -205,16 +209,15 @@ Addresses Construct::addresses()
 std::string Construct::to_string() const
 {
         std::string result;
-
-        result += fmt::format("{:15} [{}] type: %{} args: ",
-                "CONSTRUCT",
-                tbl_constructor_mode[mode],
-                type);
+        
+        result += header("CONSTRUCT", fmt::color::olive);
+        result += fmt::format("\n          :: mode: {}", tbl_constructor_mode[mode]);
+        result += fmt::format("\n          :: type: %{}", type);
 
         if (args == -1)
-		result += "(nil)";
+                result += fmt::format("\n          :: args: (nil)");
         else
-		result += fmt::format("%{}", args);
+                result += fmt::format("\n          :: args: %{}", args);
 
         return result;
 }
@@ -237,9 +240,11 @@ std::string Call::to_string() const
         std::string result;
 
         TrackedBuffer *cbl = TrackedBuffer::search_tracked(cid);
-        result += fmt::format("{:15} ${}", "CALL", cbl->name);
+       
+        result += header("CALL", fmt::color::dark_magenta);
+        result += fmt::format("\n          :: callable: ${}", cbl->name);
         if (args != -1)
-                result += fmt::format("(%{})", args);
+                result += fmt::format("\n          :: args: %{}", args);
 
         return result;
 }
@@ -258,7 +263,9 @@ Addresses Store::addresses()
         
 std::string Store::to_string() const
 {
-        return fmt::format("{:15} from %{} to %{}", "STORE", src, dst);
+        return header("STORE", fmt::color::blue)
+                + fmt::format("\n          :: src: %{}", src)
+                + fmt::format("\n          :: dst: %{}", dst);
 }
 
 // Load
@@ -275,7 +282,9 @@ Addresses Load::addresses()
 
 std::string Load::to_string() const
 {
-        return fmt::format("{:15} src: %{} field: #{}", "LOAD", src, idx);
+        return header("LOAD", fmt::color::green)
+                + fmt::format("\n          :: src: %{}", src)
+                + fmt::format("\n          :: field: %{}", idx);
 }
 
 // Load
@@ -292,7 +301,9 @@ Addresses ArrayAccess::addresses()
 
 std::string ArrayAccess::to_string() const
 {
-        return fmt::format("{:15} src: %{} loc: %{}", "ACCESS", src, loc);
+        return header("ACCESS", fmt::color::red)
+                + fmt::format("\n          :: src: %{}", src)
+                + fmt::format("\n          :: loc: %{}", loc);
 }
 
 // Branch
@@ -309,13 +320,21 @@ Addresses Branch::addresses()
         
 std::string Branch::to_string() const
 {
+        std::string hstr = header("BRANCH", fmt::color::cyan);
+        
         if (kind == control_flow_end)
-                return "END";
+                return hstr + fmt::format("\n          :: END");
 
-        if (cond >= 0)
-                return fmt::format("{:15} on %{} ({}) fails to %{}", "BRANCH", cond, tbl_branch_kind[kind], failto);
+        if (cond  >= 0) {
+                return hstr
+                        + fmt::format("\n          :: kind: %{}", tbl_branch_kind[kind])
+                        + fmt::format("\n          :: cond: %{}", cond)
+                        + fmt::format("\n          :: fails: %{}", failto);
+        }
 
-        return fmt::format("{:15} (nil) ({}) fails to %{}", "BRANCH", tbl_branch_kind[kind], failto);
+        return hstr
+                + fmt::format("\n          :: kind: %{}", tbl_branch_kind[kind])
+                + fmt::format("\n          :: fails: %{}", failto);
 }
 
 // Returns
@@ -331,7 +350,8 @@ Addresses Returns::addresses()
 
 std::string Returns::to_string() const
 {
-        return fmt::format("{:15} value: %{}", "RETURN", value);
+        return header("RETURN", fmt::color::black)
+                + fmt::format("\n          :: value: %{}", value);
 }
 
 } // namespace jvl::thunder

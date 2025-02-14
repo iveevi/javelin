@@ -58,117 +58,121 @@ auto eval = procedure("eval") << [](const task_payload <Payload> &payload, const
 
 	vec3 vertex = mix(mix(v0, v1, uv.y), mix(v3, v2, uv.y), uv.x);
 
-	// TODO: native overload
-	{ auto i = loop(range(u32(0u), u32(FEATURE_SIZE), u32(1u)));
-		vec4 fv = texelFetch(ftex, ivec2(i32(i), i32(payload.pindex)), 0);
-		A[i] = mix(mix(fv.x, fv.y, uv.y), mix(fv.w, fv.z, uv.y), uv.x);
-	end(); }
+	return vertex;
 
-	// Positional encoding
-	array <f32> powers = std::array <f32, 8> { 1, 2, 4, 8, 16, 32, 64, 128 };
+	// returns(vertex);
 
-	u32 k = FEATURE_SIZE;
-	{ auto i = loop(range(u32(0u), u32(ENCODING_LEVELS), u32(1u)));
-		f32 p = powers[i];
-		vec3 sin_v = sin(p * vertex);
-		vec3 cos_v = cos(p * vertex);
+	// // TODO: native overload
+	// { auto i = loop(range(u32(0u), u32(FEATURE_SIZE), u32(1u)));
+	// 	vec4 fv = texelFetch(ftex, ivec2(i32(i), i32(payload.pindex)), 0);
+	// 	A[i] = mix(mix(fv.x, fv.y, uv.y), mix(fv.w, fv.z, uv.y), uv.x);
+	// end(); }
+
+	// // Positional encoding
+	// array <f32> powers = std::array <f32, 8> { 1, 2, 4, 8, 16, 32, 64, 128 };
+
+	// u32 k = FEATURE_SIZE;
+	// { auto i = loop(range(u32(0u), u32(ENCODING_LEVELS), u32(1u)));
+	// 	f32 p = powers[i];
+	// 	vec3 sin_v = sin(p * vertex);
+	// 	vec3 cos_v = cos(p * vertex);
 		
-		A[k] = sin_v.x; k += 1;
-		A[k] = sin_v.y; k += 1;
-		A[k] = sin_v.z; k += 1;
+	// 	A[k] = sin_v.x; k += 1;
+	// 	A[k] = sin_v.y; k += 1;
+	// 	A[k] = sin_v.z; k += 1;
 
-		A[k] = cos_v.x; k += 1;
-		A[k] = cos_v.y; k += 1;
-		A[k] = cos_v.z; k += 1;
-	end(); }
+	// 	A[k] = cos_v.x; k += 1;
+	// 	A[k] = cos_v.y; k += 1;
+	// 	A[k] = cos_v.z; k += 1;
+	// end(); }
 
-	// Network evaluation
-	u32 tid = gl_LocalInvocationID.x + gl_LocalInvocationID.y * gl_WorkGroupSize.x;
-	u32 stride = gl_WorkGroupSize.x * gl_WorkGroupSize.y;
+	// // Network evaluation
+	// u32 tid = gl_LocalInvocationID.x + gl_LocalInvocationID.y * gl_WorkGroupSize.x;
+	// u32 stride = gl_WorkGroupSize.x * gl_WorkGroupSize.y;
 
-	// Layer 0
-	{ auto i = loop(range(i32(0), i32(16), i32(1)));
-		u32 k = u32(i) << 2;
+	// // Layer 0
+	// { auto i = loop(range(i32(0), i32(16), i32(1)));
+	// 	u32 k = u32(i) << 2;
 
-		// Load matrix row into shared memory
-		cond(tid == 0);
-		{
-			auto j = loop(range(i32(0), i32(FFIN), i32(1)));
-				row[j] = texelFetch(w0, ivec2(i, j), 0);
-			end();
-		}
-		end();
+	// 	// Load matrix row into shared memory
+	// 	cond(tid == 0);
+	// 	{
+	// 		auto j = loop(range(i32(0), i32(FFIN), i32(1)));
+	// 			row[j] = texelFetch(w0, ivec2(i, j), 0);
+	// 		end();
+	// 	}
+	// 	end();
 
-		barrier();
+	// 	barrier();
 
-		// Evaluate
-		vec4 v = texelFetch(biases, i32(i), 0);
+	// 	// Evaluate
+	// 	vec4 v = texelFetch(biases, i32(i), 0);
 
-		auto j = loop(range(i32(0), i32(FFIN), i32(1)));
-			v += A[j] * row[j];
-		end();
+	// 	auto j = loop(range(i32(0), i32(FFIN), i32(1)));
+	// 		v += A[j] * row[j];
+	// 	end();
 
-		B[i] = leaky_relu(v);
-	end(); }
+	// 	B[i] = leaky_relu(v);
+	// end(); }
 
-	// Layer 1
-	{ auto i = loop(range(i32(0), i32(16), i32(1)));
-		u32 k = u32(i) << 2;
+	// // Layer 1
+	// { auto i = loop(range(i32(0), i32(16), i32(1)));
+	// 	u32 k = u32(i) << 2;
 
-		// Evaluate
-		vec4 v = texelFetch(biases, i32(i) + 16, 0);
-		{ auto j = loop(range(i32(0), i32(16), i32(1)));
-			i32 l = j << 2;
-			vec4 v0 = texelFetch(w1, ivec2(i, l + 0), 0);
-			vec4 v1 = texelFetch(w1, ivec2(i, l + 1), 0);
-			vec4 v2 = texelFetch(w1, ivec2(i, l + 2), 0);
-			vec4 v3 = texelFetch(w1, ivec2(i, l + 3), 0);
-			vec4 s = B[j];
+	// 	// Evaluate
+	// 	vec4 v = texelFetch(biases, i32(i) + 16, 0);
+	// 	{ auto j = loop(range(i32(0), i32(16), i32(1)));
+	// 		i32 l = j << 2;
+	// 		vec4 v0 = texelFetch(w1, ivec2(i, l + 0), 0);
+	// 		vec4 v1 = texelFetch(w1, ivec2(i, l + 1), 0);
+	// 		vec4 v2 = texelFetch(w1, ivec2(i, l + 2), 0);
+	// 		vec4 v3 = texelFetch(w1, ivec2(i, l + 3), 0);
+	// 		vec4 s = B[j];
 
-			v += s.x * v0 + s.y * v1 + s.z * v2 + s.w * v3;
-		end(); }
+	// 		v += s.x * v0 + s.y * v1 + s.z * v2 + s.w * v3;
+	// 	end(); }
 
-		vec4 lv = leaky_relu(v);
-		A[k + 0] = lv.x;
-		A[k + 1] = lv.y;
-		A[k + 2] = lv.z;
-		A[k + 3] = lv.w;
-	end(); }
+	// 	vec4 lv = leaky_relu(v);
+	// 	A[k + 0] = lv.x;
+	// 	A[k + 1] = lv.y;
+	// 	A[k + 2] = lv.z;
+	// 	A[k + 3] = lv.w;
+	// end(); }
 
-	// Layer 2
-	{
-		auto i = loop(range(i32(0), i32(16), i32(1)));
-		{
-			u32 k = u32(i) << 2;
+	// // Layer 2
+	// {
+	// 	auto i = loop(range(i32(0), i32(16), i32(1)));
+	// 	{
+	// 		u32 k = u32(i) << 2;
 	
-			// Evaluate
-			vec4 v = texelFetch(biases, i32(i) + 32, 0);
-			{
-				auto j = loop(range(i32(0), i32(64), i32(1)));
-				{
-					v += A[j] * texelFetch(w2, ivec2(i, j), 0);
-				}
-				end();
-			}
+	// 		// Evaluate
+	// 		vec4 v = texelFetch(biases, i32(i) + 32, 0);
+	// 		{
+	// 			auto j = loop(range(i32(0), i32(64), i32(1)));
+	// 			{
+	// 				v += A[j] * texelFetch(w2, ivec2(i, j), 0);
+	// 			}
+	// 			end();
+	// 		}
 
-			vec4 lv = leaky_relu(v);
+	// 		vec4 lv = leaky_relu(v);
 
-			// Fuse with the last layer
-			vec4 wx = texelFetch(w3, ivec2(i, 0), 0);
-			vec4 wy = texelFetch(w3, ivec2(i, 1), 0);
-			vec4 wz = texelFetch(w3, ivec2(i, 2), 0);
+	// 		// Fuse with the last layer
+	// 		vec4 wx = texelFetch(w3, ivec2(i, 0), 0);
+	// 		vec4 wy = texelFetch(w3, ivec2(i, 1), 0);
+	// 		vec4 wz = texelFetch(w3, ivec2(i, 2), 0);
 
-			vertex.x += dot(wx, lv);
-			vertex.y += dot(wy, lv);
-			vertex.z += dot(wz, lv);
-		}
-		end();
-	}
+	// 		vertex.x += dot(wx, lv);
+	// 		vertex.y += dot(wy, lv);
+	// 		vertex.z += dot(wz, lv);
+	// 	}
+	// 	end();
+	// }
 	
-	vec4 b4 = texelFetch(biases, 3 << 6, 0);
-	vec3 bias = vec3(b4.x, b4.y, b4.z);
+	// vec4 b4 = texelFetch(biases, 3 << 6, 0);
+	// vec3 bias = vec3(b4.x, b4.y, b4.z);
 
-	return vertex + bias;
+	// return vertex + bias;
 };
 
 // TODO: problems with arrays of one-element structs...
@@ -210,74 +214,89 @@ Procedure <void> mesh = procedure <void> ("main") << []()
 
 	vec2 uv = vec2(f32(offset.x), f32(offset.y)) / f32(payload.resolution - 1);
 
-	vec3 v = eval(payload, uv);
+	// vec3 v = eval(payload, uv);
+	vec3 v = vec3(uv, 0);
 
 	vertices[gl_LocalInvocationIndex] = v;
 	pindex[gl_LocalInvocationIndex] = payload.pindex;
 	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = pc.project(v);
-
+	
 	u32 gli = gl_LocalInvocationIndex;
-	cond(gl_LocalInvocationID.x < qwidth && gl_LocalInvocationID.y < qheight);
-	{
-		u32 prim = 2 * (gl_LocalInvocationID.x + qwidth * gl_LocalInvocationID.y);
+	u32 prim = 2 * (gl_LocalInvocationID.x + qwidth * gl_LocalInvocationID.y);
+	gl_PrimitiveTriangleIndicesEXT[prim] = uvec3(gli, gli + 1, gli + WORK_GROUP_SIZE);
+	gl_PrimitiveTriangleIndicesEXT[prim + 1] = uvec3(gli + 1, gli + WORK_GROUP_SIZE + 1, gli + WORK_GROUP_SIZE);
 
-		// Assumes that the subgroup size is 32
-		u32 gsi = gl_SubgroupInvocationID;
+	// cond(gl_LocalInvocationID.x < qwidth && gl_LocalInvocationID.y < qheight);
+	// {
+	// 	u32 prim = 2 * (gl_LocalInvocationID.x + qwidth * gl_LocalInvocationID.y);
 
-		f32 sign = 1;
-		u32 side = gsi + 1;
+	// 	// Assumes that the subgroup size is 32
+	// 	u32 gsi = gl_SubgroupInvocationID;
 
-		cond(side >= 32 || gl_LocalInvocationID.x >= qwidth);
-		{
-			side = gsi - 1;
-			sign *= -1;
-		}
-		end();
+	// 	f32 sign = 1;
+	// 	u32 side = gsi + 1;
 
-		u32 vert = gsi + WORK_GROUP_SIZE;
+	// 	cond(side >= 32 || gl_LocalInvocationID.x >= qwidth);
+	// 	{
+	// 		side = gsi - 1;
+	// 		sign *= -1;
+	// 	}
+	// 	end();
 
-		cond(vert >= 32);
-		{
-			vert = gsi - WORK_GROUP_SIZE;
-			sign *= -1;
-		}
-		end();
+	// 	u32 vert = gsi + WORK_GROUP_SIZE;
 
-		u32 sidevert = gsi + WORK_GROUP_SIZE + 1;
+	// 	cond(vert >= 32);
+	// 	{
+	// 		vert = gsi - WORK_GROUP_SIZE;
+	// 		sign *= -1;
+	// 	}
+	// 	end();
 
-		cond(sidevert >= 32);
-			sidevert = gsi - WORK_GROUP_SIZE + 1;
-		end();
+	// 	u32 sidevert = gsi + WORK_GROUP_SIZE + 1;
 
-		cond(sidevert >= 32);
-			sidevert = gsi - WORK_GROUP_SIZE - 1;
-		end();
+	// 	cond(sidevert >= 32);
+	// 		sidevert = gsi - WORK_GROUP_SIZE + 1;
+	// 	end();
 
-		vec3 sv = subgroupShuffle(v, side);
-		vec3 vv = subgroupShuffle(v, vert);
-		vec3 svv = subgroupShuffle(v, sidevert);
+	// 	cond(sidevert >= 32);
+	// 		sidevert = gsi - WORK_GROUP_SIZE - 1;
+	// 	end();
 
-		f32 d0 = length(v - svv);
-		f32 d1 = length(sv - vv);
+	// 	vec3 sv = subgroupShuffle(v, side);
+	// 	vec3 vv = subgroupShuffle(v, vert);
+	// 	vec3 svv = subgroupShuffle(v, sidevert);
 
-		cond(d0 > d1);
-		{
-			gl_PrimitiveTriangleIndicesEXT[prim] = uvec3(gli, gli + 1, gli + WORK_GROUP_SIZE);
-			gl_PrimitiveTriangleIndicesEXT[prim + 1] = uvec3(gli + 1, gli + WORK_GROUP_SIZE + 1, gli + WORK_GROUP_SIZE);
-		}
-		elif();
-		{
-			gl_PrimitiveTriangleIndicesEXT[prim] = uvec3(gli, gli + 1, gli + WORK_GROUP_SIZE + 1);
-			gl_PrimitiveTriangleIndicesEXT[prim + 1] = uvec3(gli, gli + WORK_GROUP_SIZE + 1, gli + WORK_GROUP_SIZE);
-		}
-		end();
-	}
-	end();
+	// 	f32 d0 = length(v - svv);
+	// 	f32 d1 = length(sv - vv);
+
+	// 	cond(d0 > d1);
+	// 	{
+	// 		gl_PrimitiveTriangleIndicesEXT[prim] = uvec3(gli, gli + 1, gli + WORK_GROUP_SIZE);
+	// 		gl_PrimitiveTriangleIndicesEXT[prim + 1] = uvec3(gli + 1, gli + WORK_GROUP_SIZE + 1, gli + WORK_GROUP_SIZE);
+	// 	}
+	// 	elif();
+	// 	{
+	// 		gl_PrimitiveTriangleIndicesEXT[prim] = uvec3(gli, gli + 1, gli + WORK_GROUP_SIZE + 1);
+	// 		gl_PrimitiveTriangleIndicesEXT[prim + 1] = uvec3(gli, gli + WORK_GROUP_SIZE + 1, gli + WORK_GROUP_SIZE);
+	// 	}
+	// 	end();
+	// }
+	// end();
 };
 
 Procedure <void> fragment = procedure <void> ("main") << []()
 {
-	layout_out <vec4> fragment(0);
+	layout_in <vec3> position(0);
 
-	fragment = vec4(vec3(1), 1);
+	layout_out <vec4> fragment(0);
+	
+	vec3 dU = dFdxFine(position);
+	vec3 dV = dFdyFine(position);
+	vec3 N = normalize(cross(dV, dU));
+
+	vec3 L = normalize(vec3(1, 1, 1));
+
+	f32 lighting = 0.5 * max(dot(N, L), 0.0f) + 0.5f;
+
+	fragment = vec4(vec3(1, 0, 0), 1);
 };

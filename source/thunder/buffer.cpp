@@ -40,7 +40,11 @@ void Buffer::clear()
 void Buffer::dump() const
 {
 	for (size_t i = 0; i < pointer; i++) {
-		fmt::println("   [{:4d}] {:55} :: {:20} ({})", i, atoms[i], types[i],
+		fmt::println("   [{:4d}] {:55}"
+			"\n          :: type: {:20}"
+			"\n          :: decorations: ({})",
+			i, atoms[i],
+			fmt::format(fmt::emphasis::underline, "{}", types[i]),
 			used_decorations.contains(i) ? 't' : '-');
 	}
 }

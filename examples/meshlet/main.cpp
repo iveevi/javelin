@@ -105,7 +105,6 @@ array <vec3> hsl_palette(float saturation, float lightness, int N)
 
 Procedure <void> fragment = procedure <void> ("main") << []()
 {
-	// Triangle index
 	layout_in <vec3> position(0);
 	layout_in <u32, flat> pid(1);
 	
@@ -335,7 +334,7 @@ struct Application : CameraApplication {
 	}
 
 	void resize() override {
-
+		framebuffers.resize(resources, render_pass);
 	}
 };
 
