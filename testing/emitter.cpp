@@ -44,9 +44,9 @@ void synthesize_layout_io_inner()
 	em.pop();
 
 	// Generate code using the IRE
-	thunder::Buffer ire_buffer;
+	thunder::Buffer buffer;
 
-	em.push(ire_buffer);
+	em.push(buffer);
 	{
 		layout_in <T> lin(0);
 		layout_out <T> lout(0);
@@ -54,20 +54,20 @@ void synthesize_layout_io_inner()
 	}
 	em.pop();
 
-	ASSERT_TRUE(check_contents(ref_buffer, ire_buffer));
+	ASSERT_TRUE(check_contents(ref_buffer, buffer));
 }
 
-TEST(ire_emitter, synthesize_layout_io_int)
+TEST(emitter, synthesize_layout_io_int)
 {
 	synthesize_layout_io_inner <int> ();
 }
 
-TEST(ire_emitter, synthesize_layout_io_float)
+TEST(emitter, synthesize_layout_io_float)
 {
 	synthesize_layout_io_inner <float> ();
 }
 
-TEST(ire_emitter, synthesize_layout_io_bool)
+TEST(emitter, synthesize_layout_io_bool)
 {
 	synthesize_layout_io_inner <bool> ();
 }

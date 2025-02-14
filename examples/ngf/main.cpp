@@ -119,12 +119,15 @@ struct Application : CameraApplication {
 
 	vk::DescriptorSet descriptor;
 
+	int32_t resolution;
+
 	Application() : CameraApplication("Neural Geometry Fields", {
 				VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 				VK_EXT_MESH_SHADER_EXTENSION_NAME,
 				VK_KHR_MAINTENANCE_4_EXTENSION_NAME,
 				VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,
-			}, features_include, features_activate)
+			}, features_include, features_activate),
+			resolution(4)
 	{
 		render_pass = littlevk::RenderPassAssembler(resources.device, resources.dal)
 			.add_attachment(littlevk::default_color_attachment(resources.swapchain.format))
@@ -300,7 +303,7 @@ struct Application : CameraApplication {
 		view_info[m_model] = model_transform.matrix();
 		view_info[m_proj] = camera.aperature.perspective();
 		view_info[m_view] = camera.transform.view_matrix();
-		view_info[m_resl] = 2;
+		view_info[m_resl] = resolution;
 
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, traditional.handle);
 
@@ -311,8 +314,20 @@ struct Application : CameraApplication {
 
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, traditional.layout, 0, descriptor, { });
 		cmd.drawMeshTasksEXT(ingf.patch_count, 1, 1);
+
+		imgui(cmd);
 		
 		cmd.endRenderPass();
+	}
+
+	void imgui(const vk::CommandBuffer &cmd) {
+		ImGuiRenderContext context(cmd);
+
+		ImGui::Begin("Neural Geometry Fields: Options");
+		{
+			ImGui::SliderInt("Resolution", &resolution, 2, 7);
+		}
+		ImGui::End();
 	}
 
 	void resize() override {

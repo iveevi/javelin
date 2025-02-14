@@ -26,7 +26,7 @@ auto f = procedure <void> ("main") << []()
 
 	i32 k = 10;
 
-	auto i = loop(range(i32(0), i32(10), i32(1)));
+	auto i = loop(range <i32> (0, 10, 1));
 	{
 		results[i] = i * i + k;
 		k += 1;

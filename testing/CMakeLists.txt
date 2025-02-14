@@ -1,12 +1,14 @@
 # Testing suite using GoogleTest
 add_executable(test
-	ire_callable.cpp
-	ire_emitter.cpp
-	ire_ggx_brdf.cpp
-	ire_jit_gcc_material.cpp
-	ire_solidification.cpp
-	ire_synthesize_cpp.cpp
-	ire_synthesize_glsl.cpp
+	callable.cpp
+	compute.cpp
+	emitter.cpp
+	ggx.cpp
+	gl.cpp
+	layouts_cpp.cpp
+	layouts_glsl.cpp
+	material_gcc.cpp
+	solidification.cpp
 	../thirdparty/glad/src/gl.c)
 
 set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)

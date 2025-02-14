@@ -40,12 +40,12 @@ void simple_parameters()
 	check_cpluslpus_source(cpp);
 }
 
-TEST(ire_synthesize_cpp, simple_int)
+TEST(layouts_cpp, simple_int)
 {
 	simple_parameters <int> ();
 }
 
-TEST(ire_synthesize_cpp, simple_float)
+TEST(layouts_cpp, simple_float)
 {
 	simple_parameters <float> ();
 }
@@ -64,32 +64,32 @@ void simple_vector_parameters()
 	check_cpluslpus_source(cpp);
 }
 
-TEST(ire_synthesize_cpp, simple_int_2)
+TEST(layouts_cpp, simple_int_2)
 {
 	simple_vector_parameters <int, 2> ();
 }
 
-TEST(ire_synthesize_cpp, simple_float_2)
+TEST(layouts_cpp, simple_float_2)
 {
 	simple_vector_parameters <float, 2> ();
 }
 
-TEST(ire_synthesize_cpp, simple_int_3)
+TEST(layouts_cpp, simple_int_3)
 {
 	simple_vector_parameters <int, 3> ();
 }
 
-TEST(ire_synthesize_cpp, simple_float_3)
+TEST(layouts_cpp, simple_float_3)
 {
 	simple_vector_parameters <float, 3> ();
 }
 
-TEST(ire_synthesize_cpp, simple_int_4)
+TEST(layouts_cpp, simple_int_4)
 {
 	simple_vector_parameters <int, 4> ();
 }
 
-TEST(ire_synthesize_cpp, simple_float_4)
+TEST(layouts_cpp, simple_float_4)
 {
 	simple_vector_parameters <float, 4> ();
 }

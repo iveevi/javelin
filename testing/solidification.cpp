@@ -12,7 +12,7 @@ auto solid_offset()
 	return ((std::intptr_t) &A.template get <F> () - (std::intptr_t) &A);
 }
 
-TEST(ire_solidification, proxy_A)
+TEST(solidification, proxy_A)
 {
 	struct proxy_A {
 		auto layout() const {
@@ -33,7 +33,7 @@ TEST(ire_solidification, proxy_A)
 	ASSERT_EQ((solid_offset <solid_A, 1> ()), 16);
 }
 
-TEST(ire_solidification, proxy_B)
+TEST(solidification, proxy_B)
 {
 	struct proxy_B {
 		auto layout() const {
@@ -54,7 +54,7 @@ TEST(ire_solidification, proxy_B)
 	ASSERT_EQ((solid_offset <solid_B, 1> ()), 16);
 }
 
-TEST(ire_solidification, proxy_C)
+TEST(solidification, proxy_C)
 {
 	struct proxy_C {
 		auto layout() const {
@@ -75,7 +75,7 @@ TEST(ire_solidification, proxy_C)
 	ASSERT_EQ((solid_offset <solid_C, 1> ()), 12);
 }
 
-TEST(ire_solidification, proxy_D)
+TEST(solidification, proxy_D)
 {
 	struct proxy_D {
 		auto layout() const {
@@ -99,7 +99,7 @@ TEST(ire_solidification, proxy_D)
 	ASSERT_EQ((solid_offset <solid_D, 2> ()), 28);
 }
 
-TEST(ire_solidification, proxy_E)
+TEST(solidification, proxy_E)
 {
 	struct proxy_E {
 		auto layout() const {
@@ -123,7 +123,7 @@ TEST(ire_solidification, proxy_E)
 	ASSERT_EQ((solid_offset <solid_E, 2> ()), 16);
 }
 
-TEST(ire_solidification, proxy_F)
+TEST(solidification, proxy_F)
 {
 	struct proxy_F {
 		auto layout() const {

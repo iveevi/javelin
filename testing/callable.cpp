@@ -14,7 +14,7 @@ int sum(int _arg0, int _arg1)
 }
 )";
 
-TEST(ire_callable, sum)
+TEST(callable, sum)
 {
 	auto ftn = [](i32 x, i32 y) {
 		return x + y;
@@ -37,7 +37,7 @@ float arithmetic(float _arg0, float _arg1, float _arg2)
 }
 )";
 
-TEST(ire_callable, arithmetic)
+TEST(callable, arithmetic)
 {
 	auto ftn = [](f32 x, f32 y, f32 z) {
 		f32 a = x + y * z;
@@ -53,7 +53,7 @@ TEST(ire_callable, arithmetic)
 	check_shader_sources(expected_arithmetic_glsl, glsl);
 }
 
-TEST(ire_callable, returns)
+TEST(callable, returns)
 {
 	auto ftn = [](f32 x, f32 y, f32 z) {
 		f32 a = x + y * z;
@@ -82,7 +82,7 @@ float conditional(float _arg0, float _arg1, float _arg2)
 }
 )";
 
-TEST(ire_callable, conditional_returns)
+TEST(callable, conditional_returns)
 {
 	auto ftn = [](f32 x, f32 y, f32 z) {
 		f32 a = x + y * z;
@@ -121,7 +121,7 @@ vec4 project(s0_t _arg0, vec3 _arg1)
 }
 )";
 
-TEST(ire_callable, struct_parameter)
+TEST(callable, struct_parameter)
 {
 	struct MVP {
 		mat4 model;
@@ -169,7 +169,7 @@ s0_t shift_seed(s0_t _arg0)
 }
 )";
 
-TEST(ire_callable, struct_return)
+TEST(callable, struct_return)
 {
 	struct Seed {
 		u32 root;

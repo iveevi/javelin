@@ -9,7 +9,7 @@ Procedure <void> task = procedure <void> ("main") << []()
 	task_payload <Payload> payload;
 
 	payload.pindex = gl_GlobalInvocationID.x;
-	payload.resolution = 4;
+	payload.resolution = pc.resolution;
 	EmitMeshTasksEXT(1, 1, 1);
 };
 
@@ -33,6 +33,7 @@ auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
 	sampler1D vtex(1);
 	sampler2D ftex(2);
 	sampler1D biases(3);
+
 	sampler2D w0(4);
 	sampler2D w1(5);
 	sampler2D w2(6);
@@ -60,7 +61,7 @@ auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
 	vec3 vertex = mix(mix(v0, v1, uv.y), mix(v3, v2, uv.y), uv.x);
 
 	// TODO: native overload
-	{ auto i = loop(range(u32(0u), u32(FEATURE_SIZE), u32(1u)));
+	{ auto i = loop(range <u32> (0u, FEATURE_SIZE, 1u));
 		vec4 fv = texelFetch(ftex, ivec2(i32(i), i32(payload.pindex)), 0);
 		A[i] = mix(mix(fv.x, fv.y, uv.y), mix(fv.w, fv.z, uv.y), uv.x);
 	end(); }
@@ -68,12 +69,8 @@ auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
 	// Positional encoding
 	array <f32> powers = std::array <f32, 8> { 1, 2, 4, 8, 16, 32, 64, 128 };
 
-	// TODO: this is defined outside the loop...
-	// u32 k = FEATURE_SIZE;
-	u32 k;
-	k = FEATURE_SIZE;
-
-	{ auto i = loop(range(u32(0u), u32(ENCODING_LEVELS), u32(1u)));
+	u32 k = FEATURE_SIZE;
+	{ auto i = loop(range <u32> (0u, ENCODING_LEVELS, 1u));
 		f32 p = powers[i];
 		vec3 sin_v = sin(p * vertex);
 		vec3 cos_v = cos(p * vertex);
@@ -92,7 +89,7 @@ auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
 
 	// Layer 0
 	// TODO: raw, with fmt references...
-	{ auto i = loop(range(i32(0), i32(16), i32(1)));
+	{ auto i = loop(range <i32> (0, 16, 1));
 		// Load matrix row into shared memory
 		cond(tid == 0);
 		{
@@ -115,7 +112,7 @@ auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
 	end(); }
 
 	// Layer 1
-	{ auto i = loop(range(i32(0), i32(16), i32(1)));
+	{ auto i = loop(range <i32> (0, 16, 1));
 		u32 k = u32(i) << 2;
 
 		// Evaluate
@@ -139,32 +136,24 @@ auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
 	end(); }
 
 	// Layer 2
-	{
-		auto i = loop(range(i32(0), i32(16), i32(1)));
-		{
-			// Evaluate
-			vec4 v = texelFetch(biases, i32(i) + 32, 0);
-			{
-				auto j = loop(range(i32(0), i32(64), i32(1)));
-				{
-					v += A[j] * texelFetch(w2, ivec2(i, j), 0);
-				}
-				end();
-			}
+	{ auto i = loop(range <i32> (0, 16, 1));
+		// Evaluate
+		vec4 v = texelFetch(biases, i32(i) + 32, 0);
+		{ auto j = loop(range <i32> (0, 64, 1));
+			v += A[j] * texelFetch(w2, ivec2(i, j), 0);
+		end(); }
 
-			vec4 lv = leaky_relu(v);
+		vec4 lv = leaky_relu(v);
 
-			// Fuse with the last layer
-			vec4 wx = texelFetch(w3, ivec2(i, 0), 0);
-			vec4 wy = texelFetch(w3, ivec2(i, 1), 0);
-			vec4 wz = texelFetch(w3, ivec2(i, 2), 0);
+		// Fuse with the last layer
+		vec4 wx = texelFetch(w3, ivec2(i, 0), 0);
+		vec4 wy = texelFetch(w3, ivec2(i, 1), 0);
+		vec4 wz = texelFetch(w3, ivec2(i, 2), 0);
 
-			vertex.x += dot(wx, lv);
-			vertex.y += dot(wy, lv);
-			vertex.z += dot(wz, lv);
-		}
-		end();
-	}
+		vertex.x += dot(wx, lv);
+		vertex.y += dot(wy, lv);
+		vertex.z += dot(wz, lv);
+	end(); }
 
 	vec4 b4 = texelFetch(biases, 3 << 6, 0);
 	vec3 bias = vec3(b4.x, b4.y, b4.z);
