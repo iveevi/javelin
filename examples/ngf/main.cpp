@@ -170,6 +170,10 @@ struct Application : CameraApplication {
 	void configure(argparse::ArgumentParser &program) override {
 		program.add_argument("binary")
 			.help("neural geometry field binary file");
+
+		program.add_argument("--file")
+			.help("use shader source file")
+			.flag();
 	}
 
 	void preload(const argparse::ArgumentParser &program) override {
@@ -184,24 +188,35 @@ struct Application : CameraApplication {
 
 		// Compile appropriate pipeline
 		// TODO: fix bugs with unoptimized version (variables instantiated inside block)
-		thunder::opt_transform(task);
-		thunder::opt_transform(mesh);
-
-		task.dump();
-		mesh.dump();
+		// thunder::opt_transform(task);
+		// TODO: do not optimize primitives of different storages...
+		// thunder::opt_transform(mesh);
 
 		std::string task_shader = link(task).generate_glsl();
 		std::string mesh_shader = link(mesh).generate_glsl();
 		std::string fragment_shader = link(fragment).generate_glsl();
 
-		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
-			.source(task_shader, vk::ShaderStageFlagBits::eTaskEXT)
-			.source(mesh_shader, vk::ShaderStageFlagBits::eMeshEXT)
-			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
+		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal);
+
+		if (program["--file"] == true) {
+			bundle.file("examples/ngf/ngf.task", vk::ShaderStageFlagBits::eTaskEXT);
+			bundle.file("examples/ngf/ngf.mesh", vk::ShaderStageFlagBits::eMeshEXT);
+		} else {
+			bundle.source(task_shader, vk::ShaderStageFlagBits::eTaskEXT);
+			bundle.source(mesh_shader, vk::ShaderStageFlagBits::eMeshEXT);
+
+			// mesh.dump();
+			fmt::println("{}", mesh_shader);
+		}
+
+		// TODO: slang-like buffer compute tests...
+
+		bundle.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 
 		traditional = littlevk::PipelineAssembler <littlevk::eGraphics> (resources.device, resources.window, resources.dal)
 			.with_render_pass(render_pass, 0)
 			.with_shader_bundle(bundle)
+			.cull_mode(vk::CullModeFlagBits::eNone)
 			.with_dsl_bindings(meshlet_bindings)
 			.with_push_constant <solid_t <ViewInfo>> (vk::ShaderStageFlagBits::eMeshEXT
 								  | vk::ShaderStageFlagBits::eTaskEXT);
@@ -270,6 +285,11 @@ struct Application : CameraApplication {
 			.clear_depth(1, 1)
 			.begin(cmd);
 		
+		// MVP structure used for push constants
+		auto &extent = resources.window.extent;
+		
+		camera.aperature.aspect = float(extent.width)/float(extent.height);
+
 		auto m_model = uniform_field(ViewInfo, model);
 		auto m_view = uniform_field(ViewInfo, view);
 		auto m_proj = uniform_field(ViewInfo, proj);
@@ -290,8 +310,8 @@ struct Application : CameraApplication {
 			0, view_info);
 
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, traditional.layout, 0, descriptor, { });
-		// cmd.drawMeshTasksEXT(ingf.patch_count, 1, 1);
-		cmd.drawMeshTasksEXT(1, 1, 1);
+		cmd.drawMeshTasksEXT(ingf.patch_count, 1, 1);
+		// cmd.drawMeshTasksEXT(1, 1, 1);
 		
 		cmd.endRenderPass();
 	}

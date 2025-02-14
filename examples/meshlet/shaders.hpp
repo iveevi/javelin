@@ -5,6 +5,8 @@
 using namespace jvl;
 using namespace jvl::ire;
 
+static constexpr uint32_t MESHLET_SIZE = 32;
+
 // View information
 struct ViewInfo {
 	mat4 model;
@@ -23,6 +25,21 @@ struct ViewInfo {
 	}
 };
 
+// Task payload information
+struct Payload {
+	u32 pid;
+	u32 offset;
+	u32 size;
+
+	auto layout() const {
+		return uniform_layout("Payload",
+			named_field(pid),
+			named_field(offset),
+			named_field(size));
+	}
+};
+
 // Actual shaders
-extern Procedure <void> vertex;
+extern Procedure <void> task;
+extern Procedure <void> mesh;
 extern Procedure <void> fragment;

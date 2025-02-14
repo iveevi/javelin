@@ -1,8 +1,9 @@
+*.cap
 *.jvlx
 .cache/
 .vscode/
 build/
 compile_commands.json
-imgui.ini
 gcc_jit_result*.c
+imgui.ini
 vgcore.*
