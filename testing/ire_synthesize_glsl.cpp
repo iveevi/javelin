@@ -14,10 +14,8 @@ MODULE(test-synthesize-glsl);
 bool init_context()
 {
 	static bool initialized = false;
-	if (initialized) {
-		JVL_INFO("GL/GLFW context already initialized.");
+	if (initialized)
 		return true;
-	}
 		
 	JVL_INFO("configuring GL/GLFW context.");
 

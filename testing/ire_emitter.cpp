@@ -1,10 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "ire/core.hpp"
-#include "ire/type_synthesis.hpp"
-#include "thunder/atom.hpp"
-#include "thunder/buffer.hpp"
-#include "thunder/enumerations.hpp"
+#include <ire/core.hpp>
 
 using namespace jvl;
 using namespace jvl::ire;

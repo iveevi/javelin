@@ -92,7 +92,9 @@ struct native_t : tagged {
 
 	T value = T();
 
-	native_t(T v = T()) : value(v) {}
+	native_t(T v = T()) : value(v) {
+		synthesize();
+	}
 
 	// Explicit conversion operations (and copy constructor)
 	template <native U>

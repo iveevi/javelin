@@ -48,6 +48,6 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
           lcov -c -d build -o coverage.info
-          lcov -r coverage.info "/usr" -o coverage.info
-          lcov -r coverage.info "build/" -o coverage.info
+          lcov -r --ignore-errors unused coverage.info "/usr" -o coverage.info
+          lcov -r --ignore-errors unused coverage.info "build/" -o coverage.info
           bash <(curl -s https://codecov.io/bash) -f coverage.info

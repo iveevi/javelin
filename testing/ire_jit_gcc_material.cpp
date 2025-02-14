@@ -1,8 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "ire/core.hpp"
-#include "thunder/opt.hpp"
-// #include "constants.hpp"
+#include <ire/core.hpp>
 
 using namespace jvl;
 using namespace jvl::ire;
