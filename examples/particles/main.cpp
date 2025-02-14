@@ -123,16 +123,12 @@ void integrator(std::vector <aligned_vec3> &particles,
 	O2 += dt * V2;
 }
 
-struct Application : BaseApplication {
+struct Application : CameraApplication {
 	littlevk::Pipeline raster;
 	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
 	
-	Transform camera_transform;
 	Transform model_transform;
-	Aperature aperature;
-
-	CameraController controller;
 
 	// TODO: argument for number of particles
 	int N = 150'000;
@@ -155,8 +151,7 @@ struct Application : BaseApplication {
 	float dt = 0.02f;
 	float mass = 500.0f;
 
-	Application() : BaseApplication("Particles", { VK_KHR_SWAPCHAIN_EXTENSION_NAME }),
-			controller(camera_transform, CameraControllerSettings())
+	Application() : CameraApplication("Particles", { VK_KHR_SWAPCHAIN_EXTENSION_NAME })
 	{
 		render_pass = littlevk::RenderPassAssembler(resources.device, resources.dal)
 			.add_attachment(littlevk::default_color_attachment(resources.swapchain.format))
@@ -246,7 +241,7 @@ struct Application : BaseApplication {
 
 		solid_t <MVP> view_info;
 
-		controller.handle_movement(resources.window);
+		camera.controller.handle_movement(resources.window);
 		
 		// Configure the rendering extent
 		vk::Extent2D extent = resources.window.extent;
@@ -262,10 +257,10 @@ struct Application : BaseApplication {
 			.begin(cmd);
 
 		// Update the constants with the view matrix
-		aperature.aspect = float(extent.width) / float(extent.height);
+		camera.aperature.aspect = float(extent.width) / float(extent.height);
 
-		auto proj = aperature.perspective();
-		auto view = camera_transform.view_matrix();
+		auto proj = camera.aperature.perspective();
+		auto view = camera.transform.view_matrix();
 
 		view_info[m_proj] = proj;
 		view_info[m_view] = view;
@@ -344,25 +339,6 @@ struct Application : BaseApplication {
 	
 	void resize() override {
 		framebuffers.resize(resources, render_pass);
-	}
-
-	// Mouse button callbacks
-	void mouse_inactive() override {
-		controller.voided = true;
-		controller.dragging = false;
-	}
-	
-	void mouse_left_press() override {
-		controller.dragging = true;
-	}
-	
-	void mouse_left_release() override {
-		controller.voided = true;
-		controller.dragging = false;
-	}
-
-	void mouse_cursor(const glm::vec2 &xy) override {
-		controller.handle_cursor(xy);
 	}
 };
 

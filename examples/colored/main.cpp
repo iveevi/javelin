@@ -12,23 +12,18 @@
 
 #include "shaders.hpp"
 
-struct Application : BaseApplication {
+struct Application : CameraApplication {
 	littlevk::Pipeline raster;
 	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
 
-	Transform camera_transform;
 	Transform model_transform;
-	Aperature aperature;
-
-	CameraController controller;
 
 	glm::vec3 color;
 
 	std::vector <VulkanTriangleMesh> meshes;
 
-	Application() : BaseApplication("Colored", { VK_KHR_SWAPCHAIN_EXTENSION_NAME }),
-			controller(camera_transform, CameraControllerSettings())
+	Application() : CameraApplication("Colored", { VK_KHR_SWAPCHAIN_EXTENSION_NAME })
 	{
 		render_pass = littlevk::RenderPassAssembler(resources.device, resources.dal)
 			.add_attachment(littlevk::default_color_attachment(resources.swapchain.format))
@@ -93,7 +88,7 @@ struct Application : BaseApplication {
 	}
 
 	void render(const vk::CommandBuffer &cmd, uint32_t index) override {
-		controller.handle_movement(resources.window);
+		camera.controller.handle_movement(resources.window);
 		
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(resources.window.extent));
@@ -116,10 +111,10 @@ struct Application : BaseApplication {
 		mvp[m_model] = model_transform.matrix();
 	
 		auto &extent = resources.window.extent;
-		aperature.aspect = float(extent.width)/float(extent.height);
+		camera.aperature.aspect = float(extent.width)/float(extent.height);
 
-		mvp[m_proj] = aperature.perspective();
-		mvp[m_view] = camera_transform.view_matrix();
+		mvp[m_proj] = camera.aperature.perspective();
+		mvp[m_view] = camera.transform.view_matrix();
 		
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, raster.handle);
 	
@@ -151,25 +146,6 @@ struct Application : BaseApplication {
 
 	void resize() override {
 		framebuffers.resize(resources, render_pass);
-	}
-	
-	// Mouse button callbacks
-	void mouse_inactive() override {
-		controller.voided = true;
-		controller.dragging = false;
-	}
-	
-	void mouse_left_press() override {
-		controller.dragging = true;
-	}
-	
-	void mouse_left_release() override {
-		controller.voided = true;
-		controller.dragging = false;
-	}
-
-	void mouse_cursor(const glm::vec2 &xy) override {
-		controller.handle_cursor(xy);
 	}
 };
 

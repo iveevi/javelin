@@ -94,20 +94,18 @@ vec3 eval(vec2 uv)
 
 	// Layer 0
 	for (uint i = 0; i < 16; i++) {
-		// // Load matrix row into shared memory
-		// if (tid == 0) {
-		// 	for (uint j = 0; j < FFIN; j++)
-		// 		row[j] = texelFetch(w0, ivec2(i, j), 0);
-		// }
+		// Load matrix row into shared memory
+		if (tid == 0) {
+			for (uint j = 0; j < FFIN; j++)
+				row[j] = texelFetch(w0, ivec2(i, j), 0);
+		}
 
-		// barrier();
+		barrier();
 
 		// Evaluate
 		vec4 v = texelFetch(biases, int(i), 0);
-		// for (uint j = 0; j < FFIN; j++)
-		// 	v += A[j] * row[j];
 		for (uint j = 0; j < FFIN; j++)
-			v += A[j] * texelFetch(w0, ivec2(i, j), 0);
+			v += A[j] * row[j];
 
 		B[i] = leaky_relu(v);
 	}

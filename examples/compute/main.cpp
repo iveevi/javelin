@@ -30,51 +30,14 @@ std::vector <glm::vec3> generate_random_points(int N, float spread)
 	return points;
 }
 
-// Pipeline configuration for rendering spheres
-littlevk::Pipeline configure_pipeline(VulkanResources &drc,
-				      const vk::RenderPass &render_pass,
-				      auto cmap)
-{
-	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
-
-	auto vs_callable = procedure("main") << vertex;
-	auto fs_callable = procedure("main") << std::make_tuple(cmap) << fragment;
-
-	std::string vertex_shader = link(vs_callable).generate_glsl();
-	std::string fragment_shader = link(fs_callable).generate_glsl();
-
-	auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
-		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
-		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
-
-	fmt::println("{}", vertex_shader);
-	fmt::println("{}", fragment_shader);
-
-	return littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
-		.with_render_pass(render_pass, 0)
-		.with_vertex_layout(vertex_layout)
-		.with_shader_bundle(bundle)
-		.with_push_constant <solid_t<MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
-		.with_push_constant <solid_t<u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t<MVP>))
-		.with_dsl_binding(0, vk::DescriptorType::eStorageBuffer,
-				  1, vk::ShaderStageFlagBits::eVertex)
-		.with_dsl_binding(1, vk::DescriptorType::eStorageBuffer,
-				  1, vk::ShaderStageFlagBits::eVertex)
-		.cull_mode(vk::CullModeFlagBits::eNone);
-}
-
-struct Application : BaseApplication {
+struct Application : CameraApplication {
 	littlevk::Pipeline raster;
 	littlevk::Pipeline compute;
 
 	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
 	
-	Transform camera_transform;
 	Transform model_transform;
-	Aperature aperature;
-
-	CameraController controller;
 
 	// TODO: argument for number of particles
 	int N = 150'000;
@@ -99,8 +62,7 @@ struct Application : BaseApplication {
 	float mass = 500.0f;
 	bool pause = false;
 
-	Application() : BaseApplication("Particles", { VK_KHR_SWAPCHAIN_EXTENSION_NAME }),
-			controller(camera_transform, CameraControllerSettings())
+	Application() : CameraApplication("Particles", { VK_KHR_SWAPCHAIN_EXTENSION_NAME })
 	{
 		render_pass = littlevk::RenderPassAssembler(resources.device, resources.dal)
 			.add_attachment(littlevk::default_color_attachment(resources.swapchain.format))
@@ -113,7 +75,7 @@ struct Application : BaseApplication {
 		framebuffers.resize(resources, render_pass);
 
 		// Pipelines
-		raster = configure_pipeline(resources, render_pass, jet);
+		configure_pipeline(jet);
 
 		auto cs = procedure("main") << integrator;
 		auto compute_shader = link(cs).generate_glsl();
@@ -142,6 +104,36 @@ struct Application : BaseApplication {
 			.buffer(sphere.triangles,
 				vk::BufferUsageFlagBits::eIndexBuffer
 				| vk::BufferUsageFlagBits::eTransferDst);
+	}
+
+	// Pipeline configuration for rendering spheres
+	void configure_pipeline(auto cmap) {
+		auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
+
+		auto vs_callable = procedure("main") << vertex;
+		auto fs_callable = procedure("main") << std::make_tuple(cmap) << fragment;
+
+		std::string vertex_shader = link(vs_callable).generate_glsl();
+		std::string fragment_shader = link(fs_callable).generate_glsl();
+
+		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
+			.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
+			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
+
+		fmt::println("{}", vertex_shader);
+		fmt::println("{}", fragment_shader);
+
+		raster = littlevk::PipelineAssembler <littlevk::eGraphics> (resources.device, resources.window, resources.dal)
+			.with_render_pass(render_pass, 0)
+			.with_vertex_layout(vertex_layout)
+			.with_shader_bundle(bundle)
+			.with_push_constant <solid_t<MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
+			.with_push_constant <solid_t<u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t<MVP>))
+			.with_dsl_binding(0, vk::DescriptorType::eStorageBuffer,
+					1, vk::ShaderStageFlagBits::eVertex)
+			.with_dsl_binding(1, vk::DescriptorType::eStorageBuffer,
+					1, vk::ShaderStageFlagBits::eVertex)
+			.cull_mode(vk::CullModeFlagBits::eNone);
 	}
 
 	void preload(const argparse::ArgumentParser &program) override {
@@ -216,7 +208,7 @@ struct Application : BaseApplication {
 
 		solid_t <MVP> view_info;
 
-		controller.handle_movement(resources.window);
+		camera.controller.handle_movement(resources.window);
 		
 		// Configure the rendering extent
 		vk::Extent2D extent = resources.window.extent;
@@ -232,10 +224,10 @@ struct Application : BaseApplication {
 			.begin(cmd);
 
 		// Update the constants with the view matrix
-		aperature.aspect = float(extent.width) / float(extent.height);
+		camera.aperature.aspect = float(extent.width) / float(extent.height);
 
-		auto proj = aperature.perspective();
-		auto view = camera_transform.view_matrix();
+		auto proj = camera.aperature.perspective();
+		auto view = camera.transform.view_matrix();
 
 		view_info[m_proj] = proj;
 		view_info[m_view] = view;
@@ -306,7 +298,7 @@ struct Application : BaseApplication {
 			if (ImGui::BeginCombo("Color Map", cmap.c_str())) {
 				for (auto &[k, m] : maps) {
 					if (ImGui::Selectable(k.c_str(), k == cmap)) {
-						raster = configure_pipeline(resources, render_pass, m);
+						configure_pipeline(m);
 						cmap = k;
 					}
 				}
@@ -360,25 +352,6 @@ struct Application : BaseApplication {
 	
 	void resize() override {
 		framebuffers.resize(resources, render_pass);
-	}
-	
-	// Mouse button callbacks
-	void mouse_inactive() override {
-		controller.voided = true;
-		controller.dragging = false;
-	}
-	
-	void mouse_left_press() override {
-		controller.dragging = true;
-	}
-	
-	void mouse_left_release() override {
-		controller.voided = true;
-		controller.dragging = false;
-	}
-
-	void mouse_cursor(const glm::vec2 &xy) override {
-		controller.handle_cursor(xy);
 	}
 };
 

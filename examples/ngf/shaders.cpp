@@ -93,26 +93,23 @@ auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
 	// Layer 0
 	// TODO: raw, with fmt references...
 	{ auto i = loop(range(i32(0), i32(16), i32(1)));
-		// // Load matrix row into shared memory
-		// cond(tid == 0);
-		// {
-		// 	auto j = loop(range(i32(0), i32(FFIN), i32(1)));
-		// 		row[j] = texelFetch(w0, ivec2(i, j), 0);
-		// 	end();
-		// }
-		// end();
+		// Load matrix row into shared memory
+		cond(tid == 0);
+		{
+			auto j = loop(range(i32(0), i32(FFIN), i32(1)));
+				row[j] = texelFetch(w0, ivec2(i, j), 0);
+			end();
+		}
+		end();
 
-		// barrier();
+		barrier();
 
 		// Evaluate
 		vec4 v = texelFetch(biases, i32(i), 0);
 
-		{ auto j = loop(range(i32(0), i32(FFIN), i32(1)));
-		{
-			// v += A[j] * row[j];
-			v += A[j] * texelFetch(w0, ivec2(i, j), 0);
-		}
-		end(); }
+		auto j = loop(range(i32(0), i32(FFIN), i32(1)));
+			v += A[j] * row[j];
+		end();
 
 		B[i] = leaky_relu(v);
 	end(); }

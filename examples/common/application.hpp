@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fmt/printf.h>
+
 #include <glm/glm.hpp>
 
 #include <imgui.h>
@@ -11,6 +13,7 @@
 #include "features.hpp"
 #include "transform.hpp"
 #include "vulkan_resources.hpp"
+#include "timer.hpp"
 
 struct BaseApplication {
 	std::string name;
@@ -56,6 +59,21 @@ struct BaseApplication {
 		glfwSetCursorPosCallback(handle, glfw_cursor_callback);
 	}
 
+	// Rendering statistics
+	struct {
+		double sum_ms = 0.0;
+		double sum_frames = 0.0;
+		double total = 0.0;
+
+		double average_host_frame_time() const {
+			return sum_ms / total;
+		}
+		
+		double average_host_frames_per_second() const {
+			return 1e3 / average_host_frame_time();
+		}
+	} statistics;
+
 	// Render loop resources
 	void loop(int32_t max) {
 		auto &device = resources.device;
@@ -74,10 +92,14 @@ struct BaseApplication {
 			count
 		});
 
+		Timer timer;
+
 		uint32_t frame = 0;
 		uint32_t total = 0;
 
 		while (!glfwWindowShouldClose(window.handle)) {
+			timer.reset();
+
 			glfwPollEvents();
 
 			if (total >= max)
@@ -113,6 +135,11 @@ struct BaseApplication {
 				resize();
 
 			frame = (++total) % count;
+
+			// Rendering statistics
+			double ms = timer.click();
+			statistics.sum_ms += ms;
+			statistics.total++;
 		}
 
 		device.waitIdle();
@@ -145,6 +172,13 @@ struct BaseApplication {
 
 		// Run the program
 		loop(program.get <int32_t> ("frames"));
+
+		// TODO: display statistics...
+		fmt::println("----------------------------");
+		fmt::println("AVERAGE RENDERING STATISTICS");
+		fmt::println("----------------------------");
+		fmt::println("    host frame time: {:.3f} ms", statistics.average_host_frame_time());
+		fmt::println("    host frames per second: {} fps", (int) statistics.average_host_frames_per_second());
 
 		return 0;
 	}

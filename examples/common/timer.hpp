@@ -12,6 +12,7 @@ struct Timer {
 		mark = clock.now();
 	}
 
+	// Result is milliseconds
 	double click() const {
 		auto end = clock.now();
 		auto count = std::chrono::duration_cast <std::chrono::microseconds> (end - mark).count();

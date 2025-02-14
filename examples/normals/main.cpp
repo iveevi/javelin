@@ -10,48 +10,16 @@
 
 #include "shaders.hpp"
 
-// Constructing the graphics pipeline
-littlevk::Pipeline configure_pipeline(VulkanResources &drc,
-				      const vk::RenderPass &render_pass)
-{
-	auto [binding, attributes] = binding_and_attributes(VertexFlags::ePosition);
-
-	auto vs_callable = procedure("main") << vertex;
-	auto fs_callable = procedure("main") << fragment;
-
-	std::string vertex_shader = link(vs_callable).generate_glsl();
-	std::string fragment_shader = link(fs_callable).generate_glsl();
-
-	// TODO: automatic generation by observing used layouts
-	auto bundle = littlevk::ShaderStageBundle(drc.device, drc.dal)
-		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
-		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
-
-	return littlevk::PipelineAssembler <littlevk::eGraphics> (drc.device, drc.window, drc.dal)
-		.with_render_pass(render_pass, 0)
-		.with_vertex_binding(binding)
-		.with_vertex_attributes(attributes)
-		.with_shader_bundle(bundle)
-		.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
-		.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t <MVP>))
-		.cull_mode(vk::CullModeFlagBits::eNone);
-}
-
-struct Application : BaseApplication {
+struct Application : CameraApplication {
 	littlevk::Pipeline raster;
 	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
 	
-	Transform camera_transform;
 	Transform model_transform;
-	Aperature aperature;
-
-	CameraController controller;
 
 	std::vector <VulkanTriangleMesh> meshes;
 
-	Application() : BaseApplication("Normals", { VK_KHR_SWAPCHAIN_EXTENSION_NAME }),
-			controller(camera_transform, CameraControllerSettings())
+	Application() : CameraApplication("Normals", { VK_KHR_SWAPCHAIN_EXTENSION_NAME })
 	{
 		render_pass = littlevk::RenderPassAssembler(resources.device, resources.dal)
 			.add_attachment(littlevk::default_color_attachment(resources.swapchain.format))
@@ -65,10 +33,34 @@ struct Application : BaseApplication {
 		configure_imgui(resources, render_pass);
 
 		// Configure pipeline
-		raster = configure_pipeline(resources, render_pass);
+		compile_pipeline();
 		
 		// Framebuffer manager
 		framebuffers.resize(resources, render_pass);
+	}
+
+	void compile_pipeline() {
+		auto [binding, attributes] = binding_and_attributes(VertexFlags::ePosition);
+
+		auto vs_callable = procedure("main") << vertex;
+		auto fs_callable = procedure("main") << fragment;
+
+		std::string vertex_shader = link(vs_callable).generate_glsl();
+		std::string fragment_shader = link(fs_callable).generate_glsl();
+
+		// TODO: automatic generation by observing used layouts
+		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
+			.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
+			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
+
+		raster = littlevk::PipelineAssembler <littlevk::eGraphics> (resources.device, resources.window, resources.dal)
+			.with_render_pass(render_pass, 0)
+			.with_vertex_binding(binding)
+			.with_vertex_attributes(attributes)
+			.with_shader_bundle(bundle)
+			.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
+			.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t <MVP>))
+			.cull_mode(vk::CullModeFlagBits::eNone);
 	}
 
 	void configure(argparse::ArgumentParser &program) override {
@@ -90,7 +82,7 @@ struct Application : BaseApplication {
 	}
 	
 	void render(const vk::CommandBuffer &cmd, uint32_t index) override {
-		controller.handle_movement(resources.window);
+		camera.controller.handle_movement(resources.window);
 		
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(resources.window.extent));
@@ -113,10 +105,10 @@ struct Application : BaseApplication {
 		mvp[m_model] = model_transform.matrix();
 		
 		auto &extent = resources.window.extent;
-		aperature.aspect = float(extent.width)/float(extent.height);
+		camera.aperature.aspect = float(extent.width)/float(extent.height);
 
-		mvp[m_proj] = aperature.perspective();
-		mvp[m_view] = camera_transform.view_matrix();
+		mvp[m_proj] = camera.aperature.perspective();
+		mvp[m_view] = camera.transform.view_matrix();
 		
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, raster.handle);
 	
@@ -135,25 +127,6 @@ struct Application : BaseApplication {
 
 	void resize() override {
 		framebuffers.resize(resources, render_pass);
-	}
-	
-	// Mouse button callbacks
-	void mouse_inactive() override {
-		controller.voided = true;
-		controller.dragging = false;
-	}
-	
-	void mouse_left_press() override {
-		controller.dragging = true;
-	}
-	
-	void mouse_left_release() override {
-		controller.voided = true;
-		controller.dragging = false;
-	}
-
-	void mouse_cursor(const glm::vec2 &xy) override {
-		controller.handle_cursor(xy);
 	}
 };
 

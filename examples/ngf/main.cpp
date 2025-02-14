@@ -311,7 +311,6 @@ struct Application : CameraApplication {
 
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, traditional.layout, 0, descriptor, { });
 		cmd.drawMeshTasksEXT(ingf.patch_count, 1, 1);
-		// cmd.drawMeshTasksEXT(1, 1, 1);
 		
 		cmd.endRenderPass();
 	}
