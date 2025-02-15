@@ -2,7 +2,7 @@
 #include "thunder/ad.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
-#include "thunder/opt.hpp"
+#include "thunder/optimization.hpp"
 #include "thunder/qualified_type.hpp"
 
 namespace jvl::thunder {

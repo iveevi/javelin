@@ -4,13 +4,13 @@
 #include "core/reindex.hpp"
 #include "core/logging.hpp"
 #include "thunder/enumerations.hpp"
-#include "thunder/opt.hpp"
+#include "thunder/optimization.hpp"
 
 namespace jvl::thunder {
 
 MODULE(optimization);
 
-bool opt_transform_compact(Buffer &result)
+bool optimize_compaction(Buffer &result)
 {
 	bool marked = false;
 
@@ -48,7 +48,7 @@ bool opt_transform_compact(Buffer &result)
 	return marked;
 }
 
-bool opt_transform_constructor_elision(Buffer &result)
+bool optimize_constructor_elision(Buffer &result)
 {
 	// Find places where load from a constructed struct's field
 	// can be skipped by simply forwarding the result it was
@@ -159,7 +159,7 @@ bool opt_transform_dce_override(const Atom &atom)
 	return false;
 }
 
-bool opt_transform_dead_code_elimination(Buffer &result)
+bool optimize_dead_code_elimination(Buffer &result)
 {
 	usage_graph graph = usage(result);
 
@@ -240,7 +240,7 @@ bool opt_transform_dead_code_elimination(Buffer &result)
 	return (result.pointer != doubled.pointer);
 }
 
-void opt_transform(Buffer &result)
+void optimize(Buffer &result)
 {
 	JVL_STAGE();
 
@@ -249,14 +249,14 @@ void opt_transform(Buffer &result)
 		JVL_INFO("looped optimization pass (current # of atoms: {})", result.pointer);
 
 		// Relinking steps, will not elimination code
-		thunder::opt_transform_compact(result);
+		thunder::optimize_compaction(result);
 
 		// Disable due to incorrectness
 		// thunder::opt_transform_constructor_elision(result);
 		// TODO: constant propagation
 
 		// Eliminate unused code
-		changed = thunder::opt_transform_dead_code_elimination(result);
+		changed = thunder::optimize_dead_code_elimination(result);
 	} while (changed);
 }
 

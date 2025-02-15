@@ -2,7 +2,7 @@
 
 #include <type_traits>
 
-#include "../thunder/opt.hpp"
+#include "../thunder/optimization.hpp"
 #include "../thunder/tracked_buffer.hpp"
 #include "control_flow.hpp"
 #include "parameters.hpp"

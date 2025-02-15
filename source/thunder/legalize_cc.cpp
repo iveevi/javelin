@@ -2,7 +2,7 @@
 #include "ire/emitter.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
-#include "thunder/opt.hpp"
+#include "thunder/optimization.hpp"
 #include "thunder/properties.hpp"
 #include "thunder/qualified_type.hpp"
 

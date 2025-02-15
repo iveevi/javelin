@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <ire.hpp>
-#include <thunder/opt.hpp>
+#include <thunder/optimization.hpp>
 
 using namespace jvl;
 using namespace jvl::ire;

@@ -97,8 +97,8 @@ struct Application : CameraApplication {
 	}
 
 	void compile_meshlet_pipeline() {
-		thunder::opt_transform(task);
-		thunder::opt_transform(mesh);
+		thunder::optimize(task);
+		thunder::optimize(mesh);
 
 		std::string task_shader = link(task).generate_glsl();
 		std::string mesh_shader = link(mesh).generate_glsl();

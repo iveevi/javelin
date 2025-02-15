@@ -1,5 +1,5 @@
 #include <thunder/buffer.hpp>
-#include <thunder/opt.hpp>
+#include <thunder/optimization.hpp>
 #include <ire.hpp>
 
 #include <tsg/assembler.hpp>

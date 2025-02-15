@@ -13,7 +13,7 @@
 #include <GLFW/glfw3.h>
 
 #include <ire.hpp>
-#include <thunder/opt.hpp>
+#include <thunder/optimization.hpp>
 #include <thunder/linkage_unit.hpp>
 
 using namespace jvl;
@@ -39,7 +39,7 @@ int main()
 	f.dump();
 	fmt::println("{}", link(f).generate_glsl());
 	
-	thunder::opt_transform(f);
+	thunder::optimize(f);
 
 	f.dump();
 	fmt::println("{}", link(f).generate_glsl());
