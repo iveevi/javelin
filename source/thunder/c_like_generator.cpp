@@ -55,6 +55,10 @@ static std::optional <std::string> generate_global_reference(const Qualifier &qu
 	// Special
 	case task_payload:
 		return "_task_payload";
+	case ray_tracing_payload:
+		return fmt::format("_ray_payload{}", qualifier.numerical);
+	case ray_tracing_payload_in:
+		return fmt::format("_ray_payload_in{}", qualifier.numerical);
 
 	// GLSL shader stage intrinsics
 	case glsl_intrinsic_gl_FragCoord:

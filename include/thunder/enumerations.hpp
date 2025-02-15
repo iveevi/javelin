@@ -116,6 +116,8 @@ enum QualifierKind : int8_t {
 	sampler_3d,
 
 	task_payload,
+	ray_tracing_payload,
+	ray_tracing_payload_in,
 
 	glsl_intrinsic_gl_FragCoord,
 	glsl_intrinsic_gl_FragDepth,
@@ -179,6 +181,8 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"sampler3D",
 
 	"task payload",
+	"ray tracing payload",
+	"ray tracing payload (in)",
 
 	"glsl:gl_FragCoord",
 	"glsl:gl_FragDepth",

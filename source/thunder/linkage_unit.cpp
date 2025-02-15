@@ -132,10 +132,14 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t index, i
 
 	case task_payload:
 	{
-		special_type st(index, i);
-		globals.special[task_payload] = st;
+		globals.special[task_payload][-1] = special_type(index, i);
 		extensions.insert("GL_EXT_mesh_shader");
 	} break;
+	
+	case ray_tracing_payload:
+	case ray_tracing_payload_in:
+		globals.special[qualifier.kind][qualifier.numerical] = special_type(index, i);
+		break;
 
 	case glsl_intrinsic_gl_SubgroupInvocationID:
 		extensions.insert("GL_KHR_shader_subgroup_basic");
@@ -535,17 +539,37 @@ void generate_special(std::string &result,
 		      const std::vector <Function> &functions,
 		      const auto &special)
 {
-	for (const auto &[kind, st] : special) {
-		auto &types = functions[st.function].types;
-		auto &generator = generators[st.function];
-
-		auto ts = generator.type_to_string(types[st.index]);
-
+	for (const auto &[kind, maps] : special) {
 		switch (kind) {
+		
 		case task_payload:
-			result += fmt::format("taskPayloadSharedEXT {} _task_payload;\n\n",
-				ts.pre + ts.post);
-			break;
+		{
+			auto &st = maps.at(-1);
+			auto &types = functions[st.function].types;
+			auto &generator = generators[st.function];
+			auto ts = generator.type_to_string(types[st.index]);
+			result += fmt::format("taskPayloadSharedEXT {} _task_payload;\n\n", ts.pre + ts.post);
+		} break;
+
+		case ray_tracing_payload:
+		case ray_tracing_payload_in:
+		{
+			std::string type = "rayPayloadEXT";
+			if (kind == ray_tracing_payload_in)
+				type = "rayPayloadInEXT";
+
+			for (auto &[binding, st] : maps) {
+				auto &types = functions[st.function].types;
+				auto &generator = generators[st.function];
+				auto ts = generator.type_to_string(types[st.index]);
+				result += fmt::format("location (layout = {}) {} {} _ray_payload{}{};\n",
+					binding, type, ts.pre,
+					binding, ts.post);
+			}
+
+			result += "\n";
+		} break;
+
 		default:
 			JVL_WARNING("unsupported special global: {}", tbl_qualifier_kind[kind]);
 			break;

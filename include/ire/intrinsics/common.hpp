@@ -8,6 +8,7 @@
 
 namespace jvl::ire {
 
+// Abolsute value
 template <arithmetic T>
 auto abs(const T &a)
 {
@@ -15,22 +16,25 @@ auto abs(const T &a)
 	return platform_intrinsic_from_args <result> (thunder::abs, a);
 }
 
+// Maximum
 template <arithmetic A, arithmetic B>
 requires overload_compatible <A, B>
-arithmetic_base <A> max(const A &a, const B &b)
+auto max(const A &a, const B &b)
 {
 	using R = decltype(underlying(a));
 	return platform_intrinsic_from_args <R> (thunder::max, underlying(a), underlying(b));
 }
 
+// Minimum
 template <arithmetic A, arithmetic B>
 requires overload_compatible <A, B>
-arithmetic_base <A> min(const A &a, const B &b)
+auto min(const A &a, const B &b)
 {
 	using R = decltype(underlying(a));
 	return platform_intrinsic_from_args <R> (thunder::min, underlying(a), underlying(b));
 }
 
+// Square root
 template <native T>
 native_t <T> sqrt(const native_t <T> &x)
 {
@@ -43,6 +47,7 @@ native_t <T> sqrt(const swizzle_element <T, Up, swz> &x)
 	return platform_intrinsic_from_args <native_t <T>> (thunder::sqrt, x);
 }
 
+// Clamp
 template <native T, typename U, typename V>
 requires (std::is_convertible_v <U, native_t <T>>) && (std::is_convertible_v <V, native_t <T>>)
 native_t <T> clamp(const native_t <T> &x, const U &min, const V &max)
@@ -52,60 +57,77 @@ native_t <T> clamp(const native_t <T> &x, const U &min, const V &max)
 	return platform_intrinsic_from_args <native_t <T>> (thunder::clamp, x, pmin, pmax);
 }
 
+template <native T, size_t N>
+vec <T, N> clamp(const vec <T, N> &x, const native_t <T> &min, const native_t <T> &max)
+{
+	return platform_intrinsic_from_args <vec <T, N>> (thunder::clamp, x, min, max);
+}
+
+// Floor
 template <floating_arithmetic T>
-auto floor(const T &a)
+auto floor(const T &x)
 {
-	using result = decltype(underlying(a));
-	return platform_intrinsic_from_args <result> (thunder::floor, a);
+	using result = decltype(underlying(x));
+	return platform_intrinsic_from_args <result> (thunder::floor, x);
 }
 
+// Ceiling
 template <floating_arithmetic T>
-auto ceil(const T &a)
+auto ceil(const T &x)
 {
-	using result = decltype(underlying(a));
-	return platform_intrinsic_from_args <result> (thunder::ceil, a);
+	using result = decltype(underlying(x));
+	return platform_intrinsic_from_args <result> (thunder::ceil, x);
 }
 
+// Fractional part
 template <floating_arithmetic T>
-auto fract(const T &a)
+auto fract(const T &x)
 {
-	using result = decltype(underlying(a));
-	return platform_intrinsic_from_args <result> (thunder::fract, a);
+	using result = decltype(underlying(x));
+	return platform_intrinsic_from_args <result> (thunder::fract, x);
 }
 
+// Sin
 template <floating_arithmetic T>
-auto sin(const T &a)
+auto sin(const T &x)
 {
-	using result = decltype(underlying(a));
-	return platform_intrinsic_from_args <result> (thunder::sin, underlying(a));
+	using result = decltype(underlying(x));
+	return platform_intrinsic_from_args <result> (thunder::sin, underlying(x));
 }
 
+// Cos
 template <floating_arithmetic T>
-auto cos(const T &a)
+auto cos(const T &x)
 {
-	using result = decltype(underlying(a));
-	return platform_intrinsic_from_args <result> (thunder::cos, underlying(a));
+	using result = decltype(underlying(x));
+	return platform_intrinsic_from_args <result> (thunder::cos, underlying(x));
 }
 
+// Tan
 template <floating_arithmetic T>
-auto tan(const T &a)
+auto tan(const T &x)
 {
-	using result = decltype(underlying(a));
-	return platform_intrinsic_from_args <result> (thunder::tan, underlying(a));
+	using result = decltype(underlying(x));
+	return platform_intrinsic_from_args <result> (thunder::tan, underlying(x));
 }
 
-template <native T>
-native_t <T> asin(const native_t <T> &x)
+// Inverse sin
+template <floating_arithmetic T>
+auto asin(const T &x)
 {
-	return platform_intrinsic_from_args <native_t <T>> (thunder::asin, x);
+	using result = decltype(underlying(x));
+	return platform_intrinsic_from_args <result> (thunder::asin, underlying(x));
 }
 
-template <native T>
-native_t <T> acos(const native_t <T> &x)
+// Inverse cos
+template <floating_arithmetic T>
+auto acos(const T &x)
 {
-	return platform_intrinsic_from_args <native_t <T>> (thunder::acos, x);
+	using result = decltype(underlying(x));
+	return platform_intrinsic_from_args <result> (thunder::acos, underlying(x));
 }
 
+// Inverse tan
 template <floating_arithmetic T>
 auto atan(const T &x)
 {
@@ -118,18 +140,23 @@ auto atan(const T &x, const U &y)
 	return platform_intrinsic_from_args <arithmetic_base <T>> (thunder::atan, x, y);
 }
 
-template <native T>
-native_t <T> log(const native_t <T> &x)
+// Logarithm
+template <floating_arithmetic T>
+auto log(const T &x)
 {
-	return platform_intrinsic_from_args <native_t <T>> (thunder::log, x);
+	using result = decltype(underlying(x));
+	return platform_intrinsic_from_args <result> (thunder::log, underlying(x));
 }
 
-template <native T>
-native_t <T> exp(const native_t <T> &x)
+// Exponentiation
+template <floating_arithmetic T>
+auto exp(const T &x)
 {
-	return platform_intrinsic_from_args <native_t <T>> (thunder::exp, x);
+	using result = decltype(underlying(x));
+	return platform_intrinsic_from_args <result> (thunder::exp, underlying(x));
 }
 
+// Power
 template <native T, typename U>
 requires std::is_convertible_v <U, native_t <T>>
 native_t <T> pow(const native_t <T> &x, const U &exp)
@@ -139,35 +166,33 @@ native_t <T> pow(const native_t <T> &x, const U &exp)
 }
 
 template <native T, size_t N>
-vec <T, N> pow(const vec <T, N> &v, const native_t <T> &exp)
+vec <T, N> pow(const vec <T, N> &v, const vec <T, N> &exp)
 {
 	return platform_intrinsic_from_args <vec <T, N>> (thunder::pow, v, exp);
 }
 
-template <native T, size_t N>
-vec <T, N> clamp(const vec <T, N> &x, const native_t <T> &min, const native_t <T> &max)
-{
-	return platform_intrinsic_from_args <vec <T, N>> (thunder::clamp, x, min, max);
-}
-
+// Dot product
 template <typename T, size_t N>
 native_t <T> dot(const vec <T, N> &v, const vec <T, N> &w)
 {
 	return platform_intrinsic_from_args <native_t <T>> (thunder::dot, v, w);
 }
 
+// Cross product
 template <native T>
 vec <T, 3> cross(const vec <T, 3> &v, const vec <T, 3> &w)
 {
 	return platform_intrinsic_from_args <vec <T, 3>> (thunder::cross, v, w);
 }
 
+// Vector length
 template <native T, size_t N>
 auto length(const vec <T, N> &v)
 {
 	return platform_intrinsic_from_args <native_t <T>> (thunder::length, v);
 }
 
+// Normalization
 template <native T, size_t N>
 vec <T, N> normalize(const vec <T, N> &v)
 {

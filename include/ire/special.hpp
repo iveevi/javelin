@@ -51,4 +51,111 @@ struct task_payload <T> : T {
 	}
 };
 
+// Raytracing payload
+template <generic T>
+struct ray_payload {};
+
+template <native T>
+struct ray_payload <T> {
+	uint32_t binding = 0;
+
+	ray_payload(uint32_t binding_) : binding(binding_) {}
+
+	ray_payload &operator=(const native_t <T> &value) {
+		auto &em = Emitter::active;
+		thunder::index_t type = type_field_from_args <native_t <T>> ().id;
+		thunder::index_t qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload);
+		thunder::index_t dst = em.emit_construct(qual, -1, thunder::transient);
+		em.emit_store(dst, value.synthesize().id);
+		return *this;
+	}
+};
+
+template <builtin T>
+struct ray_payload <T> : T {
+	uint32_t binding = 0;
+
+	template <typename ... Args>
+	explicit ray_payload(uint32_t binding_, const Args &... args) : T(args...), binding(binding_) {
+		auto &em = Emitter::active;
+		thunder::index_t type = type_field_from_args <T> ().id;
+		thunder::index_t qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload);
+		thunder::index_t value = em.emit_construct(qual, -1, thunder::transient);
+		this->ref = value;
+	}
+
+	ray_payload &operator=(const T &value) {
+		T::operator=(value);
+		return *this;
+	}
+};
+
+template <aggregate T>
+struct ray_payload <T> : T {
+	uint32_t binding = 0;
+
+	template <typename ... Args>
+	explicit ray_payload(uint32_t binding_, const Args &... args) : T(args...), binding(binding_) {
+		auto &em = Emitter::active;
+		auto layout = this->layout().remove_const();
+		thunder::index_t type = type_field_from_args(layout).id;
+		thunder::index_t qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload);
+		thunder::index_t value = em.emit_construct(qual, -1, thunder::transient);
+		layout.ref_with(cache_index_t::from(value));
+	}
+};
+
+template <generic T>
+struct ray_payload_in {};
+
+template <native T>
+struct ray_payload_in <T> {
+	uint32_t binding = 0;
+
+	ray_payload_in(uint32_t binding_) : binding(binding_) {}
+
+	ray_payload_in &operator=(const native_t <T> &value) {
+		auto &em = Emitter::active;
+		thunder::index_t type = type_field_from_args <native_t <T>> ().id;
+		thunder::index_t qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload_in);
+		thunder::index_t dst = em.emit_construct(qual, -1, thunder::transient);
+		em.emit_store(dst, value.synthesize().id);
+		return *this;
+	}
+};
+
+template <builtin T>
+struct ray_payload_in <T> : T {
+	uint32_t binding = 0;
+
+	template <typename ... Args>
+	explicit ray_payload_in(uint32_t binding_, const Args &... args) : T(args...), binding(binding_) {
+		auto &em = Emitter::active;
+		thunder::index_t type = type_field_from_args <T> ().id;
+		thunder::index_t qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload_in);
+		thunder::index_t value = em.emit_construct(qual, -1, thunder::transient);
+		this->ref = value;
+	}
+
+	ray_payload_in &operator=(const T &value) {
+		T::operator=(value);
+		return *this;
+	}
+};
+
+template <aggregate T>
+struct ray_payload_in <T> : T {
+	uint32_t binding = 0;
+
+	template <typename ... Args>
+	explicit ray_payload_in(uint32_t binding_, const Args &... args) : T(args...), binding(binding_) {
+		auto &em = Emitter::active;
+		auto layout = this->layout().remove_const();
+		thunder::index_t type = type_field_from_args(layout).id;
+		thunder::index_t qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload_in);
+		thunder::index_t value = em.emit_construct(qual, -1, thunder::transient);
+		layout.ref_with(cache_index_t::from(value));
+	}
+};
+
 } // namespace jvl::ire

@@ -78,7 +78,14 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 		// Powering functions
                 { sqrt, { overload::from(f32, f32) } },
                 { exp, { overload::from(f32, f32) } },
-                { pow, { overload::from(f32, f32, f32) } },
+  
+		{ pow, {
+			overload::from(f32, f32, f32),
+			overload::from(vec2, vec2, vec2),
+			overload::from(vec3, vec3, vec3),
+			overload::from(vec4, vec4, vec4),
+		} },
+
                 { log, { overload::from(f32, f32) } },
 
 		// Limiting functions

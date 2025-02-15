@@ -50,6 +50,8 @@ struct special_type {
 	index_t index;
 };
 
+using special_type_set = std::map <index_t, special_type>;
+
 struct push_constant_info : local_layout_type {
 	size_t offset;
 	index_t underlying;
@@ -80,7 +82,7 @@ struct LinkageUnit {
 		std::map <index_t, local_layout_type> buffers;
 		std::map <index_t, local_layout_type> shared;
 		std::map <index_t, QualifierKind> samplers;
-		std::map <QualifierKind, special_type> special;
+		std::map <QualifierKind, special_type_set> special;
 	} globals;
 
 	index_t new_aggregate(size_t, const std::string &, const std::vector <Field> &);

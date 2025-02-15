@@ -19,28 +19,38 @@
 using namespace jvl;
 using namespace jvl::ire;
 
-// TODO: for ire compute, pass buffer handle...
+struct RayFrame {
+	vec3 origin;
+	vec3 lower_left;
+	vec3 horizontal;
+	vec3 vertical;
+
+	auto layout() const {
+		return uniform_layout("RayFrame",
+			named_field(origin),
+			named_field(lower_left),
+			named_field(horizontal),
+			named_field(vertical));
+	}
+};
+
 auto f = procedure <void> ("main") << []()
 {
-	write_only_buffer <unsized_array <i32>> results(0);
+	push_constant <RayFrame> rayframe;
 
-	i32 k = 10;
+	ray_payload <vec3> payload1(1);
+	ray_payload <vec3> payload2(2);
 
-	auto i = loop(range <i32> (0, 10, 1));
-	{
-		results[i] = i * i + k;
-		k += 1;
-	}
-	end();
+	// TODO: assignment operators...
+	ray_payload_in <vec3> payload_in(0);
+
+	vec4 color = vec4(pow(payload1, vec3(1.0 / 2.2)), 1.0);
+
+	// imageStorage(...)
 };
 
 int main()
 {
-	f.dump();
-	fmt::println("{}", link(f).generate_glsl());
-	
-	thunder::optimize(f);
-
 	f.dump();
 	fmt::println("{}", link(f).generate_glsl());
 }
