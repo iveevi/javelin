@@ -1,4 +1,4 @@
-#include <ire/core.hpp>
+#include <ire.hpp>
 
 #include "gl.hpp"
 

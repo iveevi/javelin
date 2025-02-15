@@ -12,7 +12,7 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
-#include <ire/core.hpp>
+#include <ire.hpp>
 #include <thunder/opt.hpp>
 #include <thunder/linkage_unit.hpp>
 

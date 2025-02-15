@@ -5,8 +5,6 @@
 
 namespace jvl::ire {
 
-// TODO: wrapper intrinsic for arrays...
-
 struct __gl_MeshPerVertexEXT {
 	vec4 gl_Position;
 	f32 gl_PointSize;

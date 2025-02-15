@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include <ire/core.hpp>
+#include <ire.hpp>
 #include <thunder/opt.hpp>
 
 using namespace jvl;

@@ -1,4 +1,4 @@
-#include <ire/core.hpp>
+#include <ire.hpp>
 
 using namespace jvl::ire;
 

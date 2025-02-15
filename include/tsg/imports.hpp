@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ire/core.hpp"
+#include "../ire.hpp"
 
 namespace jvl::tsg {
 

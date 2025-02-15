@@ -1,6 +1,6 @@
 #include "util.hpp"
 
-#include <ire/core.hpp>
+#include <ire.hpp>
 
 using namespace jvl;
 using namespace jvl::ire;

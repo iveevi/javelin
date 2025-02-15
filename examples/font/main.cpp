@@ -3,7 +3,7 @@
 #include FT_BBOX_H
 #include FT_OUTLINE_H
 
-#include <ire/core.hpp>
+#include <ire.hpp>
 
 #include "common/extensions.hpp"
 #include "common/default_framebuffer_set.hpp"

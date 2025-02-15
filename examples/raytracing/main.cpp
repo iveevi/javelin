@@ -1,4 +1,4 @@
-#include <ire/core.hpp>
+#include <ire.hpp>
 
 #include "common/extensions.hpp"
 #include "common/default_framebuffer_set.hpp"

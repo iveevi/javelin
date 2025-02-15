@@ -1,6 +1,6 @@
 #include <thunder/buffer.hpp>
 #include <thunder/opt.hpp>
-#include <ire/core.hpp>
+#include <ire.hpp>
 
 #include <tsg/assembler.hpp>
 #include <tsg/compile.hpp>
