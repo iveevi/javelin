@@ -15,6 +15,12 @@ struct alignas(16) aligned_vec3 : glm::vec3 {
 	aligned_vec3(const glm::vec3 &v) : glm::vec3(v) {}
 };
 
+struct alignas(16) aligned_uvec3 : glm::uvec3 {
+	using glm::uvec3::uvec3;
+
+	aligned_uvec3(const glm::uvec3 &v) : glm::uvec3(v) {}
+};
+
 struct alignas(16) aligned_ivec3 : glm::ivec3 {
 	using glm::ivec3::ivec3;
 
@@ -89,7 +95,7 @@ struct error_solid {
 	static_assert(false, "Solidifying the current type is currently unsupported");
 };
 
-template <size_t Offset, typename T, typename ... Args>
+template <size_t Offset, generic T, typename ... Args>
 struct solid_builder <Offset, T, Args...> {
 	static constexpr auto error = error_solid <T> ();
 	using type = aggregate_storage <>;
@@ -133,6 +139,24 @@ struct solid_builder <Offset, vec3, Args...> {
 	static constexpr size_t pad = (Offset % 16 == 0) ? 0 : (rounded - Offset);
 	using rest = solid_builder <rounded + 12, Args...>;
 	using elem = std::conditional_t <rest::pad == 0, glm::vec3, aligned_vec3>;
+	using type = aggregate_insert <elem, typename rest::type> ::type;
+};
+
+template <size_t Offset, typename ... Args>
+struct solid_builder <Offset, ivec3, Args...> {
+	static constexpr size_t rounded = ((Offset + 16 - 1) / 16) * 16;
+	static constexpr size_t pad = (Offset % 16 == 0) ? 0 : (rounded - Offset);
+	using rest = solid_builder <rounded + 12, Args...>;
+	using elem = std::conditional_t <rest::pad == 0, glm::ivec3, aligned_ivec3>;
+	using type = aggregate_insert <elem, typename rest::type> ::type;
+};
+
+template <size_t Offset, typename ... Args>
+struct solid_builder <Offset, uvec3, Args...> {
+	static constexpr size_t rounded = ((Offset + 16 - 1) / 16) * 16;
+	static constexpr size_t pad = (Offset % 16 == 0) ? 0 : (rounded - Offset);
+	using rest = solid_builder <rounded + 12, Args...>;
+	using elem = std::conditional_t <rest::pad == 0, glm::uvec3, aligned_uvec3>;
 	using type = aggregate_insert <elem, typename rest::type> ::type;
 };
 

@@ -1,3 +1,6 @@
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/string_cast.hpp>
+
 #include <gtest/gtest.h>
 
 #include <ire/core.hpp>
@@ -8,6 +11,15 @@ using namespace jvl;
 using namespace jvl::ire;
 
 MODULE(compute);
+
+namespace glm {
+
+std::string format_as(const uvec3 &v)
+{
+	return to_string(v);
+}
+
+}
 
 template <generic T>
 using Buffer = write_only_buffer <unsized_array <T>>;
@@ -25,7 +37,7 @@ Procedure <void> kernel = procedure <void> ("main") << []()
 bestd::optional <GLuint> compile_kernel(const std::string &source)
 {
 	static int success;
-	static char log[512];
+	static std::string log(512, '\0');
 
 	if (!init_context())
 		return std::nullopt;
@@ -37,7 +49,7 @@ bestd::optional <GLuint> compile_kernel(const std::string &source)
 
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
 	if (!success) {
-		glGetShaderInfoLog(shader, 512, NULL, log);
+		glGetShaderInfoLog(shader, log.size(), NULL, log.data());
 		JVL_ERROR("Shader compilation error:\n{}", log);
 		return std::nullopt;
 	}
@@ -49,7 +61,7 @@ bestd::optional <GLuint> compile_kernel(const std::string &source)
 
 	glGetProgramiv(program, GL_LINK_STATUS, &success);
 	if (!success) {
-		glGetProgramInfoLog(program, 512, NULL, log);
+		glGetProgramInfoLog(program, log.size(), NULL, log.data());
 		JVL_ERROR("Program linking error:\n{}", log);
 		return std::nullopt;
 	}
@@ -57,8 +69,40 @@ bestd::optional <GLuint> compile_kernel(const std::string &source)
 	return program;
 }
 
-// TODO: use vulkan...
-bool compare(const std::string &reference, Procedure <void> &kernel)
+struct Datum {
+	f32 x;
+	i32 y;
+	u32 z;
+
+	auto layout() const {
+		return uniform_layout("Datum",
+			named_field(x),
+			named_field(y),
+			named_field(z));
+	}
+};
+
+bool operator!=(const solid_t <Datum> &a, const solid_t <Datum> &b)
+{
+	return (a.get <0> () != b.get <0> ())
+		|| (a.get <1> () != b.get <1> ())
+		|| (a.get <2> () != b.get <2> ());
+}
+
+namespace jvl::ire {
+
+std::string format_as(const solid_t <Datum> &a)
+{
+	return fmt::format("Datum(x: {:.3f}, y: {}, z: {})",
+		a.get <0> (),
+		a.get <1> (),
+		a.get <2> ());
+}
+
+}
+
+template <generic T, void (*f)(Buffer <T>)>
+bool compare(const std::string &reference)
 {
 	if (!init_context())
 		return false;
@@ -69,11 +113,13 @@ bool compare(const std::string &reference, Procedure <void> &kernel)
 		return false;
 
 	// Javelin generated program
-	auto kernel_shader = link(kernel).generate_glsl();
+	auto kernel_shader = link(kernel <T, f>).generate_glsl();
 
 	auto opt_prog_jvl = compile_kernel(kernel_shader);
-	if (!opt_prog_jvl)
+	if (!opt_prog_jvl) {
+		fmt::println("{}", kernel_shader);
 		return false;
+	}
 
 	GLuint prog_ref = opt_prog_ref.value();
 	GLuint prog_jvl = opt_prog_jvl.value();
@@ -81,10 +127,11 @@ bool compare(const std::string &reference, Procedure <void> &kernel)
 	// TODO: template
 	constexpr size_t SIZE = 64;
 
-	std::vector <uint32_t> data_ref(SIZE, 0);
-	std::vector <uint32_t> data_jvl(SIZE, 0);
+	using S = solid_t <T>;
+	std::vector <S> data_ref(SIZE, S());
+	std::vector <S> data_jvl(SIZE, S());
 
-	using Pair = std::pair <GLuint, std::vector <uint32_t> *>;
+	using Pair = std::pair <GLuint, std::vector <S> *>;
 
 	// Allocate buffers
 	for (auto [program, data] : {
@@ -111,6 +158,7 @@ bool compare(const std::string &reference, Procedure <void> &kernel)
 	for (size_t i = 0; i < SIZE; i++) {
 		if (data_jvl[i] != data_ref[i]) {
 			JVL_ERROR("buffer discrepancy @{}: {} vs {}", i, data_jvl[i], data_ref[i]);
+			fmt::println("{}", kernel_shader);
 			return false;
 		}
 	}
@@ -118,10 +166,14 @@ bool compare(const std::string &reference, Procedure <void> &kernel)
 	return true;
 }
 
-// Native types
+//////////////////
+// Native types //
+//////////////////
+
 void write_native(Buffer <u32> buffer)
 {
-	buffer[gl_GlobalInvocationID.x] = gl_GlobalInvocationID.x;
+	u32 x = gl_GlobalInvocationID.x;
+	buffer[x] = x;
 }
 
 TEST(compute, native)
@@ -142,5 +194,81 @@ TEST(compute, native)
 	}
 	)";
 
-	ASSERT_TRUE(compare(reference, kernel <u32, write_native>));
+	auto status = compare <u32, write_native> (reference);
+	
+	ASSERT_TRUE(status);
+}
+
+///////////////////
+// Builtin types //
+///////////////////
+
+void write_builtin(Buffer <uvec3> buffer)
+{
+	u32 x = gl_GlobalInvocationID.x;
+	buffer[x] = uvec3(3 * x, 3 * x + 1, 3 * x + 2);
+}
+
+TEST(compute, builtin)
+{
+	std::string reference = R"(
+	#version 460
+
+	layout (local_size_x = 1) in;
+
+	layout (binding = 0) buffer Buffer
+	{
+		uvec3 data[];
+	};
+
+	void main()
+	{
+		uint x = gl_GlobalInvocationID.x;
+		data[x] = uvec3(3 * x, 3 * x + 1, 3 * x + 2);
+	}
+	)";
+
+	auto status = compare <uvec3, write_builtin> (reference);
+	
+	ASSERT_TRUE(status);
+}
+
+/////////////////////
+// Aggregate types //
+/////////////////////
+
+void write_aggregate(Buffer <Datum> buffer)
+{
+	u32 x = gl_GlobalInvocationID.x;
+	buffer[x] =  Datum(uintBitsToFloat(x), -i32(x), x);
+}
+
+TEST(compute, aggregate)
+{
+	std::string reference = R"(
+	#version 460
+
+	layout (local_size_x = 1) in;
+
+	struct Datum {
+		float x;
+		int y;
+		uint z;
+	};
+
+	layout (binding = 0) buffer Buffer
+	{
+		Datum data[];
+	};
+
+	void main()
+	{
+		uint x = gl_GlobalInvocationID.x;
+		data[x] = Datum(uintBitsToFloat(x), -int(x), x);
+	}
+	)";
+
+	auto status = compare <Datum, write_aggregate> (reference);
+	
+	ASSERT_TRUE(status);
 }

@@ -41,7 +41,8 @@ struct Emitter {
 			buf.decorations[id] = th;
 		}
 
-		buf.used_decorations[idx] = id;
+		// TODO: enable later...
+		// buf.used_decorations[idx] = id;
 	}
 
 	// Emitting instructions during function invocation

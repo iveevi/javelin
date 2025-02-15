@@ -81,6 +81,11 @@ QualifiedType lookup_operation_overload(const OperationCode &key, const std::vec
 
         static const overload_table <OperationCode> table {
 		{ unary_negation, {
+			overload::from(i32, i32),
+			overload::from(ivec2, ivec2),
+			overload::from(ivec3, ivec3),
+			overload::from(ivec4, ivec4),
+			
 			overload::from(f32, f32),
 			overload::from(vec2, vec2),
 			overload::from(vec3, vec3),

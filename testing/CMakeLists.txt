@@ -17,8 +17,6 @@ target_link_libraries(test
 	GTest::gtest_main
 	javelin-ire
 	glfw
-	gccjit
-	$<$<CONFIG:Debug>:-fsanitize=address>)
+	gccjit)
 
-target_compile_options(test PRIVATE
-	$<$<CONFIG:Debug>:-Wall;-Werror;-fsanitize=address>)
+target_compile_options(test PRIVATE $<$<CONFIG:Debug>:-Wall;-Werror>)

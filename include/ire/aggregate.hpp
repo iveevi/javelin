@@ -20,6 +20,14 @@ struct aggregate_base : aggregate_base <N + 1, Args...> {
 		else
 			return aggregate_base <N + 1, Args...> ::template get <I> ();
 	}
+	
+	template <size_t I>
+	const auto &get() const {
+		if constexpr (I == N)
+			return v;
+		else
+			return aggregate_base <N + 1, Args...> ::template get <I> ();
+	}
 };
 
 template <size_t N, typename T>
@@ -28,6 +36,12 @@ struct aggregate_base <N, T> {
 
 	template <size_t I>
 	auto &get() {
+		static_assert(I == N, "aggregate index is out of bounds");
+		return v;
+	}
+
+	template <size_t I>
+	const auto &get() const {
 		static_assert(I == N, "aggregate index is out of bounds");
 		return v;
 	}
@@ -74,12 +88,28 @@ struct aggregate_storage : corrected_aggregate <Args...> {
 	}
 	
 	template <size_t I>
+	const auto &get() const {
+		constexpr size_t N = sizeof...(Args);
+		return corrected_aggregate <Args...> ::template get <N - I - 1> ();
+	}
+	
+	template <size_t I>
 	auto &get(aggregate_index <I>) {
 		return get <I> ();
 	}
 	
 	template <size_t I>
+	const auto &get(aggregate_index <I>) const {
+		return get <I> ();
+	}
+	
+	template <size_t I>
 	auto &operator[](aggregate_index <I>) {
+		return get <I> ();
+	}
+	
+	template <size_t I>
+	const auto &operator[](aggregate_index <I>) const {
 		return get <I> ();
 	}
 };
