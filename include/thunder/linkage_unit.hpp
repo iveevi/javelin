@@ -82,6 +82,7 @@ struct LinkageUnit {
 		std::map <index_t, local_layout_type> buffers;
 		std::map <index_t, local_layout_type> shared;
 		std::map <index_t, QualifierKind> samplers;
+		std::map <index_t, QualifierKind> images;
 		std::map <QualifierKind, special_type_set> special;
 	} globals;
 

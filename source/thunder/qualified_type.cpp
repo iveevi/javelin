@@ -99,6 +99,37 @@ std::size_t ArrayType::hash() const
         return PlainDataType::hash() ^ (std::size_t(size) << 16);
 }
 
+// Image types
+ImageType::ImageType(PlainDataType result, index_t dimension_)
+                : PlainDataType(result), dimension(dimension_) {}
+
+bool ImageType::operator==(const ImageType &other) const
+{
+        return PlainDataType::operator==(other)
+                && (dimension == other.dimension);
+}
+
+std::string ImageType::to_string() const
+{
+        switch (as <PrimitiveType> ()) {
+        case ivec4:
+                return fmt::format("iimage{}D", dimension);
+        case uvec4:
+                return fmt::format("uimage{}D", dimension);
+        case vec4:
+                return fmt::format("image{}D", dimension);
+        default:
+                break;
+        }
+
+        return fmt::format("<?>image{}D", dimension);
+}
+
+std::size_t ImageType::hash() const
+{
+        return PlainDataType::hash() ^ (std::size_t(dimension) << 16);
+}
+
 // Sampler types
 SamplerType::SamplerType(PlainDataType result, index_t dimension_)
                 : PlainDataType(result), dimension(dimension_) {}
@@ -251,6 +282,11 @@ QualifiedType QualifiedType::array(const QualifiedType &element, index_t size)
 QualifiedType QualifiedType::sampler(PrimitiveType result, index_t dimension)
 {
         return SamplerType(result, dimension);
+}
+
+QualifiedType QualifiedType::image(PrimitiveType result, index_t dimension)
+{
+        return ImageType(result, dimension);
 }
 
 QualifiedType QualifiedType::nil()

@@ -8,6 +8,7 @@
 // TODO: out/inout parameter qualifiers
 // TODO: external constant specialization
 // TODO: revised type generation system...
+// TODO: atomics
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
@@ -44,13 +45,22 @@ auto f = procedure <void> ("main") << []()
 	// TODO: assignment operators...
 	ray_payload_in <vec3> payload_in(0);
 
+	image2D raw(1);
+	image1D raw2(2);
+
 	vec4 color = vec4(pow(payload1, vec3(1.0 / 2.2)), 1.0);
 
-	// imageStorage(...)
+	ivec2 size = imageSize(raw);
+	i32 s2 = imageSize(raw2);
+
+	imageStore(raw, ivec2(0, 1), color);
+
+	color = imageLoad(raw2, 12);
 };
 
 int main()
 {
 	f.dump();
 	fmt::println("{}", link(f).generate_glsl());
+	link(f).generate_spirv(vk::ShaderStageFlagBits::eAll);
 }

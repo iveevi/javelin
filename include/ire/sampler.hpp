@@ -81,13 +81,13 @@ struct sampler {
 
 // Accessors functions from GLSL
 template <native T, size_t D, generic U>
-vec <T, 4> texture(const sampler <T, D> &handle, const U &loc)
+auto texture(const sampler <T, D> &handle, const U &loc)
 {
 	return handle.sample(loc);
 }
 
 template <native T, size_t D, generic A, generic B>
-vec <T, 4> texelFetch(const sampler <T, D> &handle, const A &loc, const B &lod)
+auto texelFetch(const sampler <T, D> &handle, const A &loc, const B &lod)
 {
 	return handle.fetch(loc, lod);
 }

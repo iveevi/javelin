@@ -64,7 +64,12 @@ QualifiedType Buffer::classify(index_t i)
 			return QualifiedType::array(decl, qualifier.numerical);
 		}
 
-		// Handling samplers
+		// Handling images and samplers
+		if (image_kind(qualifier.kind)) {
+			return QualifiedType::image(image_result(qualifier.kind),
+						    image_dimension(qualifier.kind));
+		}
+		
 		if (sampler_kind(qualifier.kind)) {
 			return QualifiedType::sampler(sampler_result(qualifier.kind),
 						      sampler_dimension(qualifier.kind));
@@ -118,6 +123,8 @@ QualifiedType Buffer::classify(index_t i)
 				return static_cast <PlainDataType> (*inout);
 
 			// Or other special kind of resource
+			if (auto image = qt.get <ImageType> ())
+				return static_cast <ImageType> (*image);
 			if (auto sampler = qt.get <SamplerType> ())
 				return static_cast <SamplerType> (*sampler);
 		}

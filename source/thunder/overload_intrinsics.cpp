@@ -189,6 +189,48 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 		} },
 
 		// GLSL image and sampler intrinsics
+		{ glsl_image_size, {
+			overload::from(PlainDataType(i32), QualifiedType::image(ivec4, 1)),
+			overload::from(PlainDataType(i32), QualifiedType::image(uvec4, 1)),
+			overload::from(PlainDataType(i32), QualifiedType::image(vec4, 1)),
+			
+			overload::from(PlainDataType(ivec2), QualifiedType::image(ivec4, 2)),
+			overload::from(PlainDataType(ivec2), QualifiedType::image(uvec4, 2)),
+			overload::from(PlainDataType(ivec2), QualifiedType::image(vec4, 2)),
+			
+			overload::from(PlainDataType(ivec3), QualifiedType::image(ivec4, 3)),
+			overload::from(PlainDataType(ivec3), QualifiedType::image(uvec4, 3)),
+			overload::from(PlainDataType(ivec3), QualifiedType::image(vec4, 3)),
+		} },
+
+		{ glsl_image_store, {
+			overload::from(PlainDataType(none), QualifiedType::image(ivec4, 1), PlainDataType(i32), PlainDataType(ivec4)),
+			overload::from(PlainDataType(none), QualifiedType::image(uvec4, 1), PlainDataType(i32), PlainDataType(uvec4)),
+			overload::from(PlainDataType(none), QualifiedType::image(vec4, 1), PlainDataType(i32), PlainDataType(vec4)),
+			
+			overload::from(PlainDataType(none), QualifiedType::image(ivec4, 2), PlainDataType(ivec2), PlainDataType(ivec4)),
+			overload::from(PlainDataType(none), QualifiedType::image(uvec4, 2), PlainDataType(ivec2), PlainDataType(uvec4)),
+			overload::from(PlainDataType(none), QualifiedType::image(vec4, 2), PlainDataType(ivec2), PlainDataType(vec4)),
+			
+			overload::from(PlainDataType(none), QualifiedType::image(ivec4, 3), PlainDataType(ivec3), PlainDataType(ivec4)),
+			overload::from(PlainDataType(none), QualifiedType::image(uvec4, 3), PlainDataType(ivec3), PlainDataType(uvec4)),
+			overload::from(PlainDataType(none), QualifiedType::image(vec4, 3), PlainDataType(ivec3), PlainDataType(vec4)),
+		} },
+
+		{ glsl_image_load, {
+			overload::from(PlainDataType(ivec4), QualifiedType::image(ivec4, 1), PlainDataType(i32)),
+			overload::from(PlainDataType(uvec4), QualifiedType::image(uvec4, 1), PlainDataType(i32)),
+			overload::from(PlainDataType(vec4), QualifiedType::image(vec4, 1), PlainDataType(i32)),
+			
+			overload::from(PlainDataType(ivec4), QualifiedType::image(ivec4, 2), PlainDataType(ivec2)),
+			overload::from(PlainDataType(uvec4), QualifiedType::image(uvec4, 2), PlainDataType(ivec2)),
+			overload::from(PlainDataType(vec4), QualifiedType::image(vec4, 2), PlainDataType(ivec2)),
+			
+			overload::from(PlainDataType(ivec4), QualifiedType::image(ivec4, 3), PlainDataType(ivec3)),
+			overload::from(PlainDataType(uvec4), QualifiedType::image(uvec4, 3), PlainDataType(ivec3)),
+			overload::from(PlainDataType(vec4), QualifiedType::image(vec4, 3), PlainDataType(ivec3)),
+		} },
+
 		{ glsl_texture, {
 			overload::from(PlainDataType(ivec4), QualifiedType::sampler(ivec4, 1), PlainDataType(f32)),
 			overload::from(PlainDataType(ivec4), QualifiedType::sampler(uvec4, 1), PlainDataType(f32)),

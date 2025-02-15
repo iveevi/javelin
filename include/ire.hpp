@@ -6,6 +6,7 @@
 #include "ire/buffer_objects.hpp"
 #include "ire/control_flow.hpp"
 #include "ire/emitter.hpp"
+#include "ire/image.hpp"
 #include "ire/jit.hpp"
 #include "ire/layout_io.hpp"
 #include "ire/linking.hpp"

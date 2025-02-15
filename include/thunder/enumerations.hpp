@@ -103,6 +103,7 @@ enum QualifierKind : int8_t {
 
 	shared,
 
+	// Samplers
 	isampler_1d,
 	isampler_2d,
 	isampler_3d,
@@ -115,10 +116,25 @@ enum QualifierKind : int8_t {
 	sampler_2d,
 	sampler_3d,
 
+	// Images
+	iimage_1d,
+	iimage_2d,
+	iimage_3d,
+
+	uimage_1d,
+	uimage_2d,
+	uimage_3d,
+
+	image_1d,
+	image_2d,
+	image_3d,
+
+	// Payloads
 	task_payload,
 	ray_tracing_payload,
 	ray_tracing_payload_in,
 
+	// GLSL intrinsics
 	glsl_intrinsic_gl_FragCoord,
 	glsl_intrinsic_gl_FragDepth,
 	glsl_intrinsic_gl_InstanceID,
@@ -131,7 +147,6 @@ enum QualifierKind : int8_t {
 	glsl_intrinsic_gl_WorkGroupID,
 	glsl_intrinsic_gl_WorkGroupSize,
 	glsl_intrinsic_gl_SubgroupInvocationID,
-
 	glsl_intrinsic_gl_Position,
 	glsl_intrinsic_gl_MeshVerticesEXT,
 	glsl_intrinsic_gl_PrimitiveTriangleIndicesEXT,
@@ -180,26 +195,37 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"sampler2D",
 	"sampler3D",
 
+	"iimage1D",
+	"iimage2D",
+	"iimage3D",
+
+	"uimage1D",
+	"uimage2D",
+	"uimage3D",
+
+	"image1D",
+	"image2D",
+	"image3D",
+
 	"task payload",
 	"ray tracing payload",
 	"ray tracing payload (in)",
 
-	"glsl:gl_FragCoord",
-	"glsl:gl_FragDepth",
-	"glsl:gl_InstanceID",
-	"glsl:gl_InstanceIndex",
-	"glsl:gl_VertexID",
-	"glsl:gl_VertexIndex",
-	"glsl:gl_GlobalInvocationID",
-	"glsl:gl_LocalInvocationID",
-	"glsl:gl_LocalInvocationIndex",
-	"glsl:gl_WorkGroupID",
-	"glsl:gl_WorkGroupSize",
-	"glsl:gl_SubgroupInvocationID",
-
-	"glsl:gl_Position",
-	"glsl:gl_MeshVerticesEXT",
-	"glsl:gl_PrimitiveTrianglesIndicesEXT",
+	"glsl:FragCoord",
+	"glsl:FragDepth",
+	"glsl:InstanceID",
+	"glsl:InstanceIndex",
+	"glsl:VertexID",
+	"glsl:VertexIndex",
+	"glsl:GlobalInvocationID",
+	"glsl:LocalInvocationID",
+	"glsl:LocalInvocationIndex",
+	"glsl:WorkGroupID",
+	"glsl:WorkGroupSize",
+	"glsl:SubgroupInvocationID",
+	"glsl:Position",
+	"glsl:MeshVerticesEXT",
+	"glsl:PrimitiveTrianglesIndicesEXT",
 
 	"__end"
 };
@@ -375,6 +401,10 @@ enum IntrinsicOperation : uint16_t {
 	mix,
 
 	// GLSL image and sampler operations
+	glsl_image_size,
+	glsl_image_load,
+	glsl_image_store,
+
 	glsl_texture,
 	glsl_texelFetch,
 
@@ -441,6 +471,10 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 
 	"mod",
 	"mix",
+
+	"imageSize",
+	"imageLoad",
+	"imageStore",
 
 	"texture",
 	"texelFetch",

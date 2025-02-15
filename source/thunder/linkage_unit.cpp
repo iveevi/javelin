@@ -58,9 +58,16 @@ index_t LinkageUnit::new_aggregate(size_t ftn, const std::string &name, const st
 
 void LinkageUnit::process_function_qualifier(Function &function, size_t index, index_t i, const Qualifier &qualifier)
 {
+	if (image_kind(qualifier.kind)) {
+		size_t binding = qualifier.numerical;
+		globals.images[binding] = qualifier.kind;
+		return;
+	}
+
 	if (sampler_kind(qualifier.kind)) {
 		size_t binding = qualifier.numerical;
 		globals.samplers[binding] = qualifier.kind;
+		return;
 	}
 
 	// Qualifier behaviour; the final type,
@@ -346,6 +353,24 @@ static std::string layout_interpolation_string(QualifierKind kind)
 	return "<interp:?>";
 }
 
+static std::string image_string(QualifierKind kind)
+{
+	PrimitiveType result = image_result(kind);
+	int32_t dimensions = image_dimension(kind);
+	switch (result) {
+        case ivec4:
+                return fmt::format("iimage{}D", dimensions);
+        case uvec4:
+                return fmt::format("uimage{}D", dimensions);
+        case vec4:
+                return fmt::format("image{}D", dimensions);
+        default:
+                break;
+        }
+
+        return fmt::format("<?>image{}D", dimensions);
+}
+
 static std::string sampler_string(QualifierKind kind)
 {
 	PrimitiveType result = sampler_result(kind);
@@ -523,6 +548,17 @@ void generate_shared(std::string &result,
 		result += "\n";
 }
 
+void generate_images(std::string &result, const auto &images)
+{
+	for (const auto &[binding, kind] : images) {
+		result += fmt::format("layout (binding = {}) uniform {} _image{};\n",
+			binding, image_string(kind), binding);
+	}
+
+	if (images.size())
+		result += "\n";
+}
+
 void generate_samplers(std::string &result, const auto &samplers)
 {
 	for (const auto &[binding, kind] : samplers) {
@@ -684,7 +720,8 @@ std::string LinkageUnit::generate_glsl() const
 	// Globals: shared variables
 	generate_shared(result, generators, functions, globals.shared);
 
-	// Globals: samplers
+	// Globals: images and samplers
+	generate_images(result, globals.images);
 	generate_samplers(result, globals.samplers);
 
 	// Globals: special

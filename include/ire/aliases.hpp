@@ -5,6 +5,7 @@
 #include "vector.hpp"
 #include "matrix.hpp"
 #include "sampler.hpp"
+#include "image.hpp"
 
 namespace jvl::ire {
 
@@ -42,6 +43,19 @@ using usampler3D = sampler <uint32_t, 3>;
 using sampler1D = sampler <float, 1>;
 using sampler2D = sampler <float, 2>;
 using sampler3D = sampler <float, 3>;
+
+// Aliases for images
+using iimage1D = image <int32_t, 1>;
+using iimage2D = image <int32_t, 2>;
+using iimage3D = image <int32_t, 3>;
+
+using uimage1D = image <uint32_t, 1>;
+using uimage2D = image <uint32_t, 2>;
+using uimage3D = image <uint32_t, 3>;
+
+using image1D = image <float, 1>;
+using image2D = image <float, 2>;
+using image3D = image <float, 3>;
 
 // Type matching
 template <typename T>

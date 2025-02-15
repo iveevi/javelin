@@ -53,7 +53,18 @@ struct ArrayType : public PlainDataType {
 	std::size_t hash() const;
 };
 
-// Sampler type, parameterized by sampler type and dimension
+// Image type, parameterized by underlying type and dimension
+struct ImageType : public PlainDataType {
+	index_t dimension;
+
+	ImageType(PlainDataType, index_t);
+
+	bool operator==(const ImageType &) const;
+	std::string to_string() const;
+	std::size_t hash() const;
+};
+
+// Sampler type, parameterized by underlying type and dimension
 struct SamplerType : public PlainDataType {
 	index_t dimension;
 
@@ -97,6 +108,7 @@ using qualified_type_base = bestd::variant <
 	PlainDataType,
 	StructFieldType,
 	ArrayType,
+	ImageType,
 	SamplerType,
 	InArgType,
 	OutArgType,
@@ -126,6 +138,7 @@ struct QualifiedType : qualified_type_base {
 	static QualifiedType primitive(PrimitiveType);
 	static QualifiedType concrete(index_t);
 	static QualifiedType array(const QualifiedType &, index_t);
+	static QualifiedType image(PrimitiveType, index_t);
 	static QualifiedType sampler(PrimitiveType, index_t);
 	static QualifiedType nil();
 };

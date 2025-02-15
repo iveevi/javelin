@@ -64,6 +64,63 @@ constexpr PrimitiveType swizzle_type_of(PrimitiveType primitive, SwizzleCode cod
 	}
 }
 
+constexpr bool image_kind(QualifierKind kind)
+{
+	switch (kind) {
+	case iimage_1d:
+	case iimage_2d:
+	case iimage_3d:
+	case uimage_1d:
+	case uimage_2d:
+	case uimage_3d:
+	case image_1d:
+	case image_2d:
+	case image_3d:
+		return true;
+	default:
+		return false;
+	}
+}
+constexpr PrimitiveType image_result(QualifierKind kind)
+{
+	switch (kind) {
+	case iimage_1d:
+	case iimage_2d:
+	case iimage_3d:
+		return ivec4;
+	case uimage_1d:
+	case uimage_2d:
+	case uimage_3d:
+		return uvec4;
+	case image_1d:
+	case image_2d:
+	case image_3d:
+		return vec4;
+	default:
+		return bad;
+	}
+}
+
+constexpr int32_t image_dimension(QualifierKind kind)
+{
+	switch (kind) {
+	case iimage_1d:
+	case uimage_1d:
+	case image_1d:
+		return 1;
+	case iimage_2d:
+	case uimage_2d:
+	case image_2d:
+		return 2;
+	case iimage_3d:
+	case uimage_3d:
+	case image_3d:
+		return 3;
+	default:
+		return -1;
+	}
+}
+
 constexpr bool sampler_kind(QualifierKind kind)
 {
 	switch (kind) {

@@ -41,6 +41,17 @@ static std::optional <std::string> generate_global_reference(const Qualifier &qu
 		return fmt::format("_shared{}", qualifier.numerical);
 
 	// GLSL images and samplers
+	case iimage_1d:
+	case iimage_2d:
+	case iimage_3d:
+	case uimage_1d:
+	case uimage_2d:
+	case uimage_3d:
+	case image_1d:
+	case image_2d:
+	case image_3d:
+		return fmt::format("_image{}", qualifier.numerical);
+
 	case isampler_1d:
 	case isampler_2d:
 	case isampler_3d:
