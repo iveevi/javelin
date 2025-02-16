@@ -123,7 +123,7 @@ std::vector <Emitter::index_t> Emitter::emit_sequence(const std::initializer_lis
 // Printing the IR state
 void Emitter::dump()
 {
-	JVL_ASSERT(scopes.size(), "in dump: no active scope");
+	JVL_ASSERT(scopes.size(), "no active scope in {}", __FUNCTION__);
 
 	auto &buffer = scopes.top().get();
 	fmt::println("------------------------------");

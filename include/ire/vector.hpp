@@ -157,6 +157,16 @@ public:
 	swizzle_element <T, self, thunder::SwizzleCode::x> x;
 	swizzle_element <T, self, thunder::SwizzleCode::y> y;
 
+	static constexpr thunder::PrimitiveType primitive() {
+		if constexpr (std::same_as <T, int32_t>)
+			return thunder::ivec2;
+		if constexpr (std::same_as <T, uint32_t>)
+			return thunder::uvec2;
+		if constexpr (std::same_as <T, float>)
+			return thunder::vec2;
+		return thunder::bad;
+	}
+
 	explicit swizzle_base(T x_ = T(0))
 			: x(this), y(this) {
 		initial[0] = x_;
@@ -217,6 +227,16 @@ public:
 	swizzle_element <T, self, thunder::SwizzleCode::x> x;
 	swizzle_element <T, self, thunder::SwizzleCode::y> y;
 	swizzle_element <T, self, thunder::SwizzleCode::z> z;
+
+	static constexpr thunder::PrimitiveType primitive() {
+		if constexpr (std::same_as <T, int32_t>)
+			return thunder::ivec3;
+		if constexpr (std::same_as <T, uint32_t>)
+			return thunder::uvec3;
+		if constexpr (std::same_as <T, float>)
+			return thunder::vec3;
+		return thunder::bad;
+	}
 
 	explicit swizzle_base(T v_ = T(0))
 			: x(this), y(this), z(this) {
@@ -307,6 +327,16 @@ public:
 	swizzle_element <T, self, thunder::SwizzleCode::y> y;
 	swizzle_element <T, self, thunder::SwizzleCode::z> z;
 	swizzle_element <T, self, thunder::SwizzleCode::w> w;
+
+	static constexpr thunder::PrimitiveType primitive() {
+		if constexpr (std::same_as <T, int32_t>)
+			return thunder::ivec4;
+		if constexpr (std::same_as <T, uint32_t>)
+			return thunder::uvec4;
+		if constexpr (std::same_as <T, float>)
+			return thunder::vec4;
+		return thunder::bad;
+	}
 
 	explicit swizzle_base(T x_ = T(0), T y_ = T(0), T z_ = T(0), T w_ = T(0))
 			: x(this), y(this), z(this), w(this) {
