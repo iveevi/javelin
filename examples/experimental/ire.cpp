@@ -35,40 +35,16 @@ struct RayFrame {
 	}
 };
 
-template <native T, size_t D>
-struct type_info_override <image <T, D>> : std::true_type {
-	thunder::index_t binding = 0;
+struct Nested {
+	vec3 x;
+	RayFrame frame;
 
-	type_info_override(const image <T, D> &img) : binding(img.binding) {}
-
-	int synthesize() const {
-		return Emitter::active.emit_qualifier(-1, binding, image_qualifiers <T> ::table[D]);
+	auto layout() const {
+		return uniform_layout("Nested",
+			named_field(x),
+			named_field(frame));
 	}
 };
-
-// Extra qualifiers
-template <builtin T>
-struct write_only : T {
-	static_assert(false, "write_only is unsupported for given template type");
-};
-
-template <native T, size_t D>
-struct write_only <image <T, D>> : image <T, D> {
-	template <typename ... Args>
-	write_only(const Args &... args) : image <T, D> (args...) {}
-
-	cache_index_t synthesize() const {
-		auto &em = Emitter::active;
-		// thunder::index_t nested = type_field_from_args <image <T, D>> ().id;
-		thunder::index_t nested = em.emit_qualifier(-1, this->binding, image_qualifiers <T> ::table[D]);
-		thunder::index_t qualifier = em.emit_qualifier(nested, -1, thunder::write_only);
-		thunder::index_t value = em.emit_construct(qualifier, -1, thunder::transient);
-		return cache_index_t::from(value);
-	}
-};
-
-template <native T, size_t D>
-struct is_image_like <write_only <image <T, D>>> : std::true_type {};
 
 auto f = procedure <void> ("main") << []()
 {
@@ -95,8 +71,11 @@ auto f = procedure <void> ("main") << []()
 	// TODO: image formats restricted by native type...
 	// image2D image(0);
 	write_only <image2D> image(0);
+	read_only <uimage2D> rimage(1);
 
 	imageStore(image, ivec2(0, 0), vec4(0.0));
+
+	uvec4 c = imageLoad(rimage, ivec2(10, 100));
 };
 
 int main()

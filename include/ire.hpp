@@ -11,6 +11,7 @@
 #include "ire/layout_io.hpp"
 #include "ire/linking.hpp"
 #include "ire/matrix.hpp"
+#include "ire/memory.hpp"
 #include "ire/procedure.hpp"
 #include "ire/sampler.hpp"
 #include "ire/shared.hpp"

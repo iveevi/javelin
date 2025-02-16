@@ -3,6 +3,7 @@
 #include "../thunder/enumerations.hpp"
 #include "native.hpp"
 #include "vector.hpp"
+#include "memory.hpp"
 
 namespace jvl::ire {
 
@@ -46,6 +47,7 @@ requires (D >= 1 && D <= 3)
 struct image {
 	using value_type = vec <T, 4>;
 	using index_type = std::conditional_t <D == 1, native_t <int32_t>, vec <int32_t, D>>;
+	using size_type = std::conditional_t <D == 1, native_t <int32_t>, vec <int32_t, D>>;
 
 	const size_t binding;
 
@@ -59,39 +61,6 @@ struct image {
 		thunder::index_t value = em.emit_construct(sampler, -1, thunder::transient);
 		return cache_index_t::from(value);
 	}
-
-	// Image size
-	auto size() const
-	requires (D == 1) {
-		return platform_intrinsic_from_args <native_t <int32_t>> (thunder::glsl_image_size, *this);
-	}
-
-	auto size() const
-	requires (D != 1) {
-		return platform_intrinsic_from_args <vec <int32_t, D>> (thunder::glsl_image_size, *this);
-	}
-
-	// Image load
-	vec <T, 4> load(const native_t <int32_t> &loc) const
-	requires (D == 1) {
-		return platform_intrinsic_from_args <vec <T, 4>> (thunder::glsl_image_load, *this, loc);
-	}
-	
-	vec <T, 4> load(const vec <int32_t, D> &loc) const
-	requires (D != 1) {
-		return platform_intrinsic_from_args <vec <T, 4>> (thunder::glsl_image_load, *this, loc);
-	}
-
-	// // Image store
-	// void store(const native_t <int32_t> &loc, const vec <T, 4> &data) const
-	// requires (D == 1) {
-	// 	return void_platform_intrinsic_from_args(thunder::glsl_image_store, *this, loc, data);
-	// }
-	
-	// void store(const vec <int32_t, D> &loc, const vec <T, 4> &data) const
-	// requires (D != 1) {
-	// 	return void_platform_intrinsic_from_args(thunder::glsl_image_store, *this, loc, data);
-	// }
 };
 
 // Concept
@@ -105,16 +74,18 @@ template <typename T>
 concept image_like = is_image_like <T> ::value;
 
 // Accessors functions from GLSL
-template <native T, size_t D>
-auto imageSize(const image <T, D> &handle)
+template <image_like Image>
+auto imageSize(const Image &handle)
 {
-	return handle.size();
+	return platform_intrinsic_from_args <typename Image::size_type>
+		(thunder::glsl_image_size, handle);
 }
 
-template <native T, size_t D, generic I>
-auto imageLoad(const image <T, D> &handle, const I &loc)
+template <image_like Image>
+auto imageLoad(const Image &handle, const typename Image::index_type &loc)
 {
-	return handle.load(loc);
+	return platform_intrinsic_from_args <typename Image::value_type>
+		(thunder::glsl_image_load, handle, loc);
 }
 
 template <image_like Image>
@@ -122,7 +93,55 @@ void imageStore(const Image &handle,
 		const typename Image::index_type &idx,
 		const typename Image::value_type &data)
 {
-	return void_platform_intrinsic_from_args(thunder::glsl_image_store, handle, idx, data);
+	return void_platform_intrinsic_from_args
+		(thunder::glsl_image_store, handle, idx, data);
 }
+
+// Type generation
+template <native T, size_t D>
+struct type_info_override <image <T, D>> : std::true_type {
+	thunder::index_t binding = 0;
+
+	type_info_override(const image <T, D> &img) : binding(img.binding) {}
+
+	int synthesize() const {
+		return Emitter::active.emit_qualifier(-1, binding, image_qualifiers <T> ::table[D]);
+	}
+};
+
+// Implementing qualifiers
+template <native T, size_t D>
+struct read_only <image <T, D>> : image <T, D> {
+	template <typename ... Args>
+	read_only(const Args &... args) : image <T, D> (args...) {}
+
+	cache_index_t synthesize() const {
+		auto &em = Emitter::active;
+		thunder::index_t nested = em.emit_qualifier(-1, this->binding, image_qualifiers <T> ::table[D]);
+		thunder::index_t qualifier = em.emit_qualifier(nested, -1, thunder::read_only);
+		thunder::index_t value = em.emit_construct(qualifier, -1, thunder::transient);
+		return cache_index_t::from(value);
+	}
+};
+
+template <native T, size_t D>
+struct is_image_like <read_only <image <T, D>>> : std::true_type {};
+
+template <native T, size_t D>
+struct write_only <image <T, D>> : image <T, D> {
+	template <typename ... Args>
+	write_only(const Args &... args) : image <T, D> (args...) {}
+
+	cache_index_t synthesize() const {
+		auto &em = Emitter::active;
+		thunder::index_t nested = em.emit_qualifier(-1, this->binding, image_qualifiers <T> ::table[D]);
+		thunder::index_t qualifier = em.emit_qualifier(nested, -1, thunder::write_only);
+		thunder::index_t value = em.emit_construct(qualifier, -1, thunder::transient);
+		return cache_index_t::from(value);
+	}
+};
+
+template <native T, size_t D>
+struct is_image_like <write_only <image <T, D>>> : std::true_type {};
 
 } // namespace jvl::ire

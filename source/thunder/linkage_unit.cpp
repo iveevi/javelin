@@ -150,7 +150,6 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, in
 	{
 		// TODO: method to search
 		auto &lower = function.atoms[qualifier.underlying];
-		fmt::println("lower: {}", lower);
 
 		if (auto decl = lower.get <Qualifier> ()) {
 			if (image_kind(decl->kind)) {
@@ -576,15 +575,19 @@ void generate_shared(std::string &result,
 void generate_images(std::string &result, const auto &images)
 {
 	for (const auto &[binding, llt] : images) {
-		std::string extra = " ";
+		std::string modifier = " ";
 		for (auto &k : llt.extra) {
-			fmt::println("image extra: {}", tbl_qualifier_kind[k]);
 			if (k == write_only)
-				extra += "writeonly ";
+				modifier += "writeonly ";
+			if (k == read_only)
+				modifier += "readonly ";
 		}
 
 		result += fmt::format("layout (binding = {}) uniform{}{} _image{};\n",
-			binding, extra, image_string(llt.kind), binding);
+			binding,
+			modifier,
+			image_string(llt.kind),
+			binding);
 	}
 
 	if (images.size())
