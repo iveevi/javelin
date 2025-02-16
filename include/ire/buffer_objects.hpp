@@ -1,11 +1,7 @@
 #pragma once
 
 #include "../thunder/enumerations.hpp"
-#include "emitter.hpp"
-#include "native.hpp"
-#include "tagged.hpp"
-#include "type_synthesis.hpp"
-#include "uniform_layout.hpp"
+#include "concepts.hpp"
 
 namespace jvl::ire {
 
@@ -23,9 +19,9 @@ struct bound_buffer_object <T, K> {
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-		thunder::Index type = type_field_from_args <native_t <T>> ().id;
-		thunder::Index pc = em.emit_qualifier(type, binding, K);
-		thunder::Index value = em.emit_construct(pc, -1, thunder::transient);
+		auto type = native_t <T> ::type();
+		auto pc = em.emit_qualifier(type, binding, K);
+		auto value = em.emit_construct(pc, -1, thunder::transient);
 		return cache_index_t::from(value);
 	}
 

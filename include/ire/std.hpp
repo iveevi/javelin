@@ -1,7 +1,6 @@
 #pragma once
 
-#include "type_synthesis.hpp"
-#include "native.hpp"
+#include "concepts.hpp"
 
 namespace jvl::ire {
 
@@ -24,10 +23,17 @@ struct optional {
 		return data;
 	}
 
-	auto layout() const {
-		return uniform_layout("optional",
-			named_field(status),
-			named_field(data));
+	// auto layout() const {
+	// 	return uniform_layout("optional",
+	// 		named_field(status),
+	// 		named_field(data));
+	// }
+
+	auto ll() {
+		return Layout <"Optional",
+			field <"status", bool>,
+			field <"data", T>
+		> (status, data);
 	}
 
 	void reset() {

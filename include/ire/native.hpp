@@ -2,9 +2,10 @@
 
 #include <type_traits>
 
+#include "../thunder/enumerations.hpp"
 #include "emitter.hpp"
 #include "tagged.hpp"
-#include "../thunder/enumerations.hpp"
+#include "type.hpp"
 
 namespace jvl::ire {
 
@@ -102,6 +103,11 @@ struct native_t : tagged {
 		return thunder::bad;
 	}
 
+	static thunder::Index type() {
+		auto &em = Emitter::active;
+		return em.emit_type_information(-1, -1, primitive());
+	}
+
 	native_t(T v = T()) : value(v) {
 		synthesize();
 	}
@@ -161,7 +167,9 @@ struct native_t : tagged {
 		if (cached())
 			return ref;
 
-		return (ref = translate_primitive(value));
+		ref = translate_primitive(value);
+
+		return ref;
 	}
 
 	///////////////////////////////////
@@ -370,5 +378,15 @@ concept integral_arithmetic = arithmetic <T> && std::is_integral_v <typename ari
 
 template <typename T>
 concept floating_arithmetic = arithmetic <T> && std::is_floating_point_v <typename arithmetic_base <T> ::native_type>;
+
+// Override type generation for natives
+template <native T>
+struct type_info_generator <native_t <T>> {
+	type_info_generator(const native_t <T> &) {}
+
+	intermediate_type synthesize() {
+		return primitive_type(native_t <T> ::primitive());
+	}
+};
 
 } // namespace jvl::ire

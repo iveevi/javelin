@@ -11,16 +11,17 @@ struct __gl_MeshPerVertexEXT {
 
 	explicit __gl_MeshPerVertexEXT() = default;
 
-	auto layout() const {
+	auto ll() {
 		// TODO: needs to be special or phantom
 		// TODO: specification!
-		return uniform_layout("gl_MeshPerVertexEXT",
-			named_field(gl_Position),
-			named_field(gl_PointSize));
+		return Layout <"gl_MeshPerVertexEXT",
+			field <"gl_Position", vec4>,
+			field <"gl_Position", f32>
+		> (gl_Position, gl_PointSize);
 	}
 
-	__gl_MeshPerVertexEXT(const cache_index_t &c) {
-		layout().remove_const().ref_with(c);
+	__gl_MeshPerVertexEXT(const cache_index_t &idx) {
+		ll().link(idx.id);
 	}
 };
 

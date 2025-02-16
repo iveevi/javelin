@@ -1,6 +1,5 @@
 #pragma once
 
-#include "type_synthesis.hpp"
 #include "native.hpp"
 #include "vector.hpp"
 #include "matrix.hpp"
@@ -57,57 +56,57 @@ using image1D = image <float, 1>;
 using image2D = image <float, 2>;
 using image3D = image <float, 3>;
 
-// Type matching
-template <typename T>
-constexpr thunder::PrimitiveType synthesize_primitive_type()
-{
-	if constexpr (std::is_same_v <T, bool>)
-		return thunder::boolean;
-	if constexpr (std::is_same_v <T, int32_t>)
-		return thunder::i32;
-	if constexpr (std::is_same_v <T, uint32_t>)
-		return thunder::u32;
-	if constexpr (std::is_same_v <T, float>)
-		return thunder::f32;
+// // Type matching
+// template <typename T>
+// constexpr thunder::PrimitiveType synthesize_primitive_type()
+// {
+// 	if constexpr (std::is_same_v <T, bool>)
+// 		return thunder::boolean;
+// 	if constexpr (std::is_same_v <T, int32_t>)
+// 		return thunder::i32;
+// 	if constexpr (std::is_same_v <T, uint32_t>)
+// 		return thunder::u32;
+// 	if constexpr (std::is_same_v <T, float>)
+// 		return thunder::f32;
 
-	if constexpr (std::is_same_v <T, native_t <bool>>)
-		return thunder::boolean;
-	if constexpr (std::is_same_v <T, native_t <int32_t>>)
-		return thunder::i32;
-	if constexpr (std::is_same_v <T, native_t <uint32_t>>)
-		return thunder::u32;
-	if constexpr (std::is_same_v <T, native_t <float>>)
-		return thunder::f32;
+// 	if constexpr (std::is_same_v <T, native_t <bool>>)
+// 		return thunder::boolean;
+// 	if constexpr (std::is_same_v <T, native_t <int32_t>>)
+// 		return thunder::i32;
+// 	if constexpr (std::is_same_v <T, native_t <uint32_t>>)
+// 		return thunder::u32;
+// 	if constexpr (std::is_same_v <T, native_t <float>>)
+// 		return thunder::f32;
 
-	if constexpr (std::is_same_v <T, vec2>)
-		return thunder::vec2;
-	if constexpr (std::is_same_v <T, vec3>)
-		return thunder::vec3;
-	if constexpr (std::is_same_v <T, vec4>)
-		return thunder::vec4;
+// 	if constexpr (std::is_same_v <T, vec2>)
+// 		return thunder::vec2;
+// 	if constexpr (std::is_same_v <T, vec3>)
+// 		return thunder::vec3;
+// 	if constexpr (std::is_same_v <T, vec4>)
+// 		return thunder::vec4;
 
-	if constexpr (std::is_same_v <T, ivec2>)
-		return thunder::ivec2;
-	if constexpr (std::is_same_v <T, ivec3>)
-		return thunder::ivec3;
-	if constexpr (std::is_same_v <T, ivec4>)
-		return thunder::ivec4;
+// 	if constexpr (std::is_same_v <T, ivec2>)
+// 		return thunder::ivec2;
+// 	if constexpr (std::is_same_v <T, ivec3>)
+// 		return thunder::ivec3;
+// 	if constexpr (std::is_same_v <T, ivec4>)
+// 		return thunder::ivec4;
 
-	if constexpr (std::is_same_v <T, uvec2>)
-		return thunder::uvec2;
-	if constexpr (std::is_same_v <T, uvec3>)
-		return thunder::uvec3;
-	if constexpr (std::is_same_v <T, uvec4>)
-		return thunder::uvec4;
+// 	if constexpr (std::is_same_v <T, uvec2>)
+// 		return thunder::uvec2;
+// 	if constexpr (std::is_same_v <T, uvec3>)
+// 		return thunder::uvec3;
+// 	if constexpr (std::is_same_v <T, uvec4>)
+// 		return thunder::uvec4;
 
-	if constexpr (std::is_same_v <T, mat2>)
-		return thunder::mat2;
-	if constexpr (std::is_same_v <T, mat3>)
-		return thunder::mat3;
-	if constexpr (std::is_same_v <T, mat4>)
-		return thunder::mat4;
+// 	if constexpr (std::is_same_v <T, mat2>)
+// 		return thunder::mat2;
+// 	if constexpr (std::is_same_v <T, mat3>)
+// 		return thunder::mat3;
+// 	if constexpr (std::is_same_v <T, mat4>)
+// 		return thunder::mat4;
 
-	return thunder::bad;
-}
+// 	return thunder::bad;
+// }
 
 } // namespace jvl::ire

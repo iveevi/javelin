@@ -1,11 +1,7 @@
 #pragma once
 
 #include "../thunder/enumerations.hpp"
-#include "emitter.hpp"
-#include "native.hpp"
-#include "tagged.hpp"
-#include "type_synthesis.hpp"
-#include "uniform_layout.hpp"
+#include "concepts.hpp"
 
 namespace jvl::ire {
 
@@ -65,9 +61,9 @@ struct layout_in <T, kind> {
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-		thunder::Index type = type_field_from_args <native_t <T>> ().id;
-		thunder::Index lin = em.emit_qualifier(type, binding, layout_in_as(kind));
-		thunder::Index value = em.emit_construct(lin, -1, thunder::transient);
+		auto type = native_t <T> ::type();
+		auto lin = em.emit_qualifier(type, binding, layout_in_as(kind));
+		auto value = em.emit_construct(lin, -1, thunder::transient);
 		return cache_index_t::from(value);
 	}
 
@@ -83,9 +79,9 @@ struct layout_in <T, kind> : T {
 
 	explicit layout_in(size_t binding_ = 0) : binding(binding_) {
 		auto &em = Emitter::active;
-		thunder::Index type = type_field_from_args <T> ().id;
-		thunder::Index lin = em.emit_qualifier(type, binding, layout_in_as(kind));
-		thunder::Index value = em.emit_construct(lin, -1, thunder::transient);
+		auto type = type_info_generator <T> (*this).synthesize();
+		auto lin = em.emit_qualifier(type, binding, layout_in_as(kind));
+		auto value = em.emit_construct(lin, -1, thunder::transient);
 		this->ref = value;
 	}
 
@@ -134,9 +130,9 @@ struct layout_out <T, kind> {
 
 	layout_out &operator=(const native_t <T> &value) {
 		auto &em = Emitter::active;
-		thunder::Index type = type_field_from_args <native_t <T>> ().id;
-		thunder::Index lout = em.emit_qualifier(type, binding, layout_out_as(kind));
-		thunder::Index dst = em.emit_construct(lout, -1, thunder::transient);
+		auto type = native_t <T> ::type();
+		auto lout = em.emit_qualifier(type, binding, layout_out_as(kind));
+		auto dst = em.emit_construct(lout, -1, thunder::transient);
 		em.emit_store(dst, value.synthesize().id);
 		return *this;
 	}
@@ -149,9 +145,9 @@ struct layout_out <T, kind> : T {
 
 	explicit layout_out(size_t binding_) : binding(binding_) {
 		auto &em = Emitter::active;
-		thunder::Index type = type_field_from_args <T> ().id;
-		thunder::Index lout = em.emit_qualifier(type, binding, layout_out_as(kind));
-		thunder::Index dst = em.emit_construct(lout, -1, thunder::transient);
+		auto type = type_info_generator <T> (*this).synthesize();
+		auto lout = em.emit_qualifier(type, binding, layout_out_as(kind));
+		auto dst = em.emit_construct(lout, -1, thunder::transient);
 		this->ref = dst;
 	}
 
@@ -161,4 +157,4 @@ struct layout_out <T, kind> : T {
 	}
 };
 
-}
+} // namespace jvl::ire

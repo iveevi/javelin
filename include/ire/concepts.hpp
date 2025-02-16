@@ -1,7 +1,7 @@
 #pragma once
 
 #include "tagged.hpp"
-#include "uniform_layout.hpp"
+#include "layout.hpp"
 #include "native.hpp"
 
 namespace jvl::ire {

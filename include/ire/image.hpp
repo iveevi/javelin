@@ -56,9 +56,9 @@ struct image {
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
 		// TODO: why do we need this?
-		thunder::Index type = type_field_from_args <vec <T, 4>> ().id;
-		thunder::Index sampler = em.emit_qualifier(type, binding, image_qualifiers <T> ::table[D]);
-		thunder::Index value = em.emit_construct(sampler, -1, thunder::transient);
+		auto type = vec <T, 4> ::type();
+		auto image = em.emit_qualifier(type, binding, image_qualifiers <T> ::table[D]);
+		auto value = em.emit_construct(image, -1, thunder::transient);
 		return cache_index_t::from(value);
 	}
 };
@@ -97,18 +97,6 @@ void imageStore(const Image &handle,
 		(thunder::glsl_image_store, handle, idx, data);
 }
 
-// Type generation
-template <native T, size_t D>
-struct type_info_override <image <T, D>> : std::true_type {
-	thunder::Index binding = 0;
-
-	type_info_override(const image <T, D> &img) : binding(img.binding) {}
-
-	int synthesize() const {
-		return Emitter::active.emit_qualifier(-1, binding, image_qualifiers <T> ::table[D]);
-	}
-};
-
 // Implementing qualifiers
 template <native T, size_t D>
 struct read_only <image <T, D>> : image <T, D> {
@@ -143,5 +131,17 @@ struct write_only <image <T, D>> : image <T, D> {
 
 template <native T, size_t D>
 struct is_image_like <write_only <image <T, D>>> : std::true_type {};
+
+// // Type generation
+// template <native T, size_t D>
+// struct type_info_override <image <T, D>> : std::true_type {
+// 	thunder::Index binding = 0;
+
+// 	type_info_override(const image <T, D> &img) : binding(img.binding) {}
+
+// 	int synthesize() const {
+// 		return Emitter::active.emit_qualifier(-1, binding, image_qualifiers <T> ::table[D]);
+// 	}
+// };
 
 } // namespace jvl::ire

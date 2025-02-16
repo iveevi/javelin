@@ -4,7 +4,6 @@
 #include "../../thunder/enumerations.hpp"
 #include "../array.hpp"
 #include "../tagged.hpp"
-#include "../type_synthesis.hpp"
 #include "../util.hpp"
 #include "../vector.hpp"
 
@@ -23,8 +22,8 @@ struct __glsl_intrinsic_variable_t <T, code> {
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-		thunder::Index type = type_field_from_args <T> ().id;
-		thunder::Index intr = em.emit_qualifier(type, -1, code);
+		auto type = native_t <T> ::type();
+		auto intr = em.emit_qualifier(type, -1, code);
 		return cache_index_t::from(intr);
 	}
 
@@ -48,8 +47,8 @@ struct __glsl_intrinsic_variable_t <vec <T, 3>, code> {
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-		thunder::Index type = type_field_from_args <vec <T, 3>> ().id;
-		thunder::Index intr = em.emit_qualifier(type, -1, code);
+		auto type = vec <T, 3> ::type();
+		auto intr = em.emit_qualifier(type, -1, code);
 		return cache_index_t::from(intr);
 	}
 
@@ -80,8 +79,8 @@ struct __glsl_intrinsic_variable_t <vec <T, 4>, code> {
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-		thunder::Index type = type_field_from_args <vec <T, 4>> ().id;
-		thunder::Index intr = em.emit_qualifier(type, -1, code);
+		auto type = vec <T, 4> ::type();
+		auto intr = em.emit_qualifier(type, -1, code);
 		return cache_index_t::from(intr);
 	}
 
@@ -104,9 +103,9 @@ struct __glsl_intrinsic_variable_t <unsized_array <T>, code> {
 	
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-		thunder::Index type = type_field_from_args <T> ().id;
-		thunder::Index qualifier = em.emit_qualifier(type, -1, thunder::arrays);
-		thunder::Index intr = em.emit_qualifier(qualifier, -1, code);
+		auto v = unsized_array <T> ();
+		auto array = type_info_generator <decltype(v)> (v).syntheisze();
+		auto intr = em.emit_qualifier(array, -1, code);
 		return cache_index_t::from(intr);
 	}
 	

@@ -4,7 +4,6 @@
 
 #include "aggregate.hpp"
 #include "aliases.hpp"
-#include "uniform_layout.hpp"
 
 namespace jvl::ire {
 
@@ -168,9 +167,9 @@ struct solid_builder <Offset, mat4, Args...> {
 	using type = aggregate_insert <glm::mat4, typename rest::type> ::type;
 };
 
-template <size_t Offset, string_literal_group group, typename ... Args>
-struct solid_builder <Offset, higher_const_uniform_layout_t <group, Args...>> {
-	using type = solid_builder <Offset, Args...> ::type;
+template <size_t Offset, string_literal name, field_type ... Fields>
+struct solid_builder <Offset, Layout <name, Fields...>> {
+	using type = solid_builder <Offset, Fields...> ::type;
 };
 
 template <size_t Offset, aggregate T>

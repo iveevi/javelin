@@ -7,8 +7,6 @@
 #include "control_flow.hpp"
 #include "parameters.hpp"
 #include "tagged.hpp"
-#include "type_synthesis.hpp"
-#include "uniform_layout.hpp"
 
 namespace jvl::ire {
 
@@ -19,7 +17,8 @@ struct parameter_injection : std::false_type {};
 template <builtin T>
 struct parameter_injection <T> : std::true_type {
 	static thunder::Index emit() {
-		return type_field_from_args <T> ().id;
+		auto v = T();
+		return type_info_generator <T> (v).synthesize();
 	}
 
 	static void inject(T &x, thunder::Index i) {
@@ -162,12 +161,16 @@ struct Procedure : thunder::TrackedBuffer {
 
 		// For primitives
 		thunder::Call call;
+
+		auto r = R();
+
 		call.cid = cid;
-		call.type = type_field_from_args <R> ().id;
+		call.type = type_info_generator <R> (r).synthesize();
 		call.args = list_from_args(args...);
 
 		cache_index_t cit;
 		cit = em.emit(call);
+		
 		return R(cit);
 	}
 };

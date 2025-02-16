@@ -3,8 +3,6 @@
 #include "../thunder/enumerations.hpp"
 #include "aliases.hpp"
 #include "tagged.hpp"
-#include "type_synthesis.hpp"
-#include "uniform_layout.hpp"
 
 namespace jvl::ire {
 

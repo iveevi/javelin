@@ -5,8 +5,7 @@
 #include "../thunder/enumerations.hpp"
 #include "native.hpp"
 #include "tagged.hpp"
-#include "type_synthesis.hpp"
-#include "uniform_layout.hpp"
+#include "layout.hpp"
 
 namespace jvl::ire {
 
@@ -162,19 +161,19 @@ inline void platform_intrinsic_keyword(thunder::IntrinsicOperation opn)
 	em.emit(intr);
 }
 
-template <typename ... Args>
-cache_index_t default_construct_index(const const_uniform_layout_t <Args...> &layout, int index)
-{
-	auto &em = Emitter::active;
+// template <typename ... Args>
+// cache_index_t default_construct_index(const const_uniform_layout_t <Args...> &layout, int index)
+// {
+// 	auto &em = Emitter::active;
 
-	thunder::Construct ctor;
-	ctor.type = type_field_index_from_args(index, layout).id;
-	// args is (nil) to properly engage the default constructor
+// 	thunder::Construct ctor;
+// 	ctor.type = type_field_index_from_args(index, layout).id;
+// 	// args is (nil) to properly engage the default constructor
 
-	cache_index_t cit;
-	cit = em.emit(ctor);
-	return cit;
-}
+// 	cache_index_t cit;
+// 	cit = em.emit(ctor);
+// 	return cit;
+// }
 
 // template <typename ... Args>
 // requires (sizeof...(Args) > 0)

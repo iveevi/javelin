@@ -18,7 +18,6 @@
 #include "ire/solidify.hpp"
 #include "ire/special.hpp"
 #include "ire/std.hpp"
-#include "ire/uniform_layout.hpp"
 #include "ire/vector.hpp"
 
 #include "ire/intrinsics/common.hpp"
