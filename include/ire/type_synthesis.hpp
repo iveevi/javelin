@@ -1,10 +1,10 @@
 #pragma once
 
 #include "../thunder/atom.hpp"
+#include "concepts.hpp"
 #include "emitter.hpp"
 #include "string_literal.hpp"
 #include "tagged.hpp"
-#include "type_system.hpp"
 #include "uniform_layout.hpp"
 
 namespace jvl::ire {

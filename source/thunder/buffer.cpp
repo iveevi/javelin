@@ -47,6 +47,15 @@ void Buffer::dump() const
 			fmt::format(fmt::emphasis::underline, "{}", types[i]),
 			used_decorations.contains(i) ? 't' : '-');
 	}
+
+	// Decorations
+	fmt::println("   [   X] {}", fmt::format(fmt::emphasis::bold, "{}", "DECORATIONS"));
+
+	for (auto &[i, th] : decorations) {
+		fmt::println("          :: {} (#{})", fmt::format(fmt::emphasis::underline, "{}", th.name), i);
+		for (auto &s : th.fields)
+			fmt::println("             {}", s);
+	}
 }
 
 // Utility methods

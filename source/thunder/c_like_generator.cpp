@@ -271,6 +271,8 @@ std::string c_like_generator_t::reference(Index index) const
 			auto id = used_decorations.at(load.src);
 			auto th = decorations.at(id);
 			accessor = "." + th.fields[load.idx];
+		} else {
+			fmt::println("no decoration for load (@{}) source (@{})", index, load.src);
 		}
 
 		return ref + accessor;
@@ -307,13 +309,6 @@ std::string c_like_generator_t::inlined(Index index) const
 	const Atom &atom = atoms[index];
 
 	switch (atom.index()) {
-
-	case Atom::type_index <Qualifier> ():
-	{
-		auto ref = generate_global_reference(atoms, index);
-		if (ref)
-			return ref.value();
-	} break;
 
 	case Atom::type_index <Primitive> ():
 		return generate_primitive(atom.as <Primitive> ());
@@ -363,6 +358,7 @@ std::string c_like_generator_t::inlined(Index index) const
 	case Atom::type_index <Load> ():
 	case Atom::type_index <Swizzle> ():
 	case Atom::type_index <ArrayAccess> ():
+	case Atom::type_index <Qualifier> ():
 		return reference(index);
 
 	default:

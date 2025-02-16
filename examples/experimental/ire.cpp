@@ -20,6 +20,23 @@
 using namespace jvl;
 using namespace jvl::ire;
 
+MODULE(ire);
+
+inline int64_t type_index_counter = 0;
+
+template <typename T>
+int64_t type_index()
+{
+	// Force ID fetch at runtime
+	static int64_t c = -1;
+	if (c == -1)
+		c = type_index_counter++;
+	return c;
+}
+
+template <generic ... Args>
+struct aggregate_wrapper {};
+
 struct primitive_type {
 	thunder::PrimitiveType ptv;
 };
@@ -31,9 +48,8 @@ struct struct_type {
 using intermediate_type = bestd::variant <primitive_type, struct_type>;
 
 // Forward declarations
-template <generic ... Args>
-requires (sizeof...(Args) > 0)
-struct type_info_generator;
+template <typename T>
+struct type_info_generator {};
 
 namespace detail {
 
@@ -41,11 +57,11 @@ template <string_literal str, generic T>
 struct field {
 	using underlying = std::decay_t <T>;
 
-	static constexpr const char *name = str;
+	static constexpr const char *name = str.value;
 
-	const T &ref;
+	T &ref;
 
-	field(const T &val) : ref(val) {}
+	field(T &val) : ref(val) {}
 };
 
 template <typename T>
@@ -57,34 +73,77 @@ struct is_field_type <field <str, T>> : std::true_type {};
 template <typename T>
 concept field_type = is_field_type <T> ::value;
 
-template <field_type ... Fields>
-struct Layout {
-	std::tuple <Fields...> references;
-
-	template <typename ... Args>
-	Layout(const Args &... args) : references(args...) {}
-	
-	intermediate_type generate_type() {
-		return std::apply([](const auto &... fields) {
-			return type_info_generator <typename std::decay_t <decltype(fields)> ::underlying...>
-				(fields.ref...).synthesize();
-			},
-			references);
-	}
-};
+template <string_literal str, field_type ... Fields>
+struct Layout;
 
 template <typename T>
 struct is_layout_type : std::false_type {};
 
-template <field_type ... Fields>
-struct is_layout_type <Layout <Fields...>> : std::true_type {};
+template <string_literal str, field_type ... Fields>
+struct is_layout_type <Layout <str, Fields...>> : std::true_type {};
 
 template <typename T>
 concept layout_type = is_layout_type <T> ::value;
 
 template <typename T>
-concept aggregate = requires(const T &t) {
+concept aggregate = requires(T &t) {
 	{ t.ll() } -> layout_type;
+};
+
+template <string_literal str, field_type ... Fields>
+struct Layout {
+	using T = aggregate_wrapper <typename Fields::underlying...>;
+
+	std::tuple <Fields...> references;
+
+	template <typename ... Args>
+	Layout(Args &... args) : references(args...) {}
+
+	void embed_hint(thunder::Index src) {
+		auto &em = Emitter::active;
+
+		// TODO: evaluate once statically?
+		std::vector <std::string> fields = std::apply([](const auto &... fields) {
+			return std::vector <std::string> { fields.name... };
+		}, references);
+
+		em.emit_hint(src, type_index <T> (), str.value, fields);
+	}
+
+	template <size_t I = 0>
+	void link(thunder::Index src) {
+		auto &em = Emitter::active;
+		auto &ref = std::get <I> (references).ref;
+
+		using E = decltype(ref);
+
+		// TODO: aggregates
+		auto idx = em.emit_load(src, thunder::Index(I));
+		if constexpr (builtin <E>)
+			ref.ref = cache_index_t::from(idx);
+		else if constexpr (aggregate <E>)
+			ref.ll().link(idx);
+
+		if constexpr (I + 1 < sizeof...(Fields))
+			link <I + 1> (src);
+
+		if constexpr (I == 0)
+			embed_hint(src);
+	}
+	
+	intermediate_type generate_type() {	
+		auto &em = Emitter::active;
+
+		intermediate_type idx = std::apply([](const auto &... fields) {
+			return type_info_generator <T> (fields.ref...).synthesize();
+		}, references);
+
+		JVL_ASSERT(idx.is <struct_type> (), "layout type info generation is not a struct type");
+
+		embed_hint(idx.as <struct_type> ().idx);
+
+		return idx;
+	}
 };
 
 }
@@ -103,8 +162,8 @@ struct RayFrame {
 			named_field(vertical));
 	}
 
-	auto ll() const {
-		return ::detail::Layout <
+	auto ll() {
+		return ::detail::Layout <"RayFrame",
 			::detail::field <"origin", vec3>,
 			::detail::field <"lower_left", vec3>
 		> (origin, lower_left);
@@ -123,8 +182,8 @@ struct Nested {
 			named_field(frame));
 	}
 	
-	auto ll() const {
-		return ::detail::Layout <
+	auto ll() {
+		return ::detail::Layout <"Nested",
 			::detail::field <"x", vec3>,
 			::detail::field <"frame", RayFrame>
 		> (x, frame);
@@ -169,8 +228,7 @@ auto f = procedure <void> ("main") << []()
 
 // General form is explicitly a struct with fields of type Args...
 template <generic ... Args>
-requires (sizeof...(Args) > 0)
-struct type_info_generator {
+struct type_info_generator <aggregate_wrapper <Args...>> {
 	static constexpr size_t count = sizeof...(Args);
 
 	using tuple_type = std::tuple <Args...>;
@@ -189,9 +247,6 @@ struct type_info_generator {
 		intermediate_type current = type_info_generator <tuple_element <I>> (std::get <I> (args)).synthesize();
 
 		if constexpr (I + 1 >= count) {
-			if constexpr (I == 0)
-				static_assert(false, "recursion detected in type info generation");
-
 			if (current.is <primitive_type> ()) {
 				auto &p = current.as <primitive_type> ();
 				auto idx = em.emit_type_information(-1, -1, p.ptv);
@@ -244,7 +299,7 @@ struct type_info_generator <vec <T, D>> {
 
 template <::detail::aggregate T>
 struct type_info_generator <T> {
-	const T &ref;
+	T &ref;
 
 	intermediate_type synthesize() {
 		return ref.ll().generate_type();
@@ -258,20 +313,41 @@ int main()
 	// link(f).generate_spirv(vk::ShaderStageFlagBits::eRaygenKHR);
 
 	{
-		thunder::Buffer buffer;
+		thunder::TrackedBuffer buffer;
+		buffer.name = "main";
 
 		auto &em = Emitter::active;
 		
 		em.push(buffer);
 
 		RayFrame rayframe;
-		type_info_generator(rayframe).synthesize();
+		auto type = type_info_generator <RayFrame> (rayframe).synthesize();
+		auto idx = type.as <struct_type> ().idx;
+
+		idx = em.emit_construct(idx, -1, thunder::normal);
+		
+		rayframe.ll().link(idx);
+
+		f32 x;
+		x = rayframe.origin.x;
 		
 		Nested nested;
-		type_info_generator(nested).synthesize();
+		type = type_info_generator <Nested> (nested).synthesize();
+		idx = type.as <struct_type> ().idx;
+		
+		idx = em.emit_construct(idx, -1, thunder::normal);
+
+		nested.ll().link(idx);
+
+		x = nested.frame.lower_left.y;
+		// x = nested.x.y;
 
 		em.pop();
 
 		buffer.dump();
+
+		fmt::println("{}", link(buffer).generate_glsl());
+
+		link(buffer).generate_spirv(vk::ShaderStageFlagBits::eAll);
 	}
 }
