@@ -2,7 +2,7 @@
 
 namespace jvl::thunder {
 
-index_t reference_of(const std::vector <Atom> &atoms, index_t i)
+Index reference_of(const std::vector <Atom> &atoms, Index i)
 {
 	auto &atom = atoms[i];
 
@@ -18,7 +18,7 @@ index_t reference_of(const std::vector <Atom> &atoms, index_t i)
 	}
 }
 
-void Buffer::include(index_t i)
+void Buffer::include(Index i)
 {
 	auto &atom = atoms[i];
 
@@ -28,7 +28,7 @@ void Buffer::include(index_t i)
 	// destinations should always be synthesized
 	case Atom::type_index <Store> ():
 	{
-		index_t dst = atom.as <Store> ().dst;
+		Index dst = atom.as <Store> ().dst;
 		synthesized.insert(i);
 		synthesized.insert(reference_of(atoms, dst));
 		break;

@@ -88,7 +88,7 @@ struct primitive_type {
 
 struct struct_type {
 	// TODO: capitalize index...
-	thunder::index_t idx;
+	thunder::Index idx;
 };
 
 using intermediate_type = bestd::variant <primitive_type, struct_type>;

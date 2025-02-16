@@ -314,7 +314,7 @@ gcc_type_info gcc_jit_function_generator_t::jitify_type(QualifiedType qt)
 			return (mapped_types[qt] = t);
 		}
 
-		index_t concrete = pd.as <index_t> ();
+		Index concrete = pd.as <Index> ();
 		return jitify_type(types[concrete]);
 	} break;
 
@@ -332,7 +332,7 @@ gcc_type_info gcc_jit_function_generator_t::jitify_type(QualifiedType qt)
 				auto &sft = qt.as <StructFieldType> ();
 				info = jitify_type(sft.base());
 
-				index_t next = qt.as <StructFieldType> ().next;
+				Index next = qt.as <StructFieldType> ().next;
 				qt = types[next];
 			} else {
 				info = jitify_type(qt);
@@ -425,7 +425,7 @@ gcc_type_info gcc_jit_function_generator_t::jitify_type(QualifiedType qt)
 }
 
 // Expanding list chains
-gcc_jit_function_generator_t::expanded_list_chain gcc_jit_function_generator_t::expand_list_chain(index_t next) const
+gcc_jit_function_generator_t::expanded_list_chain gcc_jit_function_generator_t::expand_list_chain(Index next) const
 {
 	std::vector <PrimitiveType> argument_types;
 	std::vector <gcc_jit_rvalue *> argument_rvalues;
@@ -457,19 +457,19 @@ gcc_jit_function_generator_t::expanded_list_chain gcc_jit_function_generator_t::
 
 // Per-atom generator
 template <atom_instruction T>
-gcc_jit_object *generate(const T &atom, index_t i) {
+gcc_jit_object *generate(const T &atom, Index i) {
 	JVL_ABORT("failed to JIT (gcc-jit) compile atom: {} (@{})", atom, i);
 }
 
 template <>
-gcc_jit_object *gcc_jit_function_generator_t::generate(const Qualifier &, index_t)
+gcc_jit_object *gcc_jit_function_generator_t::generate(const Qualifier &, Index)
 {
 	// Nothing to do here...
 	return nullptr;
 }
 
 template <>
-gcc_jit_object *gcc_jit_function_generator_t::generate(const TypeInformation &, index_t index)
+gcc_jit_object *gcc_jit_function_generator_t::generate(const TypeInformation &, Index index)
 {
 	auto &qt = types[index];
 
@@ -480,13 +480,13 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const TypeInformation &, 
 }
 
 template <>
-gcc_jit_object *gcc_jit_function_generator_t::generate(const Primitive &primivite, index_t index)
+gcc_jit_object *gcc_jit_function_generator_t::generate(const Primitive &primivite, Index index)
 {
 	return generate_primitive(context, primivite);
 }
 
 template <>
-gcc_jit_object *gcc_jit_function_generator_t::generate(const Construct &constructor, index_t index)
+gcc_jit_object *gcc_jit_function_generator_t::generate(const Construct &constructor, Index index)
 {
 	// Handle the special case of transient constructors
 	if (constructor.mode == transient) {
@@ -495,7 +495,7 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const Construct &construc
 
 		auto &qualifier = atom.as <Qualifier> ();
 		if (qualifier.kind == parameter) {
-			index_t loc = qualifier.numerical;
+			Index loc = qualifier.numerical;
 			auto rv = gcc_jit_param_as_rvalue(parameters[loc]);
 			return gcc_jit_rvalue_as_object(rv);
 		}
@@ -542,7 +542,7 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const Construct &construc
 	return gcc_jit_rvalue_as_object(constructed);
 }
 
-gcc_jit_object *gcc_jit_function_generator_t::load_field(index_t src, index_t index, bool lvalue)
+gcc_jit_object *gcc_jit_function_generator_t::load_field(Index src, Index index, bool lvalue)
 {
 	JVL_ASSERT(!lvalue, "lvalue loading is not implemented");
 
@@ -563,13 +563,13 @@ gcc_jit_object *gcc_jit_function_generator_t::load_field(index_t src, index_t in
 }
 
 template <>
-gcc_jit_object *gcc_jit_function_generator_t::generate(const Swizzle &swizzle, index_t index)
+gcc_jit_object *gcc_jit_function_generator_t::generate(const Swizzle &swizzle, Index index)
 {
 	return load_field(swizzle.src, swizzle.code, false);
 }
 
 template <>
-gcc_jit_object *gcc_jit_function_generator_t::generate(const Store &store, index_t index)
+gcc_jit_object *gcc_jit_function_generator_t::generate(const Store &store, Index index)
 {
 	auto dst = reinterpret_cast <gcc_jit_lvalue *> (values.at(store.dst));
 	auto src = reinterpret_cast <gcc_jit_rvalue *> (values.at(store.src));
@@ -578,7 +578,7 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const Store &store, index
 }
 
 template <>
-gcc_jit_object *gcc_jit_function_generator_t::generate(const Load &load, index_t index)
+gcc_jit_object *gcc_jit_function_generator_t::generate(const Load &load, Index index)
 {
 	auto v = values.at(load.src);
 	if (load.idx == -1)
@@ -588,7 +588,7 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const Load &load, index_t
 }
 
 template <>
-gcc_jit_object *gcc_jit_function_generator_t::generate(const Operation &operation, index_t index)
+gcc_jit_object *gcc_jit_function_generator_t::generate(const Operation &operation, Index index)
 {
 	JVL_ASSERT(operation.b != -1, "unary operations are not implemented");
 
@@ -600,7 +600,7 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const Operation &operatio
 }
 
 template <>
-gcc_jit_object *gcc_jit_function_generator_t::generate(const Intrinsic &intrinsic, index_t index)
+gcc_jit_object *gcc_jit_function_generator_t::generate(const Intrinsic &intrinsic, Index index)
 
 {
 	auto type = jitify_type(types[index]);
@@ -621,14 +621,14 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const Intrinsic &intrinsi
 }
 
 template <>
-gcc_jit_object *gcc_jit_function_generator_t::generate(const List &, index_t)
+gcc_jit_object *gcc_jit_function_generator_t::generate(const List &, Index)
 {
 	// Nothing to do here...
 	return nullptr;
 }
 
 template <>
-gcc_jit_object *gcc_jit_function_generator_t::generate(const Returns &returns, index_t index)
+gcc_jit_object *gcc_jit_function_generator_t::generate(const Returns &returns, Index index)
 {
 	auto v = values.at(returns.value);
 	auto rv = reinterpret_cast <gcc_jit_rvalue *> (v);
@@ -639,14 +639,14 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const Returns &returns, i
 // Expand generation list
 auto gcc_jit_function_generator_t::work_list()
 {
-	auto used = std::set <index_t> ();
+	auto used = std::set <Index> ();
 
-	std::queue <index_t> work;
+	std::queue <Index> work;
 	for (auto i : synthesized)
 		work.push(i);
 
 	while (work.size()) {
-		index_t next = work.front();
+		Index next = work.front();
 		work.pop();
 
 		if (next == -1)
@@ -685,7 +685,7 @@ void gcc_jit_function_generator_t::begin_function()
 		auto &atom = atoms[i];
 		if (auto qualifier = atom.get <Qualifier> ()) {
 			if (qualifier->kind == parameter) {
-				index_t underlying = qualifier->underlying;
+				Index underlying = qualifier->underlying;
 				gcc_jit_type *type = jitify_type(types[underlying]).real;
 
 				size_t loc = qualifier->numerical;
@@ -712,7 +712,7 @@ void gcc_jit_function_generator_t::begin_function()
 }
 
 // Wholistic generation
-void gcc_jit_function_generator_t::generate(index_t i)
+void gcc_jit_function_generator_t::generate(Index i)
 {
 	auto ftn = [&](auto atom) { return generate(atom, i); };
 	auto rv = std::visit(ftn, atoms[i]);

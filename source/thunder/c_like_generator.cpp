@@ -10,7 +10,7 @@ namespace jvl::thunder::detail {
 
 MODULE(c-like-generator);
 
-static std::optional <std::string> generate_global_reference(const std::vector <Atom> &atoms, const index_t &idx)
+static std::optional <std::string> generate_global_reference(const std::vector <Atom> &atoms, const Index &idx)
 {
 	auto &qualifier = atoms[idx].as <Qualifier> ();
 
@@ -203,7 +203,7 @@ void c_like_generator_t::finish(const std::string &s, bool semicolon)
 	source += std::string(indentation << 2, ' ') + s + (semicolon ? ";" : "") + "\n";
 }
 
-void c_like_generator_t::declare(index_t index)
+void c_like_generator_t::declare(Index index)
 {
 	auto t = type_to_string(types[index]);
 	int n = local_variables.size();
@@ -213,7 +213,7 @@ void c_like_generator_t::declare(index_t index)
 	finish(stmt);
 }
 
-void c_like_generator_t::define(index_t index, const std::string &v)
+void c_like_generator_t::define(Index index, const std::string &v)
 {
 	auto t = type_to_string(types[index]);
 	int n = local_variables.size();
@@ -229,7 +229,7 @@ void c_like_generator_t::assign(int index, const std::string &v)
 	finish(stmt);
 }
 
-std::string c_like_generator_t::reference(index_t index) const
+std::string c_like_generator_t::reference(Index index) const
 {
 	JVL_ASSERT(index != -1, "invalid index passed to ref");
 
@@ -297,7 +297,7 @@ std::string c_like_generator_t::reference(index_t index) const
 	return inlined(index);
 }
 
-std::string c_like_generator_t::inlined(index_t index) const
+std::string c_like_generator_t::inlined(Index index) const
 {
 	JVL_ASSERT(index != -1, "invalid index passed to inlined");
 
@@ -372,7 +372,7 @@ std::string c_like_generator_t::inlined(index_t index) const
 	JVL_ABORT("failed to inline atom: {} (@{})", atom, index);
 }
 
-std::vector <std::string> c_like_generator_t::arguments(index_t start) const
+std::vector <std::string> c_like_generator_t::arguments(Index start) const
 {
 	std::vector <std::string> args;
 
@@ -429,7 +429,7 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 		if (auto p = pd.get <PrimitiveType> ())
 			return { .pre = tbl_primitive_types[*p], .post = "" };
 
-		index_t concrete = pd.as <index_t> ();
+		Index concrete = pd.as <Index> ();
 		if (struct_names.contains(concrete))
 			return { .pre = struct_names.at(concrete), .post = "" };
 
@@ -483,7 +483,7 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 
 // Generators for each kind of instruction
 template <>
-void c_like_generator_t::generate(const Qualifier &, index_t)
+void c_like_generator_t::generate(const Qualifier &, Index)
 {
 	// Nothing to do here, linkage should have taken
 	// care of generating the necessary structs; their
@@ -491,32 +491,32 @@ void c_like_generator_t::generate(const Qualifier &, index_t)
 }
 
 template <>
-void c_like_generator_t::generate(const TypeInformation &, index_t)
+void c_like_generator_t::generate(const TypeInformation &, Index)
 {
 	// Same idea here; all globals should be
 	// instatiated from the linker side
 }
 
 template <>
-void c_like_generator_t::generate(const Primitive &primitive, index_t index)
+void c_like_generator_t::generate(const Primitive &primitive, Index index)
 {
 	define(index, generate_primitive(primitive));
 }
 
 template <>
-void c_like_generator_t::generate(const Swizzle &swizzle, index_t index)
+void c_like_generator_t::generate(const Swizzle &swizzle, Index index)
 {
 	define(index, inlined(index));
 }
 
 template <>
-void c_like_generator_t::generate(const Operation &operation, index_t index)
+void c_like_generator_t::generate(const Operation &operation, Index index)
 {
 	define(index, inlined(index));
 }
 
 template <>
-void c_like_generator_t::generate(const Intrinsic &intrinsic, index_t index)
+void c_like_generator_t::generate(const Intrinsic &intrinsic, Index index)
 {
 	// Special cases
 	if ((intrinsic.opn == thunder::layout_local_size)
@@ -549,7 +549,7 @@ void c_like_generator_t::generate(const Intrinsic &intrinsic, index_t index)
 }
 
 template <>
-void c_like_generator_t::generate(const Construct &construct, index_t index)
+void c_like_generator_t::generate(const Construct &construct, Index index)
 {
 	if (construct.mode == transient)
 		return;
@@ -561,7 +561,7 @@ void c_like_generator_t::generate(const Construct &construct, index_t index)
 }
 
 template <>
-void c_like_generator_t::generate(const Call &call, index_t index)
+void c_like_generator_t::generate(const Call &call, Index index)
 {
 	TrackedBuffer *cbl = TrackedBuffer::search_tracked(call.cid);
 	std::string args = "()";
@@ -572,25 +572,25 @@ void c_like_generator_t::generate(const Call &call, index_t index)
 }
 
 template <>
-void c_like_generator_t::generate(const Store &store, index_t)
+void c_like_generator_t::generate(const Store &store, Index)
 {
 	assign(store.dst, inlined(store.src));
 }
 
 template <>
-void c_like_generator_t::generate(const Load &load, index_t index)
+void c_like_generator_t::generate(const Load &load, Index index)
 {
 	define(index, inlined(index));
 }
 
 template <>
-void c_like_generator_t::generate(const ArrayAccess &access, index_t index)
+void c_like_generator_t::generate(const ArrayAccess &access, Index index)
 {
 	define(index, inlined(index));
 }
 
 template <>
-void c_like_generator_t::generate(const Branch &branch, index_t)
+void c_like_generator_t::generate(const Branch &branch, Index)
 {
 	switch (branch.kind) {
 
@@ -635,7 +635,7 @@ void c_like_generator_t::generate(const Branch &branch, index_t)
 }
 
 template <>
-void c_like_generator_t::generate(const Returns &returns, index_t)
+void c_like_generator_t::generate(const Returns &returns, Index)
 {
 	if (returns.value >= 0)
 		finish("return " + inlined(returns.value));
@@ -644,7 +644,7 @@ void c_like_generator_t::generate(const Returns &returns, index_t)
 }
 
 // Per-atom generator
-void c_like_generator_t::generate(index_t i)
+void c_like_generator_t::generate(Index i)
 {
 	auto ftn = [&](auto atom) { return generate(atom, i); };
 	return std::visit(ftn, atoms[i]);

@@ -37,7 +37,7 @@ Function::Function(const Buffer &buffer, const std::string &name_, size_t cid_)
 		: Buffer(buffer), cid(cid_), name(name_) {}
 
 // Linkage unit methods
-index_t LinkageUnit::new_aggregate(size_t ftn, const std::string &name, const std::vector <Field> &fields)
+Index LinkageUnit::new_aggregate(size_t ftn, const std::string &name, const std::vector <Field> &fields)
 {
 	size_t index = aggregates.size();
 
@@ -58,7 +58,7 @@ index_t LinkageUnit::new_aggregate(size_t ftn, const std::string &name, const st
 
 // fidx; function index
 // bidx; (atom) buffer index
-void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, index_t bidx, const Qualifier &qualifier)
+void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, Index bidx, const Qualifier &qualifier)
 {
 	if (image_kind(qualifier.kind)) {
 		size_t binding = qualifier.numerical;
@@ -178,13 +178,13 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, in
 	}
 }
 
-void LinkageUnit::process_function_intrinsic(Function &function, size_t index, index_t i, const Intrinsic &intr)
+void LinkageUnit::process_function_intrinsic(Function &function, size_t index, Index i, const Intrinsic &intr)
 {
 	switch (intr.opn) {
 
 	case thunder::layout_local_size:
 	{
-		thunder::index_t args = intr.args;
+		thunder::Index args = intr.args;
 
 		glm::uvec3 size = glm::uvec3(1, 1, 1);
 
@@ -210,7 +210,7 @@ void LinkageUnit::process_function_intrinsic(Function &function, size_t index, i
 
 	case thunder::layout_mesh_shader_sizes:
 	{
-		thunder::index_t args = intr.args;
+		thunder::Index args = intr.args;
 
 		glm::uvec2 size = glm::uvec2(1, 1);
 
@@ -248,7 +248,7 @@ void LinkageUnit::process_function_intrinsic(Function &function, size_t index, i
 	}
 }
 
-void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &function, size_t index, index_t i, QualifiedType qt)
+void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &function, size_t index, Index i, QualifiedType qt)
 {
 	std::vector <Field> fields;
 
@@ -283,12 +283,12 @@ void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &funct
 }
 
 // TODO: return referenced callables
-std::set <index_t> LinkageUnit::process_function(const Function &ftn)
+std::set <Index> LinkageUnit::process_function(const Function &ftn)
 {
-	std::set <index_t> referenced;
+	std::set <Index> referenced;
 
 	// TODO: run validation here as well
-	index_t fidx = functions.size();
+	Index fidx = functions.size();
 
 	functions.emplace_back(ftn);
 	maps.emplace_back();
@@ -296,7 +296,7 @@ std::set <index_t> LinkageUnit::process_function(const Function &ftn)
 	auto &function = functions.back();
 	auto &map = maps.back();
 
-	for (index_t bidx : function.synthesized) {
+	for (Index bidx : function.synthesized) {
 		// Sanity check
 		JVL_ASSERT(bidx >= 0, "bad index @{} in synthesized list for function", bidx);
 
@@ -349,7 +349,7 @@ void LinkageUnit::add(const TrackedBuffer &callable)
 	auto referenced = process_function(converted);
 
 	loaded.insert(callable.cid);
-	for (index_t i : referenced)
+	for (Index i : referenced)
 		add(*TrackedBuffer::search_tracked(i));
 }
 
@@ -424,7 +424,7 @@ auto LinkageUnit::configure_generators() const
 		auto &function = functions[i];
 		auto &map = maps[i];
 
-		std::map <index_t, std::string> structs;
+		std::map <Index, std::string> structs;
 		for (auto &[k, v] : map)
 			structs[k] = aggregates[v].name;
 
@@ -672,17 +672,17 @@ void generate_function(std::string &result,
 }
 
 // Topological sorting functions by dependencies
-auto topological_sort(const std::map <index_t, std::set <index_t>> &dependencies)
+auto topological_sort(const std::map <Index, std::set <Index>> &dependencies)
 {
-	std::set <index_t> included;
-	std::deque <index_t> sorted;
+	std::set <Index> included;
+	std::deque <Index> sorted;
 
-	std::deque <index_t> proc;
+	std::deque <Index> proc;
 	for (size_t i = 0; i < dependencies.size(); i++)
 		proc.push_back(i);
 
 	while (proc.size()) {
-		index_t i = proc.front();
+		Index i = proc.front();
 		proc.pop_front();
 
 		if (included.contains(i))
@@ -769,7 +769,7 @@ std::string LinkageUnit::generate_glsl() const
 	auto sorted = topological_sort(resolved_dependencies);
 
 	while (sorted.size()) {
-		index_t i = sorted.front();
+		Index i = sorted.front();
 		sorted.pop_front();
 
 		auto &function = functions[i];

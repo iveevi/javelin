@@ -56,9 +56,9 @@ struct image {
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
 		// TODO: why do we need this?
-		thunder::index_t type = type_field_from_args <vec <T, 4>> ().id;
-		thunder::index_t sampler = em.emit_qualifier(type, binding, image_qualifiers <T> ::table[D]);
-		thunder::index_t value = em.emit_construct(sampler, -1, thunder::transient);
+		thunder::Index type = type_field_from_args <vec <T, 4>> ().id;
+		thunder::Index sampler = em.emit_qualifier(type, binding, image_qualifiers <T> ::table[D]);
+		thunder::Index value = em.emit_construct(sampler, -1, thunder::transient);
 		return cache_index_t::from(value);
 	}
 };
@@ -100,7 +100,7 @@ void imageStore(const Image &handle,
 // Type generation
 template <native T, size_t D>
 struct type_info_override <image <T, D>> : std::true_type {
-	thunder::index_t binding = 0;
+	thunder::Index binding = 0;
 
 	type_info_override(const image <T, D> &img) : binding(img.binding) {}
 
@@ -117,9 +117,9 @@ struct read_only <image <T, D>> : image <T, D> {
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-		thunder::index_t nested = em.emit_qualifier(-1, this->binding, image_qualifiers <T> ::table[D]);
-		thunder::index_t qualifier = em.emit_qualifier(nested, -1, thunder::read_only);
-		thunder::index_t value = em.emit_construct(qualifier, -1, thunder::transient);
+		thunder::Index nested = em.emit_qualifier(-1, this->binding, image_qualifiers <T> ::table[D]);
+		thunder::Index qualifier = em.emit_qualifier(nested, -1, thunder::read_only);
+		thunder::Index value = em.emit_construct(qualifier, -1, thunder::transient);
 		return cache_index_t::from(value);
 	}
 };
@@ -134,9 +134,9 @@ struct write_only <image <T, D>> : image <T, D> {
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-		thunder::index_t nested = em.emit_qualifier(-1, this->binding, image_qualifiers <T> ::table[D]);
-		thunder::index_t qualifier = em.emit_qualifier(nested, -1, thunder::write_only);
-		thunder::index_t value = em.emit_construct(qualifier, -1, thunder::transient);
+		thunder::Index nested = em.emit_qualifier(-1, this->binding, image_qualifiers <T> ::table[D]);
+		thunder::Index qualifier = em.emit_qualifier(nested, -1, thunder::write_only);
+		thunder::Index value = em.emit_construct(qualifier, -1, thunder::transient);
 		return cache_index_t::from(value);
 	}
 };

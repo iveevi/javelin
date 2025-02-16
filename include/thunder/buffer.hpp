@@ -13,10 +13,10 @@ struct QualifiedType;
 // Arbitrary pools of atoms
 class Buffer {
 	// Determine the qualified type of an instruction
-	QualifiedType classify(index_t);
+	QualifiedType classify(Index);
 
 	// Populate the synthesized set
-	void include(index_t);
+	void include(Index);
 public:
 	struct type_hint {
 		std::string name;
@@ -24,15 +24,15 @@ public:
 	};
 
 	size_t pointer;
-	std::map <thunder::index_t, uint64_t> used_decorations;
+	std::map <thunder::Index, uint64_t> used_decorations;
 	std::map <uint64_t, type_hint> decorations;
-	std::set <index_t> synthesized;
+	std::set <Index> synthesized;
 	std::vector <Atom> atoms;
 	std::vector <QualifiedType> types;
 
 	Buffer();
 
-	index_t emit(const Atom &, bool = true);
+	Index emit(const Atom &, bool = true);
 
 	void clear();
 	void dump() const;
@@ -43,8 +43,8 @@ public:
 	Atom &operator[](size_t);
 	const Atom &operator[](size_t) const;
 
-	std::vector <index_t> expand_list(index_t) const;
-	std::vector <QualifiedType> expand_list_types(index_t) const;
+	std::vector <Index> expand_list(Index) const;
+	std::vector <QualifiedType> expand_list_types(Index) const;
 };
 
 } // namespace jvl::thunder

@@ -10,7 +10,7 @@ MODULE(buffer);
 
 Buffer::Buffer() : pointer(0), atoms(4), types(4) {}
 
-index_t Buffer::emit(const Atom &atom, bool enable_classification)
+Index Buffer::emit(const Atom &atom, bool enable_classification)
 {
 	if (pointer >= atoms.size()) {
 		atoms.resize((atoms.size() << 1));
@@ -60,9 +60,9 @@ const Atom &Buffer::operator[](size_t i) const
 	return atoms[i];
 }
 
-std::vector <index_t> Buffer::expand_list(index_t i) const
+std::vector <Index> Buffer::expand_list(Index i) const
 {
-	std::vector <index_t> args;
+	std::vector <Index> args;
 	while (i != -1) {
 		auto &atom = atoms[i];
 		JVL_ASSERT_PLAIN(atom.is <List> ());
@@ -76,7 +76,7 @@ std::vector <index_t> Buffer::expand_list(index_t i) const
 	return args;
 }
 
-std::vector <QualifiedType> Buffer::expand_list_types(index_t i) const
+std::vector <QualifiedType> Buffer::expand_list_types(Index i) const
 {
 	std::vector <QualifiedType> args;
 	while (i != -1) {

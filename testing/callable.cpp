@@ -6,7 +6,7 @@ using namespace jvl;
 using namespace jvl::ire;
 
 const std::string expected_sum_glsl = R"(
-#version 450
+#version 460
 
 int sum(int _arg0, int _arg1)
 {
@@ -29,7 +29,7 @@ TEST(callable, sum)
 }
 
 const std::string expected_arithmetic_glsl = R"(
-#version 450
+#version 460
 
 float arithmetic(float _arg0, float _arg1, float _arg2)
 {
@@ -71,7 +71,7 @@ TEST(callable, returns)
 
 // TODO: partial evaluation
 const std::string expected_conditional_returns_glsl = R"(
-#version 450
+#version 460
 
 float conditional(float _arg0, float _arg1, float _arg2)
 {
@@ -103,7 +103,7 @@ TEST(callable, conditional_returns)
 }
 
 const std::string expected_struct_parameter_glsl = R"(
-#version 450
+#version 460
 
 struct s0_t {
     mat4 f0;
@@ -155,7 +155,7 @@ TEST(callable, struct_parameter)
 }
 
 const std::string expected_struct_return_glsl = R"(
-#version 450
+#version 460
 
 struct s0_t {
     uint f0;

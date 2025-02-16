@@ -11,13 +11,13 @@
 namespace jvl::ire {
 
 template <builtin T, size_t N>
-thunder::index_t list_from_array(const std::array <T, N> &args)
+thunder::Index list_from_array(const std::array <T, N> &args)
 {
 	auto &em = Emitter::active;
 
 	thunder::List list;
 
-	thunder::index_t next = -1;
+	thunder::Index next = -1;
 	for (int32_t i = N - 1; i >= 0; i--) {
 		list.item = args[i].synthesize().id;
 		list.next = next;
@@ -29,13 +29,13 @@ thunder::index_t list_from_array(const std::array <T, N> &args)
 }
 
 template <builtin T>
-thunder::index_t list_from_vector(const std::vector <T> &args)
+thunder::Index list_from_vector(const std::vector <T> &args)
 {
 	auto &em = Emitter::active;
 
 	thunder::List list;
 
-	thunder::index_t next = -1;
+	thunder::Index next = -1;
 	for (int32_t i = args.size() - 1; i >= 0; i--) {
 		list.item = args[i].synthesize().id;
 		list.next = next;
@@ -47,7 +47,7 @@ thunder::index_t list_from_vector(const std::vector <T> &args)
 }
 
 template <native T, typename ... Args>
-thunder::index_t list_from_args(const T &t, const Args &... args)
+thunder::Index list_from_args(const T &t, const Args &... args)
 {
 	auto &em = Emitter::active;
 
@@ -61,7 +61,7 @@ thunder::index_t list_from_args(const T &t, const Args &... args)
 }
 
 template <builtin T, typename ... Args>
-thunder::index_t list_from_args(const T &t, const Args &... args)
+thunder::Index list_from_args(const T &t, const Args &... args)
 {
 	auto &em = Emitter::active;
 
@@ -75,7 +75,7 @@ thunder::index_t list_from_args(const T &t, const Args &... args)
 }
 
 template <aggregate T, typename ... Args>
-thunder::index_t list_from_args(const T &t, const Args &... args)
+thunder::Index list_from_args(const T &t, const Args &... args)
 {
 	auto &em = Emitter::active;
 
@@ -119,14 +119,14 @@ R operation_from_args(thunder::OperationCode type, const A &a, const B &b)
 
 	size_t size = em.scopes.top().get().pointer;
 
-	thunder::index_t aid = a.synthesize().id;
+	thunder::Index aid = a.synthesize().id;
 
 	JVL_ASSERT(aid >= 0 && (size_t) aid <= size,
 		"invalid index ({}) synthesized for operation (type: {})",
 		aid, thunder::tbl_operation_code[type]);
 
-	thunder::index_t bid = b.synthesize().id;
-	thunder::index_t rit = em.emit_operation(aid, bid, type);
+	thunder::Index bid = b.synthesize().id;
+	thunder::Index rit = em.emit_operation(aid, bid, type);
 
 	return cache_index_t::from(rit);
 }
@@ -135,8 +135,8 @@ template <builtin R, builtin ... Args>
 R platform_intrinsic_from_args(thunder::IntrinsicOperation code, const Args &... args)
 {
 	auto &em = Emitter::active;
-	thunder::index_t operands = list_from_args(args...);
-	thunder::index_t intrinsic = em.emit_intrinsic(operands, code);
+	thunder::Index operands = list_from_args(args...);
+	thunder::Index intrinsic = em.emit_intrinsic(operands, code);
 	return cache_index_t::from(intrinsic);
 }
 
@@ -145,7 +145,7 @@ void void_platform_intrinsic_from_args(thunder::IntrinsicOperation code, const A
 {
 	auto &em = Emitter::active;
 
-	thunder::index_t operands = -1;
+	thunder::Index operands = -1;
 	if constexpr (sizeof...(Args))
 		operands = list_from_args(args...);
 		

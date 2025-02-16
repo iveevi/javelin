@@ -10,9 +10,9 @@ namespace jvl::thunder {
 
 MODULE(classify-atoms);
 
-QualifiedType Buffer::classify(index_t i)
+QualifiedType Buffer::classify(Index i)
 {
-	auto transfer_decorations = [&](index_t src) {
+	auto transfer_decorations = [&](Index src) {
 		if (!used_decorations.contains(src))
 			return;
 		
@@ -67,7 +67,7 @@ QualifiedType Buffer::classify(index_t i)
 
 		// Ensure valid underlying type; OK to be invalid for images and samplers
 		JVL_ASSERT(qualifier.underlying >= 0
-			&& qualifier.underlying < (index_t) atoms.size(),
+			&& qualifier.underlying < (Index) atoms.size(),
 			"qualifier with invalid underlying reference: {}", qualifier);
 
 		QualifiedType decl = classify(qualifier.underlying);
@@ -220,10 +220,10 @@ QualifiedType Buffer::classify(index_t i)
 		case QualifiedType::type_index <PlainDataType> ():
 		{
 			auto &pd = qt.as <PlainDataType> ();
-			JVL_ASSERT(pd.is <index_t> (), "cannot load field/element from primitive type: {}", qt);
+			JVL_ASSERT(pd.is <Index> (), "cannot load field/element from primitive type: {}", qt);
 
-			index_t concrete = pd.as <index_t> ();
-			index_t left = load.idx;
+			Index concrete = pd.as <Index> ();
+			Index left = load.idx;
 			while (left--) {
 				JVL_ASSERT(concrete != -1, "load attempting to access out of bounds field");
 				auto &atom = atoms[concrete];
@@ -249,8 +249,8 @@ QualifiedType Buffer::classify(index_t i)
 
 		auto pd = qt.get <PlainDataType> ();
 		while (pd) {
-			if (pd->is <index_t> ()) {
-				qt = classify(pd->as <index_t> ());
+			if (pd->is <Index> ()) {
+				qt = classify(pd->as <Index> ());
 				pd = qt.get <PlainDataType> ();
 			} else {
 				dump();
@@ -269,7 +269,7 @@ QualifiedType Buffer::classify(index_t i)
 		// Check for possible name hints
 		auto base = qt.as <ArrayType> ().base();
 
-		auto concrete = base.get <index_t> ();
+		auto concrete = base.get <Index> ();
 		if (concrete && used_decorations.contains(*concrete))
 			transfer_decorations(*concrete);
 

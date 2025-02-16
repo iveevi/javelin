@@ -23,8 +23,8 @@ struct array_base <T> : public tagged {
 
 	array_base(int32_t N) : length(N) {
 		auto &em = Emitter::active;
-		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
-		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
+		thunder::Index underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
+		thunder::Index qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
 		this->ref = em.emit_construct(qualifier, -1, thunder::normal);
 	}
 
@@ -32,9 +32,9 @@ struct array_base <T> : public tagged {
 	template <generic ... Args>
 	array_base(size_t N, const Args &...args) : length(N) {
 		auto &em = Emitter::active;
-		thunder::index_t l = list_from_args(args...);
-		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
-		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
+		thunder::Index l = list_from_args(args...);
+		thunder::Index underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
+		thunder::Index qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
 		this->ref = em.emit_construct(qualifier, l, thunder::normal);
 	}
 };
@@ -48,8 +48,8 @@ struct array_base <T> : public tagged {
 
 	array_base(int32_t N) : length(N) {
 		auto &em = Emitter::active;
-		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
-		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
+		thunder::Index underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
+		thunder::Index qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
 		this->ref = em.emit_construct(qualifier, -1, thunder::normal);
 	}
 
@@ -57,26 +57,26 @@ struct array_base <T> : public tagged {
 	template <generic ... Args>
 	array_base(int32_t N, const Args &...args) : length(N) {
 		auto &em = Emitter::active;
-		thunder::index_t l = list_from_args(args...);
-		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
-		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
+		thunder::Index l = list_from_args(args...);
+		thunder::Index underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
+		thunder::Index qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
 		this->ref = em.emit_construct(qualifier, l, thunder::normal);
 	}
 
 	template <size_t N>
 	array_base(const std::array <T, N> &args) : length(N) {
 		auto &em = Emitter::active;
-		thunder::index_t l = list_from_array(args);
-		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
-		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
+		thunder::Index l = list_from_array(args);
+		thunder::Index underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
+		thunder::Index qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
 		this->ref = em.emit_construct(qualifier, l, thunder::normal);
 	}
 	
 	array_base(const std::vector <T> &args) : length(args.size()) {
 		auto &em = Emitter::active;
-		thunder::index_t l = list_from_vector(args);
-		thunder::index_t underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
-		thunder::index_t qualifier = em.emit_qualifier(underlying, length, thunder::arrays);
+		thunder::Index l = list_from_vector(args);
+		thunder::Index underlying = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
+		thunder::Index qualifier = em.emit_qualifier(underlying, length, thunder::arrays);
 		this->ref = em.emit_construct(qualifier, l, thunder::normal);
 	}
 };
@@ -91,8 +91,8 @@ struct array_base <T> : public tagged {
 	array_base(int32_t N) : length(N) {
 		auto &em = Emitter::active;
 		auto layout = T().layout();
-		thunder::index_t underlying = type_field_from_args(layout).id;
-		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
+		thunder::Index underlying = type_field_from_args(layout).id;
+		thunder::Index qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
 		this->ref = em.emit_construct(qualifier, -1, thunder::normal);
 	}
 
@@ -100,10 +100,10 @@ struct array_base <T> : public tagged {
 	template <generic ... Args>
 	array_base(int32_t N, const Args &...args) : length(N) {
 		auto &em = Emitter::active;
-		thunder::index_t l = list_from_args(args...);
+		thunder::Index l = list_from_args(args...);
 		auto layout = T().layout();
-		thunder::index_t underlying = type_field_from_args(layout).id;
-		thunder::index_t qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
+		thunder::Index underlying = type_field_from_args(layout).id;
+		thunder::Index qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
 		this->ref = em.emit_construct(qualifier, l, thunder::normal);
 	}
 };
@@ -123,8 +123,8 @@ struct array : public array_base <T> {
 
 		auto &em = Emitter::active;
 		native_t <int32_t> location(index);
-		thunder::index_t l = location.synthesize().id;
-		thunder::index_t c = em.emit_array_access(this->ref.id, l);
+		thunder::Index l = location.synthesize().id;
+		thunder::Index c = em.emit_array_access(this->ref.id, l);
 		return cache_index_t::from(c);
 	}
 
@@ -135,8 +135,8 @@ struct array : public array_base <T> {
 
 		JVL_ASSERT(this->cached(), "arrays must be cached by the time of use");
 		auto &em = Emitter::active;
-		thunder::index_t l = index.synthesize().id;
-		thunder::index_t c = em.emit_array_access(this->ref.id, l);
+		thunder::Index l = index.synthesize().id;
+		thunder::Index c = em.emit_array_access(this->ref.id, l);
 		return cache_index_t::from(c);
 	}
 
@@ -147,8 +147,8 @@ struct array : public array_base <T> {
 
 		JVL_ASSERT(this->cached(), "arrays must be cached by the time of use");
 		auto &em = Emitter::active;
-		thunder::index_t l = index.synthesize().id;
-		thunder::index_t c = em.emit_array_access(this->ref.id, l);
+		thunder::Index l = index.synthesize().id;
+		thunder::Index c = em.emit_array_access(this->ref.id, l);
 		element returned;
 		auto layout = returned.layout().remove_const();
 		layout.ref_with(cache_index_t::from(c));
@@ -164,14 +164,14 @@ struct unsized_array : array <T> {
 // Using arbitrary arrays in global qualifiers
 template <typename T>
 struct type_info_override <array <T>> : std::true_type {
-	thunder::index_t length = -1;
+	thunder::Index length = -1;
 
 	type_info_override(const array <T> &a) : length(a.length) {}
 
 	int synthesize() const {
 		auto &em = Emitter::active;
-		thunder::index_t underlying = type_field_from_args <T> ().id;
-		thunder::index_t qualifier = em.emit_qualifier(underlying, length, thunder::arrays);
+		thunder::Index underlying = type_field_from_args <T> ().id;
+		thunder::Index qualifier = em.emit_qualifier(underlying, length, thunder::arrays);
 		return qualifier;
 	}
 };
@@ -183,8 +183,8 @@ struct type_info_override <unsized_array <T>> : std::true_type {
 
 	int synthesize() const {
 		auto &em = Emitter::active;
-		thunder::index_t underlying = type_field_from_args <T> ().id;
-		thunder::index_t qualifier = em.emit_qualifier(underlying, -1, thunder::arrays);
+		thunder::Index underlying = type_field_from_args <T> ().id;
+		thunder::Index qualifier = em.emit_qualifier(underlying, -1, thunder::arrays);
 		return qualifier;
 	}
 };

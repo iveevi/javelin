@@ -29,16 +29,16 @@ void synthesize_layout_io_inner()
 
 	em.push(ref_buffer);
 	{
-		using thunder::index_t;
+		using thunder::Index;
 
-		index_t type_in = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
-		index_t in_ql = em.emit_qualifier(type_in, 0, thunder::layout_in_smooth);
-		index_t in = em.emit_construct(in_ql, -1, jvl::thunder::transient);
+		auto type_in = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
+		auto in_ql = em.emit_qualifier(type_in, 0, thunder::layout_in_smooth);
+		auto in = em.emit_construct(in_ql, -1, jvl::thunder::transient);
 		
 		// Duplicate type is expected to be generated
-		index_t type_out = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
-		index_t out_ql = em.emit_qualifier(type_out, 0, thunder::layout_out_smooth);
-		index_t out = em.emit_construct(out_ql, -1, jvl::thunder::transient);
+		auto type_out = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
+		auto out_ql = em.emit_qualifier(type_out, 0, thunder::layout_out_smooth);
+		auto out = em.emit_construct(out_ql, -1, jvl::thunder::transient);
 		em.emit_store(out, in);
 	}
 	em.pop();

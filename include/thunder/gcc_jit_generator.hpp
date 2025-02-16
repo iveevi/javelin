@@ -22,7 +22,7 @@ struct gcc_jit_function_generator_t : Buffer {
 
 	std::vector <gcc_jit_param *> parameters;
 
-	bestd::hash_table <index_t, gcc_jit_object *> values;
+	bestd::hash_table <Index, gcc_jit_object *> values;
 	bestd::hash_table <QualifiedType, gcc_type_info> mapped_types;
 
 	gcc_jit_function_generator_t(gcc_jit_context *const , const Buffer &);
@@ -36,19 +36,19 @@ struct gcc_jit_function_generator_t : Buffer {
 		std::vector <gcc_jit_rvalue *> rvalues;
 	};
 
-	expanded_list_chain expand_list_chain(index_t) const;
+	expanded_list_chain expand_list_chain(Index) const;
 
 	// Per-atom generator
-	void generate(index_t);
+	void generate(Index);
 
 	template <atom_instruction T>
-	gcc_jit_object *generate(const T &atom, index_t i) {
+	gcc_jit_object *generate(const T &atom, Index i) {
 		MODULE(gcc-jit-generate);
 
 		JVL_ABORT("failed to JIT (gcc-jit) compile atom: {} (@{})", atom, i);
 	}
 
-	gcc_jit_object *load_field(index_t, index_t, bool);
+	gcc_jit_object *load_field(Index, Index, bool);
 
 	// Expand generation list
 	auto work_list();

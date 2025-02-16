@@ -14,18 +14,18 @@ namespace jvl::thunder {
 // TODO: docs generator for atoms
 
 // Index type, small to create compact IR
-using index_t = int16_t;
+using Index = int16_t;
 
 // Addresses referenced in an instruction,
 // useful for a variety of reindexing operations
 struct Addresses {
-	index_t &a0;
-	index_t &a1;
+	Index &a0;
+	Index &a1;
 
-	static index_t &null() {
+	static Index &null() {
 		MODULE(atom-addresses);
 
-		static thread_local index_t null = -1;
+		static thread_local Index null = -1;
 		JVL_ASSERT(null == -1, "address null is invalid");
 		return null;
 	}
@@ -54,8 +54,8 @@ concept atom_instruction = requires(T &t, const T &cta, const T &ctb) {
 //   numerical: possibly a binding location, array count, etc.
 //   qualifier: qualifier type for the global variable/parameter
 struct Qualifier {
-	index_t underlying = -1;
-	index_t numerical = -1;
+	Index underlying = -1;
+	Index numerical = -1;
 	QualifierKind kind;
 
 	bool operator==(const Qualifier &) const;
@@ -71,8 +71,8 @@ static_assert(atom_instruction <Qualifier>);
 //   next: if valid (!= -1), points to the next field in the struct
 //   item: if valid (!= BAD), indicates the primitive type of the current field
 struct TypeInformation {
-	index_t down = -1;
-	index_t next = -1;
+	Index down = -1;
+	Index next = -1;
 	PrimitiveType item = bad;
 
 	bool operator==(const TypeInformation &) const;
@@ -112,7 +112,7 @@ static_assert(atom_instruction <Primitive>);
 //   src: reference to the value to swizzle
 //   code: swizzle index (SwizzleCode)
 struct Swizzle {
-	index_t src = -1;
+	Index src = -1;
 	SwizzleCode code;
 
 	bool operator==(const Swizzle &) const;
@@ -128,8 +128,8 @@ static_assert(atom_instruction <Swizzle>);
 //   b: reference to the second argument
 //   code: operation type (OperationCode)
 struct Operation {
-	index_t a = -1;
-	index_t b = -1;
+	Index a = -1;
+	Index b = -1;
 	OperationCode code;
 
 	bool operator==(const Operation &) const;
@@ -145,7 +145,7 @@ static_assert(atom_instruction <Operation>);
 //   type: return type of the instrinsic
 //   opn: intrinsic operation code
 struct Intrinsic {
-	index_t args = -1;
+	Index args = -1;
 	IntrinsicOperation opn;
 
 	bool operator==(const Intrinsic &) const;
@@ -160,8 +160,8 @@ static_assert(atom_instruction <Intrinsic>);
 //   item: if valid, points to the value of the node
 //   next: if valid, points to the next List chain node
 struct List {
-	index_t item = -1;
-	index_t next = -1;
+	Index item = -1;
+	Index next = -1;
 
 	bool operator==(const List &) const;
 	Addresses addresses();
@@ -176,8 +176,8 @@ static_assert(atom_instruction <List>);
 //   args: reference to a List chain of arguments
 //   mode: construction mode
 struct Construct {
-	index_t type = -1;
-	index_t args = -1;
+	Index type = -1;
+	Index args = -1;
 	ConstructorMode mode = normal;
 
 	bool operator==(const Construct &) const;
@@ -193,9 +193,9 @@ static_assert(atom_instruction <Construct>);
 //   args: reference to a List chain of arguments
 //   type: return type of the callable
 struct Call {
-	index_t cid = -1;
-	index_t args = -1;
-	index_t type = -1;
+	Index cid = -1;
+	Index args = -1;
+	Index type = -1;
 
 	bool operator==(const Call &) const;
 	Addresses addresses();
@@ -209,8 +209,8 @@ static_assert(atom_instruction <Call>);
 //   dst: reference to store into
 //   src: reference to the value
 struct Store {
-	index_t dst = -1;
-	index_t src = -1;
+	Index dst = -1;
+	Index src = -1;
 
 	bool operator==(const Store &) const;
 	Addresses addresses();
@@ -224,8 +224,8 @@ static_assert(atom_instruction <Store>);
 //   src: reference to the value to load from
 //   idx: field index of the value, unless invalid (==-1)
 struct Load {
-	index_t src = -1;
-	index_t idx = -1;
+	Index src = -1;
+	Index idx = -1;
 
 	bool operator==(const Load &) const;
 	Addresses addresses();
@@ -239,8 +239,8 @@ static_assert(atom_instruction <Load>);
 //   src: reference to the value to load from
 //   loc: reference to the index of the access
 struct ArrayAccess {
-	index_t src = -1;
-	index_t loc = -1;
+	Index src = -1;
+	Index loc = -1;
 	
 	bool operator==(const ArrayAccess &) const;
 	Addresses addresses();
@@ -254,8 +254,8 @@ static_assert(atom_instruction <ArrayAccess>);
 //   cond: reference to the condition value
 //   failto: reference to the jump address (for failure)
 struct Branch {
-	index_t cond = -1;
-	index_t failto = -1;
+	Index cond = -1;
+	Index failto = -1;
 	BranchKind kind = conditional_if;
 
 	bool operator==(const Branch &) const;
@@ -269,7 +269,7 @@ static_assert(atom_instruction <Branch>);
 //
 //   value: reference to the value to be returned
 struct Returns {
-	index_t value = -1;
+	Index value = -1;
 
 	bool operator==(const Returns &) const;
 	Addresses addresses();
@@ -307,7 +307,7 @@ struct alignas(4) Atom : atom_base {
 		return std::visit(ftn, *this);
 	}
 
-	void reindex(const reindex <index_t> &reindexer) {
+	void reindex(const reindex <Index> &reindexer) {
 		auto &&addrs = addresses();
 		if (addrs.a0 != -1) reindexer(addrs.a0);
 		if (addrs.a1 != -1) reindexer(addrs.a1);

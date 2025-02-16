@@ -37,25 +37,25 @@ struct Function : Buffer {
 	Function(const Buffer &, const std::string &, size_t);
 };
 
-using TypeMap = std::map <index_t, index_t>;
+using TypeMap = std::map <Index, Index>;
 
 struct local_layout_type {
 	size_t function;
-	index_t index;
+	Index index;
 	QualifierKind kind;
 	std::set <QualifierKind> extra;
 };
 
 struct special_type {
 	size_t function;
-	index_t index;
+	Index index;
 };
 
-using special_type_set = std::map <index_t, special_type>;
+using special_type_set = std::map <Index, special_type>;
 
 struct push_constant_info : local_layout_type {
 	size_t offset;
-	index_t underlying;
+	Index underlying;
 
 	static push_constant_info from() {
 		return { { 0, -1, thunder::push_constant }, 0, -1 };
@@ -67,33 +67,33 @@ struct LinkageUnit {
 	std::optional <glm::uvec3> local_size;
 	std::optional <glm::uvec2> mesh_shader_size;
 
-	std::set <index_t> loaded;
+	std::set <Index> loaded;
 	std::vector <Function> functions;
 	std::vector <Aggregate> aggregates;
 	std::vector <TypeMap> maps;
-	std::map <index_t, index_t> cids;
-	std::map <index_t, std::set <index_t>> dependencies;
+	std::map <Index, Index> cids;
+	std::map <Index, std::set <Index>> dependencies;
 	std::set <std::string> extensions;
 
 	struct {
 		push_constant_info push_constant = push_constant_info::from();
-		std::map <index_t, local_layout_type> outputs;
-		std::map <index_t, local_layout_type> inputs;
-		std::map <index_t, local_layout_type> uniforms;
-		std::map <index_t, local_layout_type> buffers;
-		std::map <index_t, local_layout_type> shared;
-		std::map <index_t, local_layout_type> samplers;
-		std::map <index_t, local_layout_type> images;
+		std::map <Index, local_layout_type> outputs;
+		std::map <Index, local_layout_type> inputs;
+		std::map <Index, local_layout_type> uniforms;
+		std::map <Index, local_layout_type> buffers;
+		std::map <Index, local_layout_type> shared;
+		std::map <Index, local_layout_type> samplers;
+		std::map <Index, local_layout_type> images;
 		std::map <QualifierKind, special_type_set> special;
 	} globals;
 
-	index_t new_aggregate(size_t, const std::string &, const std::vector <Field> &);
+	Index new_aggregate(size_t, const std::string &, const std::vector <Field> &);
 
-	void process_function_qualifier(Function &, size_t, index_t, const Qualifier &);
-	void process_function_intrinsic(Function &, size_t, index_t, const Intrinsic &);
-	void process_function_aggregate(TypeMap &, const Function &, size_t, index_t, QualifiedType);
+	void process_function_qualifier(Function &, size_t, Index, const Qualifier &);
+	void process_function_intrinsic(Function &, size_t, Index, const Intrinsic &);
+	void process_function_aggregate(TypeMap &, const Function &, size_t, Index, QualifiedType);
 
-	std::set <index_t> process_function(const Function &);
+	std::set <Index> process_function(const Function &);
 
 	void add(const TrackedBuffer &);
 

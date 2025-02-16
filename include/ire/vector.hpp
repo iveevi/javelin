@@ -182,8 +182,8 @@ public:
 	explicit swizzle_base(const native_t <T> &x_, const native_t <T> y_)
 			: x(this), y(this) {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <vec <T, 2>> ().id;
-		thunder::index_t args = list_from_args(x_, y_);
+		thunder::Index type = type_field_from_args <vec <T, 2>> ().id;
+		thunder::Index args = list_from_args(x_, y_);
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
 
@@ -193,8 +193,8 @@ public:
 
 		if (other.cached()) {
 			auto &em = Emitter::active;
-			thunder::index_t type = type_field_from_args <vec <T, 2>> ().id;
-			thunder::index_t args = em.emit_list(other.ref.id, -1);
+			thunder::Index type = type_field_from_args <vec <T, 2>> ().id;
+			thunder::Index args = em.emit_list(other.ref.id, -1);
 			// TODO: use assignment constructor (then pass the id only instead of the list args)
 			ref = em.emit_construct(type, args, thunder::normal);
 		}
@@ -255,8 +255,8 @@ public:
 	swizzle_base(const native_t <T> &x_)
 			: swizzle_base() {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <vec <T, 3>> ().id;
-		thunder::index_t args = list_from_args(x_, x_, x_);
+		thunder::Index type = type_field_from_args <vec <T, 3>> ().id;
+		thunder::Index args = list_from_args(x_, x_, x_);
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
 
@@ -265,8 +265,8 @@ public:
 		     const native_t <T> &z_)
 			: swizzle_base() {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <vec <T, 3>> ().id;
-		thunder::index_t args = list_from_args(x_, y_, z_);
+		thunder::Index type = type_field_from_args <vec <T, 3>> ().id;
+		thunder::Index args = list_from_args(x_, y_, z_);
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
 	
@@ -274,8 +274,8 @@ public:
 		     const swizzle_base <T, 2> &v_)
 			: swizzle_base() {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <vec <T, 3>> ().id;
-		thunder::index_t args = list_from_args(x_, v_);
+		thunder::Index type = type_field_from_args <vec <T, 3>> ().id;
+		thunder::Index args = list_from_args(x_, v_);
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
 	
@@ -283,8 +283,8 @@ public:
 		     const native_t <T> &z_)
 			: swizzle_base() {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <vec <T, 3>> ().id;
-		thunder::index_t args = list_from_args(v_, z_);
+		thunder::Index type = type_field_from_args <vec <T, 3>> ().id;
+		thunder::Index args = list_from_args(v_, z_);
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
 
@@ -295,8 +295,8 @@ public:
 
 		if (other.cached()) {
 			auto &em = Emitter::active;
-			thunder::index_t type = type_field_from_args <vec <T, 3>> ().id;
-			thunder::index_t args = em.emit_list(other.ref.id, -1);
+			thunder::Index type = type_field_from_args <vec <T, 3>> ().id;
+			thunder::Index args = em.emit_list(other.ref.id, -1);
 			// TODO: use assignment constructor (then pass the id only instead of the list args)
 			ref = em.emit_construct(type, args, thunder::normal);
 		}
@@ -309,8 +309,8 @@ public:
 			return ref;
 
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <vec <T, 3>> ().id;
-		thunder::index_t args = list_from_args(initial[0], initial[1], initial[2]);
+		thunder::Index type = type_field_from_args <vec <T, 3>> ().id;
+		thunder::Index args = list_from_args(initial[0], initial[1], initial[2]);
 		return (ref = em.emit_construct(type, args, thunder::normal));
 	}
 };
@@ -349,8 +349,8 @@ public:
 	explicit swizzle_base(const native_t <T> &x_)
 			: swizzle_base() {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <vec <T, 4>> ().id;
-		thunder::index_t args = list_from_args(x_, x_, x_, x_);
+		thunder::Index type = type_field_from_args <vec <T, 4>> ().id;
+		thunder::Index args = list_from_args(x_, x_, x_, x_);
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
 
@@ -360,24 +360,24 @@ public:
 			      const native_t <T> &w_)
 			: swizzle_base() {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <vec <T, 4>> ().id;
-		thunder::index_t args = list_from_args(x_, y_, z_, w_);
+		thunder::Index type = type_field_from_args <vec <T, 4>> ().id;
+		thunder::Index args = list_from_args(x_, y_, z_, w_);
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
 
 	swizzle_base(const swizzle_base <T, 3> &v, const native_t <T> &w_)
 			: swizzle_base() {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <vec <T, 4>> ().id;
-		thunder::index_t args = list_from_args(v, w_);
+		thunder::Index type = type_field_from_args <vec <T, 4>> ().id;
+		thunder::Index args = list_from_args(v, w_);
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
 
 	swizzle_base(const swizzle_base <T, 2> &v, const native_t <T> &z_, const native_t <T> &w_)
 			: swizzle_base() {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <vec <T, 4>> ().id;
-		thunder::index_t args = list_from_args(v, z_, w_);
+		thunder::Index type = type_field_from_args <vec <T, 4>> ().id;
+		thunder::Index args = list_from_args(v, z_, w_);
 		ref = em.emit_construct(type, args, thunder::normal);
 	}
 
@@ -389,8 +389,8 @@ public:
 
 		if (other.cached()) {
 			auto &em = Emitter::active;
-			thunder::index_t type = type_field_from_args <vec <T, 4>> ().id;
-			thunder::index_t args = em.emit_list(other.ref.id, -1);
+			thunder::Index type = type_field_from_args <vec <T, 4>> ().id;
+			thunder::Index args = em.emit_list(other.ref.id, -1);
 			// TODO: use assignment constructor (then pass the id only instead of the list args)
 			ref = em.emit_construct(type, args, thunder::normal);
 		}

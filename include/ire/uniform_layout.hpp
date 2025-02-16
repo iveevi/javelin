@@ -86,7 +86,7 @@ struct layout_const_field {
 
 // TODO: what exactly does this do?
 template <typename T, typename ... Args>
-thunder::index_t reconstruct_fields(size_t i, const std::vector <layout_const_field> &fields)
+thunder::Index reconstruct_fields(size_t i, const std::vector <layout_const_field> &fields)
 {
 	MODULE(reconstruct);
 
@@ -124,7 +124,7 @@ struct const_uniform_layout_t {
 	}
 
 	// Explicit (re)construction of an aggregate type
-	thunder::index_t reconstruct() const {
+	thunder::Index reconstruct() const {
 		return reconstruct_fields <Args...> (0, fields);
 	}
 };

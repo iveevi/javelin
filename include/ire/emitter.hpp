@@ -12,7 +12,7 @@ namespace jvl::ire {
 
 // More advanced pool which manages control flow as well as scopes of pools
 struct Emitter {
-	using index_t = thunder::index_t;
+	using index_t = thunder::Index;
 	using precondition_t = std::optional <std::function <void ()>>;
 	using buffer_ref_t = std::reference_wrapper <thunder::Buffer>;
 

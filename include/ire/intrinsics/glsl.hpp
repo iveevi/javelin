@@ -23,8 +23,8 @@ struct __glsl_intrinsic_variable_t <T, code> {
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <T> ().id;
-		thunder::index_t intr = em.emit_qualifier(type, -1, code);
+		thunder::Index type = type_field_from_args <T> ().id;
+		thunder::Index intr = em.emit_qualifier(type, -1, code);
 		return cache_index_t::from(intr);
 	}
 
@@ -48,8 +48,8 @@ struct __glsl_intrinsic_variable_t <vec <T, 3>, code> {
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <vec <T, 3>> ().id;
-		thunder::index_t intr = em.emit_qualifier(type, -1, code);
+		thunder::Index type = type_field_from_args <vec <T, 3>> ().id;
+		thunder::Index intr = em.emit_qualifier(type, -1, code);
 		return cache_index_t::from(intr);
 	}
 
@@ -80,8 +80,8 @@ struct __glsl_intrinsic_variable_t <vec <T, 4>, code> {
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <vec <T, 4>> ().id;
-		thunder::index_t intr = em.emit_qualifier(type, -1, code);
+		thunder::Index type = type_field_from_args <vec <T, 4>> ().id;
+		thunder::Index intr = em.emit_qualifier(type, -1, code);
 		return cache_index_t::from(intr);
 	}
 
@@ -104,9 +104,9 @@ struct __glsl_intrinsic_variable_t <unsized_array <T>, code> {
 	
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <T> ().id;
-		thunder::index_t qualifier = em.emit_qualifier(type, -1, thunder::arrays);
-		thunder::index_t intr = em.emit_qualifier(qualifier, -1, code);
+		thunder::Index type = type_field_from_args <T> ().id;
+		thunder::Index qualifier = em.emit_qualifier(type, -1, thunder::arrays);
+		thunder::Index intr = em.emit_qualifier(qualifier, -1, code);
 		return cache_index_t::from(intr);
 	}
 	
@@ -114,16 +114,16 @@ struct __glsl_intrinsic_variable_t <unsized_array <T>, code> {
 	element operator[](const U &index) const {
 		auto &em = Emitter::active;
 		native_t <int32_t> location(index);
-		thunder::index_t l = location.synthesize().id;
-		thunder::index_t c = em.emit_array_access(synthesize().id, l);
+		thunder::Index l = location.synthesize().id;
+		thunder::Index c = em.emit_array_access(synthesize().id, l);
 		return cache_index_t::from(c);
 	}
 
 	template <integral_arithmetic U>
 	element operator[](const U &index) const {
 		auto &em = Emitter::active;
-		thunder::index_t l = index.synthesize().id;
-		thunder::index_t c = em.emit_array_access(synthesize().id, l);
+		thunder::Index l = index.synthesize().id;
+		thunder::Index c = em.emit_array_access(synthesize().id, l);
 		return element(cache_index_t::from(c));
 	}
 };

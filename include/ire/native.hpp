@@ -9,7 +9,7 @@
 namespace jvl::ire {
 
 // Methods to upcast C++ primitives into a workable type
-inline thunder::index_t translate_primitive(bool b)
+inline thunder::Index translate_primitive(bool b)
 {
 	auto &em = Emitter::active;
 
@@ -20,7 +20,7 @@ inline thunder::index_t translate_primitive(bool b)
 	return em.emit(p);
 }
 
-inline thunder::index_t translate_primitive(int32_t i)
+inline thunder::Index translate_primitive(int32_t i)
 {
 	auto &em = Emitter::active;
 
@@ -31,7 +31,7 @@ inline thunder::index_t translate_primitive(int32_t i)
 	return em.emit(p);
 }
 
-inline thunder::index_t translate_primitive(uint32_t i)
+inline thunder::Index translate_primitive(uint32_t i)
 {
 	auto &em = Emitter::active;
 
@@ -42,7 +42,7 @@ inline thunder::index_t translate_primitive(uint32_t i)
 	return em.emit(p);
 }
 
-inline thunder::index_t translate_primitive(float f)
+inline thunder::Index translate_primitive(float f)
 {
 	auto &em = Emitter::active;
 
@@ -74,7 +74,7 @@ template <typename T>
 concept native = requires(const T &t) {
 	{
 		translate_primitive(t)
-	} -> std::same_as <thunder::index_t>;
+	} -> std::same_as <thunder::Index>;
 };
 
 template <typename T>
@@ -115,8 +115,8 @@ struct native_t : tagged {
 			this->ref = other.ref;
 		} else {
 			synthesize();
-			thunder::index_t args = em.emit_list(other.synthesize().id);
-			thunder::index_t cast = em.emit_intrinsic(args, caster(value));
+			thunder::Index args = em.emit_list(other.synthesize().id);
+			thunder::Index cast = em.emit_intrinsic(args, caster(value));
 			em.emit_store(this->ref.id, cast);
 		}
 	}
@@ -127,8 +127,8 @@ struct native_t : tagged {
 	explicit native_t(const U &other) {
 		auto &em = Emitter::active;
 		synthesize();
-		thunder::index_t args = em.emit_list(other.synthesize().id);
-		thunder::index_t cast = em.emit_intrinsic(args, caster(value));
+		thunder::Index args = em.emit_list(other.synthesize().id);
+		thunder::Index cast = em.emit_intrinsic(args, caster(value));
 		em.emit_store(this->ref.id, cast);
 	}
 

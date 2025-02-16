@@ -30,7 +30,7 @@ bool PlainDataType::operator==(const PlainDataType &other) const
         if (auto p = get <PrimitiveType> ())
                 return *p == other.as <PrimitiveType> ();
 
-        return as <index_t> () == other.as <index_t> ();
+        return as <Index> () == other.as <Index> ();
 }
 
 std::string PlainDataType::to_string() const
@@ -38,7 +38,7 @@ std::string PlainDataType::to_string() const
         if (auto p = get <PrimitiveType> ())
                 return tbl_primitive_types[*p];
 
-        return fmt::format("concrete(%{})", as <index_t> ());
+        return fmt::format("concrete(%{})", as <Index> ());
 }
 
 std::size_t PlainDataType::hash() const
@@ -46,11 +46,11 @@ std::size_t PlainDataType::hash() const
         if (is <PrimitiveType> ())
                 return as <PrimitiveType> ();
 
-        return std::size_t(as <index_t> ()) << 32;
+        return std::size_t(as <Index> ()) << 32;
 }
 
 // Struct fields
-StructFieldType::StructFieldType(PlainDataType ut_, index_t next_)
+StructFieldType::StructFieldType(PlainDataType ut_, Index next_)
                 : PlainDataType(ut_), next(next_) {}
 
 bool StructFieldType::operator==(const StructFieldType &other) const
@@ -75,7 +75,7 @@ std::size_t StructFieldType::hash() const
 }
 
 // Array of unqualified types
-ArrayType::ArrayType(PlainDataType ut_, index_t size_)
+ArrayType::ArrayType(PlainDataType ut_, Index size_)
                 : PlainDataType(ut_), size(size_) {}
 
 bool ArrayType::operator==(const ArrayType &other) const
@@ -100,7 +100,7 @@ std::size_t ArrayType::hash() const
 }
 
 // Image types
-ImageType::ImageType(PlainDataType result, index_t dimension_)
+ImageType::ImageType(PlainDataType result, Index dimension_)
                 : PlainDataType(result), dimension(dimension_) {}
 
 bool ImageType::operator==(const ImageType &other) const
@@ -131,7 +131,7 @@ std::size_t ImageType::hash() const
 }
 
 // Sampler types
-SamplerType::SamplerType(PlainDataType result, index_t dimension_)
+SamplerType::SamplerType(PlainDataType result, Index dimension_)
                 : PlainDataType(result), dimension(dimension_) {}
 
 bool SamplerType::operator==(const SamplerType &other) const
@@ -264,12 +264,12 @@ QualifiedType QualifiedType::primitive(PrimitiveType primitive)
         return PlainDataType(primitive);
 }
 
-QualifiedType QualifiedType::concrete(index_t concrete)
+QualifiedType QualifiedType::concrete(Index concrete)
 {
         return PlainDataType(concrete);
 }
 
-QualifiedType QualifiedType::array(const QualifiedType &element, index_t size)
+QualifiedType QualifiedType::array(const QualifiedType &element, Index size)
 {
         // Must be an unqualified type
         JVL_ASSERT(element.is <PlainDataType> (),
@@ -279,12 +279,12 @@ QualifiedType QualifiedType::array(const QualifiedType &element, index_t size)
         return ArrayType(element.as <PlainDataType> (), size);
 }
 
-QualifiedType QualifiedType::sampler(PrimitiveType result, index_t dimension)
+QualifiedType QualifiedType::sampler(PrimitiveType result, Index dimension)
 {
         return SamplerType(result, dimension);
 }
 
-QualifiedType QualifiedType::image(PrimitiveType result, index_t dimension)
+QualifiedType QualifiedType::image(PrimitiveType result, Index dimension)
 {
         return ImageType(result, dimension);
 }

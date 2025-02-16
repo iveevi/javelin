@@ -18,24 +18,24 @@ struct parameter_injection : std::false_type {};
 
 template <builtin T>
 struct parameter_injection <T> : std::true_type {
-	static thunder::index_t emit() {
+	static thunder::Index emit() {
 		return type_field_from_args <T> ().id;
 	}
 
-	static void inject(T &x, thunder::index_t i) {
+	static void inject(T &x, thunder::Index i) {
 		x.ref = i;
 	}
 };
 
 template <aggregate T>
 struct parameter_injection <T> : std::true_type {
-	static thunder::index_t emit() {
+	static thunder::Index emit() {
 		T x;
 		auto layout = x.layout().remove_const();
 		return type_field_from_args(layout).id;
 	}
 
-	static void inject(T &x, thunder::index_t i) {
+	static void inject(T &x, thunder::Index i) {
 		auto layout = x.layout().remove_const();
 		layout.ref_with(cache_index_t::from(i));
 	}
@@ -46,14 +46,14 @@ struct parameter_injection <in <T>> : std::true_type {
 	using U = promoted <T>;
 	using P = parameter_injection <U>;
 
-	static thunder::index_t emit() {
+	static thunder::Index emit() {
 		auto &em = Emitter::active;
 
-		thunder::index_t t = P::emit();
+		thunder::Index t = P::emit();
 		return em.emit_qualifier(t, -1, thunder::qualifier_in);
 	}
 
-	static void inject(in <T> &x, thunder::index_t i) {
+	static void inject(in <T> &x, thunder::Index i) {
 		U &y = static_cast <U &> (x);
 		P::inject(y, i);
 	}
@@ -64,14 +64,14 @@ struct parameter_injection <out <T>> : std::true_type {
 	using U = promoted <T>;
 	using P = parameter_injection <U>;
 
-	static thunder::index_t emit() {
+	static thunder::Index emit() {
 		auto &em = Emitter::active;
 
-		thunder::index_t t = P::emit();
+		thunder::Index t = P::emit();
 		return em.emit_qualifier(t, -1, thunder::qualifier_out);
 	}
 
-	static void inject(out <T> &x, thunder::index_t i) {
+	static void inject(out <T> &x, thunder::Index i) {
 		U &y = static_cast <U &> (x);
 		P::inject(y, i);
 	}
@@ -82,14 +82,14 @@ struct parameter_injection <inout <T>> : std::true_type {
 	using U = promoted <T>;
 	using P = parameter_injection <U>;
 
-	static thunder::index_t emit() {
+	static thunder::Index emit() {
 		auto &em = Emitter::active;
 
-		thunder::index_t t = P::emit();
+		thunder::Index t = P::emit();
 		return em.emit_qualifier(t, -1, thunder::qualifier_inout);
 	}
 
-	static void inject(inout <T> &x, thunder::index_t i) {
+	static void inject(inout <T> &x, thunder::Index i) {
 		U &y = static_cast <U &> (x);
 		P::inject(y, i);
 	}
@@ -111,9 +111,9 @@ struct Procedure : thunder::TrackedBuffer {
 
 		// Parameters in the target language
 		if constexpr (P::value) {
-			thunder::index_t t = P::emit();
-			thunder::index_t q = em.emit_qualifier(t, index, thunder::parameter);
-			thunder::index_t c = em.emit_construct(q, -1, thunder::transient);
+			thunder::Index t = P::emit();
+			thunder::Index q = em.emit_qualifier(t, index, thunder::parameter);
+			thunder::Index c = em.emit_construct(q, -1, thunder::transient);
 			P::inject(x, c);
 		}
 

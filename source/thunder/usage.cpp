@@ -3,13 +3,13 @@
 namespace jvl::thunder {
 
 [[gnu::always_inline]]
-inline bool uses(Atom atom, index_t i)
+inline bool uses(Atom atom, Index i)
 {
 	auto &&addresses = atom.addresses();
 	return (i != -1) && ((addresses.a0 == i) || (addresses.a1 == i));
 }
 
-usage_set usage(const std::vector <Atom> &pool, index_t index)
+usage_set usage(const std::vector <Atom> &pool, Index index)
 {
 	usage_set indices;
 	for (size_t i = index + 1; i < pool.size(); i++) {
@@ -20,7 +20,7 @@ usage_set usage(const std::vector <Atom> &pool, index_t index)
 	return indices;
 }
 
-usage_set usage(const Buffer &scratch, index_t index)
+usage_set usage(const Buffer &scratch, Index index)
 {
 	usage_set indices;
 	for (size_t i = index + 1; i < scratch.pointer; i++) {

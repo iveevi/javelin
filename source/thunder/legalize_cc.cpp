@@ -10,7 +10,7 @@ namespace jvl::thunder {
 
 MODULE(legalize-cc);
 
-PrimitiveType primitive_type_of(const Buffer &buffer, index_t i)
+PrimitiveType primitive_type_of(const Buffer &buffer, Index i)
 {
 	auto &qt = buffer.types[i];
 
@@ -39,8 +39,8 @@ PrimitiveType primitive_type_of(const Buffer &buffer, index_t i)
 
 void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 					       OperationCode code,
-					       index_t a,
-					       index_t b,
+					       Index a,
+					       Index b,
 					       PrimitiveType type_a,
 					       PrimitiveType type_b)
 {
@@ -58,19 +58,19 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 		JVL_ASSERT_PLAIN(ctype == swizzle_type_of(type_b, SwizzleCode::x));
 		JVL_ASSERT_PLAIN(ccount == vector_component_count(type_b));
 
-		std::vector <index_t> components(ccount);
+		std::vector <Index> components(ccount);
 		for (size_t i = 0; i < ccount; i++) {
-			index_t ca = em.emit(Swizzle(a, (SwizzleCode) i));
+			Index ca = em.emit(Swizzle(a, (SwizzleCode) i));
 			mapped.track(ca, 0b01);
 
-			index_t cb = em.emit(Swizzle(b, (SwizzleCode) i));
+			Index cb = em.emit(Swizzle(b, (SwizzleCode) i));
 			mapped.track(cb, 0b01);
 
 			components[i] = em.emit(Operation(ca, cb, code));
 		}
 
-		index_t l = em.emit_list_chain(components);
-		index_t t = em.emit(TypeInformation(-1, -1, type_a));
+		Index l = em.emit_list_chain(components);
+		Index t = em.emit(TypeInformation(-1, -1, type_a));
 		em.emit(Construct(t, l));
 
 		// fmt::println("legalized code:");
@@ -81,32 +81,32 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 
 		size_t ccount = vector_component_count(type_a);
 
-		std::vector <index_t> components(ccount);
+		std::vector <Index> components(ccount);
 		for (size_t i = 0; i < ccount; i++) {
-			index_t c = em.emit(Swizzle(a, (SwizzleCode) i));
+			Index c = em.emit(Swizzle(a, (SwizzleCode) i));
 			mapped.track(c, 0b01);
 
 			components[i] = em.emit(Operation(c, b, code));
 		}
 
-		index_t l = em.emit_list_chain(components);
-		index_t t = em.emit(TypeInformation(-1, -1, type_a));
+		Index l = em.emit_list_chain(components);
+		Index t = em.emit(TypeInformation(-1, -1, type_a));
 		em.emit(Construct(t, l));
 	} else if (!vector_type(type_a) && vector_type(type_b)) {
 		JVL_ASSERT_PLAIN(type_a == swizzle_type_of(type_b, SwizzleCode::x));
 
 		size_t ccount = vector_component_count(type_b);
 
-		std::vector <index_t> components(ccount);
+		std::vector <Index> components(ccount);
 		for (size_t i = 0; i < ccount; i++) {
-			index_t c = em.emit(Swizzle(b, (SwizzleCode) i));
+			Index c = em.emit(Swizzle(b, (SwizzleCode) i));
 			mapped.track(c, 0b01);
 
 			components[i] = em.emit(Operation(a, c, code));
 		}
 
-		index_t l = em.emit_list_chain(components);
-		index_t t = em.emit(TypeInformation(-1, -1, type_b));
+		Index l = em.emit_list_chain(components);
+		Index t = em.emit(TypeInformation(-1, -1, type_b));
 		em.emit(Construct(t, l));
 	} else {
 		// TODO: legalize by converting to higher type
@@ -118,7 +118,7 @@ void legalize_for_cc_operation_vector_overload(mapped_instruction_t &mapped,
 
 bool legalize_for_cc_vector_constructor(mapped_instruction_t &mapped,
 					PrimitiveType type_to_construct,
-					const std::vector <index_t> &args,
+					const std::vector <Index> &args,
 					const std::vector <PrimitiveType> &types)
 {
 	bool transformed = false;
@@ -136,15 +136,15 @@ bool legalize_for_cc_vector_constructor(mapped_instruction_t &mapped,
 	if (type_a == type_to_construct) {
 		size_t ccount = vector_component_count(type_to_construct);
 
-		std::vector <index_t> components;
+		std::vector <Index> components;
 		for (size_t i = 0; i < ccount; i++) {
-			index_t c = em.emit(Swizzle(args[0], (SwizzleCode) i));
+			Index c = em.emit(Swizzle(args[0], (SwizzleCode) i));
 			mapped.track(c, 0b01);
 			components.push_back(c);
 		}
 
-		index_t l = em.emit_list_chain(components);
-		index_t t = em.emit(TypeInformation(-1, -1, type_to_construct));
+		Index l = em.emit_list_chain(components);
+		Index t = em.emit(TypeInformation(-1, -1, type_to_construct));
 		em.emit_construct(t, l, normal);
 
 		transformed = true;
@@ -161,7 +161,7 @@ bool legalize_for_cc_vector_constructor(mapped_instruction_t &mapped,
 
 bool legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 			       IntrinsicOperation opn,
-			       const std::vector <index_t> &args,
+			       const std::vector <Index> &args,
 			       const std::vector <PrimitiveType> &types)
 {
 	bool transformed = false;
@@ -198,21 +198,21 @@ bool legalize_for_cc_intrinsic(mapped_instruction_t &mapped,
 
 		size_t ccount = vector_component_count(type_a);
 
-		index_t a = args[0];
-		index_t b = args[1];
+		Index a = args[0];
+		Index b = args[1];
 		
-		std::vector <index_t> products(ccount);
+		std::vector <Index> products(ccount);
 		for (size_t i = 0; i < ccount; i++) {
-			index_t ca = em.emit_swizzle(a, (SwizzleCode) i);
+			Index ca = em.emit_swizzle(a, (SwizzleCode) i);
 			mapped.track(ca, 0b01);
 
-			index_t cb = em.emit_swizzle(b, (SwizzleCode) i);
+			Index cb = em.emit_swizzle(b, (SwizzleCode) i);
 			mapped.track(cb, 0b01);
 
 			products[i] = em.emit_operation(ca, cb, multiplication);
 		}
 
-		index_t top = products[0];
+		Index top = products[0];
 		for (size_t i = 0; i < ccount - 1; i++)
 			top = em.emit_operation(top, products[i + 1], addition);
 
@@ -256,7 +256,7 @@ void legalize_for_cc(Buffer &buffer)
 			// The operands are guaranteed to be
 			// primitive types at this point
 
-			std::vector <index_t> args;
+			std::vector <Index> args;
 			args.push_back(operation->a);
 			if (operation->b != -1)
 				args.push_back(operation->b);

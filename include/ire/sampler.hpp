@@ -50,9 +50,9 @@ struct sampler {
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <vec <T, 4>> ().id;
-		thunder::index_t sampler = em.emit_qualifier(type, binding, sampler_qualifiers <T> ::table[D]);
-		thunder::index_t value = em.emit_construct(sampler, -1, thunder::transient);
+		thunder::Index type = type_field_from_args <vec <T, 4>> ().id;
+		thunder::Index sampler = em.emit_qualifier(type, binding, sampler_qualifiers <T> ::table[D]);
+		thunder::Index value = em.emit_construct(sampler, -1, thunder::transient);
 		return cache_index_t::from(value);
 	}
 

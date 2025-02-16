@@ -15,7 +15,7 @@ struct NilType {
 };
 
 // Either a primitive type or a user-defined structure
-using plain_data_type_base = bestd::variant <PrimitiveType, index_t>;
+using plain_data_type_base = bestd::variant <PrimitiveType, Index>;
 
 struct PlainDataType : public plain_data_type_base {
 	using plain_data_type_base::plain_data_type_base;
@@ -29,9 +29,9 @@ struct PlainDataType : public plain_data_type_base {
 struct StructFieldType : PlainDataType {
 	using PlainDataType::PlainDataType;
 
-	index_t next;
+	Index next;
 
-	StructFieldType(PlainDataType, index_t);
+	StructFieldType(PlainDataType, Index);
 
 	PlainDataType base() const;
 
@@ -42,9 +42,9 @@ struct StructFieldType : PlainDataType {
 
 // Array of unqualified types
 struct ArrayType : public PlainDataType {
-	index_t size;
+	Index size;
 
-	ArrayType(PlainDataType, index_t);
+	ArrayType(PlainDataType, Index);
 
 	PlainDataType base() const;
 
@@ -55,9 +55,9 @@ struct ArrayType : public PlainDataType {
 
 // Image type, parameterized by underlying type and dimension
 struct ImageType : public PlainDataType {
-	index_t dimension;
+	Index dimension;
 
-	ImageType(PlainDataType, index_t);
+	ImageType(PlainDataType, Index);
 
 	bool operator==(const ImageType &) const;
 	std::string to_string() const;
@@ -66,9 +66,9 @@ struct ImageType : public PlainDataType {
 
 // Sampler type, parameterized by underlying type and dimension
 struct SamplerType : public PlainDataType {
-	index_t dimension;
+	Index dimension;
 
-	SamplerType(PlainDataType, index_t);
+	SamplerType(PlainDataType, Index);
 
 	bool operator==(const SamplerType &) const;
 	std::string to_string() const;
@@ -126,7 +126,7 @@ struct QualifiedType : qualified_type_base {
 	bool is_concrete() const {
 		auto pd = get <PlainDataType> ();
 		// TODO: alias ConcreteIndex = index_t
-		return pd && pd->is <index_t> ();
+		return pd && pd->is <Index> ();
 	}
 
 	PlainDataType remove_qualifiers() const;
@@ -136,10 +136,10 @@ struct QualifiedType : qualified_type_base {
 	std::string to_string() const;
 
 	static QualifiedType primitive(PrimitiveType);
-	static QualifiedType concrete(index_t);
-	static QualifiedType array(const QualifiedType &, index_t);
-	static QualifiedType image(PrimitiveType, index_t);
-	static QualifiedType sampler(PrimitiveType, index_t);
+	static QualifiedType concrete(Index);
+	static QualifiedType array(const QualifiedType &, Index);
+	static QualifiedType image(PrimitiveType, Index);
+	static QualifiedType sampler(PrimitiveType, Index);
 	static QualifiedType nil();
 };
 

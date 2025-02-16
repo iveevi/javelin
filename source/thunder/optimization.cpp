@@ -14,7 +14,7 @@ bool optimize_compaction(Buffer &result)
 {
 	bool marked = false;
 
-	reindex <index_t> relocation;
+	reindex <Index> relocation;
 	for (size_t i = 0; i < result.pointer; i++) {
 		if (relocation.contains(i))
 			continue;
@@ -57,15 +57,15 @@ bool optimize_constructor_elision(Buffer &result)
 
 	auto graph = usage(result);
 
-	auto constructor_elision = [&](const std::vector <index_t> &fields,
-				       index_t idx,
-				       index_t user) -> bool {
+	auto constructor_elision = [&](const std::vector <Index> &fields,
+				       Index idx,
+				       Index user) -> bool {
 		if (idx == -1)
 			return false;
 
 		usage_set loaders = graph[user];
 
-		reindex <index_t> relocation;
+		reindex <Index> relocation;
 		for (size_t i = 0; i < result.pointer; i++)
 			relocation[i] = i;
 
@@ -91,11 +91,11 @@ bool optimize_constructor_elision(Buffer &result)
 		if (construct.mode == transient)
 			continue;
 
-		index_t arg = construct.args;
+		Index arg = construct.args;
 		if (arg == -1)
 			continue;
 
-		std::vector <index_t> fields;
+		std::vector <Index> fields;
 		while (arg != -1) {
 			auto &atom = result.atoms[arg];
 			JVL_ASSERT_PLAIN(atom.is <List> ());
@@ -166,12 +166,12 @@ bool optimize_dead_code_elimination(Buffer &result)
 	// Reversed usage graph
 	usage_graph reversed(graph.size());
 	for (size_t i = 0; i < graph.size(); i++) {
-		for (index_t j : graph[i])
+		for (Index j : graph[i])
 			reversed[j].insert(i);
 	}
 
 	// Configure checking queue and inclusion mask
-	std::queue <index_t> check_list;
+	std::queue <Index> check_list;
 	std::vector <bool> include;
 
 	for (size_t i = 0; i < result.pointer; i++) {
@@ -181,10 +181,10 @@ bool optimize_dead_code_elimination(Buffer &result)
 
 	// Keep checking as long as something got erased
 	while (check_list.size()) {
-		std::unordered_set <index_t> erasure;
+		std::unordered_set <Index> erasure;
 
 		while (check_list.size()) {
-			index_t i = check_list.front();
+			Index i = check_list.front();
 			check_list.pop();
 
 			auto &atom = result.atoms[i];
@@ -198,7 +198,7 @@ bool optimize_dead_code_elimination(Buffer &result)
 			}
 		}
 
-		std::unordered_set <index_t> reinsert;
+		std::unordered_set <Index> reinsert;
 		for (auto i : erasure) {
 			for (auto j : reversed[i]) {
 				graph[j].erase(i);
@@ -211,9 +211,9 @@ bool optimize_dead_code_elimination(Buffer &result)
 	}
 
 	// Reconstruct with the reduced set
-	index_t pointer = 0;
+	Index pointer = 0;
 
-	reindex <index_t> relocation;
+	reindex <Index> relocation;
 	for (size_t i = 0; i < result.pointer; i++) {
 		if (include[i])
 			relocation[i] = pointer++;

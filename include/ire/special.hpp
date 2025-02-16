@@ -13,9 +13,9 @@ template <native T>
 struct task_payload <T> {
 	task_payload &operator=(const native_t <T> &value) {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <native_t <T>> ().id;
-		thunder::index_t qual = em.emit_qualifier(type, -1, thunder::task_payload);
-		thunder::index_t dst = em.emit_construct(qual, -1, thunder::transient);
+		thunder::Index type = type_field_from_args <native_t <T>> ().id;
+		thunder::Index qual = em.emit_qualifier(type, -1, thunder::task_payload);
+		thunder::Index dst = em.emit_construct(qual, -1, thunder::transient);
 		em.emit_store(dst, value.synthesize().id);
 		return *this;
 	}
@@ -26,9 +26,9 @@ struct task_payload <T> : T {
 	template <typename ... Args>
 	explicit task_payload(const Args &... args) : T(args...) {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <T> ().id;
-		thunder::index_t qual = em.emit_qualifier(type, -1, thunder::task_payload);
-		thunder::index_t value = em.emit_construct(qual, -1, thunder::transient);
+		thunder::Index type = type_field_from_args <T> ().id;
+		thunder::Index qual = em.emit_qualifier(type, -1, thunder::task_payload);
+		thunder::Index value = em.emit_construct(qual, -1, thunder::transient);
 		this->ref = value;
 	}
 
@@ -44,9 +44,9 @@ struct task_payload <T> : T {
 	explicit task_payload(const Args &... args) : T(args...) {
 		auto &em = Emitter::active;
 		auto layout = this->layout().remove_const();
-		thunder::index_t type = type_field_from_args(layout).id;
-		thunder::index_t qual = em.emit_qualifier(type, -1, thunder::task_payload);
-		thunder::index_t value = em.emit_construct(qual, -1, thunder::transient);
+		thunder::Index type = type_field_from_args(layout).id;
+		thunder::Index qual = em.emit_qualifier(type, -1, thunder::task_payload);
+		thunder::Index value = em.emit_construct(qual, -1, thunder::transient);
 		layout.ref_with(cache_index_t::from(value));
 	}
 };
@@ -63,9 +63,9 @@ struct ray_payload <T> {
 
 	ray_payload &operator=(const native_t <T> &value) {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <native_t <T>> ().id;
-		thunder::index_t qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload);
-		thunder::index_t dst = em.emit_construct(qual, -1, thunder::transient);
+		thunder::Index type = type_field_from_args <native_t <T>> ().id;
+		thunder::Index qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload);
+		thunder::Index dst = em.emit_construct(qual, -1, thunder::transient);
 		em.emit_store(dst, value.synthesize().id);
 		return *this;
 	}
@@ -78,9 +78,9 @@ struct ray_payload <T> : T {
 	template <typename ... Args>
 	explicit ray_payload(uint32_t binding_, const Args &... args) : T(args...), binding(binding_) {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <T> ().id;
-		thunder::index_t qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload);
-		thunder::index_t value = em.emit_construct(qual, -1, thunder::transient);
+		thunder::Index type = type_field_from_args <T> ().id;
+		thunder::Index qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload);
+		thunder::Index value = em.emit_construct(qual, -1, thunder::transient);
 		this->ref = value;
 	}
 
@@ -98,9 +98,9 @@ struct ray_payload <T> : T {
 	explicit ray_payload(uint32_t binding_, const Args &... args) : T(args...), binding(binding_) {
 		auto &em = Emitter::active;
 		auto layout = this->layout().remove_const();
-		thunder::index_t type = type_field_from_args(layout).id;
-		thunder::index_t qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload);
-		thunder::index_t value = em.emit_construct(qual, -1, thunder::transient);
+		thunder::Index type = type_field_from_args(layout).id;
+		thunder::Index qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload);
+		thunder::Index value = em.emit_construct(qual, -1, thunder::transient);
 		layout.ref_with(cache_index_t::from(value));
 	}
 };
@@ -116,9 +116,9 @@ struct ray_payload_in <T> {
 
 	ray_payload_in &operator=(const native_t <T> &value) {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <native_t <T>> ().id;
-		thunder::index_t qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload_in);
-		thunder::index_t dst = em.emit_construct(qual, -1, thunder::transient);
+		thunder::Index type = type_field_from_args <native_t <T>> ().id;
+		thunder::Index qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload_in);
+		thunder::Index dst = em.emit_construct(qual, -1, thunder::transient);
 		em.emit_store(dst, value.synthesize().id);
 		return *this;
 	}
@@ -131,9 +131,9 @@ struct ray_payload_in <T> : T {
 	template <typename ... Args>
 	explicit ray_payload_in(uint32_t binding_, const Args &... args) : T(args...), binding(binding_) {
 		auto &em = Emitter::active;
-		thunder::index_t type = type_field_from_args <T> ().id;
-		thunder::index_t qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload_in);
-		thunder::index_t value = em.emit_construct(qual, -1, thunder::transient);
+		thunder::Index type = type_field_from_args <T> ().id;
+		thunder::Index qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload_in);
+		thunder::Index value = em.emit_construct(qual, -1, thunder::transient);
 		this->ref = value;
 	}
 
@@ -151,9 +151,9 @@ struct ray_payload_in <T> : T {
 	explicit ray_payload_in(uint32_t binding_, const Args &... args) : T(args...), binding(binding_) {
 		auto &em = Emitter::active;
 		auto layout = this->layout().remove_const();
-		thunder::index_t type = type_field_from_args(layout).id;
-		thunder::index_t qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload_in);
-		thunder::index_t value = em.emit_construct(qual, -1, thunder::transient);
+		thunder::Index type = type_field_from_args(layout).id;
+		thunder::Index qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload_in);
+		thunder::Index value = em.emit_construct(qual, -1, thunder::transient);
 		layout.ref_with(cache_index_t::from(value));
 	}
 };

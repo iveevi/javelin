@@ -10,10 +10,10 @@ namespace jvl::thunder {
 MODULE(ad-forward);
 
 struct dual_atom {
-	index_t primal;
-	index_t dual;
+	Index primal;
+	Index dual;
 
-	static dual_atom load(index_t source) {
+	static dual_atom load(Index source) {
 		auto &em = ire::Emitter::active;
 
 		dual_atom da;
@@ -25,7 +25,7 @@ struct dual_atom {
 
 // Conventional synthesis will have the first type field be the
 // primal value, and the second be the dual/derivative value
-index_t synthesize_dual_type(const QualifiedType &qt)
+Index synthesize_dual_type(const QualifiedType &qt)
 {
 	auto &em = ire::Emitter::active;
 
@@ -34,18 +34,18 @@ index_t synthesize_dual_type(const QualifiedType &qt)
 	auto &pd = qt.as <PlainDataType> ();
 
 	PrimitiveType primitive = pd.as <PrimitiveType> ();
-	index_t dual = em.emit_type_information(-1, -1, primitive);
+	Index dual = em.emit_type_information(-1, -1, primitive);
 	return em.emit_type_information(-1, dual, primitive);
 }
 
 struct ad_fwd_iteration_context_t : Buffer {
-	std::deque <index_t> queue;
-	std::set <index_t> diffed;
+	std::deque <Index> queue;
+	std::set <Index> diffed;
 
 	ad_fwd_iteration_context_t(const Buffer &buffer) : Buffer(buffer) {}
 };
 
-index_t ad_fwd_binary_operation_dual_value(mapped_instruction_t &mapped,
+Index ad_fwd_binary_operation_dual_value(mapped_instruction_t &mapped,
 					   const dual_atom &f,
 					   const dual_atom &g,
 					   OperationCode code)
@@ -61,17 +61,17 @@ index_t ad_fwd_binary_operation_dual_value(mapped_instruction_t &mapped,
 	case multiplication:
 	{
 		// TODO: emit tags (comments)
-		index_t df_g = em.emit_operation(f.dual, g.primal, multiplication);
-		index_t f_dg = em.emit_operation(f.primal, g.dual, multiplication);
+		Index df_g = em.emit_operation(f.dual, g.primal, multiplication);
+		Index f_dg = em.emit_operation(f.primal, g.dual, multiplication);
 		return em.emit_operation(df_g, f_dg, addition);
 	}
 
 	case division:
 	{
-		index_t df_g = em.emit_operation(f.dual, g.primal, multiplication);
-		index_t f_dg = em.emit_operation(f.primal, g.dual, multiplication);
-		index_t n = em.emit_operation(df_g, f_dg, subtraction);
-		index_t d = em.emit_operation(g.primal, g.primal, multiplication);
+		Index df_g = em.emit_operation(f.dual, g.primal, multiplication);
+		Index f_dg = em.emit_operation(f.primal, g.dual, multiplication);
+		Index n = em.emit_operation(df_g, f_dg, subtraction);
+		Index d = em.emit_operation(g.primal, g.primal, multiplication);
 		return em.emit_operation(n, d, division);
 	}
 
@@ -82,14 +82,14 @@ index_t ad_fwd_binary_operation_dual_value(mapped_instruction_t &mapped,
 	JVL_ABORT("unhandled operation $({}) in forward autodiff", tbl_operation_code[code]);
 }
 
-index_t ad_fwd_intrinsic_dual_value(mapped_instruction_t &mapped,
-				    const std::array <index_t, 2> &arg0,
+Index ad_fwd_intrinsic_dual_value(mapped_instruction_t &mapped,
+				    const std::array <Index, 2> &arg0,
 				    IntrinsicOperation opn,
-				    index_t type)
+				    Index type)
 {
 	auto &em = ire::Emitter::active;
 
-	auto chain_rule = [&](index_t result) -> index_t {
+	auto chain_rule = [&](Index result) -> Index {
 		result = em.emit_operation(result, arg0[1], multiplication);
 		mapped.track(result, 0b10);
 		return result;
@@ -99,8 +99,8 @@ index_t ad_fwd_intrinsic_dual_value(mapped_instruction_t &mapped,
 
 	case sin:
 	{
-		index_t args;
-		index_t result;
+		Index args;
+		Index result;
 
 		args = em.emit_list_chain(arg0[0]);
 		result = em.emit_intrinsic(args, cos);
@@ -111,8 +111,8 @@ index_t ad_fwd_intrinsic_dual_value(mapped_instruction_t &mapped,
 
 	case cos:
 	{
-		index_t args = em.emit_list_chain(arg0[0]);
-		index_t result = em.emit_intrinsic(args, sin);
+		Index args = em.emit_list_chain(arg0[0]);
+		Index result = em.emit_intrinsic(args, sin);
 		mapped.track(result, 0b10);
 
 		result = em.emit_operation(result, -1, unary_negation);
@@ -130,7 +130,7 @@ index_t ad_fwd_intrinsic_dual_value(mapped_instruction_t &mapped,
 
 void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 				  mapped_instruction_t &mapped,
-				  index_t index)
+				  Index index)
 {
 	auto &em = ire::Emitter::active;
 	auto &atom = context.atoms[index];
@@ -234,11 +234,11 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 		mapped.track(b.primal, 0b01);
 		mapped.track(b.dual, 0b01);
 
-		index_t primal = em.emit_operation(a.primal, b.primal, opn.code);
-		index_t dual = ad_fwd_binary_operation_dual_value(mapped, a, b, opn.code);
+		Index primal = em.emit_operation(a.primal, b.primal, opn.code);
+		Index dual = ad_fwd_binary_operation_dual_value(mapped, a, b, opn.code);
 
-		index_t type = synthesize_dual_type(context.types[index]);
-		index_t args = em.emit_list_chain(primal, dual);
+		Index type = synthesize_dual_type(context.types[index]);
+		Index args = em.emit_list_chain(primal, dual);
 		em.emit_construct(type, args, normal);
 	} break;
 
@@ -289,7 +289,7 @@ void ad_fwd_transform(Buffer &result, const Buffer &source)
 
 	// Transform all differentiable instructions and their relatives
 	while (context.queue.size()) {
-		index_t i = context.queue.front();
+		Index i = context.queue.front();
 		context.queue.pop_front();
 
 		if (context.diffed.count(i))

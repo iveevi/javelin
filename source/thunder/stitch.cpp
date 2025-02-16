@@ -15,14 +15,14 @@ void stitch_mapped_instructions(Buffer &result, std::vector <mapped_instruction_
 		auto &g = mapped[i].refs;
 
 		// Create a map which offsets
-		reindex <index_t> reindex;
+		reindex <Index> reindex;
 		for (size_t i = 0; i < m.pointer; i++)
 			reindex[i] = i + offset;
 
 		// Preserve global refs
 		struct ref_state_t : ref_index_t {
-			index_t v0 = -1;
-			index_t v1 = -1;
+			Index v0 = -1;
+			Index v1 = -1;
 		};
 
 		auto ref_state_from = [&](const ref_index_t &ri) {
@@ -81,8 +81,8 @@ void stitch_mapped_instructions(Buffer &result, std::vector <mapped_instruction_
 		for (size_t i = 0; i < m.pointer; i++) {
 			// Sanity check to ensure addresses point backwards
 			auto &&addrs = m[i].addresses();
-			JVL_ASSERT(addrs.a0 < (index_t) result.pointer
-				&& addrs.a1 < (index_t) result.pointer,
+			JVL_ASSERT(addrs.a0 < (Index) result.pointer
+				&& addrs.a1 < (Index) result.pointer,
 				"instruction addresses are out of bounds: {}", m[i]);
 
 			result.emit(m[i]);
