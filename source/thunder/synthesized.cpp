@@ -45,7 +45,9 @@ void Buffer::include(index_t i)
 	{
 		auto &global = atom.as <Qualifier> ();
 		synthesized.insert(i);
-		synthesized.insert(global.underlying);
+
+		if (global.underlying >= 0)
+			synthesized.insert(global.underlying);
 	} break;
 
 	// Always synthesize returns

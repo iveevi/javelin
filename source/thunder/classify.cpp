@@ -54,16 +54,6 @@ QualifiedType Buffer::classify(index_t i)
 	{
 		auto &qualifier = atom.as <Qualifier> ();
 
-		QualifiedType decl = classify(qualifier.underlying);
-
-		// Handling arrays
-		if (qualifier.kind == arrays) {
-			if (decl.is <StructFieldType> ())
-				decl = QualifiedType::concrete(qualifier.underlying);
-
-			return QualifiedType::array(decl, qualifier.numerical);
-		}
-
 		// Handling images and samplers
 		if (image_kind(qualifier.kind)) {
 			return QualifiedType::image(image_result(qualifier.kind),
@@ -73,6 +63,28 @@ QualifiedType Buffer::classify(index_t i)
 		if (sampler_kind(qualifier.kind)) {
 			return QualifiedType::sampler(sampler_result(qualifier.kind),
 						      sampler_dimension(qualifier.kind));
+		}
+
+		// Ensure valid underlying type; OK to be invalid for images and samplers
+		JVL_ASSERT(qualifier.underlying >= 0
+			&& qualifier.underlying < (index_t) atoms.size(),
+			"qualifier with invalid underlying reference: {}", qualifier);
+
+		QualifiedType decl = classify(qualifier.underlying);
+
+		// Extended qualifiers
+		if (qualifier.kind == write_only || qualifier.kind == read_only) {
+			// TODO: quick sanity check; only images and buffers allowed
+			// JVL_ASSERT(image_kind())
+			return decl;
+		}
+
+		// Handling arrays
+		if (qualifier.kind == arrays) {
+			if (decl.is <StructFieldType> ())
+				decl = QualifiedType::concrete(qualifier.underlying);
+
+			return QualifiedType::array(decl, qualifier.numerical);
 		}
 
 		// Potentially primitive

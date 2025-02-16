@@ -56,17 +56,19 @@ index_t LinkageUnit::new_aggregate(size_t ftn, const std::string &name, const st
 	return std::distance(aggregates.begin(), it);
 }
 
-void LinkageUnit::process_function_qualifier(Function &function, size_t index, index_t i, const Qualifier &qualifier)
+// fidx; function index
+// bidx; (atom) buffer index
+void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, index_t bidx, const Qualifier &qualifier)
 {
 	if (image_kind(qualifier.kind)) {
 		size_t binding = qualifier.numerical;
-		globals.images[binding] = qualifier.kind;
+		globals.images[binding] = local_layout_type(fidx, -1, qualifier.kind);
 		return;
 	}
 
 	if (sampler_kind(qualifier.kind)) {
 		size_t binding = qualifier.numerical;
-		globals.samplers[binding] = qualifier.kind;
+		globals.samplers[binding] = local_layout_type(fidx, -1, qualifier.kind);
 		return;
 	}
 
@@ -81,14 +83,14 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t index, i
 		size_t binding = qualifier.numerical;
 		size_t size = std::max(function.args.size(), binding + 1);
 		function.args.resize(size);
-		function.args[binding] = function.types[i];
+		function.args[binding] = function.types[bidx];
 	} break;
 
 	case push_constant:
 	{
 		push_constant_info info;
-		info.index = i;
-		info.function = index;
+		info.index = bidx;
+		info.function = fidx;
 		info.kind = thunder::push_constant;
 		info.offset = qualifier.numerical;
 		info.underlying = qualifier.underlying;
@@ -101,7 +103,7 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t index, i
 	case layout_in_smooth:
 	{
 		size_t binding = qualifier.numerical;
-		local_layout_type lin(index, qualifier.underlying, qualifier.kind);
+		local_layout_type lin(fidx, qualifier.underlying, qualifier.kind);
 		globals.inputs[binding] = lin;
 	} break;
 
@@ -110,14 +112,14 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t index, i
 	case layout_out_smooth:
 	{
 		size_t binding = qualifier.numerical;
-		local_layout_type lout(index, qualifier.underlying, qualifier.kind);
+		local_layout_type lout(fidx, qualifier.underlying, qualifier.kind);
 		globals.outputs[binding] = lout;
 	} break;
 
 	case uniform:
 	{
 		size_t binding = qualifier.numerical;
-		local_layout_type un(index, qualifier.underlying, qualifier.kind);
+		local_layout_type un(fidx, qualifier.underlying, qualifier.kind);
 		globals.uniforms[binding] = un;
 	} break;
 
@@ -126,26 +128,45 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t index, i
 	case write_only_storage_buffer:
 	{
 		size_t binding = qualifier.numerical;
-		local_layout_type bf(index, qualifier.underlying, qualifier.kind);
+		local_layout_type bf(fidx, qualifier.underlying, qualifier.kind);
 		globals.buffers[binding] = bf;
 	} break;
 
 	case shared:
 	{
 		size_t id = qualifier.numerical;
-		local_layout_type bf(index, qualifier.underlying, qualifier.kind);
+		local_layout_type bf(fidx, qualifier.underlying, qualifier.kind);
 		globals.shared[id] = bf;
 	} break;
 
 	case task_payload:
 	{
-		globals.special[task_payload][-1] = special_type(index, i);
+		globals.special[task_payload][-1] = special_type(fidx, bidx);
 		extensions.insert("GL_EXT_mesh_shader");
+	} break;
+
+	case write_only:
+	case read_only:
+	{
+		// TODO: method to search
+		auto &lower = function.atoms[qualifier.underlying];
+		fmt::println("lower: {}", lower);
+
+		if (auto decl = lower.get <Qualifier> ()) {
+			if (image_kind(decl->kind)) {
+				globals.images[decl->numerical].extra.insert(qualifier.kind);
+				break;
+			}
+		}
+
+		JVL_ABORT("unexpected atom for {} qualifier:\n{}",
+			tbl_qualifier_kind[qualifier.kind],
+			lower);
 	} break;
 	
 	case ray_tracing_payload:
 	case ray_tracing_payload_in:
-		globals.special[qualifier.kind][qualifier.numerical] = special_type(index, i);
+		globals.special[qualifier.kind][qualifier.numerical] = special_type(fidx, bidx);
 		break;
 
 	case glsl_intrinsic_gl_SubgroupInvocationID:
@@ -153,6 +174,7 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t index, i
 		break;
 
 	default:
+		JVL_WARNING("unhandled qualifier in function @{}:\n{}", bidx, qualifier);
 		break;
 	}
 }
@@ -267,7 +289,7 @@ std::set <index_t> LinkageUnit::process_function(const Function &ftn)
 	std::set <index_t> referenced;
 
 	// TODO: run validation here as well
-	index_t index = functions.size();
+	index_t fidx = functions.size();
 
 	functions.emplace_back(ftn);
 	maps.emplace_back();
@@ -275,16 +297,19 @@ std::set <index_t> LinkageUnit::process_function(const Function &ftn)
 	auto &function = functions.back();
 	auto &map = maps.back();
 
-	for (size_t i : function.synthesized) {
-		auto &atom = function[i];
+	for (index_t bidx : function.synthesized) {
+		// Sanity check
+		JVL_ASSERT(bidx >= 0, "bad index @{} in synthesized list for function", bidx);
+
+		auto &atom = function[bidx];
 
 		// Get the return type of the function
 		if (atom.is <Returns> ())
-			function.returns = function.types[i];
+			function.returns = function.types[bidx];
 
 		// Parameters and global variables
 		if (atom.is <Qualifier> ())
-			process_function_qualifier(function, index, i, atom.as <Qualifier> ());
+			process_function_qualifier(function, fidx, bidx, atom.as <Qualifier> ());
 
 		// Referenced callables
 		if (atom.is <Call> ()) {
@@ -294,19 +319,19 @@ std::set <index_t> LinkageUnit::process_function(const Function &ftn)
 
 		// Checking for special intrinsics
 		if (atom.is <Intrinsic> ())
-			process_function_intrinsic(function, index, i, atom.as <Intrinsic> ());
+			process_function_intrinsic(function, fidx, bidx, atom.as <Intrinsic> ());
 
 		// Checking for structs used by the function
-		auto qt = function.types[i];
+		auto qt = function.types[bidx];
 		if (qt.is <StructFieldType> ())
-			process_function_aggregate(map, function, index, i, qt);
+			process_function_aggregate(map, function, fidx, bidx, qt);
 
 		// TODO: static initializers (e.g. arrays and constants)
 	}
 
 	// Mark the dependencies
-	dependencies[index] = referenced;
-	cids[ftn.cid] = index;
+	dependencies[fidx] = referenced;
+	cids[ftn.cid] = fidx;
 
 	return referenced;
 }
@@ -550,9 +575,16 @@ void generate_shared(std::string &result,
 
 void generate_images(std::string &result, const auto &images)
 {
-	for (const auto &[binding, kind] : images) {
-		result += fmt::format("layout (binding = {}) uniform {} _image{};\n",
-			binding, image_string(kind), binding);
+	for (const auto &[binding, llt] : images) {
+		std::string extra = " ";
+		for (auto &k : llt.extra) {
+			fmt::println("image extra: {}", tbl_qualifier_kind[k]);
+			if (k == write_only)
+				extra += "writeonly ";
+		}
+
+		result += fmt::format("layout (binding = {}) uniform{}{} _image{};\n",
+			binding, extra, image_string(llt.kind), binding);
 	}
 
 	if (images.size())
@@ -561,9 +593,9 @@ void generate_images(std::string &result, const auto &images)
 
 void generate_samplers(std::string &result, const auto &samplers)
 {
-	for (const auto &[binding, kind] : samplers) {
+	for (const auto &[binding, llt] : samplers) {
 		result += fmt::format("layout (binding = {}) uniform {} _sampler{};\n",
-			binding, sampler_string(kind), binding);
+			binding, sampler_string(llt.kind), binding);
 	}
 
 	if (samplers.size())
@@ -668,7 +700,7 @@ std::string LinkageUnit::generate_glsl() const
 {
 	std::string result;
 
-	result += "#version 450\n";
+	result += "#version 460\n";
 	result += "\n";
 
 	// Include required extensions

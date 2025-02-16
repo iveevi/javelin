@@ -44,6 +44,9 @@ struct image_qualifiers <float> {
 template <native T, size_t D>
 requires (D >= 1 && D <= 3)
 struct image {
+	using value_type = vec <T, 4>;
+	using index_type = std::conditional_t <D == 1, native_t <int32_t>, vec <int32_t, D>>;
+
 	const size_t binding;
 
 	image(size_t binding_ = 0) : binding(binding_) {}
@@ -79,17 +82,27 @@ struct image {
 		return platform_intrinsic_from_args <vec <T, 4>> (thunder::glsl_image_load, *this, loc);
 	}
 
-	// Image store
-	void store(const native_t <int32_t> &loc, const vec <T, 4> &data) const
-	requires (D == 1) {
-		return void_platform_intrinsic_from_args(thunder::glsl_image_store, *this, loc, data);
-	}
+	// // Image store
+	// void store(const native_t <int32_t> &loc, const vec <T, 4> &data) const
+	// requires (D == 1) {
+	// 	return void_platform_intrinsic_from_args(thunder::glsl_image_store, *this, loc, data);
+	// }
 	
-	void store(const vec <int32_t, D> &loc, const vec <T, 4> &data) const
-	requires (D != 1) {
-		return void_platform_intrinsic_from_args(thunder::glsl_image_store, *this, loc, data);
-	}
+	// void store(const vec <int32_t, D> &loc, const vec <T, 4> &data) const
+	// requires (D != 1) {
+	// 	return void_platform_intrinsic_from_args(thunder::glsl_image_store, *this, loc, data);
+	// }
 };
+
+// Concept
+template <typename T>
+struct is_image_like : std::false_type {};
+
+template <native T, size_t D>
+struct is_image_like <image <T, D>> : std::true_type {};
+
+template <typename T>
+concept image_like = is_image_like <T> ::value;
 
 // Accessors functions from GLSL
 template <native T, size_t D>
@@ -104,10 +117,12 @@ auto imageLoad(const image <T, D> &handle, const I &loc)
 	return handle.load(loc);
 }
 
-template <native T, size_t D, generic I>
-void imageStore(const image <T, D> &handle, const I &loc, const vec <T, 4> &data)
+template <image_like Image>
+void imageStore(const Image &handle,
+		const typename Image::index_type &idx,
+		const typename Image::value_type &data)
 {
-	return handle.store(loc, data);
+	return void_platform_intrinsic_from_args(thunder::glsl_image_store, handle, idx, data);
 }
 
 } // namespace jvl::ire

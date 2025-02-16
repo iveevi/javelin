@@ -103,6 +103,10 @@ enum QualifierKind : int8_t {
 
 	shared,
 
+	// Additional qualifiers
+	write_only,
+	read_only,
+
 	// Samplers
 	isampler_1d,
 	isampler_2d,
@@ -182,6 +186,9 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"buffer (write-only)",
 
 	"shared",
+
+	"write_only",
+	"read_only",
 
 	"isampler1D",
 	"isampler2D",

@@ -10,8 +10,10 @@ namespace jvl::thunder::detail {
 
 MODULE(c-like-generator);
 
-static std::optional <std::string> generate_global_reference(const Qualifier &qualifier)
+static std::optional <std::string> generate_global_reference(const std::vector <Atom> &atoms, const index_t &idx)
 {
+	auto &qualifier = atoms[idx].as <Qualifier> ();
+
 	switch (qualifier.kind) {
 	case parameter:
 		return fmt::format("_arg{}", qualifier.numerical);
@@ -39,6 +41,11 @@ static std::optional <std::string> generate_global_reference(const Qualifier &qu
 
 	case shared:
 		return fmt::format("_shared{}", qualifier.numerical);
+
+	// Extended qualifiers
+	case write_only:
+	case read_only:
+		return generate_global_reference(atoms, qualifier.underlying);
 
 	// GLSL images and samplers
 	case iimage_1d:
@@ -235,7 +242,7 @@ std::string c_like_generator_t::reference(index_t index) const
 
 	case Atom::type_index <Qualifier> ():
 	{
-		auto ref = generate_global_reference(atom.as <Qualifier> ());
+		auto ref = generate_global_reference(atoms, index);
 		if (ref)
 			return ref.value();
 	} break;
@@ -303,7 +310,7 @@ std::string c_like_generator_t::inlined(index_t index) const
 
 	case Atom::type_index <Qualifier> ():
 	{
-		auto ref = generate_global_reference(atom.as <Qualifier> ());
+		auto ref = generate_global_reference(atoms, index);
 		if (ref)
 			return ref.value();
 	} break;
