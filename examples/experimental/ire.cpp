@@ -20,6 +20,75 @@
 using namespace jvl;
 using namespace jvl::ire;
 
+struct primitive_type {
+	thunder::PrimitiveType ptv;
+};
+
+struct struct_type {
+	thunder::Index idx;
+};
+
+using intermediate_type = bestd::variant <primitive_type, struct_type>;
+
+// Forward declarations
+template <generic ... Args>
+requires (sizeof...(Args) > 0)
+struct type_info_generator;
+
+namespace detail {
+
+template <string_literal str, generic T>
+struct field {
+	using underlying = std::decay_t <T>;
+
+	static constexpr const char *name = str;
+
+	const T &ref;
+
+	field(const T &val) : ref(val) {}
+};
+
+template <typename T>
+struct is_field_type : std::false_type {};
+
+template <string_literal str, generic T>
+struct is_field_type <field <str, T>> : std::true_type {};
+
+template <typename T>
+concept field_type = is_field_type <T> ::value;
+
+template <field_type ... Fields>
+struct Layout {
+	std::tuple <Fields...> references;
+
+	template <typename ... Args>
+	Layout(const Args &... args) : references(args...) {}
+	
+	intermediate_type generate_type() {
+		return std::apply([](const auto &... fields) {
+			return type_info_generator <typename std::decay_t <decltype(fields)> ::underlying...>
+				(fields.ref...).synthesize();
+			},
+			references);
+	}
+};
+
+template <typename T>
+struct is_layout_type : std::false_type {};
+
+template <field_type ... Fields>
+struct is_layout_type <Layout <Fields...>> : std::true_type {};
+
+template <typename T>
+concept layout_type = is_layout_type <T> ::value;
+
+template <typename T>
+concept aggregate = requires(const T &t) {
+	{ t.ll() } -> layout_type;
+};
+
+}
+
 struct RayFrame {
 	vec3 origin;
 	vec3 lower_left;
@@ -33,7 +102,16 @@ struct RayFrame {
 			named_field(horizontal),
 			named_field(vertical));
 	}
+
+	auto ll() const {
+		return ::detail::Layout <
+			::detail::field <"origin", vec3>,
+			::detail::field <"lower_left", vec3>
+		> (origin, lower_left);
+	}
 };
+
+static_assert(::detail::aggregate <RayFrame>);
 
 struct Nested {
 	vec3 x;
@@ -43,6 +121,13 @@ struct Nested {
 		return uniform_layout("Nested",
 			named_field(x),
 			named_field(frame));
+	}
+	
+	auto ll() const {
+		return ::detail::Layout <
+			::detail::field <"x", vec3>,
+			::detail::field <"frame", RayFrame>
+		> (x, frame);
 	}
 };
 
@@ -82,17 +167,6 @@ auto f = procedure <void> ("main") << []()
 // Type and qualifier generator system //
 /////////////////////////////////////////
 
-struct primitive_type {
-	thunder::PrimitiveType primitive;
-};
-
-struct struct_type {
-	// TODO: capitalize index...
-	thunder::Index idx;
-};
-
-using intermediate_type = bestd::variant <primitive_type, struct_type>;
-
 // General form is explicitly a struct with fields of type Args...
 template <generic ... Args>
 requires (sizeof...(Args) > 0)
@@ -120,7 +194,7 @@ struct type_info_generator {
 
 			if (current.is <primitive_type> ()) {
 				auto &p = current.as <primitive_type> ();
-				auto idx = em.emit_type_information(-1, -1, p.primitive);
+				auto idx = em.emit_type_information(-1, -1, p.ptv);
 				return struct_type(idx);
 			} else {
 				auto &s = current.as <struct_type> ();
@@ -134,7 +208,7 @@ struct type_info_generator {
 			
 			if (current.is <primitive_type> ()) {
 				auto &p = current.as <primitive_type> ();
-				auto idx = em.emit_type_information(-1, sp.idx, p.primitive);
+				auto idx = em.emit_type_information(-1, sp.idx, p.ptv);
 				return struct_type(idx);
 			} else {
 				auto &s = current.as <struct_type> ();
@@ -144,6 +218,7 @@ struct type_info_generator {
 		}
 	}
 
+	// TODO: optionally pass type hints...
 	intermediate_type synthesize() {
 		return partial <0> ();
 	}
@@ -167,6 +242,15 @@ struct type_info_generator <vec <T, D>> {
 	}
 };
 
+template <::detail::aggregate T>
+struct type_info_generator <T> {
+	const T &ref;
+
+	intermediate_type synthesize() {
+		return ref.ll().generate_type();
+	}
+};
+
 int main()
 {
 	// f.dump();
@@ -180,7 +264,11 @@ int main()
 		
 		em.push(buffer);
 
-		type_info_generator(vec3(), vec4(), i32()).synthesize();
+		RayFrame rayframe;
+		type_info_generator(rayframe).synthesize();
+		
+		Nested nested;
+		type_info_generator(nested).synthesize();
 
 		em.pop();
 
