@@ -133,10 +133,13 @@ enum QualifierKind : int8_t {
 	image_2d,
 	image_3d,
 
-	// Payloads
+	// Mesh shaders
 	task_payload,
+
+	// Raytracing
 	ray_tracing_payload,
 	ray_tracing_payload_in,
+	acceleration_structure,
 
 	// GLSL intrinsics
 	glsl_intrinsic_gl_FragCoord,
@@ -215,8 +218,10 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"image3D",
 
 	"task payload",
+
 	"ray tracing payload",
 	"ray tracing payload (in)",
+	"acceleration structure",
 
 	"glsl:FragCoord",
 	"glsl:FragDepth",

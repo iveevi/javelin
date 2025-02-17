@@ -140,10 +140,9 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 	} break;
 
 	case task_payload:
-	{
 		globals.special[task_payload][-1] = special_type(fidx, bidx);
 		extensions.insert("GL_EXT_mesh_shader");
-	} break;
+		break;
 
 	case write_only:
 	case read_only:
@@ -163,9 +162,11 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 			lower);
 	} break;
 	
+	case acceleration_structure:
 	case ray_tracing_payload:
 	case ray_tracing_payload_in:
 		globals.special[qualifier.kind][qualifier.numerical] = special_type(fidx, bidx);
+		extensions.insert("GL_EXT_ray_tracing");
 		break;
 
 	case glsl_intrinsic_gl_SubgroupInvocationID:
@@ -627,6 +628,7 @@ void generate_special(std::string &result,
 		      const auto &special)
 {
 	for (const auto &[kind, maps] : special) {
+		// TODO: method
 		switch (kind) {
 		
 		case task_payload:
@@ -636,6 +638,16 @@ void generate_special(std::string &result,
 			auto &generator = generators[st.function];
 			auto ts = generator.type_to_string(types[st.index]);
 			result += fmt::format("taskPayloadSharedEXT {} _task_payload;\n\n", ts.pre + ts.post);
+		} break;
+
+		case acceleration_structure:
+		{
+			for (auto &[binding, st] : maps) {
+				result += fmt::format("layout (binding = {}) uniform accelerationStructureEXT _accel{};\n",
+					binding, binding);
+			}
+
+			result += "\n";
 		} break;
 
 		case ray_tracing_payload:
@@ -649,7 +661,7 @@ void generate_special(std::string &result,
 				auto &types = functions[st.function].types;
 				auto &generator = generators[st.function];
 				auto ts = generator.type_to_string(types[st.index]);
-				result += fmt::format("location (layout = {}) {} {} _ray_payload{}{};\n",
+				result += fmt::format("layout (location = {}) {} {} _ray_payload{}{};\n",
 					binding, type, ts.pre,
 					binding, ts.post);
 			}

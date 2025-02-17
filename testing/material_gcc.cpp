@@ -46,7 +46,7 @@ struct ReferenceMaterial {
 	bool has_normal;
 };
 
-// TODO: this is probably crashing...
+// // TODO: this is probably crashing...
 // // GGX microfacet distribution function
 // auto ftn = procedure("ggx_ndf") << [](Material mat, vec3 n, vec3 h)
 // {
@@ -61,39 +61,30 @@ struct ReferenceMaterial {
 // auto ref = [](ReferenceMaterial mat, aligned_vec3 n, aligned_vec3 h)
 // {
 // 	float alpha = mat.roughness;
-// 	float theta = acos(std::clamp(glm::dot(glm::vec3(n), glm::vec3(h)), 0.0f, 0.999f));
+// 	float theta = std::acos(std::clamp(glm::dot(glm::vec3(n), glm::vec3(h)), 0.0f, 0.999f));
 // 	float ret = (alpha * alpha)
 // 		/ (std::numbers::pi * glm::pow(glm::cos(theta), 4)
 // 		* glm::pow(alpha * alpha + glm::tan(theta) * glm::tan(theta), 2.0f));
 // 	return ret;
 // };
 
-// TODO: this test is crashing...
+// // TODO: this test is crashing...
 // TEST(ire_jit, material)
 // {
 // 	thunder::legalize_for_cc(ftn);
-// 	thunder::opt_transform(ftn);
+// 	thunder::optimize(ftn);
 // 	auto compiled = jit(ftn);
-
-// 	auto m_diffuse = uniform_field(Material, diffuse);
-// 	auto m_specular = uniform_field(Material, specular);
-// 	auto m_emission = uniform_field(Material, emission);
-// 	auto m_ambient = uniform_field(Material, ambient);
-// 	auto m_shininess = uniform_field(Material, shininess);
-// 	auto m_roughness = uniform_field(Material, roughness);
-// 	auto m_has_albedo = uniform_field(Material, has_albedo);
-// 	auto m_has_normal = uniform_field(Material, has_normal);
 
 // 	auto input = solid_t <Material> ();
 
-// 	input[m_diffuse] = glm::vec3(1, 2, 3);
-// 	input[m_specular] = glm::vec3(4, 5, 6);
-// 	input[m_emission] = glm::vec3(7, 8, 9);
-// 	input[m_ambient] = glm::vec3(10, 11, 12);
-// 	input[m_shininess] = 13;
-// 	input[m_roughness] = 14;
-// 	input[m_has_albedo] = true;
-// 	input[m_has_normal] = true;
+// 	input.get <0> () = glm::vec3(1, 2, 3);
+// 	input.get <1> () = glm::vec3(4, 5, 6);
+// 	input.get <2> () = glm::vec3(7, 8, 9);
+// 	input.get <3> () = glm::vec3(10, 11, 12);
+// 	input.get <4> () = 13;
+// 	input.get <5> () = 14;
+// 	input.get <6> () = true;
+// 	input.get <7> () = true;
 
 // 	auto output = compiled(input, glm::vec3(0, 1, 0), glm::vec3(0, 1, 0));
 	

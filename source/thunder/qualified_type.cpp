@@ -161,6 +161,24 @@ std::size_t SamplerType::hash() const
         return PlainDataType::hash() ^ (std::size_t(dimension) << 16);
 }
 
+// Intrinsic types
+IntrinsicType::IntrinsicType(QualifierKind kind_) : kind(kind_) {}
+
+bool IntrinsicType::operator==(const IntrinsicType &other) const
+{
+        return kind == other.kind;
+}
+
+std::string IntrinsicType::to_string() const
+{
+        return tbl_qualifier_kind[kind];
+}
+
+std::size_t IntrinsicType::hash() const
+{
+        return kind;
+}
+
 // Parameter IN type
 InArgType::InArgType(PlainDataType p) : PlainDataType(p) {}
 
@@ -279,14 +297,19 @@ QualifiedType QualifiedType::array(const QualifiedType &element, Index size)
         return ArrayType(element.as <PlainDataType> (), size);
 }
 
+QualifiedType QualifiedType::image(PrimitiveType result, Index dimension)
+{
+        return ImageType(result, dimension);
+}
+
 QualifiedType QualifiedType::sampler(PrimitiveType result, Index dimension)
 {
         return SamplerType(result, dimension);
 }
 
-QualifiedType QualifiedType::image(PrimitiveType result, Index dimension)
+QualifiedType QualifiedType::intrinsic(QualifierKind kind)
 {
-        return ImageType(result, dimension);
+        return IntrinsicType(kind);
 }
 
 QualifiedType QualifiedType::nil()

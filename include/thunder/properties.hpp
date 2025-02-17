@@ -64,6 +64,18 @@ constexpr PrimitiveType swizzle_type_of(PrimitiveType primitive, SwizzleCode cod
 	}
 }
 
+constexpr bool intrinsic_kind(QualifierKind kind)
+{
+	switch (kind) {
+	case acceleration_structure:
+		return true;
+	default:
+		break;
+	}
+
+	return false;
+}
+
 constexpr bool image_kind(QualifierKind kind)
 {
 	switch (kind) {

@@ -65,6 +65,10 @@ QualifiedType Buffer::classify(Index i)
 						      sampler_dimension(qualifier.kind));
 		}
 
+		// General intrinsic types
+		if (intrinsic_kind(qualifier.kind))
+			return QualifiedType::intrinsic(qualifier.kind);
+
 		// Ensure valid underlying type; OK to be invalid for images and samplers
 		JVL_ASSERT(qualifier.underlying >= 0
 			&& qualifier.underlying < (Index) atoms.size(),

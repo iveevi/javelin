@@ -37,95 +37,65 @@ struct RayFrame {
 	}
 };
 
-static_assert(aggregate <RayFrame>);
+struct accelerationStructureEXT {
+	int32_t binding;
 
-struct Nested {
-	vec3 x;
-	RayFrame frame;
+	accelerationStructureEXT(int32_t binding_ = 0) : binding(binding_) {
+		synthesize();
+	}
 
-	auto layout() {
-		return layout_from("Nested",
-			verbatim_field(x),
-			verbatim_field(frame));
+	cache_index_t synthesize() const {
+		auto &em = Emitter::active;
+		auto qual = em.emit_qualifier(-1, binding, thunder::acceleration_structure);
+		return cache_index_t::from(qual);
 	}
 };
 
-static_assert(aggregate <Nested>);
-
 auto f = procedure <void> ("main") << []()
 {
-	// push_constant <RayFrame> rayframe;
+	push_constant <RayFrame> rayframe;
 
-	// ray_payload <vec3> payload1(1);
-	// ray_payload <vec3> payload2(2);
+	ray_payload <vec3> payload1(1);
+	ray_payload <vec3> payload2(2);
+
+	accelerationStructureEXT tlas(0);
 
 	// // TODO: assignment operators...
 	// ray_payload_in <vec3> payload_in(0);
 
-	// image2D raw(1);
-	// image1D raw2(2);
-
-	// vec4 color = vec4(pow(payload1, vec3(1.0 / 2.2)), 1.0);
-
-	// ivec2 size = imageSize(raw);
-	// i32 s2 = imageSize(raw2);
-
-	// imageStore(raw, ivec2(0, 1), color);
-
-	// color = imageLoad(raw2, 12);
+	write_only <image2D> raw(1);
+	vec4 color = vec4(pow(payload1, vec3(1.0 / 2.2)), 1.0);
+	ivec2 size = imageSize(raw);
+	imageStore(raw, ivec2(0, 1), color);
 
 	// TODO: image formats restricted by native type...
 	// image2D image(0);
-	write_only <image2D> image(0);
-	read_only <uimage2D> rimage(1);
-
-	imageStore(image, ivec2(0, 0), vec4(0.0));
-
-	uvec4 c = imageLoad(rimage, ivec2(10, 100));
 };
+
+void spill(const std::string &contents)
+{
+	std::vector <std::string> lines;
+
+	std::string s = contents + "\n";
+
+	std::string interim;
+	for (auto c : s) {
+		if (c == '\n') {
+			lines.emplace_back(interim);
+			interim.clear();
+			continue;
+		}
+
+		interim += c;
+	}
+
+	for (size_t i = 0; i < lines.size(); i++)
+		fmt::println("{:4d}: {}", i + 1, lines[i]);
+}
 
 int main()
 {
-	// f.dump();
-	// fmt::println("{}", link(f).generate_glsl());
-	// link(f).generate_spirv(vk::ShaderStageFlagBits::eRaygenKHR);
-
-	{
-		thunder::TrackedBuffer buffer;
-		buffer.name = "main";
-
-		auto &em = Emitter::active;
-		
-		em.push(buffer);
-
-		RayFrame rayframe;
-		auto type = type_info_generator <RayFrame> (rayframe).synthesize();
-		auto idx = type.as <composite_type> ().idx;
-
-		idx = em.emit_construct(idx, -1, thunder::normal);
-		
-		rayframe.layout().link(idx);
-
-		f32 x;
-		x = rayframe.origin.x;
-		
-		Nested nested;
-		type = type_info_generator <Nested> (nested).synthesize();
-		idx = type.as <composite_type> ().idx;
-		
-		idx = em.emit_construct(idx, -1, thunder::normal);
-
-		nested.layout().link(idx);
-
-		x = nested.frame.lower_left.y;
-		// x = nested.x.y;
-
-		em.pop();
-
-		buffer.dump();
-
-		fmt::println("{}", link(buffer).generate_glsl());
-
-		link(buffer).generate_spirv(vk::ShaderStageFlagBits::eAll);
-	}
+	f.dump();
+	spill(link(f).generate_glsl());
+	link(f).generate_spirv(vk::ShaderStageFlagBits::eRaygenKHR);
 }

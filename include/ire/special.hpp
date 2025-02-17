@@ -78,7 +78,11 @@ struct ray_payload <T> : T {
 	template <typename ... Args>
 	explicit ray_payload(uint32_t binding_, const Args &... args) : T(args...), binding(binding_) {
 		auto &em = Emitter::active;
-		auto type = type_info_generator <T> (*this).synthesize();
+
+		auto type = type_info_generator <T> (*this)
+			.synthesize()
+			.concrete();
+
 		auto qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload);
 		auto value = em.emit_construct(qual, -1, thunder::transient);
 		this->ref = value;
@@ -97,11 +101,11 @@ struct ray_payload <T> : T {
 	template <typename ... Args>
 	explicit ray_payload(uint32_t binding_, const Args &... args) : T(args...), binding(binding_) {
 		auto &em = Emitter::active;
-		auto layout = this->layout().remove_const();
-		thunder::Index type = type_field_from_args(layout).id;
-		thunder::Index qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload);
-		thunder::Index value = em.emit_construct(qual, -1, thunder::transient);
-		layout.ref_with(cache_index_t::from(value));
+		auto layout = this->layout();
+		auto type = layout.generate_type().concrete();
+		auto qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload);
+		auto value = em.emit_construct(qual, -1, thunder::transient);
+		layout.link(value);
 	}
 };
 

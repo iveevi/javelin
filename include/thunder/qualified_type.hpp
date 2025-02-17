@@ -75,6 +75,17 @@ struct SamplerType : public PlainDataType {
 	std::size_t hash() const;
 };
 
+// General intrinsic types
+struct IntrinsicType {
+	thunder::QualifierKind kind;
+
+	IntrinsicType(thunder::QualifierKind);
+	
+	bool operator==(const IntrinsicType &) const;
+	std::string to_string() const;
+	std::size_t hash() const;
+};
+
 // Parameter IN type
 struct InArgType : public PlainDataType {
 	InArgType(PlainDataType);
@@ -110,6 +121,7 @@ using qualified_type_base = bestd::variant <
 	ArrayType,
 	ImageType,
 	SamplerType,
+	IntrinsicType,
 	InArgType,
 	OutArgType,
 	InOutArgType
@@ -140,6 +152,7 @@ struct QualifiedType : qualified_type_base {
 	static QualifiedType array(const QualifiedType &, Index);
 	static QualifiedType image(PrimitiveType, Index);
 	static QualifiedType sampler(PrimitiveType, Index);
+	static QualifiedType intrinsic(QualifierKind);
 	static QualifiedType nil();
 };
 
