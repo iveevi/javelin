@@ -41,24 +41,26 @@ struct RayFrame {
 
 auto rgen = procedure <void> ("main") << []()
 {
-	push_constant <RayFrame> rayframe;
+	gl_LaunchIDEXT.xy();
+	
+	// push_constant <RayFrame> rayframe;
 
-	accelerationStructureEXT tlas(0);
+	// accelerationStructureEXT tlas(0);
 
-	ray_payload <vec3> payload(0);
+	// ray_payload <vec3> payload(0);
 
-	// TODO: image formats restricted by native type
-	write_only <image2D> image(1);
+	// // TODO: image formats restricted by native type
+	// write_only <image2D> image(1);
 
-	// TODO: simpler vector constructors...
-	vec2 center = vec2(gl_LaunchIDEXT.xy()) + vec2(0.5);
-	vec2 uv = center / vec2(imageSize(image));
-	vec3 ray = rayframe.at(uv);
+	// // TODO: simpler vector constructors...
+	// vec2 center = vec2(gl_LaunchIDEXT.xy()) + vec2(0.5);
+	// vec2 uv = center / vec2(imageSize(image));
+	// vec3 ray = rayframe.at(uv);
 
-	// vec4 color = vec4(pow(payload, vec3(1/2.2)), 1.0);
-	vec4 color = gl_LaunchIDEXT.yyxz();
+	// // vec4 color = vec4(pow(payload, vec3(1/2.2)), 1.0);
+	// vec4 color = gl_LaunchIDEXT.yyxz();
 
-	imageStore(image, ivec2(gl_LaunchIDEXT.xy()), color);
+	// imageStore(image, ivec2(gl_LaunchIDEXT.xy()), color);
 };
 
 int main()

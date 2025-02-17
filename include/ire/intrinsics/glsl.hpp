@@ -35,51 +35,10 @@ struct __glsl_intrinsic_variable_t <T, code> {
 
 // Implementation for vector types
 template <native T, thunder::QualifierKind code>
-struct __glsl_intrinsic_variable_t <vec <T, 3>, code> {
-	using arithmetic_type = vec <T, 3>;
-
-	using self = __glsl_intrinsic_variable_t;
-
-	swizzle_element <T, self, thunder::SwizzleCode::x> x;
-	swizzle_element <T, self, thunder::SwizzleCode::y> y;
-	swizzle_element <T, self, thunder::SwizzleCode::z> z;
-
-	SWIZZLE_EXPANSION_DIM3()
-
-	__glsl_intrinsic_variable_t() = default;
-
-	cache_index_t synthesize() const {
-		auto &em = Emitter::active;
-		auto type = vec <T, 3> ::type();
-		auto intr = em.emit_qualifier(type, -1, code);
-		return cache_index_t::from(intr);
-	}
-
-	operator arithmetic_type() const {
-		return synthesize();
-	}
-
-	// Assignment only for non-const intrinsics (assignable)
-	// TODO: requires...
-	const self &operator=(const vec <T, 3> &other) {
-		auto &em = Emitter::active;
-		em.emit_store(synthesize().id, other.synthesize().id);
-		return *this;
-	}
-};
-
-template <native T, thunder::QualifierKind code>
-struct __glsl_intrinsic_variable_t <vec <T, 4>, code> {
-	using arithmetic_type = vec <T, 4>;
-
-	using self = __glsl_intrinsic_variable_t;
-
-	swizzle_element <T, self, thunder::SwizzleCode::x> x;
-	swizzle_element <T, self, thunder::SwizzleCode::y> y;
-	swizzle_element <T, self, thunder::SwizzleCode::z> z;
-	swizzle_element <T, self, thunder::SwizzleCode::w> w;
-
-	__glsl_intrinsic_variable_t() = default;
+struct __glsl_intrinsic_variable_t <vec <T, 2>, code> : basic_swizzle_base <T, __glsl_intrinsic_variable_t <vec <T, 2>, code>, 2> {
+	using arithmetic_type = vec <T, 2>;
+	
+	__glsl_intrinsic_variable_t() : basic_swizzle_base <T, __glsl_intrinsic_variable_t <vec <T, 2>, code>, 2> (this) {}
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
@@ -94,7 +53,59 @@ struct __glsl_intrinsic_variable_t <vec <T, 4>, code> {
 
 	// Assignment only for non-const intrinsics (assignable)
 	// TODO: requires...
-	const self &operator=(const vec <T, 4> &other) {
+	const auto &operator=(const vec <T, 2> &other) {
+		auto &em = Emitter::active;
+		em.emit_store(synthesize().id, other.synthesize().id);
+		return *this;
+	}
+};
+
+template <native T, thunder::QualifierKind code>
+struct __glsl_intrinsic_variable_t <vec <T, 3>, code> : basic_swizzle_base <T, __glsl_intrinsic_variable_t <vec <T, 3>, code>, 3>{
+	using arithmetic_type = vec <T, 3>;
+
+	__glsl_intrinsic_variable_t() : basic_swizzle_base <T, __glsl_intrinsic_variable_t <vec <T, 3>, code>, 3> (this) {}
+
+	cache_index_t synthesize() const {
+		auto &em = Emitter::active;
+		auto type = vec <T, 3> ::type();
+		auto intr = em.emit_qualifier(type, -1, code);
+		return cache_index_t::from(intr);
+	}
+
+	operator arithmetic_type() const {
+		return synthesize();
+	}
+
+	// Assignment only for non-const intrinsics (assignable)
+	// TODO: requires...
+	const auto &operator=(const vec <T, 3> &other) {
+		auto &em = Emitter::active;
+		em.emit_store(synthesize().id, other.synthesize().id);
+		return *this;
+	}
+};
+
+template <native T, thunder::QualifierKind code>
+struct __glsl_intrinsic_variable_t <vec <T, 4>, code> : basic_swizzle_base <T, __glsl_intrinsic_variable_t <vec <T, 4>, code>, 4> {
+	using arithmetic_type = vec <T, 4>;
+	
+	__glsl_intrinsic_variable_t() : basic_swizzle_base <T, __glsl_intrinsic_variable_t <vec <T, 4>, code>, 4> (this) {}
+
+	cache_index_t synthesize() const {
+		auto &em = Emitter::active;
+		auto type = vec <T, 4> ::type();
+		auto intr = em.emit_qualifier(type, -1, code);
+		return cache_index_t::from(intr);
+	}
+
+	operator arithmetic_type() const {
+		return synthesize();
+	}
+
+	// Assignment only for non-const intrinsics (assignable)
+	// TODO: requires...
+	const auto &operator=(const vec <T, 4> &other) {
 		auto &em = Emitter::active;
 		em.emit_store(synthesize().id, other.synthesize().id);
 		return *this;

@@ -5,155 +5,82 @@
 #include "tagged.hpp"
 #include "util.hpp"
 #include "swizzle_expansion.hpp"
+#include "swizzle_element.hpp"
 
 namespace jvl::ire {
 
-// Vector types
-template <native T, std::size_t N>
+///////////////////////
+// Final vector type //
+///////////////////////
+
+template <native T, size_t N>
 struct vec;
 
-template <native T, std::size_t N>
+/////////////////////////////////////////
+// Basic stencil form for vector types //
+/////////////////////////////////////////
+
+template <native T, typename Up, size_t N>
+requires (N > 1 && N <= 4)
+struct basic_swizzle_base;
+
+template <native T, typename Up>
+struct basic_swizzle_base <T, Up, 2> {
+	using native_type = T;
+
+	swizzle_element <T, Up, thunder::SwizzleCode::x> x;
+	swizzle_element <T, Up, thunder::SwizzleCode::y> y;
+
+	basic_swizzle_base(Up &upper) : x(upper), y(upper) {}
+	basic_swizzle_base(Up *upper) : x(upper), y(upper) {}
+
+	SWIZZLE_EXPANSION_DIM2()
+};
+
+template <native T, typename Up>
+struct basic_swizzle_base <T, Up, 3> {
+	using native_type = T;
+
+	swizzle_element <T, Up, thunder::SwizzleCode::x> x;
+	swizzle_element <T, Up, thunder::SwizzleCode::y> y;
+	swizzle_element <T, Up, thunder::SwizzleCode::z> z;
+	
+	basic_swizzle_base(Up &upper) : x(upper), y(upper), z(upper) {}
+	basic_swizzle_base(Up *upper) : x(upper), y(upper), z(upper) {}
+
+	SWIZZLE_EXPANSION_DIM3()
+};
+
+template <native T, typename Up>
+struct basic_swizzle_base <T, Up, 4> {
+	using native_type = T;
+
+	swizzle_element <T, Up, thunder::SwizzleCode::x> x;
+	swizzle_element <T, Up, thunder::SwizzleCode::y> y;
+	swizzle_element <T, Up, thunder::SwizzleCode::z> z;
+	swizzle_element <T, Up, thunder::SwizzleCode::w> w;
+	
+	basic_swizzle_base(Up &upper) : x(upper), y(upper), z(upper), w(upper) {}
+	basic_swizzle_base(Up *upper) : x(upper), y(upper), z(upper), w(upper) {}
+
+	SWIZZLE_EXPANSION_DIM4()
+};
+
+////////////////////////////////////////////////////
+// Basic vector types with fleshed out components //
+////////////////////////////////////////////////////
+
+template <native T, size_t N>
 requires (N > 1 && N <= 4)
 class swizzle_base;
 
-// Other intrinsics
-struct __gl_Position_t;
-
-// TODO: basic_swizzle_base with no extra method...
-
-// Swizzle element
-// TODO: move to a separate header at this point
-template <native T, typename Up, thunder::SwizzleCode swz>
-class swizzle_element {
-	Up *upper = nullptr;
-
-	swizzle_element(Up *upper_) : upper(upper_) {}
-public:
-	using native_type = T;
-	using arithmetic_type = native_t <T>;
-
-	swizzle_element() = default;
-
-	cache_index_t synthesize() const {
-		auto &em = Emitter::active;
-
-		thunder::Swizzle swizzle;
-		swizzle.src = upper->synthesize().id;
-		swizzle.code = swz;
-
-		cache_index_t ci;
-		ci = em.emit(swizzle);
-		return ci;
-	}
-
-	swizzle_element &operator=(const arithmetic_type &v) {
-		thunder::Store store;
-		store.src = v.synthesize().id;
-		store.dst = synthesize().id;
-		Emitter::active.emit(store);
-		return *this;
-	}
-
-	operator arithmetic_type() const {
-		return arithmetic_type(synthesize());
-	}
-
-	// Unary minus
-	arithmetic_type operator-() const {
-		return -arithmetic_type(synthesize());
-	}
-
-	// In place arithmetic operators
-	swizzle_element &operator+=(const arithmetic_type &a) {
-		arithmetic_type tmp = *this;
-		tmp += a;
-		return *this;
-	}
-
-	swizzle_element &operator-=(const arithmetic_type &a) {
-		arithmetic_type tmp = *this;
-		tmp -= a;
-		return *this;
-	}
-
-	swizzle_element &operator*=(const arithmetic_type &a) {
-		arithmetic_type tmp = *this;
-		tmp *= a;
-		return *this;
-	}
-
-	swizzle_element &operator/=(const arithmetic_type &a) {
-		arithmetic_type tmp = *this;
-		tmp /= a;
-		return *this;
-	}
-
-	// Bit shift operators
-	template <integral_native U>
-	swizzle_element &operator>>=(const native_t <U> &a)
-	requires integral_native <T> {
-		thunder::Store store;
-		store.src = (arithmetic_type(*this) >> a).synthesize().id;
-		store.dst = synthesize().id;
-		Emitter::active.emit(store);
-		return *this;
-	}
-
-	template <integral_native U, typename Up_, thunder::SwizzleCode swz_>
-	swizzle_element &operator>>=(const swizzle_element <U, Up_, swz_> &a)
-	requires integral_native <T> {
-		return operator>>=(native_t <U> (a));
-	}
-
-	template <integral_native U>
-	swizzle_element &operator<<=(const native_t <U> &a)
-	requires integral_native <T> {
-		thunder::Store store;
-		store.src = (arithmetic_type(*this) << a).synthesize().id;
-		store.dst = synthesize().id;
-		Emitter::active.emit(store);
-		return *this;
-	}
-
-	template <integral_native U, typename Up_, thunder::SwizzleCode swz_>
-	swizzle_element &operator<<=(const swizzle_element <U, Up_, swz_> &a)
-	requires integral_native <T> {
-		return operator<<=(native_t <U> (a));
-	}
-
-	// Bitwise operators
-	swizzle_element &operator|=(const arithmetic_type &a)
-	requires integral_native <T> {
-		arithmetic_type tmp = *this;
-		tmp |= a;
-		return *this;
-	}
-
-	swizzle_element &operator&=(const arithmetic_type &a)
-	requires integral_native <T> {
-		arithmetic_type tmp = *this;
-		tmp &= a;
-		return *this;
-	}
-
-	template <native U, size_t N>
-	requires (N > 1 && N <= 4)
-	friend class swizzle_base;
-
-	friend struct __gl_Position_t;
-};
-
-// Swizzle base specializations
 template <native T>
-class swizzle_base <T, 2> : public tagged {
-	using self = swizzle_base <T, 2>;
+class swizzle_base <T, 2> : public tagged, public basic_swizzle_base <T, swizzle_base <T, 2>, 2> {
+	using base = basic_swizzle_base <T, swizzle_base <T, 2>, 2>;
 
 	T initial[2] = { T(), T() };
 public:
 	using native_type = T;
-
-	swizzle_element <T, self, thunder::SwizzleCode::x> x;
-	swizzle_element <T, self, thunder::SwizzleCode::y> y;
 
 	static constexpr thunder::PrimitiveType primitive() {
 		if constexpr (std::same_as <T, int32_t>)
@@ -181,20 +108,17 @@ public:
 		return em.emit_type_information(-1, -1, primitive());
 	}
 
-	explicit swizzle_base(T x_ = T(0))
-			: x(this), y(this) {
+	explicit swizzle_base(T x_ = T(0)) : base(this) {
 		initial[0] = x_;
 		initial[1] = x_;
 	}
 
-	explicit swizzle_base(T x_, T y_)
-			: x(this), y(this) {
+	explicit swizzle_base(T x_, T y_) : base(this) {
 		initial[0] = x_;
 		initial[1] = y_;
 	}
 
-	explicit swizzle_base(const native_t <T> &x_, const native_t <T> y_)
-			: x(this), y(this) {
+	explicit swizzle_base(const native_t <T> &x_, const native_t <T> y_) : base(this) {
 		auto &em = Emitter::active;
 		auto args = list_from_args(x_, y_);
 		ref = em.emit_construct(type(), args, thunder::normal);
@@ -212,7 +136,7 @@ public:
 		}
 	}
 
-	swizzle_base(cache_index_t cit) : tagged(cit), x(this), y(this) {}
+	swizzle_base(cache_index_t cit) : tagged(cit), base(this) {}
 
 	// Casting conversion
 	template <native U>
@@ -223,8 +147,6 @@ public:
 		thunder::Index cast = em.emit_intrinsic(args, caster());
 		em.emit_store(this->ref.id, cast);
 	}
-
-	SWIZZLE_EXPANSION_DIM2()
 
 	cache_index_t synthesize() const {
 		if (cached())
@@ -243,16 +165,12 @@ public:
 };
 
 template <native T>
-class swizzle_base <T, 3> : public tagged {
-	using self = swizzle_base <T, 3>;
+class swizzle_base <T, 3> : public tagged, public basic_swizzle_base <T, swizzle_base <T, 3>, 3> {
+	using base = basic_swizzle_base <T, swizzle_base <T, 3>, 3>;
 
 	T initial[3] = { T(), T(), T() };
 public:
 	using native_type = T;
-
-	swizzle_element <T, self, thunder::SwizzleCode::x> x;
-	swizzle_element <T, self, thunder::SwizzleCode::y> y;
-	swizzle_element <T, self, thunder::SwizzleCode::z> z;
 
 	static constexpr thunder::PrimitiveType primitive() {
 		if constexpr (std::same_as <T, int32_t>)
@@ -280,22 +198,19 @@ public:
 		return em.emit_type_information(-1, -1, primitive());
 	}
 
-	explicit swizzle_base(T v_ = T(0))
-			: x(this), y(this), z(this) {
+	explicit swizzle_base(T v_ = T(0)) : base(this) {
 		initial[0] = v_;
 		initial[1] = v_;
 		initial[2] = v_;
 	}
 
-	swizzle_base(T x_ , T y_, T z_)
-			: x(this), y(this), z(this) {
+	swizzle_base(T x_ , T y_, T z_) : base(this) {
 		initial[0] = x_;
 		initial[1] = y_;
 		initial[2] = z_;
 	}
 
-	swizzle_base(const native_t <T> &x_)
-			: swizzle_base() {
+	swizzle_base(const native_t <T> &x_) : swizzle_base() {
 		auto &em = Emitter::active;
 		auto args = list_from_args(x_, x_, x_);
 		ref = em.emit_construct(type(), args, thunder::normal);
@@ -303,24 +218,21 @@ public:
 
 	swizzle_base(const native_t <T> &x_,
 		     const native_t <T> &y_,
-		     const native_t <T> &z_)
-			: swizzle_base() {
+		     const native_t <T> &z_) : swizzle_base() {
 		auto &em = Emitter::active;
 		auto args = list_from_args(x_, y_, z_);
 		ref = em.emit_construct(type(), args, thunder::normal);
 	}
 	
 	swizzle_base(const native_t <T> &x_,
-		     const swizzle_base <T, 2> &v_)
-			: swizzle_base() {
+		     const swizzle_base <T, 2> &v_) : swizzle_base() {
 		auto &em = Emitter::active;
 		auto args = list_from_args(x_, v_);
 		ref = em.emit_construct(type(), args, thunder::normal);
 	}
 	
 	swizzle_base(const swizzle_base <T, 2> &v_,
-		     const native_t <T> &z_)
-			: swizzle_base() {
+		     const native_t <T> &z_) : swizzle_base() {
 		auto &em = Emitter::active;
 		auto args = list_from_args(v_, z_);
 		ref = em.emit_construct(type(), args, thunder::normal);
@@ -339,7 +251,7 @@ public:
 		}
 	}
 
-	swizzle_base(cache_index_t cit) : tagged(cit), x(this), y(this), z(this) {}
+	swizzle_base(cache_index_t cit) : tagged(cit), base(this) {}
 
 	// Casting conversion
 	template <native U>
@@ -351,8 +263,6 @@ public:
 		em.emit_store(this->ref.id, cast);
 	}
 	
-	SWIZZLE_EXPANSION_DIM3()
-
 	cache_index_t synthesize() const {
 		if (cached())
 			return ref;
@@ -365,17 +275,12 @@ public:
 };
 
 template <native T>
-class swizzle_base <T, 4> : public tagged {
-	using self = swizzle_base <T, 4>;
+class swizzle_base <T, 4> : public tagged, public basic_swizzle_base <T, swizzle_base <T, 4>, 4> {
+	using base = basic_swizzle_base <T, swizzle_base <T, 4>, 4>;
 
 	T initial[4] = { T(), T(), T(), T() };
 public:
 	using native_type = T;
-
-	swizzle_element <T, self, thunder::SwizzleCode::x> x;
-	swizzle_element <T, self, thunder::SwizzleCode::y> y;
-	swizzle_element <T, self, thunder::SwizzleCode::z> z;
-	swizzle_element <T, self, thunder::SwizzleCode::w> w;
 
 	static constexpr thunder::PrimitiveType primitive() {
 		if constexpr (std::same_as <T, int32_t>)
@@ -403,16 +308,14 @@ public:
 		return em.emit_type_information(-1, -1, primitive());
 	}
 
-	explicit swizzle_base(T x_ = T(0), T y_ = T(0), T z_ = T(0), T w_ = T(0))
-			: x(this), y(this), z(this), w(this) {
+	explicit swizzle_base(T x_ = T(0), T y_ = T(0), T z_ = T(0), T w_ = T(0)) : base(this) {
 		initial[0] = x_;
 		initial[1] = y_;
 		initial[2] = z_;
 		initial[3] = w_;
 	}
 
-	explicit swizzle_base(const native_t <T> &x_)
-			: swizzle_base() {
+	explicit swizzle_base(const native_t <T> &x_) : swizzle_base() {
 		auto &em = Emitter::active;
 		auto args = list_from_args(x_, x_, x_, x_);
 		ref = em.emit_construct(type(), args, thunder::normal);
@@ -456,7 +359,7 @@ public:
 		}
 	}
 
-	swizzle_base(cache_index_t cit) : tagged(cit), x(this), y(this), z(this), w(this) {}
+	swizzle_base(cache_index_t cit) : tagged(cit), base(this) {}
 
 	// Casting conversion
 	template <native U>
@@ -467,8 +370,6 @@ public:
 		thunder::Index cast = em.emit_intrinsic(args, caster());
 		em.emit_store(this->ref.id, cast);
 	}
-	
-	SWIZZLE_EXPANSION_DIM4()
 
 	cache_index_t synthesize() const {
 		if (cached())
@@ -484,8 +385,11 @@ public:
 	}
 };
 
-// Final vector type
-template <native T, std::size_t N>
+///////////////////////////////////////
+// Final vector type; implementation //
+///////////////////////////////////////
+
+template <native T, size_t N>
 struct vec : swizzle_base <T, N> {
 	using swizzle_base <T, N> ::swizzle_base;
 

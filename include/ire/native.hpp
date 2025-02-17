@@ -366,7 +366,7 @@ inline auto underlying(const A &a)
 }
 
 template <arithmetic T>
-using arithmetic_base = decltype(underlying(T()));
+using arithmetic_base = decltype(underlying(*reinterpret_cast <T *> ((void *) nullptr)));
 
 template <typename T>
 concept integral_arithmetic = arithmetic <T> && std::is_integral_v <typename arithmetic_base <T> ::native_type>;
