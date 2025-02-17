@@ -21,6 +21,7 @@ add_library(common-gfx STATIC
 	material.cpp
 	texture.cpp
 	texture_bank.cpp
+	util.cpp
 	vulkan_resources.cpp)
 
 target_compile_options(common-gfx PRIVATE

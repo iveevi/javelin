@@ -168,8 +168,13 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 		globals.special[qualifier.kind][qualifier.numerical] = special_type(fidx, bidx);
 		extensions.insert("GL_EXT_ray_tracing");
 		break;
+	
+	case glsl_LaunchIDEXT:
+	case glsl_LaunchSizeEXT:
+		extensions.insert("GL_EXT_ray_tracing");
+		break;
 
-	case glsl_intrinsic_gl_SubgroupInvocationID:
+	case glsl_SubgroupInvocationID:
 		extensions.insert("GL_KHR_shader_subgroup_basic");
 		break;
 
@@ -177,16 +182,16 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 	case arrays:
 		break;
 
-	case glsl_intrinsic_gl_GlobalInvocationID:
-	case glsl_intrinsic_gl_InstanceIndex:
-	case glsl_intrinsic_gl_LocalInvocationID:
-	case glsl_intrinsic_gl_LocalInvocationIndex:
-	case glsl_intrinsic_gl_MeshVerticesEXT:
-	case glsl_intrinsic_gl_Position:
-	case glsl_intrinsic_gl_PrimitiveTriangleIndicesEXT:
-	case glsl_intrinsic_gl_VertexIndex:
-	case glsl_intrinsic_gl_WorkGroupID:
-	case glsl_intrinsic_gl_WorkGroupSize:
+	case glsl_GlobalInvocationID:
+	case glsl_InstanceIndex:
+	case glsl_LocalInvocationID:
+	case glsl_LocalInvocationIndex:
+	case glsl_MeshVerticesEXT:
+	case glsl_Position:
+	case glsl_PrimitiveTriangleIndicesEXT:
+	case glsl_VertexIndex:
+	case glsl_WorkGroupID:
+	case glsl_WorkGroupSize:
 		break;
 
 	default:

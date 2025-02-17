@@ -142,21 +142,23 @@ enum QualifierKind : int8_t {
 	acceleration_structure,
 
 	// GLSL intrinsics
-	glsl_intrinsic_gl_FragCoord,
-	glsl_intrinsic_gl_FragDepth,
-	glsl_intrinsic_gl_InstanceID,
-	glsl_intrinsic_gl_InstanceIndex,
-	glsl_intrinsic_gl_VertexID,
-	glsl_intrinsic_gl_VertexIndex,
-	glsl_intrinsic_gl_GlobalInvocationID,
-	glsl_intrinsic_gl_LocalInvocationID,
-	glsl_intrinsic_gl_LocalInvocationIndex,
-	glsl_intrinsic_gl_WorkGroupID,
-	glsl_intrinsic_gl_WorkGroupSize,
-	glsl_intrinsic_gl_SubgroupInvocationID,
-	glsl_intrinsic_gl_Position,
-	glsl_intrinsic_gl_MeshVerticesEXT,
-	glsl_intrinsic_gl_PrimitiveTriangleIndicesEXT,
+	glsl_FragCoord,
+	glsl_FragDepth,
+	glsl_InstanceID,
+	glsl_InstanceIndex,
+	glsl_VertexID,
+	glsl_VertexIndex,
+	glsl_GlobalInvocationID,
+	glsl_LocalInvocationID,
+	glsl_LocalInvocationIndex,
+	glsl_WorkGroupID,
+	glsl_WorkGroupSize,
+	glsl_SubgroupInvocationID,
+	glsl_Position,
+	glsl_MeshVerticesEXT,
+	glsl_PrimitiveTriangleIndicesEXT,
+	glsl_LaunchIDEXT,
+	glsl_LaunchSizeEXT,
 
 	__gq_end
 };
@@ -238,6 +240,8 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"glsl:Position",
 	"glsl:MeshVerticesEXT",
 	"glsl:PrimitiveTrianglesIndicesEXT",
+	"glsl:LaunchIDEXT",
+	"glsl:LaunchSizeEXT",
 
 	"__end"
 };

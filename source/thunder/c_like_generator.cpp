@@ -79,36 +79,40 @@ static std::optional <std::string> generate_global_reference(const std::vector <
 		return fmt::format("_ray_payload_in{}", qualifier.numerical);
 
 	// GLSL shader stage intrinsics
-	case glsl_intrinsic_gl_FragCoord:
+	case glsl_FragCoord:
 		return "gl_FragCoord";
-	case glsl_intrinsic_gl_FragDepth:
+	case glsl_FragDepth:
 		return "gl_FragDepth";
-	case glsl_intrinsic_gl_InstanceID:
+	case glsl_InstanceID:
 		return "gl_InstanceID";
-	case glsl_intrinsic_gl_InstanceIndex:
+	case glsl_InstanceIndex:
 		return "gl_InstanceIndex";
-	case glsl_intrinsic_gl_VertexID:
+	case glsl_VertexID:
 		return "gl_VertexID";
-	case glsl_intrinsic_gl_VertexIndex:
+	case glsl_VertexIndex:
 		return "gl_VertexIndex";
-	case glsl_intrinsic_gl_GlobalInvocationID:
+	case glsl_GlobalInvocationID:
 		return "gl_GlobalInvocationID";
-	case glsl_intrinsic_gl_LocalInvocationID:
+	case glsl_LocalInvocationID:
 		return "gl_LocalInvocationID";
-	case glsl_intrinsic_gl_LocalInvocationIndex:
+	case glsl_LocalInvocationIndex:
 		return "gl_LocalInvocationIndex";
-	case glsl_intrinsic_gl_WorkGroupID:
+	case glsl_WorkGroupID:
 		return "gl_WorkGroupID";
-	case glsl_intrinsic_gl_WorkGroupSize:
+	case glsl_WorkGroupSize:
 		return "gl_WorkGroupSize";
-	case glsl_intrinsic_gl_SubgroupInvocationID:
+	case glsl_SubgroupInvocationID:
 		return "gl_SubgroupInvocationID";
+	case glsl_LaunchIDEXT:
+		return "gl_LaunchIDEXT";
+	case glsl_LaunchSizeEXT:
+		return "gl_LaunchSizeEXT";
 
-	case glsl_intrinsic_gl_Position:
+	case glsl_Position:
 		return "gl_Position";
-	case glsl_intrinsic_gl_MeshVerticesEXT:
+	case glsl_MeshVerticesEXT:
 		return "gl_MeshVerticesEXT";
-	case glsl_intrinsic_gl_PrimitiveTriangleIndicesEXT:
+	case glsl_PrimitiveTriangleIndicesEXT:
 		return "gl_PrimitiveTriangleIndicesEXT";
 
 	default:
@@ -245,6 +249,8 @@ std::string c_like_generator_t::reference(Index index) const
 		auto ref = generate_global_reference(atoms, index);
 		if (ref)
 			return ref.value();
+
+		JVL_ABORT("failed to generate global reference for qualifier:\n{}", atom);
 	} break;
 
 	case Atom::type_index <Construct> ():

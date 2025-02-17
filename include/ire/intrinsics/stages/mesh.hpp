@@ -24,8 +24,8 @@ struct __gl_MeshPerVertexEXT {
 	}
 };
 
-using gl_MeshPerVertexEXT_t = __glsl_array <__gl_MeshPerVertexEXT, thunder::glsl_intrinsic_gl_MeshVerticesEXT>;
-using gl_PrimitiveTriangleIndicesEXT_t = __glsl_array <uvec3, thunder::glsl_intrinsic_gl_PrimitiveTriangleIndicesEXT>;
+using gl_MeshPerVertexEXT_t = __glsl_array <__gl_MeshPerVertexEXT, thunder::glsl_MeshVerticesEXT>;
+using gl_PrimitiveTriangleIndicesEXT_t = __glsl_array <uvec3, thunder::glsl_PrimitiveTriangleIndicesEXT>;
 
 static const gl_MeshPerVertexEXT_t gl_MeshVerticesEXT;
 static const gl_PrimitiveTriangleIndicesEXT_t gl_PrimitiveTriangleIndicesEXT;

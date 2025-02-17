@@ -154,18 +154,20 @@ using __glsl_array = __glsl_intrinsic_variable_t <unsized_array <T>, code>;
 // GLSL shader intrinsic variable definitions //
 ////////////////////////////////////////////////
 
-using gl_FragCoord_t		= __glsl_vec4  <thunder::glsl_intrinsic_gl_FragCoord>;
-using gl_FragDept_t		= __glsl_float <thunder::glsl_intrinsic_gl_FragDepth>;
-using gl_InstanceID_t		= __glsl_int   <thunder::glsl_intrinsic_gl_InstanceID>;
-using gl_InstanceIndex_t	= __glsl_int   <thunder::glsl_intrinsic_gl_InstanceIndex>;
-using gl_VertexID_t		= __glsl_int   <thunder::glsl_intrinsic_gl_VertexID>;
-using gl_VertexIndex_t		= __glsl_int   <thunder::glsl_intrinsic_gl_VertexIndex>;
-using gl_GlobalInvocationID_t	= __glsl_uvec3 <thunder::glsl_intrinsic_gl_GlobalInvocationID>;
-using gl_LocalInvocationID_t	= __glsl_uvec3 <thunder::glsl_intrinsic_gl_LocalInvocationID>;
-using gl_LocalInvocationIndex_t	= __glsl_uint  <thunder::glsl_intrinsic_gl_LocalInvocationIndex>;
-using gl_WorkGroupID_t		= __glsl_uvec3 <thunder::glsl_intrinsic_gl_WorkGroupID>;
-using gl_WorkGroupSize_t	= __glsl_uvec3 <thunder::glsl_intrinsic_gl_WorkGroupSize>;
-using gl_SubgroupInvocationID_t	= __glsl_uint <thunder::glsl_intrinsic_gl_SubgroupInvocationID>;
+using gl_FragCoord_t		= __glsl_vec4  <thunder::glsl_FragCoord>;
+using gl_FragDept_t		= __glsl_float <thunder::glsl_FragDepth>;
+using gl_InstanceID_t		= __glsl_int   <thunder::glsl_InstanceID>;
+using gl_InstanceIndex_t	= __glsl_int   <thunder::glsl_InstanceIndex>;
+using gl_VertexID_t		= __glsl_int   <thunder::glsl_VertexID>;
+using gl_VertexIndex_t		= __glsl_int   <thunder::glsl_VertexIndex>;
+using gl_GlobalInvocationID_t	= __glsl_uvec3 <thunder::glsl_GlobalInvocationID>;
+using gl_LocalInvocationID_t	= __glsl_uvec3 <thunder::glsl_LocalInvocationID>;
+using gl_LocalInvocationIndex_t	= __glsl_uint  <thunder::glsl_LocalInvocationIndex>;
+using gl_WorkGroupID_t		= __glsl_uvec3 <thunder::glsl_WorkGroupID>;
+using gl_WorkGroupSize_t	= __glsl_uvec3 <thunder::glsl_WorkGroupSize>;
+using gl_SubgroupInvocationID_t	= __glsl_uint <thunder::glsl_SubgroupInvocationID>;
+using gl_LaunchIDEXT_t		= __glsl_uvec3 <thunder::glsl_LaunchIDEXT>;
+using gl_LaunchSizeEXT_t	= __glsl_uvec3 <thunder::glsl_LaunchSizeEXT>;
 
 static const gl_FragCoord_t		gl_FragCoord;
 static const gl_FragDept_t		gl_FragDepth;
@@ -179,9 +181,11 @@ static const gl_LocalInvocationIndex_t	gl_LocalInvocationIndex;
 static const gl_WorkGroupID_t		gl_WorkGroupID;
 static const gl_WorkGroupSize_t		gl_WorkGroupSize;
 static const gl_SubgroupInvocationID_t	gl_SubgroupInvocationID;
+static const gl_LaunchIDEXT_t		gl_LaunchIDEXT;
+static const gl_LaunchSizeEXT_t		gl_LaunchSizeEXT;
 
 // Mutable intrinsics
-using gl_Position_t = __glsl_vec4 <thunder::glsl_intrinsic_gl_Position>;
+using gl_Position_t = __glsl_vec4 <thunder::glsl_Position>;
 
 static gl_Position_t	gl_Position;
 
