@@ -106,19 +106,15 @@ struct Application : CameraApplication {
 			.begin(cmd);
 	
 		// MVP structure used for push constants
-		auto m_model = uniform_field(MVP, model);
-		auto m_view = uniform_field(MVP, view);
-		auto m_proj = uniform_field(MVP, proj);
-		
 		solid_t <MVP> mvp;
 
-		mvp[m_model] = model_transform.matrix();
+		mvp.get <0> () = model_transform.matrix();
 		
 		auto &extent = resources.window.extent;
 		camera.aperature.aspect = float(extent.width)/float(extent.height);
 
-		mvp[m_proj] = camera.aperature.perspective();
-		mvp[m_view] = camera.transform.view_matrix();
+		mvp.get <1> () = camera.transform.view_matrix();
+		mvp.get <2> () = camera.aperature.perspective();
 		
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, traditional.handle);
 	

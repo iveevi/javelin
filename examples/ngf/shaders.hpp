@@ -10,10 +10,10 @@ struct Payload {
 	u32 pindex;
 	u32 resolution;
 
-	auto layout() const {
-		return uniform_layout("payload",
-			named_field(pindex),
-			named_field(resolution));
+	auto layout() {
+		return layout_from("Payload",
+			verbatim_field(pindex),
+			verbatim_field(resolution));
 	}
 };
 
@@ -27,12 +27,12 @@ struct ViewInfo {
 		return proj * (view * (model * vec4(v, 1)));
 	}
 
-	auto layout() const {
-		return uniform_layout("config",
-			named_field(model),
-			named_field(view),
-			named_field(proj),
-			named_field(resolution));
+	auto layout() {
+		return layout_from("ViewInfo",
+			verbatim_field(model),
+			verbatim_field(view),
+			verbatim_field(proj),
+			verbatim_field(resolution));
 	}
 };
 

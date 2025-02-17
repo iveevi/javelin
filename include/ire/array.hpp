@@ -50,8 +50,12 @@ struct array_base <T> : public tagged {
 
 	static thunder::Index type(int32_t N) {
 		auto &em = Emitter::active;
+
 		auto v = T();
-		auto underlying = type_info_generator <T> (v).synthesize();
+		auto underlying = type_info_generator <T> (v)
+			.synthesize()
+			.concrete();
+
 		return em.emit_qualifier(underlying, N, thunder::arrays);
 	}
 
@@ -92,8 +96,12 @@ struct array_base <T> : public tagged {
 	// TODO: put under one array_type thing...
 	static thunder::Index type(int32_t N) {
 		auto &em = Emitter::active;
+
 		auto v = T();
-		auto underlying = type_info_generator <T> (v).synthesize();
+		auto underlying = type_info_generator <T> (v)
+			.synthesize()
+			.concrete();
+
 		return em.emit_qualifier(underlying, N, thunder::arrays);
 	}
 
