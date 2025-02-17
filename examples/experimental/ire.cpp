@@ -51,13 +51,14 @@ auto rgen = procedure <void> ("main") << []()
 	write_only <image2D> image(1);
 
 	// TODO: simpler vector constructors...
-	vec2 center = vec2(f32(gl_LaunchIDEXT.x), f32(gl_LaunchIDEXT.y)) + vec2(0.5);
-	vec2 uv = center / vec2(f32(imageSize(image).x), f32(imageSize(image).y));
+	uvec2 xy = uvec2(gl_LaunchIDEXT.x, gl_LaunchIDEXT.y);
+	vec2 center = vec2(xy) + vec2(0.5);
+	vec2 uv = center / vec2(imageSize(image));
 	vec3 ray = rayframe.at(uv);
 
 	vec4 color = vec4(pow(payload, vec3(1/2.2)), 1.0);
 
-	imageStore(image, ivec2(i32(gl_LaunchIDEXT.x), i32(gl_LaunchIDEXT.y)), color);
+	imageStore(image, ivec2(xy), color);
 };
 
 int main()

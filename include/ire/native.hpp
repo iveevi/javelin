@@ -54,22 +54,6 @@ inline thunder::Index translate_primitive(float f)
 	return em.emit(p);
 }
 
-// Generating cast operations
-constexpr auto caster(int32_t)
-{
-	return thunder::cast_to_int;
-}
-
-constexpr auto caster(uint32_t)
-{
-	return thunder::cast_to_uint;
-}
-
-constexpr auto caster(float)
-{
-	return thunder::cast_to_float;
-}
-
 // Type class for natives
 template <typename T>
 concept native = requires(const T &t) {
@@ -103,6 +87,17 @@ struct native_t : tagged {
 		return thunder::bad;
 	}
 
+	static constexpr thunder::IntrinsicOperation caster() {
+		if constexpr (std::same_as <T, int32_t>)
+			return thunder::cast_to_int;
+		if constexpr (std::same_as <T, uint32_t>)
+			return thunder::cast_to_uint;
+		if constexpr (std::same_as <T, float>)
+			return thunder::cast_to_float;
+
+		return thunder::cast_to_int;
+	}
+
 	static thunder::Index type() {
 		auto &em = Emitter::active;
 		return em.emit_type_information(-1, -1, primitive());
@@ -122,7 +117,7 @@ struct native_t : tagged {
 		} else {
 			synthesize();
 			thunder::Index args = em.emit_list(other.synthesize().id);
-			thunder::Index cast = em.emit_intrinsic(args, caster(value));
+			thunder::Index cast = em.emit_intrinsic(args, caster());
 			em.emit_store(this->ref.id, cast);
 		}
 	}
@@ -134,7 +129,7 @@ struct native_t : tagged {
 		auto &em = Emitter::active;
 		synthesize();
 		thunder::Index args = em.emit_list(other.synthesize().id);
-		thunder::Index cast = em.emit_intrinsic(args, caster(value));
+		thunder::Index cast = em.emit_intrinsic(args, caster());
 		em.emit_store(this->ref.id, cast);
 	}
 

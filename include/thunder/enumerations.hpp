@@ -376,9 +376,20 @@ enum IntrinsicOperation : uint16_t {
 	set_mesh_outputs,
 
 	// Casting operations
-	cast_to_int,
+	cast_to_int,	
+	cast_to_ivec2,
+	cast_to_ivec3,
+	cast_to_ivec4,
+
 	cast_to_uint,
+	cast_to_uvec2,
+	cast_to_uvec3,
+	cast_to_uvec4,
+
 	cast_to_float,
+	cast_to_vec2,
+	cast_to_vec3,
+	cast_to_vec4,
 
 	// Trigonometric functions
 	sin,
@@ -455,8 +466,19 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"SetMeshOutputsEXT",
 
 	"int",
+	"ivec2",
+	"ivec3",
+	"ivec4",
+	
 	"uint",
+	"uvec2",
+	"uvec3",
+	"uvec4",
+
 	"float",
+	"vec2",
+	"vec3",
+	"vec4",
 
 	"sin",
 	"cos",

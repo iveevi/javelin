@@ -165,6 +165,17 @@ public:
 			return thunder::vec2;
 		return thunder::bad;
 	}
+	
+	static constexpr thunder::IntrinsicOperation caster() {
+		if constexpr (std::same_as <T, int32_t>)
+			return thunder::cast_to_ivec2;
+		if constexpr (std::same_as <T, uint32_t>)
+			return thunder::cast_to_uvec2;
+		if constexpr (std::same_as <T, float>)
+			return thunder::cast_to_vec2;
+
+		return thunder::cast_to_int;
+	}
 
 	static thunder::Index type() {
 		auto &em = Emitter::active;
@@ -204,6 +215,16 @@ public:
 
 	swizzle_base(cache_index_t cit) : tagged(cit), x(this), y(this) {}
 
+	// Casting conversion
+	template <native U>
+	swizzle_base(const swizzle_base <U, 2> &other) {
+		auto &em = Emitter::active;
+		synthesize();
+		thunder::Index args = em.emit_list(other.synthesize().id);
+		thunder::Index cast = em.emit_intrinsic(args, caster());
+		em.emit_store(this->ref.id, cast);
+	}
+
 	cache_index_t synthesize() const {
 		if (cached())
 			return ref;
@@ -240,6 +261,17 @@ public:
 		if constexpr (std::same_as <T, float>)
 			return thunder::vec3;
 		return thunder::bad;
+	}
+
+	static constexpr thunder::IntrinsicOperation caster() {
+		if constexpr (std::same_as <T, int32_t>)
+			return thunder::cast_to_ivec3;
+		if constexpr (std::same_as <T, uint32_t>)
+			return thunder::cast_to_uvec3;
+		if constexpr (std::same_as <T, float>)
+			return thunder::cast_to_vec3;
+
+		return thunder::cast_to_int;
 	}
 
 	static thunder::Index type() {
@@ -308,6 +340,16 @@ public:
 
 	swizzle_base(cache_index_t cit) : tagged(cit), x(this), y(this), z(this) {}
 
+	// Casting conversion
+	template <native U>
+	swizzle_base(const swizzle_base <U, 2> &other) {
+		auto &em = Emitter::active;
+		synthesize();
+		thunder::Index args = em.emit_list(other.synthesize().id);
+		thunder::Index cast = em.emit_intrinsic(args, caster());
+		em.emit_store(this->ref.id, cast);
+	}
+
 	cache_index_t synthesize() const {
 		if (cached())
 			return ref;
@@ -340,6 +382,17 @@ public:
 		if constexpr (std::same_as <T, float>)
 			return thunder::vec4;
 		return thunder::bad;
+	}
+
+	static constexpr thunder::IntrinsicOperation caster() {
+		if constexpr (std::same_as <T, int32_t>)
+			return thunder::cast_to_ivec4;
+		if constexpr (std::same_as <T, uint32_t>)
+			return thunder::cast_to_uvec4;
+		if constexpr (std::same_as <T, float>)
+			return thunder::cast_to_vec4;
+
+		return thunder::cast_to_int;
 	}
 
 	static thunder::Index type() {
@@ -401,6 +454,16 @@ public:
 	}
 
 	swizzle_base(cache_index_t cit) : tagged(cit), x(this), y(this), z(this), w(this) {}
+
+	// Casting conversion
+	template <native U>
+	swizzle_base(const swizzle_base <U, 2> &other) {
+		auto &em = Emitter::active;
+		synthesize();
+		thunder::Index args = em.emit_list(other.synthesize().id);
+		thunder::Index cast = em.emit_intrinsic(args, caster());
+		em.emit_store(this->ref.id, cast);
+	}
 
 	cache_index_t synthesize() const {
 		if (cached())

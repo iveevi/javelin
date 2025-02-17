@@ -44,6 +44,24 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 			overload::from(f32, u32),
 			overload::from(f32, f32),
 		} },
+		
+		{ cast_to_ivec2, {
+			overload::from(ivec2, ivec2),
+			overload::from(ivec2, uvec2),
+			overload::from(ivec2, vec2),
+		} },
+		
+		{ cast_to_uvec2, {
+			overload::from(uvec2, ivec2),
+			overload::from(uvec2, uvec2),
+			overload::from(uvec2, vec2),
+		} },
+		
+		{ cast_to_vec2, {
+			overload::from(vec2, ivec2),
+			overload::from(vec2, uvec2),
+			overload::from(vec2, vec2),
+		} },
 
 		// Trigonometric functions
                 { sin, {
