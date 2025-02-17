@@ -100,7 +100,7 @@ int main()
 
 		RayFrame rayframe;
 		auto type = type_info_generator <RayFrame> (rayframe).synthesize();
-		auto idx = type.as <struct_type> ().idx;
+		auto idx = type.as <composite_type> ().idx;
 
 		idx = em.emit_construct(idx, -1, thunder::normal);
 		
@@ -111,7 +111,7 @@ int main()
 		
 		Nested nested;
 		type = type_info_generator <Nested> (nested).synthesize();
-		idx = type.as <struct_type> ().idx;
+		idx = type.as <composite_type> ().idx;
 		
 		idx = em.emit_construct(idx, -1, thunder::normal);
 

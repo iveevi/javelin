@@ -17,13 +17,12 @@ struct MVP {
 		return proj * (view * p);
 	}
 
-	auto layout() const {
-		return uniform_layout(
-			"ViewInfo",
-			named_field(view),
-			named_field(proj),
-			named_field(smin),
-			named_field(smax));
+	auto layout() {
+		return layout_from("ViewInfo",
+			verbatim_field(view),
+			verbatim_field(proj),
+			verbatim_field(smin),
+			verbatim_field(smax));
 	}
 };
 
@@ -34,12 +33,12 @@ struct SimulationInfo {
 	f32 M;
 	f32 dt;
 
-	auto layout() const {
-		return uniform_layout("SimulationInfo",
-			named_field(O1),
-			named_field(O2),
-			named_field(M),
-			named_field(dt));
+	auto layout() {
+		return layout_from("SimulationInfo",
+			verbatim_field(O1),
+			verbatim_field(O2),
+			verbatim_field(M),
+			verbatim_field(dt));
 	}
 };
 

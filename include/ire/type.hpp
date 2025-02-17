@@ -10,12 +10,12 @@ struct primitive_type {
 	thunder::PrimitiveType ptv;
 };
 
-struct struct_type {
+struct composite_type {
 	thunder::Index idx;
 };
 
 // TODO: method concrete() -> Index
-using intermediate_type_base = bestd::variant <primitive_type, struct_type>;
+using intermediate_type_base = bestd::variant <primitive_type, composite_type>;
 
 struct intermediate_type : intermediate_type_base {
 	using intermediate_type_base::intermediate_type_base;
@@ -26,7 +26,7 @@ struct intermediate_type : intermediate_type_base {
 		if (is <primitive_type> ())
 			return em.emit_type_information(-1, -1, as <primitive_type> ().ptv);
 
-		return as <struct_type> ().idx;
+		return as <composite_type> ().idx;
 	}
 };
 
@@ -63,25 +63,25 @@ struct type_info_generator <aggregate_wrapper <Args...>> {
 			if (current.is <primitive_type> ()) {
 				auto &p = current.as <primitive_type> ();
 				auto idx = em.emit_type_information(-1, -1, p.ptv);
-				return struct_type(idx);
+				return composite_type(idx);
 			} else {
-				auto &s = current.as <struct_type> ();
+				auto &s = current.as <composite_type> ();
 				auto idx = em.emit_type_information(s.idx, -1, thunder::bad);
-				return struct_type(idx);
+				return composite_type(idx);
 			}
 		} else {
 			intermediate_type previous = partial <I + 1> ();
 
-			auto &sp = previous.as <struct_type> ();
+			auto &sp = previous.as <composite_type> ();
 			
 			if (current.is <primitive_type> ()) {
 				auto &p = current.as <primitive_type> ();
 				auto idx = em.emit_type_information(-1, sp.idx, p.ptv);
-				return struct_type(idx);
+				return composite_type(idx);
 			} else {
-				auto &s = current.as <struct_type> ();
+				auto &s = current.as <composite_type> ();
 				auto idx = em.emit_type_information(s.idx, sp.idx, thunder::bad);
-				return struct_type(idx);
+				return composite_type(idx);
 			}
 		}
 	}

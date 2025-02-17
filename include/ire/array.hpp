@@ -172,6 +172,7 @@ struct unsized_array : array <T> {
 	unsized_array() : array <T> (-1) {}
 };
 
+// Override type generation
 // // Using arbitrary arrays in global qualifiers
 // template <typename T>
 // struct type_info_override <array <T>> : std::true_type {
@@ -187,17 +188,22 @@ struct unsized_array : array <T> {
 // 	}
 // };
 
-// // Using unsized arrays in global qualifiers
-// template <typename T>
-// struct type_info_override <unsized_array <T>> : std::true_type {
-// 	type_info_override(const unsized_array <T> &) {}
+template <typename T>
+struct type_info_generator <unsized_array <T>> {
+	type_info_generator(const unsized_array <T> &) {}
 
-// 	int synthesize() const {
-// 		auto &em = Emitter::active;
-// 		thunder::Index underlying = type_field_from_args <T> ().id;
-// 		thunder::Index qualifier = em.emit_qualifier(underlying, -1, thunder::arrays);
-// 		return qualifier;
-// 	}
-// };
+	intermediate_type synthesize() const {
+		auto &em = Emitter::active;
+
+		auto v = T();
+		auto underlying = type_info_generator <T> (v)
+			.synthesize()
+			.concrete();
+
+		auto qualifier = em.emit_qualifier(underlying, -1, thunder::arrays);
+
+		return composite_type(qualifier);
+	}
+};
 
 } // namespace jvl::ire

@@ -39,9 +39,13 @@ struct bound_buffer_object <T, K> : T {
 	bound_buffer_object(size_t binding_, const Args &... args)
 			: T(args...), binding(binding_) {
 		auto &em = Emitter::active;
-		thunder::Index type = type_field_from_arg_refs_impl <0> (static_cast <T> (*this)).id;
-		thunder::Index pc = em.emit_qualifier(type, binding, K);
-		thunder::Index value = em.emit_construct(pc, -1, thunder::transient);
+
+		auto type = type_info_generator <T> (*this)
+			.synthesize()
+			.concrete();
+		
+		auto pc = em.emit_qualifier(type, binding, K);
+		auto value = em.emit_construct(pc, -1, thunder::transient);
 		this->ref = value;
 	}
 	
@@ -93,6 +97,7 @@ using uniform = bound_buffer_object <T, thunder::uniform>;
 template <generic T>
 using buffer = bound_buffer_object <T, thunder::storage_buffer>;
 
+// TODO: deprecate in faor of read_only <...> and write_only <...>
 template <generic T>
 using read_only_buffer = bound_buffer_object <T, thunder::read_only_storage_buffer>;
 

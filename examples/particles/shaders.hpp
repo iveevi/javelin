@@ -17,13 +17,12 @@ struct MVP {
 		return proj * (view * p);
 	}
 
-	auto layout() const {
-		return uniform_layout(
-			"ViewInfo",
-			named_field(view),
-			named_field(proj),
-			named_field(smin),
-			named_field(smax));
+	auto layout() {
+		return layout_from("MVP",
+			verbatim_field(view),
+			verbatim_field(proj),
+			verbatim_field(smin),
+			verbatim_field(smax));
 	}
 };
 

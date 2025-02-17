@@ -236,9 +236,6 @@ struct Application : CameraApplication {
 	}
 	
 	void render(const vk::CommandBuffer &cmd, uint32_t index) override {
-		auto m_view = uniform_field(MVP, view);
-		auto m_proj = uniform_field(MVP, proj);
-
 		solid_t <MVP> view_info;
 
 		camera.controller.handle_movement(resources.window);
@@ -262,8 +259,8 @@ struct Application : CameraApplication {
 		auto proj = camera.aperature.perspective();
 		auto view = camera.transform.view_matrix();
 
-		view_info[m_proj] = proj;
-		view_info[m_view] = view;
+		view_info.get <0> () = view;
+		view_info.get <1> () = proj;
 
 		float smin = 1e10f;
 		float smax = 0;

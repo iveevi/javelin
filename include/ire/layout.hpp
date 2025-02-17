@@ -115,7 +115,7 @@ struct Layout {
 			return type_info_generator <T> (fields.ref...).synthesize();
 		}, references);
 
-		embed_hint(idx.as <struct_type> ().idx);
+		embed_hint(idx.as <composite_type> ().idx);
 
 		return idx;
 	}

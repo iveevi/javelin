@@ -173,8 +173,13 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 		break;
 
 	// Miscellaneous
+	case arrays:
+		break;
+
 	case glsl_intrinsic_gl_Position:
 	case glsl_intrinsic_gl_VertexIndex:
+	case glsl_intrinsic_gl_InstanceIndex:
+	case glsl_intrinsic_gl_GlobalInvocationID:
 		break;
 
 	default:
