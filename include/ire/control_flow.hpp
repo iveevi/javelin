@@ -109,27 +109,29 @@ inline void returns(const T &value)
 }
 
 template <aggregate T>
-inline void returns(const T &value)
+inline void returns(T &value)
 {
 	auto &em = Emitter::active;
 	auto layout = value.layout();
-	thunder::Index args = layout.reconstruct();
-	thunder::Index type = type_field_from_args(layout).id;
-	thunder::Index rv = em.emit_construct(type, args, thunder::normal);
+	auto type = layout.generate_type().concrete();
+	auto args = layout.reconstruct();
+	auto rv = em.emit_construct(type, args, thunder::normal);
 	em.emit_return(rv);
 }
 
 // Special control-flow related global states
 struct local_size {
 	local_size(uint32_t x = 1, uint32_t y = 1, uint32_t z = 1) {
-		ire::void_platform_intrinsic_from_args(thunder::layout_local_size, u32(x), u32(y), u32(z));
+		ire::void_platform_intrinsic_from_args(thunder::layout_local_size,
+			u32(x), u32(y), u32(z));
 	}
 };
 
 struct mesh_shader_size {
 	// TODO: primitive enum
 	mesh_shader_size(uint32_t max_vertices = 1, uint32_t max_primitives = 1) {
-		ire::void_platform_intrinsic_from_args(thunder::layout_mesh_shader_sizes, u32(max_vertices), u32(max_primitives));
+		ire::void_platform_intrinsic_from_args(thunder::layout_mesh_shader_sizes,
+			u32(max_vertices), u32(max_primitives));
 	}
 };
 

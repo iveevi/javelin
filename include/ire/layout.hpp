@@ -107,10 +107,27 @@ struct Layout {
 		if constexpr (I == 0)
 			embed_hint(src);
 	}
+
+	template <size_t I = 0>
+	thunder::Index reconstruct() {
+		auto &em = Emitter::active;
+		auto &ref = std::get <I> (references).ref;
+
+		using E = decltype(ref);
+
+		static_assert(builtin <E>, "reconstruct not implemented for nested structs");
+
+		thunder::List list;
+		if constexpr (builtin <E>)
+			list.item = ref.synthesize().id;
+
+		if constexpr (I + 1 < sizeof...(Fields))
+			list.next = reconstruct <I + 1> ();
+
+		return em.emit(list);
+	}
 	
 	intermediate_type generate_type() {	
-		auto &em = Emitter::active;
-
 		intermediate_type idx = std::apply([](const auto &... fields) {
 			return type_info_generator <T> (fields.ref...).synthesize();
 		}, references);

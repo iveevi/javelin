@@ -18,7 +18,9 @@ template <builtin T>
 struct parameter_injection <T> : std::true_type {
 	static thunder::Index emit() {
 		auto v = T();
-		return type_info_generator <T> (v).synthesize();
+		return type_info_generator <T> (v)
+			.synthesize()
+			.concrete();
 	}
 
 	static void inject(T &x, thunder::Index i) {
@@ -29,14 +31,14 @@ struct parameter_injection <T> : std::true_type {
 template <aggregate T>
 struct parameter_injection <T> : std::true_type {
 	static thunder::Index emit() {
-		T x;
-		auto layout = x.layout().remove_const();
-		return type_field_from_args(layout).id;
+		auto v = T();
+		return type_info_generator <T> (v)
+			.synthesize()
+			.concrete();
 	}
 
 	static void inject(T &x, thunder::Index i) {
-		auto layout = x.layout().remove_const();
-		layout.ref_with(cache_index_t::from(i));
+		x.layout().link(i);
 	}
 };
 
@@ -138,7 +140,7 @@ struct Procedure : thunder::TrackedBuffer {
 		return *this;
 	}
 
-	R operator()(const Args &... args) {
+	R operator()(Args ... args) {
 		auto &em = Emitter::active;
 
 		// If R is an aggregate, we need to bind its members
@@ -165,8 +167,10 @@ struct Procedure : thunder::TrackedBuffer {
 		auto r = R();
 
 		call.cid = cid;
-		call.type = type_info_generator <R> (r).synthesize();
 		call.args = list_from_args(args...);
+		call.type = type_info_generator <R> (r)
+			.synthesize()
+			.concrete();
 
 		cache_index_t cit;
 		cit = em.emit(call);

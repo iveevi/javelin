@@ -105,18 +105,18 @@ TEST(callable, conditional_returns)
 const std::string expected_struct_parameter_glsl = R"(
 #version 460
 
-struct s0_t {
-    mat4 f0;
-    mat4 f1;
-    mat4 f2;
+struct MVP {
+    mat4 model;
+    mat4 view;
+    mat4 proj;
 };
 
-vec4 project(s0_t _arg0, vec3 _arg1)
+vec4 project(MVP _arg0, vec3 _arg1)
 {
     vec4 s0 = vec4(_arg1, 1);
-    s0 = (_arg0.f0 * s0);
-    s0 = (_arg0.f1 * s0);
-    s0 = (_arg0.f2 * s0);
+    s0 = (_arg0.model * s0);
+    s0 = (_arg0.view * s0);
+    s0 = (_arg0.proj * s0);
     return s0;
 }
 )";
@@ -128,13 +128,11 @@ TEST(callable, struct_parameter)
 		mat4 view;
 		mat4 proj;
 
-		auto layout() const {
-			return uniform_layout(
-				"MVP",
-				named_field(model),
-				named_field(view),
-				named_field(proj)
-			);
+		auto layout() {
+			return layout_from("MVP",
+				verbatim_field(model),
+				verbatim_field(view),
+				verbatim_field(proj));
 		}
 	};
 
@@ -157,14 +155,14 @@ TEST(callable, struct_parameter)
 const std::string expected_struct_return_glsl = R"(
 #version 460
 
-struct s0_t {
-    uint f0;
-    uint f1;
+struct Seed {
+    uint root;
+    uint shifted;
 };
 
-s0_t shift_seed(s0_t _arg0)
+Seed shift_seed(Seed _arg0)
 {
-    s0_t s0 = s0_t(((_arg0.f0 << _arg0.f1) & (_arg0.f1 | _arg0.f0)), (_arg0.f1 | _arg0.f0));
+    Seed s0 = Seed(((_arg0.root << _arg0.shifted) & (_arg0.shifted | _arg0.root)), (_arg0.shifted | _arg0.root));
     return s0;
 }
 )";
@@ -175,12 +173,10 @@ TEST(callable, struct_return)
 		u32 root;
 		u32 shifted;
 
-		auto layout() const {
-			return uniform_layout(
-				"Seed",
-				named_field(root),
-				named_field(shifted)
-			);
+		auto layout() {
+			return layout_from("Seed",
+				verbatim_field(root),
+				verbatim_field(shifted));
 		}
 	};
 

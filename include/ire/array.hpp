@@ -157,12 +157,13 @@ struct array : public array_base <T> {
 		MODULE(array);
 
 		JVL_ASSERT(this->cached(), "arrays must be cached by the time of use");
+
 		auto &em = Emitter::active;
-		thunder::Index l = index.synthesize().id;
-		thunder::Index c = em.emit_array_access(this->ref.id, l);
+		auto l = index.synthesize().id;
+		auto c = em.emit_array_access(this->ref.id, l);
+		
 		element returned;
-		auto layout = returned.layout().remove_const();
-		layout.ref_with(cache_index_t::from(c));
+		returned.layout().link(c);
 		return returned;
 	}
 };

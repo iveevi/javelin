@@ -74,11 +74,11 @@ struct Datum {
 	i32 y;
 	u32 z;
 
-	auto layout() const {
-		return uniform_layout("Datum",
-			named_field(x),
-			named_field(y),
-			named_field(z));
+	auto layout() {
+		return layout_from("Datum",
+			verbatim_field(x),
+			verbatim_field(y),
+			verbatim_field(z));
 	}
 };
 

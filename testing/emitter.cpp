@@ -31,12 +31,12 @@ void synthesize_layout_io_inner()
 	{
 		using thunder::Index;
 
-		auto type_in = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
+		auto type_in = native_t <T> ::type();
 		auto in_ql = em.emit_qualifier(type_in, 0, thunder::layout_in_smooth);
 		auto in = em.emit_construct(in_ql, -1, jvl::thunder::transient);
 		
 		// Duplicate type is expected to be generated
-		auto type_out = em.emit_type_information(-1, -1, synthesize_primitive_type <T> ());
+		auto type_out = native_t <T> ::type();
 		auto out_ql = em.emit_qualifier(type_out, 0, thunder::layout_out_smooth);
 		auto out = em.emit_construct(out_ql, -1, jvl::thunder::transient);
 		em.emit_store(out, in);

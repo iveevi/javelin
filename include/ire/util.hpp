@@ -74,15 +74,14 @@ thunder::Index list_from_args(const T &t, const Args &... args)
 }
 
 template <aggregate T, typename ... Args>
-thunder::Index list_from_args(const T &t, const Args &... args)
+thunder::Index list_from_args(T &t, const Args &... args)
 {
 	auto &em = Emitter::active;
 
-	// TODO: are nested structs handled?
-	auto layout = t.layout();
-
 	thunder::Construct ctor;
-	ctor.type = type_field_from_args(layout).id;
+
+	auto layout = t.layout();
+	ctor.type = layout.generate_type().concrete();
 	ctor.args = layout.reconstruct();
 
 	thunder::List l;
@@ -160,51 +159,5 @@ inline void platform_intrinsic_keyword(thunder::IntrinsicOperation opn)
 
 	em.emit(intr);
 }
-
-// template <typename ... Args>
-// cache_index_t default_construct_index(const const_uniform_layout_t <Args...> &layout, int index)
-// {
-// 	auto &em = Emitter::active;
-
-// 	thunder::Construct ctor;
-// 	ctor.type = type_field_index_from_args(index, layout).id;
-// 	// args is (nil) to properly engage the default constructor
-
-// 	cache_index_t cit;
-// 	cit = em.emit(ctor);
-// 	return cit;
-// }
-
-// template <typename ... Args>
-// requires (sizeof...(Args) > 0)
-// cache_index_t const_uniform_layout_t <Args...> ::list() const
-// {
-// 	auto &em = Emitter::active;
-
-// 	thunder::List end;
-
-// 	cache_index_t next = cache_index_t::null();
-// 	for (int i = fields.size() - 1; i >= 0; i--) {
-// 		layout_const_field f = fields[i];
-
-// 		end.next = next.id;
-// 		if (!f.aggregate) {
-// 			const tagged *t = reinterpret_cast <const tagged *> (f.ptr);
-
-// 			if (t->ref.id == -1)
-// 				end.item = default_construct_index(*this, i).id;
-// 			else
-// 				end.item = t->ref.id;
-// 		} else {
-// 			MODULE(const-uniform-layout-list);
-
-// 			JVL_ABORT("nested aggregates are unsupported");
-// 		}
-
-// 		next = em.emit(end);
-// 	}
-
-// 	return next;
-// }
 
 } // namespace jvl::ire

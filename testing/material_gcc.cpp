@@ -20,18 +20,16 @@ struct Material {
 	boolean has_albedo;
 	boolean has_normal;
 
-	auto layout() const {
-		return uniform_layout(
-			"Material",
-			named_field(diffuse),
-			named_field(specular),
-			named_field(emission),
-			named_field(ambient),
-			named_field(shininess),
-			named_field(roughness),
-			named_field(has_albedo),
-			named_field(has_normal)
-		);
+	auto layout() {
+		return layout_from("Material",
+			verbatim_field(diffuse),
+			verbatim_field(specular),
+			verbatim_field(emission),
+			verbatim_field(ambient),
+			verbatim_field(shininess),
+			verbatim_field(roughness),
+			verbatim_field(has_albedo),
+			verbatim_field(has_normal));
 	}
 };
 

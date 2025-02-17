@@ -15,10 +15,13 @@ auto solid_offset()
 TEST(solidification, proxy_A)
 {
 	struct proxy_A {
-		auto layout() const {
-			return uniform_layout("A",
-				named_field(vec3()),
-				named_field(vec3()));
+		vec3 x;
+		vec3 y;
+
+		auto layout() {
+			return layout_from("A",
+				verbatim_field(x),
+				verbatim_field(y));
 		}
 	};
 
@@ -36,10 +39,13 @@ TEST(solidification, proxy_A)
 TEST(solidification, proxy_B)
 {
 	struct proxy_B {
-		auto layout() const {
-			return uniform_layout("A",
-				named_field(u32()),
-				named_field(vec3()));
+		u32 x;
+		vec3 y;
+
+		auto layout() {
+			return layout_from("A",
+				verbatim_field(x),
+				verbatim_field(y));
 		}
 	};
 
@@ -57,10 +63,13 @@ TEST(solidification, proxy_B)
 TEST(solidification, proxy_C)
 {
 	struct proxy_C {
-		auto layout() const {
-			return uniform_layout("A",
-				named_field(vec3()),
-				named_field(u32()));
+		vec3 x;
+		u32 y;
+
+		auto layout() {
+			return layout_from("A",
+				verbatim_field(x),
+				verbatim_field(y));
 		}
 	};
 
@@ -78,11 +87,15 @@ TEST(solidification, proxy_C)
 TEST(solidification, proxy_D)
 {
 	struct proxy_D {
-		auto layout() const {
-			return uniform_layout("A",
-				named_field(vec3()),
-				named_field(vec3()),
-				named_field(u32()));
+		vec3 x;
+		vec3 y;
+		u32 z;
+
+		auto layout() {
+			return layout_from("A",
+				verbatim_field(x),
+				verbatim_field(y),
+				verbatim_field(z));
 		}
 	};
 
@@ -102,11 +115,15 @@ TEST(solidification, proxy_D)
 TEST(solidification, proxy_E)
 {
 	struct proxy_E {
-		auto layout() const {
-			return uniform_layout("A",
-				named_field(vec3()),
-				named_field(u32()),
-				named_field(vec3()));
+		vec3 x;
+		u32 y;
+		vec3 z;
+
+		auto layout() {
+			return layout_from("A",
+				verbatim_field(x),
+				verbatim_field(y),
+				verbatim_field(z));
 		}
 	};
 
@@ -126,11 +143,15 @@ TEST(solidification, proxy_E)
 TEST(solidification, proxy_F)
 {
 	struct proxy_F {
-		auto layout() const {
-			return uniform_layout("A",
-				named_field(u32()),
-				named_field(vec3()),
-				named_field(vec3()));
+		u32 x;
+		vec3 y;
+		vec3 z;
+
+		auto layout() {
+			return layout_from("A",
+				verbatim_field(x),
+				verbatim_field(y),
+				verbatim_field(z));
 		}
 	};
 

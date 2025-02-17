@@ -18,18 +18,16 @@ struct Material {
 	f32 has_albedo;
 	f32 has_normal;
 
-	auto layout() const {
-		return uniform_layout(
-			"Material",
-			field <"diffuse"> (diffuse),
-			field <"specular"> (specular),
-			field <"emission"> (emission),
-			field <"ambient"> (ambient),
-			field <"shininess"> (shininess),
-			field <"roughness"> (roughness),
-			field <"has_albedo"> (has_albedo),
-			field <"has_normal"> (has_normal)
-		);
+	auto layout() {
+		return layout_from("Material",
+			verbatim_field(diffuse),
+			verbatim_field(specular),
+			verbatim_field(emission),
+			verbatim_field(ambient),
+			verbatim_field(shininess),
+			verbatim_field(roughness),
+			verbatim_field(has_albedo),
+			verbatim_field(has_normal));
 	}
 };
 
