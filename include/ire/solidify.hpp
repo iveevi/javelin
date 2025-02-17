@@ -167,8 +167,8 @@ struct solid_builder <Offset, mat4, Args...> {
 	using type = aggregate_insert <glm::mat4, typename rest::type> ::type;
 };
 
-template <size_t Offset, string_literal name, field_type ... Fields>
-struct solid_builder <Offset, Layout <name, Fields...>> {
+template <size_t Offset, field_type ... Fields>
+struct solid_builder <Offset, Layout <Fields...>> {
 	using type = solid_builder <Offset, Fields...> ::type;
 };
 

@@ -28,19 +28,12 @@ struct RayFrame {
 	vec3 horizontal;
 	vec3 vertical;
 
-	// auto layout() const {
-	// 	return uniform_layout("RayFrame",
-	// 		named_field(origin),
-	// 		named_field(lower_left),
-	// 		named_field(horizontal),
-	// 		named_field(vertical));
-	// }
-
-	auto ll() {
-		return Layout <"RayFrame",
-			field <"origin", vec3>,
-			field <"lower_left", vec3>
-		> (origin, lower_left);
+	auto layout() {
+		return layout_from("RayFrame",
+			verbatim_field(origin),
+			verbatim_field(lower_left),
+			verbatim_field(horizontal),
+			verbatim_field(vertical));
 	}
 };
 
@@ -50,19 +43,14 @@ struct Nested {
 	vec3 x;
 	RayFrame frame;
 
-	// auto layout() const {
-	// 	return uniform_layout("Nested",
-	// 		named_field(x),
-	// 		named_field(frame));
-	// }
-	
-	auto ll() {
-		return Layout <"Nested",
-			field <"x", vec3>,
-			field <"frame", RayFrame>
-		> (x, frame);
+	auto layout() {
+		return layout_from("Nested",
+			verbatim_field(x),
+			verbatim_field(frame));
 	}
 };
+
+static_assert(aggregate <Nested>);
 
 auto f = procedure <void> ("main") << []()
 {
@@ -116,7 +104,7 @@ int main()
 
 		idx = em.emit_construct(idx, -1, thunder::normal);
 		
-		rayframe.ll().link(idx);
+		rayframe.layout().link(idx);
 
 		f32 x;
 		x = rayframe.origin.x;
@@ -127,7 +115,7 @@ int main()
 		
 		idx = em.emit_construct(idx, -1, thunder::normal);
 
-		nested.ll().link(idx);
+		nested.layout().link(idx);
 
 		x = nested.frame.lower_left.y;
 		// x = nested.x.y;

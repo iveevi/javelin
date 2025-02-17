@@ -18,41 +18,40 @@ struct string_literal {
 	char value[N];
 };
 
-template <string_literal str, typename T>
+template <typename T>
 struct field {
 	using underlying = std::decay_t <T>;
 
-	static constexpr const char *name = str.value;
-
+	std::string name;
 	T &ref;
 
-	field(T &val) : ref(val) {}
+	field(const std::string &name_, T &val) : name(name_), ref(val) {}
 };
 
 template <typename T>
 struct is_field_type : std::false_type {};
 
-template <string_literal str, typename T>
-struct is_field_type <field <str, T>> : std::true_type {};
+template <typename T>
+struct is_field_type <field <T>> : std::true_type {};
 
 template <typename T>
 concept field_type = is_field_type <T> ::value;
 
-template <string_literal str, field_type ... Fields>
+template <field_type ... Fields>
 struct Layout;
 
 template <typename T>
 struct is_layout_type : std::false_type {};
 
-template <string_literal str, field_type ... Fields>
-struct is_layout_type <Layout <str, Fields...>> : std::true_type {};
+template <field_type ... Fields>
+struct is_layout_type <Layout <Fields...>> : std::true_type {};
 
 template <typename T>
 concept layout_type = is_layout_type <T> ::value;
 
 template <typename T>
 concept aggregate = requires(T &t) {
-	{ t.ll() } -> layout_type;
+	{ t.layout() } -> layout_type;
 };
 
 // Unique type index generator
@@ -68,14 +67,14 @@ int64_t type_index()
 	return c;
 }
 
-template <string_literal str, field_type ... Fields>
+template <field_type ... Fields>
 struct Layout {
 	using T = aggregate_wrapper <typename Fields::underlying...>;
 
+	std::string name;
 	std::tuple <Fields...> references;
 
-	template <typename ... Args>
-	Layout(Args &... args) : references(args...) {}
+	Layout(const std::string &name_, const Fields &... args) : name(name_), references(args...) {}
 
 	void embed_hint(thunder::Index src) {
 		auto &em = Emitter::active;
@@ -85,7 +84,7 @@ struct Layout {
 			return std::vector <std::string> { fields.name... };
 		}, references);
 
-		em.emit_hint(src, type_index <T> (), str.value, fields);
+		em.emit_hint(src, type_index <T> (), name, fields);
 	}
 
 	template <size_t I = 0>
@@ -100,7 +99,7 @@ struct Layout {
 		if constexpr (builtin <E>)
 			ref.ref = cache_index_t::from(idx);
 		else if constexpr (aggregate <E>)
-			ref.ll().link(idx);
+			ref.layout().link(idx);
 
 		if constexpr (I + 1 < sizeof...(Fields))
 			link <I + 1> (src);
@@ -128,8 +127,17 @@ struct type_info_generator <T> {
 	T &ref;
 
 	intermediate_type synthesize() {
-		return ref.ll().generate_type();
+		return ref.layout().generate_type();
 	}
 };
+
+// Easier construction
+template <field_type ... Fields>
+auto layout_from(const std::string &s, const Fields &... fields)
+{
+	return Layout <Fields...> (s, fields...);
+}
+
+#define verbatim_field(name) field <decltype(name)> (#name, name)
 
 } // namespace jvl::ire

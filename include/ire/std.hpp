@@ -23,17 +23,11 @@ struct optional {
 		return data;
 	}
 
-	// auto layout() const {
-	// 	return uniform_layout("optional",
-	// 		named_field(status),
-	// 		named_field(data));
-	// }
-
-	auto ll() {
-		return Layout <"Optional",
-			field <"status", bool>,
-			field <"data", T>
-		> (status, data);
+	auto layout() {
+		// TODO: prefix name by type
+		return layout_from("Optional",
+			verbatim_field(status),
+			verbatim_field(data));
 	}
 
 	void reset() {
