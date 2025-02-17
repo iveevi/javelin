@@ -172,6 +172,11 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 		extensions.insert("GL_KHR_shader_subgroup_basic");
 		break;
 
+	// Miscellaneous
+	case glsl_intrinsic_gl_Position:
+	case glsl_intrinsic_gl_VertexIndex:
+		break;
+
 	default:
 		JVL_WARNING("unhandled qualifier in function @{}:\n{}", bidx, qualifier);
 		break;

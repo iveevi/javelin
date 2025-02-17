@@ -59,11 +59,15 @@ struct bound_buffer_object <T, K> : T {
 	bound_buffer_object(size_t binding_, const Args &... args)
 			: T(args...), binding(binding_) {
 		auto &em = Emitter::active;
-		auto layout = this->layout().remove_const();
-		thunder::Index type = type_field_from_args(layout).id;
-		thunder::Index pc = em.emit_qualifier(type, binding, K);
-		thunder::Index value = em.emit_construct(pc, -1, thunder::transient);
-		layout.ref_with(cache_index_t::from(value));
+		
+		auto type = type_info_generator <T> (*this)
+			.synthesize()
+			.concrete();
+
+		auto pc = em.emit_qualifier(type, binding, K);
+		auto value = em.emit_construct(pc, -1, thunder::transient);
+
+		this->layout().link(value);
 	}
 };
 

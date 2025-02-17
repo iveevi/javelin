@@ -79,7 +79,10 @@ struct layout_in <T, kind> : T {
 
 	explicit layout_in(size_t binding_ = 0) : binding(binding_) {
 		auto &em = Emitter::active;
-		auto type = type_info_generator <T> (*this).synthesize();
+		auto type = type_info_generator <T> (*this)
+			.synthesize()
+			.concrete();
+
 		auto lin = em.emit_qualifier(type, binding, layout_in_as(kind));
 		auto value = em.emit_construct(lin, -1, thunder::transient);
 		this->ref = value;
@@ -145,7 +148,10 @@ struct layout_out <T, kind> : T {
 
 	explicit layout_out(size_t binding_) : binding(binding_) {
 		auto &em = Emitter::active;
-		auto type = type_info_generator <T> (*this).synthesize();
+		auto type = type_info_generator <T> (*this)
+			.synthesize()
+			.concrete();
+			
 		auto lout = em.emit_qualifier(type, binding, layout_out_as(kind));
 		auto dst = em.emit_construct(lout, -1, thunder::transient);
 		this->ref = dst;

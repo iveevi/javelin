@@ -15,11 +15,26 @@ struct struct_type {
 };
 
 // TODO: method concrete() -> Index
-using intermediate_type = bestd::variant <primitive_type, struct_type>;
+using intermediate_type_base = bestd::variant <primitive_type, struct_type>;
+
+struct intermediate_type : intermediate_type_base {
+	using intermediate_type_base::intermediate_type_base;
+
+	thunder::Index concrete() const {
+		auto &em = Emitter::active;
+
+		if (is <primitive_type> ())
+			return em.emit_type_information(-1, -1, as <primitive_type> ().ptv);
+
+		return as <struct_type> ().idx;
+	}
+};
 
 // Top-level type generation
 template <typename T>
-struct type_info_generator {};
+struct type_info_generator {
+	static_assert(false, "no type generator override for given type");
+};
 
 // General form is explicitly a struct with fields of type Args...
 template <typename ... Args>

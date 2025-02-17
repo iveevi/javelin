@@ -169,7 +169,7 @@ struct solid_builder <Offset, mat4, Args...> {
 
 template <size_t Offset, field_type ... Fields>
 struct solid_builder <Offset, Layout <Fields...>> {
-	using type = solid_builder <Offset, Fields...> ::type;
+	using type = solid_builder <Offset, typename Fields::underlying...> ::type;
 };
 
 template <size_t Offset, aggregate T>
