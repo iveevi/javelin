@@ -43,11 +43,11 @@ struct task_payload <T> : T {
 	template <typename ... Args>
 	explicit task_payload(const Args &... args) : T(args...) {
 		auto &em = Emitter::active;
-		auto layout = this->layout().remove_const();
-		thunder::Index type = type_field_from_args(layout).id;
-		thunder::Index qual = em.emit_qualifier(type, -1, thunder::task_payload);
-		thunder::Index value = em.emit_construct(qual, -1, thunder::transient);
-		layout.ref_with(cache_index_t::from(value));
+		auto layout = this->layout();
+		auto type = layout.generate_type().concrete();
+		auto qual = em.emit_qualifier(type, -1, thunder::task_payload);
+		auto value = em.emit_construct(qual, -1, thunder::transient);
+		layout.link(value);
 	}
 };
 

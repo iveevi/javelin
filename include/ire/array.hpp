@@ -174,20 +174,25 @@ struct unsized_array : array <T> {
 };
 
 // Override type generation
-// // Using arbitrary arrays in global qualifiers
-// template <typename T>
-// struct type_info_override <array <T>> : std::true_type {
-// 	thunder::Index length = -1;
+template <typename T>
+struct type_info_generator <array <T>> {
+	int32_t length;
 
-// 	type_info_override(const array <T> &a) : length(a.length) {}
+	type_info_generator(const array <T> &A) : length(A.length) {}
 
-// 	int synthesize() const {
-// 		auto &em = Emitter::active;
-// 		thunder::Index underlying = type_field_from_args <T> ().id;
-// 		thunder::Index qualifier = em.emit_qualifier(underlying, length, thunder::arrays);
-// 		return qualifier;
-// 	}
-// };
+	intermediate_type synthesize() const {
+		auto &em = Emitter::active;
+
+		auto v = T();
+		auto underlying = type_info_generator <T> (v)
+			.synthesize()
+			.concrete();
+
+		auto qualifier = em.emit_qualifier(underlying, length, thunder::arrays);
+
+		return composite_type(qualifier);
+	}
+};
 
 template <typename T>
 struct type_info_generator <unsized_array <T>> {

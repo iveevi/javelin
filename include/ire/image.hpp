@@ -132,16 +132,18 @@ struct write_only <image <T, D>> : image <T, D> {
 template <native T, size_t D>
 struct is_image_like <write_only <image <T, D>>> : std::true_type {};
 
-// // Type generation
-// template <native T, size_t D>
-// struct type_info_override <image <T, D>> : std::true_type {
-// 	thunder::Index binding = 0;
+// Override type generation
+template <native T, size_t D>
+struct type_info_generator <image <T, D>> {
+	thunder::Index binding = 0;
 
-// 	type_info_override(const image <T, D> &img) : binding(img.binding) {}
+	type_info_generator(const image <T, D> &img) : binding(img.binding) {}
 
-// 	int synthesize() const {
-// 		return Emitter::active.emit_qualifier(-1, binding, image_qualifiers <T> ::table[D]);
-// 	}
-// };
+	intermediate_type synthesize() const {
+		auto &em = Emitter::active;
+		auto qual = em.emit_qualifier(-1, binding, image_qualifiers <T> ::table[D]);
+		return composite_type(qual);
+	}
+};
 
 } // namespace jvl::ire

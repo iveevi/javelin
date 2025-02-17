@@ -155,6 +155,6 @@ auto layout_from(const std::string &s, const Fields &... fields)
 	return Layout <Fields...> (s, fields...);
 }
 
-#define verbatim_field(name) field <decltype(name)> (#name, name)
+#define verbatim_field(name) jvl::ire::field <decltype(name)> (#name, name)
 
 } // namespace jvl::ire

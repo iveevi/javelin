@@ -59,9 +59,6 @@ littlevk::Image general_allocator(const vk::Device &device,
 	littlevk::Image texture;
 	littlevk::Buffer staging;
 
-	fmt::println("allocating texture with extent={}x{}, bytes={} ({})", extent.width, extent.height, extent.width * extent.height * sizeof(glm::vec4), sizeof(glm::vec4));
-	fmt::println("buffer.size() = {}, bytes={} ({})", buffer.size(), buffer.size() * sizeof(T), sizeof(T));
-
 	std::tie(texture, staging) = bind(device, memory_properties, dal)
 		.image(extent, format,
 			vk::ImageUsageFlagBits::eSampled
@@ -292,18 +289,13 @@ struct Application : CameraApplication {
 		auto &extent = resources.window.extent;
 		
 		camera.aperature.aspect = float(extent.width)/float(extent.height);
-
-		auto m_model = uniform_field(ViewInfo, model);
-		auto m_view = uniform_field(ViewInfo, view);
-		auto m_proj = uniform_field(ViewInfo, proj);
-		auto m_resl = uniform_field(ViewInfo, resolution);
 		
 		solid_t <ViewInfo> view_info;
 
-		view_info[m_model] = model_transform.matrix();
-		view_info[m_proj] = camera.aperature.perspective();
-		view_info[m_view] = camera.transform.view_matrix();
-		view_info[m_resl] = resolution;
+		view_info.get <0> () = model_transform.matrix();
+		view_info.get <1> () = camera.transform.view_matrix();
+		view_info.get <2> () = camera.aperature.perspective();
+		view_info.get <3> () = resolution;
 
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, traditional.handle);
 

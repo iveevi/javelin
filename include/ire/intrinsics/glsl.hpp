@@ -103,8 +103,12 @@ struct __glsl_intrinsic_variable_t <unsized_array <T>, code> {
 	
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
+
 		auto v = unsized_array <T> ();
-		auto array = type_info_generator <decltype(v)> (v).syntheisze();
+		auto array = type_info_generator <decltype(v)> (v)
+			.synthesize()
+			.concrete();
+
 		auto intr = em.emit_qualifier(array, -1, code);
 		return cache_index_t::from(intr);
 	}

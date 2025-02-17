@@ -32,13 +32,11 @@ struct MVP {
 		return proj * (view * (model * vec4(position, 1.0)));
 	}
 
-	auto layout() const {
-		return uniform_layout(
-			"MVP",
-			named_field(model),
-			named_field(view),
-			named_field(proj)
-		);
+	auto layout() {
+		return layout_from("MVP",
+			verbatim_field(model),
+			verbatim_field(view),
+			verbatim_field(proj));
 	}
 };
 
@@ -266,11 +264,6 @@ int main(int argc, char *argv[])
 	// TODO: TSG alternative
 	auto sync = littlevk::present_syncronization(drc.device, 2).unwrap(drc.dal);
 
-	// Caching MVP fields
-	auto m_model = uniform_field(MVP, model);
-	auto m_view = uniform_field(MVP, view);
-	auto m_proj = uniform_field(MVP, proj);
-
 	// Configuring assets
 	auto asset = ImportedAsset::from(argv[1]).value();
 
@@ -355,9 +348,9 @@ int main(int argc, char *argv[])
 
 				camera_aperature.aspect = float(extent.width) / float(extent.height);
 
-				mvp[m_model] = glm::mat4(1.0f);
-				mvp[m_proj] = camera_aperature.perspective();
-				mvp[m_view] = camera_transform.view_matrix();
+				mvp.get <0> () = glm::mat4(1.0f);
+				mvp.get <1> () = camera_transform.view_matrix();
+				mvp.get <2> () = camera_aperature.perspective();
 				
 				solid_t <vec3> color = glm::vec3(0.5, 0.5, 1.0);
 

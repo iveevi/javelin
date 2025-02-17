@@ -176,10 +176,16 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 	case arrays:
 		break;
 
-	case glsl_intrinsic_gl_Position:
-	case glsl_intrinsic_gl_VertexIndex:
-	case glsl_intrinsic_gl_InstanceIndex:
 	case glsl_intrinsic_gl_GlobalInvocationID:
+	case glsl_intrinsic_gl_InstanceIndex:
+	case glsl_intrinsic_gl_LocalInvocationID:
+	case glsl_intrinsic_gl_LocalInvocationIndex:
+	case glsl_intrinsic_gl_MeshVerticesEXT:
+	case glsl_intrinsic_gl_Position:
+	case glsl_intrinsic_gl_PrimitiveTriangleIndicesEXT:
+	case glsl_intrinsic_gl_VertexIndex:
+	case glsl_intrinsic_gl_WorkGroupID:
+	case glsl_intrinsic_gl_WorkGroupSize:
 		break;
 
 	default:

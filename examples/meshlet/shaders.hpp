@@ -17,11 +17,11 @@ struct ViewInfo {
 		return proj * (view * (model * vec4(v, 1)));
 	}
 
-	auto layout() const {
-		return uniform_layout("ViewInfo",
-			named_field(model),
-			named_field(view),
-			named_field(proj));
+	auto layout() {
+		return layout_from("ViewInfo",
+			verbatim_field(model),
+			verbatim_field(view),
+			verbatim_field(proj));
 	}
 };
 
@@ -31,11 +31,11 @@ struct Payload {
 	u32 offset;
 	u32 size;
 
-	auto layout() const {
-		return uniform_layout("Payload",
-			named_field(pid),
-			named_field(offset),
-			named_field(size));
+	auto layout() {
+		return layout_from("Payload",
+			verbatim_field(pid),
+			verbatim_field(offset),
+			verbatim_field(size));
 	}
 };
 

@@ -142,13 +142,11 @@ struct MVP {
 		return proj * (view * (model * vec4(position, 1.0)));
 	}
 
-	auto layout() const {
-		return uniform_layout(
-			"MVP",
-			named_field(model),
-			named_field(view),
-			named_field(proj)
-		);
+	auto layout() {
+		return layout_from("MVP",
+			verbatim_field(model),
+			verbatim_field(view),
+			verbatim_field(proj));
 	}
 };
 

@@ -201,16 +201,12 @@ struct Application : CameraApplication {
 		auto &extent = resources.window.extent;
 		
 		camera.aperature.aspect = float(extent.width)/float(extent.height);
-
-		auto m_model = uniform_field(ViewInfo, model);
-		auto m_view = uniform_field(ViewInfo, view);
-		auto m_proj = uniform_field(ViewInfo, proj);
 		
 		solid_t <ViewInfo> view_info;
 
-		view_info[m_model] = model_transform.matrix();
-		view_info[m_proj] = camera.aperature.perspective();
-		view_info[m_view] = camera.transform.view_matrix();
+		view_info.get <0> () = model_transform.matrix();
+		view_info.get <1> () = camera.transform.view_matrix();
+		view_info.get <2> () = camera.aperature.perspective();
 
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, meshlet.handle);
 		cmd.pushConstants <solid_t <ViewInfo>> (meshlet.layout, vk::ShaderStageFlagBits::eMeshEXT, 0, view_info);
