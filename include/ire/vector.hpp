@@ -4,6 +4,7 @@
 #include "native.hpp"
 #include "tagged.hpp"
 #include "util.hpp"
+#include "swizzle_expansion.hpp"
 
 namespace jvl::ire {
 
@@ -12,15 +13,13 @@ template <native T, std::size_t N>
 struct vec;
 
 template <native T, std::size_t N>
-requires (N >= 1 && N <= 4)
-class swizzle_base : public native_t <T> {
-public:
-	swizzle_base(const T &x) : native_t <T> (x) {}
-	swizzle_base(const native_t <T> &x) : native_t <T> (x) {}
-};
+requires (N > 1 && N <= 4)
+class swizzle_base;
 
 // Other intrinsics
 struct __gl_Position_t;
+
+// TODO: basic_swizzle_base with no extra method...
 
 // Swizzle element
 // TODO: move to a separate header at this point
@@ -138,7 +137,7 @@ public:
 	}
 
 	template <native U, size_t N>
-	requires (N >= 1 && N <= 4)
+	requires (N > 1 && N <= 4)
 	friend class swizzle_base;
 
 	friend struct __gl_Position_t;
@@ -224,6 +223,8 @@ public:
 		thunder::Index cast = em.emit_intrinsic(args, caster());
 		em.emit_store(this->ref.id, cast);
 	}
+
+	SWIZZLE_EXPANSION_DIM2()
 
 	cache_index_t synthesize() const {
 		if (cached())
@@ -342,13 +343,15 @@ public:
 
 	// Casting conversion
 	template <native U>
-	swizzle_base(const swizzle_base <U, 2> &other) {
+	swizzle_base(const swizzle_base <U, 3> &other) {
 		auto &em = Emitter::active;
 		synthesize();
 		thunder::Index args = em.emit_list(other.synthesize().id);
 		thunder::Index cast = em.emit_intrinsic(args, caster());
 		em.emit_store(this->ref.id, cast);
 	}
+	
+	SWIZZLE_EXPANSION_DIM3()
 
 	cache_index_t synthesize() const {
 		if (cached())
@@ -457,13 +460,15 @@ public:
 
 	// Casting conversion
 	template <native U>
-	swizzle_base(const swizzle_base <U, 2> &other) {
+	swizzle_base(const swizzle_base <U, 4> &other) {
 		auto &em = Emitter::active;
 		synthesize();
 		thunder::Index args = em.emit_list(other.synthesize().id);
 		thunder::Index cast = em.emit_intrinsic(args, caster());
 		em.emit_store(this->ref.id, cast);
 	}
+	
+	SWIZZLE_EXPANSION_DIM4()
 
 	cache_index_t synthesize() const {
 		if (cached())

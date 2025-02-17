@@ -62,6 +62,42 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 			overload::from(vec2, uvec2),
 			overload::from(vec2, vec2),
 		} },
+		
+		{ cast_to_ivec3, {
+			overload::from(ivec3, ivec3),
+			overload::from(ivec3, uvec3),
+			overload::from(ivec3, vec3),
+		} },
+		
+		{ cast_to_uvec3, {
+			overload::from(uvec3, ivec3),
+			overload::from(uvec3, uvec3),
+			overload::from(uvec3, vec3),
+		} },
+		
+		{ cast_to_vec3, {
+			overload::from(vec3, ivec3),
+			overload::from(vec3, uvec3),
+			overload::from(vec3, vec3),
+		} },
+		
+		{ cast_to_ivec4, {
+			overload::from(ivec4, ivec4),
+			overload::from(ivec4, uvec4),
+			overload::from(ivec4, vec4),
+		} },
+		
+		{ cast_to_uvec4, {
+			overload::from(uvec4, ivec4),
+			overload::from(uvec4, uvec4),
+			overload::from(uvec4, vec4),
+		} },
+		
+		{ cast_to_vec4, {
+			overload::from(vec4, ivec4),
+			overload::from(vec4, uvec4),
+			overload::from(vec4, vec4),
+		} },
 
 		// Trigonometric functions
                 { sin, {

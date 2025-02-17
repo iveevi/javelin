@@ -6,6 +6,7 @@
 #include "../tagged.hpp"
 #include "../util.hpp"
 #include "../vector.hpp"
+#include "../swizzle_expansion.hpp"
 
 namespace jvl::ire {
 
@@ -42,6 +43,8 @@ struct __glsl_intrinsic_variable_t <vec <T, 3>, code> {
 	swizzle_element <T, self, thunder::SwizzleCode::x> x;
 	swizzle_element <T, self, thunder::SwizzleCode::y> y;
 	swizzle_element <T, self, thunder::SwizzleCode::z> z;
+
+	SWIZZLE_EXPANSION_DIM3()
 
 	__glsl_intrinsic_variable_t() = default;
 
