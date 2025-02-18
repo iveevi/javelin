@@ -42,12 +42,3 @@ jobs:
           cmake --build build -j 4 -t test
       - name: test
         run: ./build/testing/test --gtest_filter="-*opengl*"
-      - name: coverage
-        if: ${{ (matrix.build == 'Debug') && (matrix.compiler.c == 'gcc') }}
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: |
-          lcov -c -d build -o coverage.info
-          lcov -r --ignore-errors unused coverage.info "/usr" -o coverage.info
-          lcov -r --ignore-errors unused coverage.info "build/" -o coverage.info
-          bash <(curl -s https://codecov.io/bash) -f coverage.info

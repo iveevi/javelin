@@ -5,7 +5,6 @@ Javelin is a **just-in-time (JIT) compilation framework** for shader and kernel 
 Many components of Javelin are a work in progress. See the [road map](docs/road_map.md) to get an idea of what is coming next.
 
 ![GoogleTest](https://github.com/iveevi/javelin/actions/workflows/ci.yml/badge.svg)
-[![codecov](https://codecov.io/github/iveevi/javelin/graph/badge.svg?token=R9K1GJWFDU)](https://codecov.io/github/iveevi/javelin)
 
 ## Intermediate Representation Emitter
 
