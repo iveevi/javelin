@@ -20,6 +20,10 @@ struct Application : CameraApplication {
 	float saturation = 0.5f;
 	float lightness = 1.0f;
 	int splits = 16;
+	
+	glm::vec3 min;
+	glm::vec3 max;
+	bool automatic;
 
 	std::vector <VulkanTriangleMesh> meshes;
 
@@ -82,17 +86,44 @@ struct Application : CameraApplication {
 	
 		auto asset = ImportedAsset::from(path).value();
 
+		min = glm::vec3(1e10);
+		max = -min;
+
 		for (auto &g : asset.geometries) {
 			auto m = TriangleMesh::from(g).value();
 			auto v = VulkanTriangleMesh::from(resources.allocator(), m, VertexFlags::ePosition).value();
 			meshes.emplace_back(v);
+
+			auto [bmin, bmax] = m.scale();
+
+			min = glm::min(min, bmin);
+			max = glm::max(max, bmax);
 		}
+
+		automatic = (program["auto"] == true);
 
 		compile_pipeline(meshes[0].flags, saturation, lightness, splits);
 	}
 	
 	void render(const vk::CommandBuffer &cmd, uint32_t index) override {
-		camera.controller.handle_movement(resources.window);
+		if (automatic) {
+			float time = 2.5 * glfwGetTime();
+
+			auto &xform = camera.transform;
+
+			float r = 0.75 * glm::length(max - min);
+			float a = time + glm::pi <float> () / 2.0f;
+
+			xform.translate = glm::vec3 {
+				r * glm::cos(time),
+				-0.5 * (max + min).y,
+				r * glm::sin(time),
+			};
+
+			xform.rotation = glm::angleAxis(-a, glm::vec3(0, 1, 0));
+		} else {
+			camera.controller.handle_movement(resources.window);
+		}
 		
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(resources.window.extent));

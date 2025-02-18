@@ -16,6 +16,18 @@ struct TriangleMesh {
 
 	TriangleMesh() = default;
 
+	auto scale() const {
+		glm::vec3 min = glm::vec3(1e10);
+		glm::vec3 max = -min;
+
+		for (auto &p : positions) {
+			min = glm::min(min, p);
+			max = glm::max(max, p);
+		}
+
+		return std::make_pair(min, max);
+	}
+
 	static std::optional <TriangleMesh> from(const ImportedMesh &m) {
 		TriangleMesh tm;
 

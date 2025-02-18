@@ -155,6 +155,11 @@ struct BaseApplication {
 			.default_value(-1)
 			.scan <'i', int32_t> ();
 
+		program.add_argument("--auto")
+			.help("run automatic motion")
+			.default_value(false)
+			.flag();
+
 		// Unique arguments
 		configure(program);
 

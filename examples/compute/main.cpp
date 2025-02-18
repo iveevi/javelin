@@ -61,6 +61,7 @@ struct Application : CameraApplication {
 	float dt = 0.02f;
 	float mass = 500.0f;
 	bool pause = false;
+	bool automatic;
 
 	Application() : CameraApplication("Particles", { VK_KHR_SWAPCHAIN_EXTENSION_NAME })
 	{
@@ -200,12 +201,44 @@ struct Application : CameraApplication {
 		writes[1].setDstSet(compute_dset);
 		
 		resources.device.updateDescriptorSets(writes, {}, {});
+
+		automatic = (program["auto"] == true);
 	}
 	
 	void render(const vk::CommandBuffer &cmd, uint32_t index) override {
-		solid_t <MVP> view_info;
+		if (automatic) {
+			static std::vector <glm::vec4> buffer;
+			if (buffer.size() < N)
+				buffer.resize(N);
 
-		camera.controller.handle_movement(resources.window);
+			littlevk::download(resources.device, tb, buffer);
+
+			glm::vec3 min = glm::vec3(1e10);
+			glm::vec3 max = -min;
+
+			for (auto &p4 : buffer) {
+				auto p = glm::vec3(p4);
+				min = glm::min(min, p);
+				max = glm::max(max, p);
+			}
+			
+			float time = 0.5 * glfwGetTime();
+
+			auto &xform = camera.transform;
+
+			float r = std::min(50.0f, 0.75f * glm::length(max - min));
+			float a = time + glm::pi <float> () / 2.0f;
+
+			xform.translate = glm::vec3 {
+				r * glm::cos(time),
+				-0.5 * (max + min).y,
+				r * glm::sin(time),
+			};
+
+			xform.rotation = glm::angleAxis(-a, glm::vec3(0, 1, 0));
+		} else {
+			camera.controller.handle_movement(resources.window);
+		}
 		
 		// Configure the rendering extent
 		vk::Extent2D extent = resources.window.extent;
@@ -221,6 +254,8 @@ struct Application : CameraApplication {
 			.begin(cmd);
 
 		// Update the constants with the view matrix
+		solid_t <MVP> view_info;
+
 		camera.aperature.aspect = float(extent.width) / float(extent.height);
 
 		auto proj = camera.aperature.perspective();

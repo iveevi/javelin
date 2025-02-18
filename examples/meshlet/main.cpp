@@ -30,6 +30,10 @@ struct Application : CameraApplication {
 	uint32_t meshlet_count;
 
 	vk::DescriptorSet descriptor;
+	
+	glm::vec3 min;
+	glm::vec3 max;
+	bool automatic;
 
 	static inline const std::vector <vk::DescriptorSetLayoutBinding> meshlet_bindings {
 		vk::DescriptorSetLayoutBinding()
@@ -181,10 +185,37 @@ struct Application : CameraApplication {
 			.queue_update(1, 0, meshlet_vertices.buffer, 0, vk::WholeSize)
 			.queue_update(2, 0, meshlet_triangles.buffer, 0, vk::WholeSize)
 			.finalize();
+
+		min = glm::vec3(1e10);
+		max = -min;
+
+		for (auto &p : tm.positions) {
+			min = glm::min(min, p);
+			max = glm::max(max, p);
+		}
+
+		automatic = (program["auto"] == true);
 	}
 
 	void render(const vk::CommandBuffer &cmd, uint32_t index) override {
-		camera.controller.handle_movement(resources.window);
+		if (automatic) {
+			float time = 2.5 * glfwGetTime();
+
+			auto &xform = camera.transform;
+
+			float r = 0.75 * glm::length(max - min);
+			float a = time + glm::pi <float> () / 2.0f;
+
+			xform.translate = glm::vec3 {
+				r * glm::cos(time),
+				-0.5 * (max + min).y,
+				r * glm::sin(time),
+			};
+
+			xform.rotation = glm::angleAxis(-a, glm::vec3(0, 1, 0));
+		} else {
+			camera.controller.handle_movement(resources.window);
+		}
 		
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(resources.window.extent));

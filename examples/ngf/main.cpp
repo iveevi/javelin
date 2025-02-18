@@ -117,6 +117,9 @@ struct Application : CameraApplication {
 	vk::DescriptorSet descriptor;
 
 	int32_t resolution;
+	glm::vec3 min;
+	glm::vec3 max;
+	bool automatic;
 
 	Application() : CameraApplication("Neural Geometry Fields", {
 				VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -269,10 +272,39 @@ struct Application : CameraApplication {
 			.queue_update(6, 0, floating_sampler, W2_texture.view, layout)
 			.queue_update(7, 0, floating_sampler, W3_texture.view, layout)
 			.finalize();
+			
+		// Configure scene bounds
+		min = glm::vec3(1e10);
+		max = -min;
+
+		for (auto &p4 : hngf.vertices) {
+			auto p = 10.0f * glm::vec3(p4);
+			min = glm::min(min, p);
+			max = glm::max(max, p);
+		}
+
+		automatic = (program["auto"] == true);
 	}
 
 	void render(const vk::CommandBuffer &cmd, uint32_t index) override {
-		camera.controller.handle_movement(resources.window);
+		if (automatic) {
+			float time = 2.5 * glfwGetTime();
+
+			auto &xform = camera.transform;
+
+			float r = 0.75 * glm::length(max - min);
+			float a = time + glm::pi <float> () / 2.0f;
+
+			xform.translate = glm::vec3 {
+				r * glm::cos(time),
+				-0.5 * (max + min).y,
+				r * glm::sin(time),
+			};
+
+			xform.rotation = glm::angleAxis(-a, glm::vec3(0, 1, 0));
+		} else {
+			camera.controller.handle_movement(resources.window);
+		}
 		
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(resources.window.extent));
