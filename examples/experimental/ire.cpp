@@ -47,6 +47,8 @@ auto rgen = procedure <void> ("main") << []()
 	// TODO: image formats restricted by native type
 	write_only <image2D> image(1);
 
+	hit_attribute <vec2> barycentric;
+
 	vec2 center = vec2(gl_LaunchIDEXT.xy()) + vec2(0.5);
 	vec2 uv = center / vec2(imageSize(image));
 	vec3 ray = rayframe.at(uv);
@@ -70,6 +72,6 @@ auto rgen = procedure <void> ("main") << []()
 int main()
 {
 	rgen.dump();
-	dump_lines(link(rgen).generate_glsl());
+	dump_lines("EXPERIMENTAL IRE", link(rgen).generate_glsl());
 	link(rgen).generate_spirv(vk::ShaderStageFlagBits::eRaygenKHR);
 }

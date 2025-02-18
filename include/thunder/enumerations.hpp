@@ -137,6 +137,7 @@ enum QualifierKind : int8_t {
 	task_payload,
 
 	// Raytracing
+	hit_attribute,
 	ray_tracing_payload,
 	ray_tracing_payload_in,
 	acceleration_structure,
@@ -221,6 +222,7 @@ static constexpr const char *tbl_qualifier_kind[] = {
 
 	"task payload",
 
+	"hit attribute",
 	"ray tracing payload",
 	"ray tracing payload (in)",
 	"acceleration structure",

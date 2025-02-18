@@ -14,6 +14,8 @@
 #include "thunder/linkage_unit.hpp"
 #include "thunder/properties.hpp"
 
+// TODO: separate source files for generation of glsl and C++ code... (and spirv, cuda, llvm...)
+
 namespace jvl::thunder {
 
 MODULE(linkage-unit);
@@ -161,6 +163,11 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 			tbl_qualifier_kind[qualifier.kind],
 			lower);
 	} break;
+
+	case hit_attribute:
+		globals.special[hit_attribute][-1] = special_type(fidx, bidx);
+		extensions.insert("GL_EXT_ray_tracing");
+		break;
 	
 	case acceleration_structure:
 	case ray_tracing_payload:
@@ -643,6 +650,15 @@ void generate_special(std::string &result,
 			auto &generator = generators[st.function];
 			auto ts = generator.type_to_string(types[st.index]);
 			result += fmt::format("taskPayloadSharedEXT {} _task_payload;\n\n", ts.pre + ts.post);
+		} break;
+		
+		case hit_attribute:
+		{
+			auto &st = maps.at(-1);
+			auto &types = functions[st.function].types;
+			auto &generator = generators[st.function];
+			auto ts = generator.type_to_string(types[st.index]);
+			result += fmt::format("hitAttributeEXT {} _hit_attribute;\n\n", ts.pre + ts.post);
 		} break;
 
 		case acceleration_structure:

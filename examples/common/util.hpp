@@ -2,4 +2,4 @@
 
 #include <string>
 
-void dump_lines(const std::string &);
+void dump_lines(const std::string &, const std::string &);
