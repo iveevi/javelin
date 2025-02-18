@@ -176,7 +176,7 @@ void write_native(Buffer <u32> buffer)
 	buffer[x] = x;
 }
 
-TEST(compute, native)
+TEST(compute_glsl_opengl, native)
 {
 	std::string reference = R"(
 	#version 460
@@ -209,7 +209,7 @@ void write_builtin(Buffer <uvec3> buffer)
 	buffer[x] = uvec3(3 * x, 3 * x + 1, 3 * x + 2);
 }
 
-TEST(compute, builtin)
+TEST(compute_glsl_opengl, builtin)
 {
 	std::string reference = R"(
 	#version 460
@@ -243,7 +243,7 @@ void write_aggregate(Buffer <Datum> buffer)
 	buffer[x] =  Datum(uintBitsToFloat(x), -i32(x), x);
 }
 
-TEST(compute, aggregate)
+TEST(compute_glsl_opengl, aggregate)
 {
 	std::string reference = R"(
 	#version 460

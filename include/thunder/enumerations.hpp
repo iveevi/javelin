@@ -427,6 +427,9 @@ enum IntrinsicOperation : uint16_t {
 	mod,
 	mix,
 
+	// Raytracing
+	trace_ray,
+
 	// GLSL image and sampler operations
 	glsl_image_size,
 	glsl_image_load,
@@ -509,6 +512,8 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 
 	"mod",
 	"mix",
+
+	"traceRayEXT",
 
 	"imageSize",
 	"imageLoad",

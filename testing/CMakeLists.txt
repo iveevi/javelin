@@ -1,12 +1,12 @@
 # Testing suite using GoogleTest
 add_executable(test
 	callable.cpp
-	compute.cpp
+	compute_glsl_opengl.cpp
 	emitter.cpp
 	ggx.cpp
 	gl.cpp
 	layouts_cpp.cpp
-	layouts_glsl.cpp
+	layouts_glsl_opengl.cpp
 	material_gcc.cpp
 	solidification.cpp
 	../thirdparty/glad/src/gl.c)

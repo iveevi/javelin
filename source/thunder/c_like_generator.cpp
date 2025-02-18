@@ -73,10 +73,13 @@ static std::optional <std::string> generate_global_reference(const std::vector <
 	// Special
 	case task_payload:
 		return "_task_payload";
+
 	case ray_tracing_payload:
 		return fmt::format("_ray_payload{}", qualifier.numerical);
 	case ray_tracing_payload_in:
 		return fmt::format("_ray_payload_in{}", qualifier.numerical);
+	case acceleration_structure:
+		return fmt::format("_accel{}", qualifier.numerical);
 
 	// GLSL shader stage intrinsics
 	case glsl_FragCoord:

@@ -1,7 +1,4 @@
-// TODO: warnings for the unused sections
 // TODO: autodiff on inputs, for callables and shaders
-// TODO: test on shader toy shaders, use this as a gfx test
-// TODO: passing layout inputs/outputs (should ignore them)
 // TODO: partial evaluation of callables through substitution methods
 // TODO: external constant specialization
 // TODO: atomics
@@ -41,27 +38,34 @@ struct RayFrame {
 
 auto rgen = procedure <void> ("main") << []()
 {
-	gl_LaunchIDEXT.xy();
-	
-	// push_constant <RayFrame> rayframe;
+	push_constant <RayFrame> rayframe;
 
-	// accelerationStructureEXT tlas(0);
+	accelerationStructureEXT tlas(0);
 
-	// ray_payload <vec3> payload(0);
+	ray_payload <vec3> payload(0);
 
-	// // TODO: image formats restricted by native type
-	// write_only <image2D> image(1);
+	// TODO: image formats restricted by native type
+	write_only <image2D> image(1);
 
-	// // TODO: simpler vector constructors...
-	// vec2 center = vec2(gl_LaunchIDEXT.xy()) + vec2(0.5);
-	// vec2 uv = center / vec2(imageSize(image));
-	// vec3 ray = rayframe.at(uv);
+	vec2 center = vec2(gl_LaunchIDEXT.xy()) + vec2(0.5);
+	vec2 uv = center / vec2(imageSize(image));
+	vec3 ray = rayframe.at(uv);
 
-	// // vec4 color = vec4(pow(payload, vec3(1/2.2)), 1.0);
-	// vec4 color = gl_LaunchIDEXT.yyxz();
+	traceRayEXT(tlas,
+		gl_RayFlagsOpaqueEXT | gl_RayFlagsCullNoOpaqueEXT,
+		0xFF,
+		0, 0, 0,
+		rayframe.origin, 1e-3,
+		ray, 1e10,
+		0);
 
-	// imageStore(image, ivec2(gl_LaunchIDEXT.xy()), color);
+	vec4 color = vec4(pow(payload, vec3(1/2.2)), 1.0);
+
+	imageStore(image, ivec2(gl_LaunchIDEXT.xy()), color);
 };
+
+// TODO: raytracing example
+// TODO: shadertoy example
 
 int main()
 {

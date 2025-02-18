@@ -23,6 +23,7 @@
 #include "ire/intrinsics/common.hpp"
 #include "ire/intrinsics/glsl.hpp"
 #include "ire/intrinsics/stages/mesh.hpp"
+#include "ire/intrinsics/stages/raytracing.hpp"
 
 // TODO: organize into different targets, i.e. core/glsl.hpp, core/spirv.hpp, etc.
 // TODO: debug only

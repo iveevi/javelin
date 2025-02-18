@@ -140,7 +140,7 @@ public:
 
 	// Casting conversion
 	template <native U>
-	swizzle_base(const swizzle_base <U, 2> &other) {
+	swizzle_base(const swizzle_base <U, 2> &other) : base(this) {
 		auto &em = Emitter::active;
 		synthesize();
 		thunder::Index args = em.emit_list(other.synthesize().id);
@@ -255,7 +255,7 @@ public:
 
 	// Casting conversion
 	template <native U>
-	swizzle_base(const swizzle_base <U, 3> &other) {
+	swizzle_base(const swizzle_base <U, 3> &other) : base(this) {
 		auto &em = Emitter::active;
 		synthesize();
 		thunder::Index args = em.emit_list(other.synthesize().id);
@@ -363,7 +363,7 @@ public:
 
 	// Casting conversion
 	template <native U>
-	swizzle_base(const swizzle_base <U, 4> &other) {
+	swizzle_base(const swizzle_base <U, 4> &other) : base(this) {
 		auto &em = Emitter::active;
 		synthesize();
 		thunder::Index args = em.emit_list(other.synthesize().id);

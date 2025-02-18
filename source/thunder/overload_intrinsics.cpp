@@ -242,6 +242,22 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 			overload::from(vec4, vec4, vec4, f32),
 		} },
 
+		// Raytracing operations
+		{ trace_ray, {
+			overload::from(QualifiedType::primitive(none),
+				QualifiedType::intrinsic(acceleration_structure),
+				QualifiedType::primitive(u32),
+				QualifiedType::primitive(u32),
+				QualifiedType::primitive(u32),
+				QualifiedType::primitive(u32),
+				QualifiedType::primitive(u32),
+				QualifiedType::primitive(vec3),
+				QualifiedType::primitive(f32),
+				QualifiedType::primitive(vec3),
+				QualifiedType::primitive(f32),
+				QualifiedType::primitive(i32)),
+		} },
+
 		// GLSL image and sampler intrinsics
 		{ glsl_image_size, {
 			overload::from(PlainDataType(i32), QualifiedType::image(ivec4, 1)),

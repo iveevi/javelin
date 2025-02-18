@@ -163,19 +163,4 @@ struct ray_payload_in <T> : T {
 	}
 };
 
-// Acceleration structure for raytracing
-struct accelerationStructureEXT {
-	int32_t binding;
-
-	accelerationStructureEXT(int32_t binding_ = 0) : binding(binding_) {
-		synthesize();
-	}
-
-	cache_index_t synthesize() const {
-		auto &em = Emitter::active;
-		auto qual = em.emit_qualifier(-1, binding, thunder::acceleration_structure);
-		return cache_index_t::from(qual);
-	}
-};
-
 } // namespace jvl::ire

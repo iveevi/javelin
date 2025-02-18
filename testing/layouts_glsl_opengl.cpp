@@ -64,42 +64,42 @@ void simple_layouts()
 	check_glsl_source(glsl, GL_VERTEX_SHADER);
 }
 
-TEST(layouts_glsl, simple_int)
+TEST(layouts_glsl_opengl, simple_int)
 {
 	simple_layouts <int> ();
 }
 
-TEST(layouts_glsl, simple_float)
+TEST(layouts_glsl_opengl, simple_float)
 {
 	simple_layouts <float> ();
 }
 
-TEST(layouts_glsl, simple_int_2)
+TEST(layouts_glsl_opengl, simple_int_2)
 {
 	simple_layouts <int, 2> ();
 }
 
-TEST(layouts_glsl, simple_float_2)
+TEST(layouts_glsl_opengl, simple_float_2)
 {
 	simple_layouts <float, 2> ();
 }
 
-TEST(layouts_glsl, simple_int_3)
+TEST(layouts_glsl_opengl, simple_int_3)
 {
 	simple_layouts <int, 3> ();
 }
 
-TEST(layouts_glsl, simple_float_3)
+TEST(layouts_glsl_opengl, simple_float_3)
 {
 	simple_layouts <float, 3> ();
 }
 
-TEST(layouts_glsl, simple_int_4)
+TEST(layouts_glsl_opengl, simple_int_4)
 {
 	simple_layouts <int, 4> ();
 }
 
-TEST(layouts_glsl, simple_float_4)
+TEST(layouts_glsl_opengl, simple_float_4)
 {
 	simple_layouts <float, 4> ();
 }
