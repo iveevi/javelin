@@ -29,7 +29,7 @@ struct Application : CameraApplication {
 	littlevk::Buffer meshlet_sizes;
 	uint32_t meshlet_count;
 
-	vk::DescriptorSet descriptor;
+	vk::DescriptorSet rtx_descriptor;
 	
 	glm::vec3 min;
 	glm::vec3 max;
@@ -116,7 +116,8 @@ struct Application : CameraApplication {
 			.source(mesh_shader, vk::ShaderStageFlagBits::eMeshEXT)
 			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 
-		meshlet = littlevk::PipelineAssembler <littlevk::eGraphics> (resources.device, resources.window, resources.dal)
+		meshlet = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
+			(resources.device, resources.window, resources.dal)
 			.with_render_pass(render_pass, 0)
 			.with_shader_bundle(bundle)
 			.with_push_constant <solid_t <ViewInfo>> (vk::ShaderStageFlagBits::eMeshEXT, 0)
@@ -125,7 +126,7 @@ struct Application : CameraApplication {
 			.with_dsl_binding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eMeshEXT)
 			.cull_mode(vk::CullModeFlagBits::eNone);
 
-		descriptor = littlevk::bind(resources.device, resources.descriptor_pool)
+		rtx_descriptor = littlevk::bind(resources.device, resources.descriptor_pool)
 			.allocate_descriptor_sets(meshlet.dsl.value())
 			.front();
 	}
@@ -180,7 +181,7 @@ struct Application : CameraApplication {
 		meshlet_count = sizes.size();
 
 		// Bind descriptor resources
-		littlevk::bind(resources.device, descriptor, meshlet_bindings)
+		littlevk::bind(resources.device, rtx_descriptor, meshlet_bindings)
 			.queue_update(0, 0, meshlet_sizes.buffer, 0, vk::WholeSize)
 			.queue_update(1, 0, meshlet_vertices.buffer, 0, vk::WholeSize)
 			.queue_update(2, 0, meshlet_triangles.buffer, 0, vk::WholeSize)
@@ -241,7 +242,7 @@ struct Application : CameraApplication {
 
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, meshlet.handle);
 		cmd.pushConstants <solid_t <ViewInfo>> (meshlet.layout, vk::ShaderStageFlagBits::eMeshEXT, 0, view_info);
-		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, meshlet.layout, 0, descriptor, {});
+		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, meshlet.layout, 0, rtx_descriptor, {});
 		// TODO: slider for the number of meshlets to draw...
 		// TODO: also for the meshlet size...
 		cmd.drawMeshTasksEXT(meshlet_count, 1, 1);

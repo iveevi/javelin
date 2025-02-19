@@ -114,7 +114,7 @@ struct Application : CameraApplication {
 	ImportedNGF ingf;
 	HomogenizedNGF hngf;
 
-	vk::DescriptorSet descriptor;
+	vk::DescriptorSet rtx_descriptor;
 
 	int32_t resolution;
 	glm::vec3 min;
@@ -216,7 +216,8 @@ struct Application : CameraApplication {
 
 		bundle.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 
-		traditional = littlevk::PipelineAssembler <littlevk::eGraphics> (resources.device, resources.window, resources.dal)
+		traditional = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
+			(resources.device, resources.window, resources.dal)
 			.with_render_pass(render_pass, 0)
 			.with_shader_bundle(bundle)
 			.cull_mode(vk::CullModeFlagBits::eNone)
@@ -251,7 +252,7 @@ struct Application : CameraApplication {
 		auto W3_texture = allocator(resources, hngf.W3, { 16, 3 });
 
 		// Bind the resources
-		descriptor = littlevk::bind(resources.device, resources.descriptor_pool)
+		rtx_descriptor = littlevk::bind(resources.device, resources.descriptor_pool)
 			.allocate_descriptor_sets(traditional.dsl.value()).front();
 
 		vk::Sampler integer_sampler = littlevk::SamplerAssembler(resources.device, resources.dal)
@@ -262,7 +263,7 @@ struct Application : CameraApplication {
 
 		auto layout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
-		littlevk::bind(resources.device, descriptor, meshlet_bindings)
+		littlevk::bind(resources.device, rtx_descriptor, meshlet_bindings)
 			.queue_update(0, 0, integer_sampler, complex_texture.view, layout)
 			.queue_update(1, 0, floating_sampler, vertex_texture.view, layout)
 			.queue_update(2, 0, floating_sampler, feature_texture.view, layout)
@@ -336,7 +337,7 @@ struct Application : CameraApplication {
 			| vk::ShaderStageFlagBits::eMeshEXT,
 			0, view_info);
 
-		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, traditional.layout, 0, descriptor, { });
+		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, traditional.layout, 0, rtx_descriptor, { });
 		cmd.drawMeshTasksEXT(ingf.patch_count, 1, 1);
 
 		imgui(cmd);

@@ -50,7 +50,8 @@ littlevk::Pipeline configure_pipeline(VulkanResources &resources,
 	fmt::println("{}", vertex_shader);
 	fmt::println("{}", fragment_shader);
 
-	return littlevk::PipelineAssembler <littlevk::eGraphics> (resources.device, resources.window, resources.dal)
+	return littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
+		(resources.device, resources.window, resources.dal)
 		.with_render_pass(render_pass, 0)
 		.with_vertex_layout(vertex_layout)
 		.with_shader_bundle(bundle)

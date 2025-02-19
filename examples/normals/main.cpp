@@ -37,13 +37,13 @@ struct Application : CameraApplication {
 		configure_imgui(resources, render_pass);
 
 		// Configure pipeline
-		compile_pipeline();
+		compile_rxt_pipeline();
 		
 		// Framebuffer manager
 		framebuffers.resize(resources, render_pass);
 	}
 
-	void compile_pipeline() {
+	void compile_rxt_pipeline() {
 		auto [binding, attributes] = binding_and_attributes(VertexFlags::ePosition);
 
 		auto vs_callable = procedure("main") << vertex;
@@ -60,7 +60,8 @@ struct Application : CameraApplication {
 			.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
 			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 
-		raster = littlevk::PipelineAssembler <littlevk::eGraphics> (resources.device, resources.window, resources.dal)
+		raster = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
+			(resources.device, resources.window, resources.dal)
 			.with_render_pass(render_pass, 0)
 			.with_vertex_binding(binding)
 			.with_vertex_attributes(attributes)

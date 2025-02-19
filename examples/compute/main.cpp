@@ -84,7 +84,8 @@ struct Application : CameraApplication {
 		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
 			.source(compute_shader, vk::ShaderStageFlagBits::eCompute);
 
-		compute = littlevk::PipelineAssembler <littlevk::eCompute> (resources.device, resources.dal)
+		compute = littlevk::PipelineAssembler <littlevk::PipelineType::eCompute>
+			(resources.device, resources.dal)
 			.with_shader_bundle(bundle)
 			.with_push_constant <SimulationInfo> (vk::ShaderStageFlagBits::eCompute)
 			.with_dsl_binding(0, vk::DescriptorType::eStorageBuffer,
@@ -124,7 +125,8 @@ struct Application : CameraApplication {
 		fmt::println("{}", vertex_shader);
 		fmt::println("{}", fragment_shader);
 
-		raster = littlevk::PipelineAssembler <littlevk::eGraphics> (resources.device, resources.window, resources.dal)
+		raster = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
+			(resources.device, resources.window, resources.dal)
 			.with_render_pass(render_pass, 0)
 			.with_vertex_layout(vertex_layout)
 			.with_shader_bundle(bundle)

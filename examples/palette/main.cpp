@@ -65,7 +65,8 @@ struct Application : CameraApplication {
 
 		auto [binding, attributes] = binding_and_attributes(flags);
 
-		traditional = littlevk::PipelineAssembler <littlevk::eGraphics> (resources.device, resources.window, resources.dal)
+		traditional = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
+			(resources.device, resources.window, resources.dal)
 			.with_render_pass(render_pass, 0)
 			.with_vertex_binding(binding)
 			.with_vertex_attributes(attributes)

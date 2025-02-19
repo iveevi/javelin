@@ -74,7 +74,8 @@ struct VulkanTriangleMesh {
 
 	static bestd::optional <VulkanTriangleMesh> from(littlevk::LinkedDeviceAllocator <> allocator,
 							 const ::TriangleMesh &tmesh,
-							 const VertexFlags &maximal_flags = VertexFlags::eAll) {
+							 const VertexFlags &maximal_flags = VertexFlags::eAll,
+							 const vk::BufferUsageFlags &extra = vk::BufferUsageFlagBits(0)) {
 		VulkanTriangleMesh vmesh;
 
 		auto result = interleave(tmesh, maximal_flags);
@@ -83,11 +84,11 @@ struct VulkanTriangleMesh {
 		vmesh.count = 3 * tmesh.triangles.size();
 
 		std::tie(vmesh.vertices, vmesh.triangles) = allocator
-			.buffer(result.data,
-				vk::BufferUsageFlagBits::eTransferDst
+			.buffer(result.data, extra
+				| vk::BufferUsageFlagBits::eTransferDst
 				| vk::BufferUsageFlagBits::eVertexBuffer)
-			.buffer(tmesh.triangles,
-				vk::BufferUsageFlagBits::eTransferDst
+			.buffer(tmesh.triangles, extra
+				| vk::BufferUsageFlagBits::eTransferDst
 				| vk::BufferUsageFlagBits::eIndexBuffer);
 
 		vmesh.material_usage = tmesh.material_usage;

@@ -1,92 +1,256 @@
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/string_cast.hpp>
+
 #include "common/aperature.hpp"
-#include "common/camera_controller.hpp"
 #include "common/default_framebuffer_set.hpp"
-#include "common/extensions.hpp"
 #include "common/imgui.hpp"
 #include "common/imported_asset.hpp"
-#include "common/transform.hpp"
 #include "common/vulkan_resources.hpp"
 #include "common/application.hpp"
 #include "common/util.hpp"
+#include "common/vulkan_triangle_mesh.hpp"
 
-#include <ire.hpp>
+#include "shaders.hpp"
 
-using namespace jvl;
-using namespace jvl::ire;
+vk::TransformMatrixKHR vk_transform(const glm::mat4 &m)
+{
+	return vk::TransformMatrixKHR()
+		.setMatrix(std::array <std::array <float, 4>, 3> {
+			std::array <float, 4> { m[0][0], m[1][0], m[2][0], m[3][0] },
+			std::array <float, 4> { m[0][1], m[1][1], m[2][1], m[3][1] },
+			std::array <float, 4> { m[0][2], m[1][2], m[2][2], m[3][2] }
+		});
+}
 
-struct ViewFrame {
-	vec3 origin;
-	vec3 lower_left;
-	vec3 horizontal;
-	vec3 vertical;
-
-	vec3 at(vec2 uv) {
-		return normalize(lower_left + uv.x * horizontal + uv.y * vertical - origin);
-	}
-
-	auto layout() {
-		return layout_from("Frame",
-			verbatim_field(origin),
-			verbatim_field(lower_left),
-			verbatim_field(horizontal),
-			verbatim_field(vertical));
-	}
+struct InstanceInfo {
+	uint32_t index;
+	uint32_t mask;
 };
 
-Procedure <void> ray_generation = procedure <void> ("main") << []()
+struct VulkanAccelerationStructure {
+	vk::AccelerationStructureKHR handle;
+	vk::Buffer buffer;
+	vk::DeviceMemory memory;
+	vk::DeviceSize size;
+
+	static VulkanAccelerationStructure blas(VulkanResources &,
+		const vk::CommandBuffer &,
+		const VulkanTriangleMesh &);
+
+	static VulkanAccelerationStructure tlas(VulkanResources &,
+		const vk::CommandBuffer &,
+		const std::vector <VulkanAccelerationStructure> &,
+		const std::vector <vk::TransformMatrixKHR> &,
+		const std::vector <InstanceInfo> &);
+};
+
+VulkanAccelerationStructure VulkanAccelerationStructure::blas(VulkanResources &resources,
+							      const vk::CommandBuffer &cmd,
+							      const VulkanTriangleMesh &tm)
 {
-	ray_payload <vec3> payload(0);
+	auto &device = resources.device;
 
-	accelerationStructureEXT tlas(0);
+	auto build_type = vk::AccelerationStructureBuildTypeKHR::eDevice;
 
-	write_only <image2D> image(1);
+	auto triangles_data = vk::AccelerationStructureGeometryTrianglesDataKHR()
+		.setVertexData(device.getBufferAddress(tm.vertices.buffer))
+		.setIndexData(device.getBufferAddress(tm.triangles.buffer))
+		.setIndexType(vk::IndexType::eUint32)
+		.setMaxVertex(tm.count)
+		.setVertexStride(sizeof(glm::vec3))
+		.setVertexFormat(vk::Format::eR32G32B32Sfloat);
 
-	push_constant <ViewFrame> rayframe;
+	auto blas_geometry_data = vk::AccelerationStructureGeometryDataKHR()
+		.setTriangles(triangles_data);
+
+	auto blas_geometry = vk::AccelerationStructureGeometryKHR()
+		.setGeometry(blas_geometry_data)
+		.setGeometryType(vk::GeometryTypeKHR::eTriangles);
+
+	auto blas_build_info = vk::AccelerationStructureBuildGeometryInfoKHR()
+		.setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
+		.setType(vk::AccelerationStructureTypeKHR::eBottomLevel)
+		.setGeometries(blas_geometry);
+
+	auto blas_build_sizes = device.getAccelerationStructureBuildSizesKHR(build_type, blas_build_info, tm.count / 3);
+
+	littlevk::Buffer blas_buffer = resources.allocator()
+		.buffer(blas_build_sizes.accelerationStructureSize,
+			vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR
+			| vk::BufferUsageFlagBits::eShaderDeviceAddress);
+
+	auto blas_info = vk::AccelerationStructureCreateInfoKHR()
+		.setBuffer(blas_buffer.buffer)
+		.setType(vk::AccelerationStructureTypeKHR::eBottomLevel)
+		.setSize(blas_build_sizes.accelerationStructureSize);
+
+	auto blas = device.createAccelerationStructureKHR(blas_info);
 	
-	vec2 center = vec2(gl_LaunchIDEXT.xy()) + vec2(0.5);
-	vec2 uv = center / vec2(imageSize(image));
-	vec3 ray = rayframe.at(uv);
+	littlevk::Buffer blas_scratch_buffer = resources.allocator()
+		.buffer(blas_build_sizes.buildScratchSize,
+			vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR
+			| vk::BufferUsageFlagBits::eShaderDeviceAddress
+			| vk::BufferUsageFlagBits::eStorageBuffer);
 
-	traceRayEXT(tlas,
-		gl_RayFlagsOpaqueEXT | gl_RayFlagsCullNoOpaqueEXT,
-		0xFF,
-		0, 0, 0,
-		rayframe.origin, 1e-3,
-		ray, 1e10,
-		0);
+	blas_build_info = blas_build_info
+		.setDstAccelerationStructure(blas)
+		.setScratchData(device.getBufferAddress(blas_scratch_buffer.buffer));
 
-	vec4 color = vec4(pow(payload, vec3(1/2.2)), 1.0);
+	auto blas_build_range = vk::AccelerationStructureBuildRangeInfoKHR()
+		.setFirstVertex(0)
+		.setPrimitiveCount(tm.count / 3)
+		.setPrimitiveOffset(0)
+		.setTransformOffset(0);
 
-	imageStore(image, ivec2(gl_LaunchIDEXT.xy()), color);
-};
+	cmd.buildAccelerationStructuresKHR(blas_build_info, &blas_build_range);
 
-Procedure <void> ray_closest_hit = procedure <void> ("main") << []()
+	return VulkanAccelerationStructure {
+		.handle = blas,
+		.buffer = blas_buffer.buffer,
+		.memory = blas_buffer.memory,
+		.size = blas_buffer.device_size(),
+	};
+}
+
+VulkanAccelerationStructure VulkanAccelerationStructure::tlas(VulkanResources &resources,
+							      const vk::CommandBuffer &cmd,
+							      const std::vector <VulkanAccelerationStructure> &blases,
+							      const std::vector <vk::TransformMatrixKHR> &transforms,
+							      const std::vector <InstanceInfo> &infos)
 {
-	ray_payload_in <vec3> payload(0);
+	MODULE(tlas);
 
-	hit_attribute <vec2> barycentrics;
+	JVL_ASSERT(blases.size() == transforms.size(), "mismatch between blases and transforms sizes");
 
-	payload = vec3(1.0f - barycentrics.x - barycentrics.y, barycentrics.x, barycentrics.y);
+	auto &device = resources.device;
+
+	std::vector <vk::AccelerationStructureInstanceKHR> instances;
+	for (size_t i = 0; i < blases.size(); i++) {
+		auto instance = vk::AccelerationStructureInstanceKHR()
+			.setInstanceShaderBindingTableRecordOffset(0)
+			.setInstanceCustomIndex(infos[i].index)
+			.setAccelerationStructureReference(device.getBufferAddress(blases[i].buffer))
+			.setMask(infos[i].mask)
+			.setTransform(transforms[i])
+			.setFlags(vk::GeometryInstanceFlagBitsKHR::eTriangleCullDisable);
+
+		instances.push_back(instance);
+	}
+
+	JVL_ASSERT(instances.size() > 0, "zero instances provided to tlas constructor");
+	
+	littlevk::Buffer instance_buffer = resources.allocator()
+		.buffer(instances,
+			vk::BufferUsageFlagBits::eStorageBuffer
+			| vk::BufferUsageFlagBits::eShaderDeviceAddress
+			| vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR);
+	
+	auto instance_data = vk::AccelerationStructureGeometryInstancesDataKHR()
+		.setData(device.getBufferAddress(instance_buffer.buffer));
+	
+	auto tlas_geometry_data = vk::AccelerationStructureGeometryDataKHR()
+		.setInstances(instance_data);
+
+	auto tlas_geometry = vk::AccelerationStructureGeometryKHR()
+		.setGeometryType(vk::GeometryTypeKHR::eInstances)
+		.setGeometry(tlas_geometry_data);
+
+	auto tlas_build_info = vk::AccelerationStructureBuildGeometryInfoKHR()
+		.setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
+		.setType(vk::AccelerationStructureTypeKHR::eTopLevel)
+		.setGeometries(tlas_geometry);
+	
+	auto tlas_build_sizes = device.getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, tlas_build_info, instances.size());
+	
+	littlevk::Buffer tlas_buffer = resources.allocator()
+		.buffer(tlas_build_sizes.accelerationStructureSize,
+			vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR
+			| vk::BufferUsageFlagBits::eShaderDeviceAddress);
+
+	auto tlas_info = vk::AccelerationStructureCreateInfoKHR()
+		.setBuffer(tlas_buffer.buffer)
+		.setType(vk::AccelerationStructureTypeKHR::eTopLevel)
+		.setSize(tlas_build_sizes.accelerationStructureSize);
+
+	auto tlas = device.createAccelerationStructureKHR(tlas_info);
+	
+	littlevk::Buffer tlas_scratch_buffer = resources.allocator()
+		.buffer(tlas_build_sizes.buildScratchSize,
+			vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR
+			| vk::BufferUsageFlagBits::eShaderDeviceAddress
+			| vk::BufferUsageFlagBits::eStorageBuffer);
+
+	tlas_build_info = tlas_build_info
+		.setDstAccelerationStructure(tlas)
+		.setScratchData(device.getBufferAddress(tlas_scratch_buffer.buffer));
+
+	auto tlas_build_range = vk::AccelerationStructureBuildRangeInfoKHR()
+		.setFirstVertex(0)
+		.setPrimitiveCount(instances.size())
+		.setPrimitiveOffset(0)
+		.setTransformOffset(0);
+
+	cmd.buildAccelerationStructuresKHR(tlas_build_info, &tlas_build_range);
+
+	return VulkanAccelerationStructure {
+		.handle = tlas,
+		.buffer = tlas_buffer.buffer,
+		.memory = tlas_buffer.memory,
+		.size = tlas_buffer.device_size(),
+	};
+}
+
+struct ShaderBindingTable {
+	vk::StridedDeviceAddressRegionKHR ray_generation;
+	vk::StridedDeviceAddressRegionKHR misses;
+	vk::StridedDeviceAddressRegionKHR closest_hits;
+	vk::StridedDeviceAddressRegionKHR callables;
 };
 
-Procedure <void> ray_miss = procedure <void> ("main") << []()
+template <class I>
+constexpr I align_up(I x, size_t a)
 {
-	ray_payload_in <vec3> payload(0);
-
-	payload = vec3(0);
-};
+	return I((x + (I(a) - 1)) & ~I(a - 1));
+}
 
 struct Application : CameraApplication {
-	littlevk::Pipeline pipeline;
+	littlevk::Pipeline rtx_pipeline;
+	littlevk::Pipeline blit_pipeline;
 
 	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
+
+	vk::DescriptorSet rtx_descriptor;
+	vk::DescriptorSet blit_descriptor;
+
+	littlevk::Image target;
+
+	ShaderBindingTable sbt;
+	VulkanAccelerationStructure tlas;
+
+	glm::vec3 min;
+	glm::vec3 max;
+	bool automatic;
+
+	static inline const std::vector <vk::DescriptorSetLayoutBinding> bindings {
+		vk::DescriptorSetLayoutBinding()
+			.setBinding(0)
+			.setDescriptorCount(1)
+			.setDescriptorType(vk::DescriptorType::eAccelerationStructureKHR)
+			.setStageFlags(vk::ShaderStageFlagBits::eRaygenKHR),
+		vk::DescriptorSetLayoutBinding()
+			.setBinding(1)
+			.setDescriptorCount(1)
+			.setDescriptorType(vk::DescriptorType::eStorageImage)
+			.setStageFlags(vk::ShaderStageFlagBits::eRaygenKHR),
+	};
 
 	Application() : CameraApplication("Raytracing", {
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 			VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
 			VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
 			VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+			VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
 		}, features_include, features_activate)
 	{
 		render_pass = littlevk::RenderPassAssembler(resources.device, resources.dal)
@@ -102,11 +266,14 @@ struct Application : CameraApplication {
 		// Framebuffer manager
 		framebuffers.resize(resources, render_pass);
 	
-		compile_pipeline();
+		compile_rtx_pipeline();
+		compile_blit_pipeline();
 	}
 
 	static void features_include(VulkanFeatureChain &features) {
 		features.add <vk::PhysicalDeviceRayTracingPipelineFeaturesKHR> ();
+		features.add <vk::PhysicalDeviceAccelerationStructureFeaturesKHR> ();
+		features.add <vk::PhysicalDeviceBufferAddressFeaturesEXT> ();
 	}
 
 	static void features_activate(VulkanFeatureChain &features) {
@@ -115,13 +282,18 @@ struct Application : CameraApplication {
 			feature_case(vk::PhysicalDeviceRayTracingPipelineFeaturesKHR)
 				.setRayTracingPipeline(true);
 				break;
+			feature_case(vk::PhysicalDeviceBufferAddressFeaturesEXT)
+				.setBufferDeviceAddress(true)
+				.setBufferDeviceAddressCaptureReplay(false)
+				.setBufferDeviceAddressMultiDevice(false);
+				break;
 			default:
 				break;
 			}
 		}
 	}
 
-	void compile_pipeline() {
+	void compile_rtx_pipeline() {
 		std::string rgen_shader = link(ray_generation).generate_glsl();
 		std::string rchit_shader = link(ray_closest_hit).generate_glsl();
 		std::string rmiss_shader = link(ray_miss).generate_glsl();
@@ -132,11 +304,235 @@ struct Application : CameraApplication {
 		
 		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
 			.source(rgen_shader, vk::ShaderStageFlagBits::eRaygenKHR)
-			.source(rchit_shader, vk::ShaderStageFlagBits::eClosestHitKHR)
-			.source(rmiss_shader, vk::ShaderStageFlagBits::eMissKHR);
+			.source(rmiss_shader, vk::ShaderStageFlagBits::eMissKHR)
+			.source(rchit_shader, vk::ShaderStageFlagBits::eClosestHitKHR);
+
+		auto rgen_group = vk::RayTracingShaderGroupCreateInfoKHR()
+			.setType(vk::RayTracingShaderGroupTypeKHR::eGeneral)
+			.setGeneralShader(0);
+		
+		auto rmiss_group = vk::RayTracingShaderGroupCreateInfoKHR()
+			.setType(vk::RayTracingShaderGroupTypeKHR::eGeneral)
+			.setGeneralShader(1);
+		
+		auto rchit_group = vk::RayTracingShaderGroupCreateInfoKHR()
+			.setType(vk::RayTracingShaderGroupTypeKHR::eTrianglesHitGroup)
+			.setClosestHitShader(2);
+
+		std::vector <vk::RayTracingShaderGroupCreateInfoKHR> groups {
+			rgen_group,
+			rmiss_group,
+			rchit_group,
+		};
+
+		auto pc_range = vk::PushConstantRange()
+			.setOffset(0)
+			.setSize(sizeof(solid_t <ViewFrame>))
+			.setStageFlags(vk::ShaderStageFlagBits::eRaygenKHR);
+
+		auto dsl_info = vk::DescriptorSetLayoutCreateInfo()
+			.setBindings(bindings);
+
+		rtx_pipeline.dsl = resources.device.createDescriptorSetLayout(dsl_info);
+
+		auto layout_info = vk::PipelineLayoutCreateInfo()
+			.setPushConstantRanges(pc_range)
+			.setSetLayouts(*rtx_pipeline.dsl);
+
+		rtx_pipeline.layout = resources.device.createPipelineLayout(layout_info);
+
+		auto pipeline_info = vk::RayTracingPipelineCreateInfoKHR()
+			.setStages(bundle.stages)
+			.setGroups(groups)
+			.setMaxPipelineRayRecursionDepth(1)
+			.setLayout(rtx_pipeline.layout);
+
+		rtx_pipeline.handle = resources.device.createRayTracingPipelineKHR(nullptr, { }, pipeline_info).value;
+
+		auto pr_raytracing = vk::PhysicalDeviceRayTracingPipelinePropertiesKHR();
+		auto properties = vk::PhysicalDeviceProperties2KHR();
+
+		properties.pNext = &pr_raytracing;
+
+		resources.phdev.getProperties2(&properties);
+
+		uint32_t handle_size = pr_raytracing.shaderGroupHandleSize;
+		uint32_t handle_alignment = pr_raytracing.shaderGroupHandleAlignment;
+		uint32_t base_alignment = pr_raytracing.shaderGroupBaseAlignment;
+		uint32_t handle_size_aligned = align_up(handle_size, handle_alignment);
+
+		uint32_t ray_generation_size = align_up(handle_size_aligned, base_alignment);
+		sbt.ray_generation = vk::StridedDeviceAddressRegionKHR()
+			.setSize(ray_generation_size)
+			.setStride(ray_generation_size);
+
+		sbt.misses = vk::StridedDeviceAddressRegionKHR()
+			.setSize(align_up(1 * handle_size_aligned, base_alignment))
+			.setStride(handle_size_aligned);
+		
+		sbt.closest_hits = vk::StridedDeviceAddressRegionKHR()
+			.setSize(align_up(1 * handle_size_aligned, base_alignment))
+			.setStride(handle_size_aligned);
+		
+		sbt.callables = vk::StridedDeviceAddressRegionKHR();
+
+		std::vector <uint8_t> handles(handle_size * groups.size());
+
+		auto result = resources.device.getRayTracingShaderGroupHandlesKHR(rtx_pipeline.handle,
+			0, groups.size(),
+			handles.size(),
+			handles.data());
+
+		uint32_t sbt_size = sbt.ray_generation.size
+			+ sbt.misses.size
+			+ sbt.closest_hits.size;
+
+		std::vector <uint8_t> sbt_data(sbt_size);
+
+		// Ray generation
+		std::memcpy(sbt_data.data(), handles.data(), handle_size);
+
+		// Miss
+		std::memcpy(sbt_data.data() + sbt.ray_generation.size,
+			handles.data() + handle_size,
+			handle_size);
+
+		// Closest hit
+		std::memcpy(sbt_data.data()
+				+ sbt.ray_generation.size
+				+ sbt.misses.size,
+			handles.data() + 2 * handle_size,
+			handle_size);
+
+		// Upload to the GPU
+		littlevk::Buffer sbt_buffer = resources.allocator()
+			.buffer(sbt_data,
+				vk::BufferUsageFlagBits::eShaderBindingTableKHR
+				| vk::BufferUsageFlagBits::eShaderDeviceAddress);
+
+		auto sbt_address = resources.device.getBufferAddress(sbt_buffer.buffer);
+
+		sbt.ray_generation.setDeviceAddress(sbt_address);
+		sbt.misses.setDeviceAddress(sbt_address + sbt.ray_generation.size);
+		sbt.closest_hits.setDeviceAddress(sbt_address + sbt.ray_generation.size + sbt.misses.size);
+		
+		rtx_descriptor = littlevk::bind(resources.device, resources.descriptor_pool)
+			.allocate_descriptor_sets(*rtx_pipeline.dsl)
+			.front();
+	}
+
+	void compile_blit_pipeline() {
+		std::string vertex_shader = link(quad).generate_glsl();
+		std::string fragment_shader = link(blit).generate_glsl();
+
+		dump_lines("QUAD", vertex_shader);
+		dump_lines("BLIT", fragment_shader);
+
+		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
+			.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
+			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
+
+		blit_pipeline = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
+			(resources.device, resources.window, resources.dal)
+			.with_shader_bundle(bundle)
+			.with_render_pass(render_pass, 0)
+			.with_dsl_binding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
+
+		blit_descriptor = littlevk::bind(resources.device, resources.descriptor_pool)
+			.allocate_descriptor_sets(*blit_pipeline.dsl)
+			.front();
+	}
+	
+	void configure(argparse::ArgumentParser &program) override {
+		program.add_argument("mesh")
+			.help("input mesh");
+	}
+	
+	void preload(const argparse::ArgumentParser &program) override {
+		// Load the asset and scene
+		std::filesystem::path path = program.get("mesh");
+	
+		auto asset = ImportedAsset::from(path).value();
+
+		// TODO: connected meshlets
+		auto &g = asset.geometries[0];
+		auto tm = TriangleMesh::from(g).value();
+		auto vtm = VulkanTriangleMesh::from(resources.allocator(), tm,
+			VertexFlags::ePosition,
+			vk::BufferUsageFlagBits::eShaderDeviceAddress
+			| vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR).value();
+		
+		littlevk::submit_now(resources.device, resources.command_pool, resources.graphics_queue,
+			[&](const vk::CommandBuffer &cmd) {
+				std::vector <vk::TransformMatrixKHR> transforms;
+				std::vector <InstanceInfo> instances;
+
+				auto blas = VulkanAccelerationStructure::blas(resources, cmd, vtm);
+				
+				transforms.emplace_back(vk_transform(glm::mat4(1.0f)));
+				instances.emplace_back(0, 0xff);
+
+				tlas = VulkanAccelerationStructure::tlas(resources, cmd, { blas }, transforms, instances);
+			});
+
+		littlevk::ImageCreateInfo image_info {
+			1000,
+			1000,
+			vk::Format::eR32G32B32A32Sfloat,
+			vk::ImageUsageFlagBits::eStorage
+			| vk::ImageUsageFlagBits::eSampled,
+			vk::ImageAspectFlagBits::eColor,
+			vk::ImageType::e2D,
+			vk::ImageViewType::e2D,
+			false
+		};
+
+		target = resources.allocator().image(image_info);
+
+		littlevk::submit_now(resources.device, resources.command_pool, resources.graphics_queue,
+			[&](const vk::CommandBuffer &cmd) {
+				target.transition(cmd, vk::ImageLayout::eGeneral);
+			});
+
+		std::vector <vk::WriteDescriptorSet> writes;
+
+		auto tlas_write = vk::WriteDescriptorSetAccelerationStructureKHR()
+			.setAccelerationStructures(tlas.handle);
+		
+		auto target_sampler = littlevk::SamplerAssembler(resources.device, resources.dal);
+
+		auto target_descriptor = vk::DescriptorImageInfo()
+			.setImageView(target.view)
+			.setImageLayout(vk::ImageLayout::eGeneral)
+			.setSampler(target_sampler);
+
+		writes.emplace_back(vk::WriteDescriptorSet()
+			.setDescriptorCount(1)
+			.setDescriptorType(vk::DescriptorType::eAccelerationStructureKHR)
+			.setDstBinding(0)
+			.setDstSet(rtx_descriptor)
+			.setPNext(&tlas_write));
+		
+		writes.emplace_back(vk::WriteDescriptorSet()
+			.setDescriptorCount(1)
+			.setDescriptorType(vk::DescriptorType::eStorageImage)
+			.setDstBinding(1)
+			.setDstSet(rtx_descriptor)
+			.setImageInfo(target_descriptor));
+		
+		writes.emplace_back(vk::WriteDescriptorSet()
+			.setDescriptorCount(1)
+			.setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
+			.setDstBinding(0)
+			.setDstSet(blit_descriptor)
+			.setImageInfo(target_descriptor));
+
+		resources.device.updateDescriptorSets(writes, { });
 	}
 
 	void render(const vk::CommandBuffer &cmd, uint32_t index) override {
+		camera.controller.handle_movement(resources.window);
+
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(resources.window.extent));
 
@@ -148,9 +544,33 @@ struct Application : CameraApplication {
 			.clear_depth(1, 1)
 			.begin(cmd);
 
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, blit_pipeline.handle);
+		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, blit_pipeline.layout, 0, blit_descriptor, { });
+		cmd.draw(6, 1, 0, 0);
+
 		imgui(cmd);
 		
 		cmd.endRenderPass();
+
+		solid_t <ViewFrame> frame;
+
+		auto rayframe = camera.aperature.rayframe(camera.transform);
+
+		frame.get <0> () = rayframe.origin;
+		frame.get <1> () = rayframe.lower_left;
+		frame.get <2> () = rayframe.horizontal;
+		frame.get <3> () = rayframe.vertical;
+
+		cmd.bindPipeline(vk::PipelineBindPoint::eRayTracingKHR, rtx_pipeline.handle);
+
+		cmd.bindDescriptorSets(vk::PipelineBindPoint::eRayTracingKHR, rtx_pipeline.layout, 0, rtx_descriptor, { });
+		cmd.pushConstants <solid_t <ViewFrame>> (rtx_pipeline.layout, vk::ShaderStageFlagBits::eRaygenKHR, 0, frame);
+
+		cmd.traceRaysKHR(sbt.ray_generation,
+			sbt.misses,
+			sbt.closest_hits,
+			sbt.callables,
+			target.extent.width, target.extent.height, 1);
 	}
 	
 	void imgui(const vk::CommandBuffer &cmd) {
