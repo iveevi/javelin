@@ -76,22 +76,8 @@ struct Application : CameraApplication {
 		framebuffers.resize(resources, render_pass);
 
 		// Pipelines
-		configure_pipeline(jet);
-
-		auto cs = procedure("main") << integrator;
-		auto compute_shader = link(cs).generate_glsl();
-
-		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
-			.source(compute_shader, vk::ShaderStageFlagBits::eCompute);
-
-		compute = littlevk::PipelineAssembler <littlevk::PipelineType::eCompute>
-			(resources.device, resources.dal)
-			.with_shader_bundle(bundle)
-			.with_push_constant <SimulationInfo> (vk::ShaderStageFlagBits::eCompute)
-			.with_dsl_binding(0, vk::DescriptorType::eStorageBuffer,
-					1, vk::ShaderStageFlagBits::eCompute)
-			.with_dsl_binding(1, vk::DescriptorType::eStorageBuffer,
-					1, vk::ShaderStageFlagBits::eCompute);
+		configure_render_pipeline(jet);
+		configure_compute_pipeline();
 
 		// Configure ImGui
 		configure_imgui(resources, render_pass);
@@ -109,7 +95,7 @@ struct Application : CameraApplication {
 	}
 
 	// Pipeline configuration for rendering spheres
-	void configure_pipeline(auto cmap) {
+	void configure_render_pipeline(auto cmap) {
 		auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
 
 		auto vs_callable = procedure("main") << vertex;
@@ -122,8 +108,8 @@ struct Application : CameraApplication {
 			.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
 			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
 
-		fmt::println("{}", vertex_shader);
-		fmt::println("{}", fragment_shader);
+		dump_lines("VERTEX", vertex_shader);
+		dump_lines("FRAGMENT", fragment_shader);
 
 		raster = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
 			(resources.device, resources.window, resources.dal)
@@ -137,6 +123,25 @@ struct Application : CameraApplication {
 			.with_dsl_binding(1, vk::DescriptorType::eStorageBuffer,
 					1, vk::ShaderStageFlagBits::eVertex)
 			.cull_mode(vk::CullModeFlagBits::eNone);
+	}
+
+	void configure_compute_pipeline() {
+		auto cs = procedure("main") << integrator;
+		auto compute_shader = link(cs).generate_glsl();
+
+		dump_lines("COMPUTE", compute_shader);
+
+		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
+			.source(compute_shader, vk::ShaderStageFlagBits::eCompute);
+
+		compute = littlevk::PipelineAssembler <littlevk::PipelineType::eCompute>
+			(resources.device, resources.dal)
+			.with_shader_bundle(bundle)
+			.with_push_constant <SimulationInfo> (vk::ShaderStageFlagBits::eCompute)
+			.with_dsl_binding(0, vk::DescriptorType::eStorageBuffer,
+					1, vk::ShaderStageFlagBits::eCompute)
+			.with_dsl_binding(1, vk::DescriptorType::eStorageBuffer,
+					1, vk::ShaderStageFlagBits::eCompute);
 	}
 
 	void preload(const argparse::ArgumentParser &program) override {
@@ -307,44 +312,7 @@ struct Application : CameraApplication {
 		cmd.bindIndexBuffer(ib.buffer, 0, vk::IndexType::eUint32);
 		cmd.drawIndexed(3 * sphere.triangles.size(), N, 0, 0, 0);
 
-		// ImGui
-		{
-			ImGuiRenderContext context(cmd);
-
-			ImGui::Begin("Simulation Info");
-
-			ImGui::Separator();
-			ImGui::Text("Framerate: %3.2f", ImGui::GetIO().Framerate);
-
-			static const std::map <std::string, vec3 (*)(f32)> maps {
-				{ "cividis",	cividis  },
-				{ "coolwarm",	coolwarm },
-				{ "inferno",	inferno  },
-				{ "jet",	jet      },
-				{ "magma",	magma    },
-				{ "parula",	parula   },
-				{ "plasma",	plasma	 },
-				{ "spectral",	spectral },
-				{ "turbo",	turbo    },
-				{ "viridis",	viridis  },
-			};
-
-			if (ImGui::BeginCombo("Color Map", cmap.c_str())) {
-				for (auto &[k, m] : maps) {
-					if (ImGui::Selectable(k.c_str(), k == cmap)) {
-						configure_pipeline(m);
-						cmap = k;
-					}
-				}
-
-				ImGui::EndCombo();
-			}
-
-			ImGui::SliderFloat("Time Step", &dt, 0.01, 0.1);
-			ImGui::SliderFloat("Planetary Mass", &mass, 100, 1000);
-
-			ImGui::End();
-		}
+		render_imgui(cmd);
 
 		cmd.endRenderPass();
 
@@ -355,6 +323,7 @@ struct Application : CameraApplication {
 			info.get <1> () = O2;
 			info.get <2> () = mass;
 			info.get <3> () = dt;
+			info.get <4> () = N;
 
 			cmd.bindPipeline(vk::PipelineBindPoint::eCompute, compute.handle);
 
@@ -382,6 +351,44 @@ struct Application : CameraApplication {
 
 		O1 += dt * V1;
 		O2 += dt * V2;
+	}
+
+	void render_imgui(const vk::CommandBuffer &cmd) {
+		ImGuiRenderContext context(cmd);
+
+		ImGui::Begin("Simulation Info");
+		{
+			ImGui::Separator();
+			ImGui::Text("Framerate: %3.2f", ImGui::GetIO().Framerate);
+
+			static const std::map <std::string, vec3 (*)(f32)> maps {
+				{ "cividis",	cividis  },
+				{ "coolwarm",	coolwarm },
+				{ "inferno",	inferno  },
+				{ "jet",	jet      },
+				{ "magma",	magma    },
+				{ "parula",	parula   },
+				{ "plasma",	plasma	 },
+				{ "spectral",	spectral },
+				{ "turbo",	turbo    },
+				{ "viridis",	viridis  },
+			};
+
+			if (ImGui::BeginCombo("Color Map", cmap.c_str())) {
+				for (auto &[k, m] : maps) {
+					if (ImGui::Selectable(k.c_str(), k == cmap)) {
+						configure_render_pipeline(m);
+						cmap = k;
+					}
+				}
+
+				ImGui::EndCombo();
+			}
+
+			ImGui::SliderFloat("Time Step", &dt, 0.01, 0.1);
+			ImGui::SliderFloat("Planetary Mass", &mass, 100, 1000);
+		}
+		ImGui::End();
 	}
 	
 	void resize() override {

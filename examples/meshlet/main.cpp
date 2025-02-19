@@ -108,8 +108,9 @@ struct Application : CameraApplication {
 		std::string mesh_shader = link(mesh).generate_glsl();
 		std::string fragment_shader = link(fragment).generate_glsl();
 
-		fmt::println("{}", task_shader);
-		fmt::println("{}", mesh_shader);
+		dump_lines("TASK", task_shader);
+		dump_lines("MESH", mesh_shader);
+		dump_lines("FRAGMENT", fragment_shader);
 
 		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
 			.source(task_shader, vk::ShaderStageFlagBits::eTaskEXT)

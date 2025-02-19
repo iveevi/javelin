@@ -208,8 +208,9 @@ struct Application : CameraApplication {
 			bundle.source(task_shader, vk::ShaderStageFlagBits::eTaskEXT);
 			bundle.source(mesh_shader, vk::ShaderStageFlagBits::eMeshEXT);
 
-			// mesh.dump();
-			fmt::println("{}", mesh_shader);
+			dump_lines("TASK", task_shader);
+			dump_lines("MESH", mesh_shader);
+			dump_lines("FRAGMENT", fragment_shader);
 		}
 
 		// TODO: slang-like buffer compute tests...
@@ -232,10 +233,13 @@ struct Application : CameraApplication {
 		uint32_t biases = hngf.biases.size();
 		uint32_t wsize = hngf.W0.size() >> 6;
 
-		JVL_INFO("neural geometry field with patches={}, vertices={}, features={}, biases={}, weights={}",
+		JVL_INFO("neural geometry field with\n"
+			"\tpatches={},\n"
+			"\tvertices={},\n"
+			"\tfeatures={},\n"
+			"\tbiases={},\n"
+			"\tweights={}",
 			patches, vertices, features, biases, wsize);
-
-		JVL_INFO("features.size() = {}", hngf.features.size());
 
 		auto complex_texture = allocator(resources, hngf.patches,
 			{ patches, 1 },

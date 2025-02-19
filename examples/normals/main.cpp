@@ -52,8 +52,8 @@ struct Application : CameraApplication {
 		std::string vertex_shader = link(vs_callable).generate_glsl();
 		std::string fragment_shader = link(fs_callable).generate_glsl();
 
-		fmt::println("{}", vertex_shader);
-		fmt::println("{}", fragment_shader);
+		dump_lines("VERTEX", vertex_shader);
+		dump_lines("FRAGMENT", fragment_shader);
 
 		// TODO: automatic generation by observing used layouts
 		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)

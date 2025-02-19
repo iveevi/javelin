@@ -13,6 +13,17 @@ std::string repeat(const std::string &a, size_t b)
 	return output;
 }
 
+void header(const std::string &name, size_t size)
+{
+	std::string s1 = "\u250C" + repeat("\u2500", size - 2) + "\u2510";
+	std::string s2 = "\u2514" + repeat("\u2500", size - 2) + "\u2518";
+	std::string s3 = std::string((size - 2 - name.size()) / 2, ' ');
+	std::string s4 = std::string((size - 2 - name.size()) - s3.size(), ' ');
+	fmt::println("{}", s1);
+	fmt::println("{}{}{}{}{}", "\u2502", s3, name, s4, "\u2502");
+	fmt::println("{}", s2);
+}
+
 void dump_lines(const std::string &name, const std::string &contents)
 {
 	std::vector <std::string> lines;
@@ -33,13 +44,8 @@ void dump_lines(const std::string &name, const std::string &contents)
 		interim += c;
 	}
 
-	std::string s1 = "\u250C" + repeat("\u2500", mlen + 4) + "\u2510";
-	std::string s2 = "\u2514" + repeat("\u2500", mlen + 4) + "\u2518";
-	std::string s3 = std::string((mlen + 4 - name.size()) / 2, ' ');
-	std::string s4 = std::string((mlen + 4 - name.size()) - s3.size(), ' ');
-	fmt::println("{}", s1);
-	fmt::println("{}{}{}{}{}", "\u2502", s3, name, s4, "\u2502");
-	fmt::println("{}", s2);
+	// header(name, mlen + 6);
+	header(name, 50);
 	for (size_t i = 0; i < lines.size(); i++)
 		fmt::println("{:4d}: {}", i + 1, lines[i]);
 }

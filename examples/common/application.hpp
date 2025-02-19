@@ -14,6 +14,7 @@
 #include "transform.hpp"
 #include "vulkan_resources.hpp"
 #include "timer.hpp"
+#include "util.hpp"
 
 struct BaseApplication {
 	std::string name;
@@ -179,9 +180,7 @@ struct BaseApplication {
 		loop(program.get <int32_t> ("frames"));
 
 		// TODO: display statistics...
-		fmt::println("----------------------------");
-		fmt::println("AVERAGE RENDERING STATISTICS");
-		fmt::println("----------------------------");
+		header("AVERAGE RENDERING STATISTICS", 50);
 		fmt::println("    host frame time: {:.3f} ms", statistics.average_host_frame_time());
 		fmt::println("    host frames per second: {} fps", (int) statistics.average_host_frames_per_second());
 

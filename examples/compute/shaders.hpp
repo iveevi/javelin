@@ -32,13 +32,15 @@ struct SimulationInfo {
 	vec3 O2;
 	f32 M;
 	f32 dt;
+	u32 count;
 
 	auto layout() {
 		return layout_from("SimulationInfo",
 			verbatim_field(O1),
 			verbatim_field(O2),
 			verbatim_field(M),
-			verbatim_field(dt));
+			verbatim_field(dt),
+			verbatim_field(count));
 	}
 };
 

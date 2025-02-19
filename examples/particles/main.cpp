@@ -12,118 +12,6 @@
 
 #include "shaders.hpp"
 
-// Function to generate random points and use them as positions for spheres
-std::vector <glm::vec3> generate_random_points(int N, float spread)
-{
-	std::vector <glm::vec3> points;
-
-	for (int i = 0; i < N; i++) {
-		while (true) {
-			glm::vec3 p = glm::linearRand(-glm::vec3(spread), glm::vec3(spread));
-			if (length(p) > spread / 2.0f) {
-				points.push_back(p);
-				break;
-			}
-		}
-	}
-
-	return points;
-}
-
-// Pipeline configuration for rendering spheres
-littlevk::Pipeline configure_pipeline(VulkanResources &resources,
-				      const vk::RenderPass &render_pass,
-				      auto cmap)
-{
-	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
-
-	auto vs_callable = procedure("main") << vertex;
-	auto fs_callable = procedure("main") << std::make_tuple(cmap) << fragment;
-
-	std::string vertex_shader = link(vs_callable).generate_glsl();
-	std::string fragment_shader = link(fs_callable).generate_glsl();
-
-	auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
-		.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
-		.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
-
-	fmt::println("{}", vertex_shader);
-	fmt::println("{}", fragment_shader);
-
-	return littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
-		(resources.device, resources.window, resources.dal)
-		.with_render_pass(render_pass, 0)
-		.with_vertex_layout(vertex_layout)
-		.with_shader_bundle(bundle)
-		.with_push_constant <solid_t<MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
-		.with_push_constant <solid_t<u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t<MVP>))
-		.with_dsl_binding(0, vk::DescriptorType::eStorageBuffer,
-				  1, vk::ShaderStageFlagBits::eVertex)
-		.with_dsl_binding(1, vk::DescriptorType::eStorageBuffer,
-				  1, vk::ShaderStageFlagBits::eVertex)
-		.cull_mode(vk::CullModeFlagBits::eNone);
-}
-
-void integrator(std::vector <aligned_vec3> &particles,
-		std::vector <aligned_vec3> &velocities,
-		float dt,
-		float M)
-{
-	float t = glfwGetTime();
-
-	static glm::vec3 O1 = { -5, 0, 0 };
-	static glm::vec3 V1 = { -1, -2, 2 };
-	
-	static glm::vec3 O2 = { 5, 0, 0 };
-	static glm::vec3 V2 = { 1, 2, -2 };
-
-	glm::vec3 mid = 0.5f * (O1 + O2);
-	float R = 20.0f + length(O1 - O2);
-
-	#pragma omp parallel for
-	for (size_t i = 0; i < particles.size(); ++i) {
-		aligned_vec3 &v = velocities[i];
-		aligned_vec3 &p = particles[i];
-
-		{
-			glm::vec3 d = (p - O1);	
-			float l = fmax(1, length(d));
-			v = v - dt * M * d / powf(l, 3.0f);
-		}
-		
-		{
-			glm::vec3 d = (p - O2);	
-			float l = fmax(1, length(d));
-			v = v - dt * M * d / powf(l, 3.0f);
-		}
-
-		p += dt * v;
-
-		// Bounding
-		if (length(p - mid) > R) {
-			float theta = glm::linearRand(-1.0, 1.0) * 2.0f * M_PI;
-			float phi = std::acos(glm::linearRand(-1.0, 1.0));
-
-			float x = std::sin(phi) * std::cos(theta);
-			float y = std::sin(phi) * std::sin(theta);
-			float z = std::cos(phi);
-			float r = R * std::sqrt(glm::linearRand(0.0, 1.0));
-
-			p = r * glm::vec3(x, y, z) + mid;
-		}
-	}
-
-	glm::vec3 D = (O1 - O2);
-	float L = length(D);
-	glm::vec3 A = M * M * D / powf(L, 3.0f);
-
-	V1 -= dt * A / M;
-	V2 += dt * A / M;
-
-	O1 += dt * V1;
-	O2 += dt * V2;
-}
-
 struct Application : CameraApplication {
 	littlevk::Pipeline raster;
 	vk::RenderPass render_pass;
@@ -165,10 +53,10 @@ struct Application : CameraApplication {
 
 		framebuffers.resize(resources, render_pass);
 
-		raster = configure_pipeline(resources, render_pass, jet);
-
 		// Configure ImGui
 		configure_imgui(resources, render_pass);
+
+		configure_pipeline(jet);
 
 		// Prepare the sphere geometry
 		sphere = TriangleMesh::uv_sphere(25, 0.025f);
@@ -180,6 +68,113 @@ struct Application : CameraApplication {
 			.buffer(sphere.triangles,
 				vk::BufferUsageFlagBits::eIndexBuffer
 				| vk::BufferUsageFlagBits::eTransferDst);
+	}
+
+	// Function to generate random points and use them as positions for spheres
+	static std::vector <glm::vec3> generate_random_points(int N, float spread) {
+		std::vector <glm::vec3> points;
+
+		for (int i = 0; i < N; i++) {
+			while (true) {
+				glm::vec3 p = glm::linearRand(-glm::vec3(spread), glm::vec3(spread));
+				if (length(p) > spread / 2.0f) {
+					points.push_back(p);
+					break;
+				}
+			}
+		}
+
+		return points;
+	}
+
+	static void integrator(std::vector <aligned_vec3> &particles,
+			       std::vector <aligned_vec3> &velocities,
+			       float dt,
+			       float M) {
+		float t = glfwGetTime();
+
+		static glm::vec3 O1 = { -5, 0, 0 };
+		static glm::vec3 V1 = { -1, -2, 2 };
+		
+		static glm::vec3 O2 = { 5, 0, 0 };
+		static glm::vec3 V2 = { 1, 2, -2 };
+
+		glm::vec3 mid = 0.5f * (O1 + O2);
+		float R = 20.0f + length(O1 - O2);
+
+		#pragma omp parallel for
+		for (size_t i = 0; i < particles.size(); ++i) {
+			aligned_vec3 &v = velocities[i];
+			aligned_vec3 &p = particles[i];
+
+			{
+				glm::vec3 d = (p - O1);	
+				float l = fmax(1, length(d));
+				v = v - dt * M * d / powf(l, 3.0f);
+			}
+			
+			{
+				glm::vec3 d = (p - O2);	
+				float l = fmax(1, length(d));
+				v = v - dt * M * d / powf(l, 3.0f);
+			}
+
+			p += dt * v;
+
+			// Bounding
+			if (length(p - mid) > R) {
+				float theta = glm::linearRand(-1.0, 1.0) * 2.0f * M_PI;
+				float phi = std::acos(glm::linearRand(-1.0, 1.0));
+
+				float x = std::sin(phi) * std::cos(theta);
+				float y = std::sin(phi) * std::sin(theta);
+				float z = std::cos(phi);
+				float r = R * std::sqrt(glm::linearRand(0.0, 1.0));
+
+				p = r * glm::vec3(x, y, z) + mid;
+			}
+		}
+
+		glm::vec3 D = (O1 - O2);
+		float L = length(D);
+		glm::vec3 A = M * M * D / powf(L, 3.0f);
+
+		V1 -= dt * A / M;
+		V2 += dt * A / M;
+
+		O1 += dt * V1;
+		O2 += dt * V2;
+	}
+
+	// Pipeline configuration for rendering spheres
+	void configure_pipeline(auto cmap) {
+		auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
+
+		auto vs_callable = procedure("main") << vertex;
+		auto fs_callable = procedure("main") << std::make_tuple(cmap) << fragment;
+
+		std::string vertex_shader = link(vs_callable).generate_glsl();
+		std::string fragment_shader = link(fs_callable).generate_glsl();
+
+		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
+			.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
+			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
+
+		dump_lines("VERTEX", vertex_shader);
+		dump_lines("FRAGMENT", fragment_shader);
+
+		raster = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
+			(resources.device, resources.window, resources.dal)
+			.with_render_pass(render_pass, 0)
+			.with_vertex_layout(vertex_layout)
+			.with_shader_bundle(bundle)
+			.with_push_constant <solid_t<MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
+			.with_push_constant <solid_t<u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t<MVP>))
+			.with_dsl_binding(0, vk::DescriptorType::eStorageBuffer,
+					1, vk::ShaderStageFlagBits::eVertex)
+			.with_dsl_binding(1, vk::DescriptorType::eStorageBuffer,
+					1, vk::ShaderStageFlagBits::eVertex)
+			.cull_mode(vk::CullModeFlagBits::eNone);
 	}
 
 	void preload(const argparse::ArgumentParser &program) override {
@@ -318,13 +313,23 @@ struct Application : CameraApplication {
 		cmd.bindVertexBuffers(0, vb.buffer, { 0 });
 		cmd.bindIndexBuffer(ib.buffer, 0, vk::IndexType::eUint32);
 		cmd.drawIndexed(3 * sphere.triangles.size(), N, 0, 0, 0);
+		
+		render_imgui(cmd);
 
-		// ImGui
+		cmd.endRenderPass();
+
+		// Randomly jittering particles
+		integrator(particles, velocities, dt, mass);
+
+		littlevk::upload(resources.device, tb, particles);
+		littlevk::upload(resources.device, sb, velocities);
+	}
+
+	void render_imgui(const vk::CommandBuffer &cmd) {
+		ImGuiRenderContext context(cmd);
+
+		ImGui::Begin("Configure Simulation");
 		{
-			ImGuiRenderContext context(cmd);
-
-			ImGui::Begin("Configure Simulation");
-
 			static const std::map <std::string, vec3 (*)(f32)> maps {
 				{ "cividis",	cividis  },
 				{ "coolwarm",	coolwarm },
@@ -341,7 +346,7 @@ struct Application : CameraApplication {
 			if (ImGui::BeginCombo("Color Map", cmap.c_str())) {
 				for (auto &[k, m] : maps) {
 					if (ImGui::Selectable(k.c_str(), k == cmap)) {
-						raster = configure_pipeline(resources, render_pass, m);
+						configure_pipeline(m);
 						cmap = k;
 					}
 				}
@@ -351,17 +356,8 @@ struct Application : CameraApplication {
 
 			ImGui::SliderFloat("Time Step", &dt, 0.01, 0.1);
 			ImGui::SliderFloat("Planetary Mass", &mass, 100, 1000);
-
-			ImGui::End();
 		}
-
-		cmd.endRenderPass();
-
-		// Randomly jittering particles
-		integrator(particles, velocities, dt, mass);
-
-		littlevk::upload(resources.device, tb, particles);
-		littlevk::upload(resources.device, sb, velocities);
+		ImGui::End();
 	}
 	
 	void resize() override {
