@@ -62,11 +62,13 @@ inline InterleaveResult interleave(const TriangleMesh &tmesh, VertexFlags flags)
 }
 
 struct VulkanTriangleMesh {
-	VertexFlags flags;
 	littlevk::Buffer vertices;
-	
-	size_t count;
 	littlevk::Buffer triangles;
+	
+	size_t vertex_count;
+	size_t triangle_count;
+	
+	VertexFlags flags;
 	
 	std::set <int> material_usage;
 
@@ -81,7 +83,8 @@ struct VulkanTriangleMesh {
 		auto result = interleave(tmesh, maximal_flags);
 
 		vmesh.flags = result.enabled;
-		vmesh.count = 3 * tmesh.triangles.size();
+		vmesh.triangle_count = tmesh.triangles.size();
+		vmesh.vertex_count = tmesh.positions.size();
 
 		std::tie(vmesh.vertices, vmesh.triangles) = allocator
 			.buffer(result.data, extra

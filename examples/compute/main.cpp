@@ -233,7 +233,7 @@ struct Application : CameraApplication {
 
 			xform.translate = glm::vec3 {
 				r * glm::cos(time),
-				-0.5 * (max + min).y,
+				0,
 				r * glm::sin(time),
 			};
 

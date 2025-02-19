@@ -157,7 +157,7 @@ struct Application : CameraApplication {
 
 			cmd.bindVertexBuffers(0, mesh.vertices.buffer, { 0 });
 			cmd.bindIndexBuffer(mesh.triangles.buffer, 0, vk::IndexType::eUint32);
-			cmd.drawIndexed(mesh.count, 1, 0, 0, 0);
+			cmd.drawIndexed(3 * mesh.triangle_count, 1, 0, 0, 0);
 		}
 
 		// ImGui window to configure the palette

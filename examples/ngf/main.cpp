@@ -351,6 +351,7 @@ struct Application : CameraApplication {
 		ImGui::Begin("Neural Geometry Fields: Options");
 		{
 			ImGui::SliderInt("Resolution", &resolution, 2, 7);
+			// TODO: tweak periodically if automatic
 		}
 		ImGui::End();
 	}

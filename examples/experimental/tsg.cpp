@@ -364,7 +364,7 @@ int main(int argc, char *argv[])
 					cmd_ppl // ...
 						.pushConstantsVertex(mvp)
 						.pushConstantsFragment(color)
-						.draw(*mesh.triangles, *mesh.vertices, mesh.count);
+						.draw(*mesh.triangles, *mesh.vertices, mesh.triangle_count);
 				}
 			}
 		}

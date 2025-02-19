@@ -56,7 +56,7 @@ VulkanAccelerationStructure VulkanAccelerationStructure::blas(VulkanResources &r
 		.setVertexData(device.getBufferAddress(tm.vertices.buffer))
 		.setIndexData(device.getBufferAddress(tm.triangles.buffer))
 		.setIndexType(vk::IndexType::eUint32)
-		.setMaxVertex(tm.count)
+		.setMaxVertex(tm.vertex_count)
 		.setVertexStride(sizeof(glm::vec3))
 		.setVertexFormat(vk::Format::eR32G32B32Sfloat);
 
@@ -72,7 +72,7 @@ VulkanAccelerationStructure VulkanAccelerationStructure::blas(VulkanResources &r
 		.setType(vk::AccelerationStructureTypeKHR::eBottomLevel)
 		.setGeometries(blas_geometry);
 
-	auto blas_build_sizes = device.getAccelerationStructureBuildSizesKHR(build_type, blas_build_info, tm.count / 3);
+	auto blas_build_sizes = device.getAccelerationStructureBuildSizesKHR(build_type, blas_build_info, tm.triangle_count);
 
 	littlevk::Buffer blas_buffer = resources.allocator()
 		.buffer(blas_build_sizes.accelerationStructureSize,
@@ -98,7 +98,7 @@ VulkanAccelerationStructure VulkanAccelerationStructure::blas(VulkanResources &r
 
 	auto blas_build_range = vk::AccelerationStructureBuildRangeInfoKHR()
 		.setFirstVertex(0)
-		.setPrimitiveCount(tm.count / 3)
+		.setPrimitiveCount(tm.triangle_count)
 		.setPrimitiveOffset(0)
 		.setTransformOffset(0);
 
@@ -129,10 +129,11 @@ VulkanAccelerationStructure VulkanAccelerationStructure::tlas(VulkanResources &r
 		auto instance = vk::AccelerationStructureInstanceKHR()
 			.setInstanceShaderBindingTableRecordOffset(0)
 			.setInstanceCustomIndex(infos[i].index)
-			.setAccelerationStructureReference(device.getBufferAddress(blases[i].buffer))
+			.setAccelerationStructureReference(device.getAccelerationStructureAddressKHR(blases[i].handle))
 			.setMask(infos[i].mask)
 			.setTransform(transforms[i])
-			.setFlags(vk::GeometryInstanceFlagBitsKHR::eTriangleCullDisable);
+			.setFlags(vk::GeometryInstanceFlagBitsKHR::eForceOpaque
+				| vk::GeometryInstanceFlagBitsKHR::eTriangleCullDisable);
 
 		instances.push_back(instance);
 	}
@@ -147,7 +148,7 @@ VulkanAccelerationStructure VulkanAccelerationStructure::tlas(VulkanResources &r
 	
 	auto instance_data = vk::AccelerationStructureGeometryInstancesDataKHR()
 		.setData(device.getBufferAddress(instance_buffer.buffer));
-	
+		
 	auto tlas_geometry_data = vk::AccelerationStructureGeometryDataKHR()
 		.setInstances(instance_data);
 
@@ -227,6 +228,9 @@ struct Application : CameraApplication {
 
 	ShaderBindingTable sbt;
 	VulkanAccelerationStructure tlas;
+	VulkanAccelerationStructure blas;
+
+	VulkanTriangleMesh vtm;
 
 	glm::vec3 min;
 	glm::vec3 max;
@@ -260,11 +264,10 @@ struct Application : CameraApplication {
 				.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
 				.depth_attachment(1, vk::ImageLayout::eDepthStencilAttachmentOptimal)
 				.done();
+			
+		framebuffers.resize(resources, render_pass);
 
 		configure_imgui(resources, render_pass);
-		
-		// Framebuffer manager
-		framebuffers.resize(resources, render_pass);
 	
 		compile_rtx_pipeline();
 		compile_blit_pipeline();
@@ -273,16 +276,21 @@ struct Application : CameraApplication {
 	static void features_include(VulkanFeatureChain &features) {
 		features.add <vk::PhysicalDeviceRayTracingPipelineFeaturesKHR> ();
 		features.add <vk::PhysicalDeviceAccelerationStructureFeaturesKHR> ();
-		features.add <vk::PhysicalDeviceBufferAddressFeaturesEXT> ();
+		features.add <vk::PhysicalDeviceBufferDeviceAddressFeaturesKHR> ();
 	}
 
 	static void features_activate(VulkanFeatureChain &features) {
+		MODULE(features_activate);
+
 		for (auto &ptr : features) {
 			switch (ptr->sType) {
 			feature_case(vk::PhysicalDeviceRayTracingPipelineFeaturesKHR)
 				.setRayTracingPipeline(true);
 				break;
-			feature_case(vk::PhysicalDeviceBufferAddressFeaturesEXT)
+			feature_case(vk::PhysicalDeviceAccelerationStructureFeaturesKHR)
+				.setAccelerationStructure(true);
+				break;
+			feature_case(vk::PhysicalDeviceBufferDeviceAddressFeaturesKHR)
 				.setBufferDeviceAddress(true)
 				.setBufferDeviceAddressCaptureReplay(false)
 				.setBufferDeviceAddressMultiDevice(false);
@@ -367,11 +375,11 @@ struct Application : CameraApplication {
 			.setStride(ray_generation_size);
 
 		sbt.misses = vk::StridedDeviceAddressRegionKHR()
-			.setSize(align_up(1 * handle_size_aligned, base_alignment))
+			.setSize(align_up(handle_size_aligned, base_alignment))
 			.setStride(handle_size_aligned);
 		
 		sbt.closest_hits = vk::StridedDeviceAddressRegionKHR()
-			.setSize(align_up(1 * handle_size_aligned, base_alignment))
+			.setSize(align_up(handle_size_aligned, base_alignment))
 			.setStride(handle_size_aligned);
 		
 		sbt.callables = vk::StridedDeviceAddressRegionKHR();
@@ -422,19 +430,19 @@ struct Application : CameraApplication {
 	}
 
 	void compile_blit_pipeline() {
-		std::string vertex_shader = link(quad).generate_glsl();
-		std::string fragment_shader = link(blit).generate_glsl();
+		std::string quad_shader = link(quad).generate_glsl();
+		std::string blit_shader = link(blit).generate_glsl();
 
-		dump_lines("QUAD", vertex_shader);
-		dump_lines("BLIT", fragment_shader);
+		dump_lines("QUAD", quad_shader);
+		dump_lines("BLIT", blit_shader);
 
-		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
-			.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
-			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
+		auto blit_bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
+			.source(quad_shader, vk::ShaderStageFlagBits::eVertex)
+			.source(blit_shader, vk::ShaderStageFlagBits::eFragment);
 
 		blit_pipeline = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
 			(resources.device, resources.window, resources.dal)
-			.with_shader_bundle(bundle)
+			.with_shader_bundle(blit_bundle)
 			.with_render_pass(render_pass, 0)
 			.with_dsl_binding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
 
@@ -454,22 +462,28 @@ struct Application : CameraApplication {
 	
 		auto asset = ImportedAsset::from(path).value();
 
-		// TODO: connected meshlets
+		// TODO: entire models
 		auto &g = asset.geometries[0];
 		auto tm = TriangleMesh::from(g).value();
-		auto vtm = VulkanTriangleMesh::from(resources.allocator(), tm,
+		
+		vtm = VulkanTriangleMesh::from(resources.allocator(), tm,
 			VertexFlags::ePosition,
 			vk::BufferUsageFlagBits::eShaderDeviceAddress
 			| vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR).value();
 		
 		littlevk::submit_now(resources.device, resources.command_pool, resources.graphics_queue,
 			[&](const vk::CommandBuffer &cmd) {
+				blas = VulkanAccelerationStructure::blas(resources, cmd, vtm);
+			});
+		
+		littlevk::submit_now(resources.device, resources.command_pool, resources.graphics_queue,
+			[&](const vk::CommandBuffer &cmd) {
 				std::vector <vk::TransformMatrixKHR> transforms;
 				std::vector <InstanceInfo> instances;
-
-				auto blas = VulkanAccelerationStructure::blas(resources, cmd, vtm);
 				
-				transforms.emplace_back(vk_transform(glm::mat4(1.0f)));
+				auto model = Transform().matrix();
+				
+				transforms.emplace_back(vk_transform(model));
 				instances.emplace_back(0, 0xff);
 
 				tlas = VulkanAccelerationStructure::tlas(resources, cmd, { blas }, transforms, instances);
@@ -494,17 +508,13 @@ struct Application : CameraApplication {
 				target.transition(cmd, vk::ImageLayout::eGeneral);
 			});
 
-		std::vector <vk::WriteDescriptorSet> writes;
-
 		auto tlas_write = vk::WriteDescriptorSetAccelerationStructureKHR()
+			.setAccelerationStructureCount(1)
 			.setAccelerationStructures(tlas.handle);
 		
 		auto target_sampler = littlevk::SamplerAssembler(resources.device, resources.dal);
 
-		auto target_descriptor = vk::DescriptorImageInfo()
-			.setImageView(target.view)
-			.setImageLayout(vk::ImageLayout::eGeneral)
-			.setSampler(target_sampler);
+		std::vector <vk::WriteDescriptorSet> writes;
 
 		writes.emplace_back(vk::WriteDescriptorSet()
 			.setDescriptorCount(1)
@@ -513,25 +523,95 @@ struct Application : CameraApplication {
 			.setDstSet(rtx_descriptor)
 			.setPNext(&tlas_write));
 		
+		auto target_descriptor1 = vk::DescriptorImageInfo()
+			.setImageView(target.view)
+			.setImageLayout(vk::ImageLayout::eGeneral)
+			.setSampler(target_sampler);
+		
 		writes.emplace_back(vk::WriteDescriptorSet()
 			.setDescriptorCount(1)
 			.setDescriptorType(vk::DescriptorType::eStorageImage)
 			.setDstBinding(1)
 			.setDstSet(rtx_descriptor)
-			.setImageInfo(target_descriptor));
+			.setImageInfo(target_descriptor1));
+		
+		auto target_descriptor2 = vk::DescriptorImageInfo()
+			.setImageView(target.view)
+			.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
+			.setSampler(target_sampler);
 		
 		writes.emplace_back(vk::WriteDescriptorSet()
 			.setDescriptorCount(1)
 			.setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
 			.setDstBinding(0)
 			.setDstSet(blit_descriptor)
-			.setImageInfo(target_descriptor));
+			.setImageInfo(target_descriptor2));
 
 		resources.device.updateDescriptorSets(writes, { });
 	}
 
 	void render(const vk::CommandBuffer &cmd, uint32_t index) override {
 		camera.controller.handle_movement(resources.window);
+
+		auto subresource_range = vk::ImageSubresourceRange()
+			.setAspectMask(vk::ImageAspectFlagBits::eColor)
+			.setBaseArrayLayer(0)
+			.setBaseMipLevel(0)
+			.setLayerCount(1)
+			.setLevelCount(1);
+		
+		solid_t <ViewFrame> frame;
+		
+		auto &extent = resources.window.extent;
+		camera.aperature.aspect = float(extent.width) / float(extent.height);
+
+		auto rayframe = camera.aperature.rayframe(camera.transform);
+
+		frame.get <0> () = rayframe.origin;
+		frame.get <1> () = rayframe.lower_left;
+		frame.get <2> () = rayframe.horizontal;
+		frame.get <3> () = rayframe.vertical;
+		
+		{
+			auto memory_barrier = vk::ImageMemoryBarrier()
+				.setImage(target.image)
+				.setSubresourceRange(subresource_range)
+				.setOldLayout(vk::ImageLayout::eUndefined)
+				.setNewLayout(vk::ImageLayout::eGeneral)
+				.setSrcAccessMask(vk::AccessFlagBits::eNone)
+				.setDstAccessMask(vk::AccessFlagBits::eShaderWrite);
+
+			cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
+				vk::PipelineStageFlagBits::eRayTracingShaderKHR,
+				vk::DependencyFlags(),
+				{ }, { }, memory_barrier);
+		}
+
+		cmd.bindPipeline(vk::PipelineBindPoint::eRayTracingKHR, rtx_pipeline.handle);
+
+		cmd.bindDescriptorSets(vk::PipelineBindPoint::eRayTracingKHR, rtx_pipeline.layout, 0, rtx_descriptor, { });
+		cmd.pushConstants <solid_t <ViewFrame>> (rtx_pipeline.layout, vk::ShaderStageFlagBits::eRaygenKHR, 0, frame);
+
+		cmd.traceRaysKHR(sbt.ray_generation,
+			sbt.misses,
+			sbt.closest_hits,
+			sbt.callables,
+			target.extent.width, target.extent.height, 1);
+
+		{
+			auto memory_barrier = vk::ImageMemoryBarrier()
+				.setImage(target.image)
+				.setSubresourceRange(subresource_range)
+				.setOldLayout(vk::ImageLayout::eGeneral)
+				.setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
+				.setSrcAccessMask(vk::AccessFlagBits::eShaderWrite)
+				.setDstAccessMask(vk::AccessFlagBits::eShaderRead);
+
+			cmd.pipelineBarrier(vk::PipelineStageFlagBits::eRayTracingShaderKHR,
+				vk::PipelineStageFlagBits::eFragmentShader,
+				vk::DependencyFlags(),
+				{ }, { }, memory_barrier);
+		}
 
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(resources.window.extent));
@@ -547,30 +627,10 @@ struct Application : CameraApplication {
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, blit_pipeline.handle);
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, blit_pipeline.layout, 0, blit_descriptor, { });
 		cmd.draw(6, 1, 0, 0);
-
+		
 		imgui(cmd);
 		
 		cmd.endRenderPass();
-
-		solid_t <ViewFrame> frame;
-
-		auto rayframe = camera.aperature.rayframe(camera.transform);
-
-		frame.get <0> () = rayframe.origin;
-		frame.get <1> () = rayframe.lower_left;
-		frame.get <2> () = rayframe.horizontal;
-		frame.get <3> () = rayframe.vertical;
-
-		cmd.bindPipeline(vk::PipelineBindPoint::eRayTracingKHR, rtx_pipeline.handle);
-
-		cmd.bindDescriptorSets(vk::PipelineBindPoint::eRayTracingKHR, rtx_pipeline.layout, 0, rtx_descriptor, { });
-		cmd.pushConstants <solid_t <ViewFrame>> (rtx_pipeline.layout, vk::ShaderStageFlagBits::eRaygenKHR, 0, frame);
-
-		cmd.traceRaysKHR(sbt.ray_generation,
-			sbt.misses,
-			sbt.closest_hits,
-			sbt.callables,
-			target.extent.width, target.extent.height, 1);
 	}
 	
 	void imgui(const vk::CommandBuffer &cmd) {
@@ -578,6 +638,7 @@ struct Application : CameraApplication {
 
 		ImGui::Begin("Ray Tracing: Options");
 		{
+			// TODO: rendering modes...
 		}
 		ImGui::End();
 	}

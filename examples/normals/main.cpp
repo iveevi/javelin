@@ -37,13 +37,13 @@ struct Application : CameraApplication {
 		configure_imgui(resources, render_pass);
 
 		// Configure pipeline
-		compile_rxt_pipeline();
+		compile_pipeline();
 		
 		// Framebuffer manager
 		framebuffers.resize(resources, render_pass);
 	}
 
-	void compile_rxt_pipeline() {
+	void compile_pipeline() {
 		auto [binding, attributes] = binding_and_attributes(VertexFlags::ePosition);
 
 		auto vs_callable = procedure("main") << vertex;
@@ -150,7 +150,7 @@ struct Application : CameraApplication {
 
 			cmd.bindVertexBuffers(0, mesh.vertices.buffer, { 0 });
 			cmd.bindIndexBuffer(mesh.triangles.buffer, 0, vk::IndexType::eUint32);
-			cmd.drawIndexed(mesh.count, 1, 0, 0, 0);
+			cmd.drawIndexed(3 * mesh.triangle_count, 1, 0, 0, 0);
 		}
 		
 		cmd.endRenderPass();

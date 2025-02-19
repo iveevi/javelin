@@ -72,13 +72,14 @@ Procedure <void> ray_closest_hit = procedure <void> ("main") << []()
 
 	hit_attribute <vec2> barycentrics;
 
-	// payload = vec3(1.0f - barycentrics.x - barycentrics.y, barycentrics.x, barycentrics.y);
-	payload = vec3(1.0, 0, 0);
+	// TODO: debug printf and strings...
+
+	payload = vec3(1.0f - barycentrics.x - barycentrics.y, barycentrics.x, barycentrics.y);
 };
 
 Procedure <void> ray_miss = procedure <void> ("main") << []()
 {
 	ray_payload_in <vec3> payload(0);
 
-	// payload = vec3(1);
+	payload = vec3(1);
 };
