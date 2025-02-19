@@ -13,6 +13,7 @@ set(IMGUI_SOURCES
 # Javelin graphics stack
 add_library(common-gfx STATIC
 	${IMGUI_SOURCES}
+	acceleration_structure.cpp
 	camera_controller.cpp
 	formats.cpp
 	imgui.cpp
@@ -22,7 +23,8 @@ add_library(common-gfx STATIC
 	texture.cpp
 	texture_bank.cpp
 	util.cpp
-	vulkan_resources.cpp)
+	vulkan_resources.cpp
+	vulkan_triangle_mesh.cpp)
 
 target_compile_options(common-gfx PRIVATE
 	${STATIC_ANALYSIS}

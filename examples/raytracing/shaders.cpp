@@ -51,8 +51,6 @@ Procedure <void> ray_generation = procedure <void> ("main") << []()
 	vec2 uv = center / vec2(imageSize(image));
 	vec3 ray = rayframe.at(uv);
 
-	payload = 0.5 + 0.5 * ray;
-
 	traceRayEXT(tlas,
 		gl_RayFlagsOpaqueEXT,
 		0xFF,
@@ -68,6 +66,8 @@ Procedure <void> ray_generation = procedure <void> ("main") << []()
 
 Procedure <void> ray_closest_hit = procedure <void> ("main") << []()
 {
+	// TODO: scalar buffers...
+	// TODO: buffer references...
 	ray_payload_in <vec3> payload(0);
 
 	hit_attribute <vec2> barycentrics;
