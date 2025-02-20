@@ -132,9 +132,8 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 		globals.shared[id] = bf;
 	} break;
 
-	case task_payload:
-		globals.special[task_payload][-1] = special_type(fidx, bidx);
-		extensions.insert("GL_EXT_mesh_shader");
+	case uint64:
+		extensions.insert("GL_EXT_shader_explicit_arithmetic_types_int64");
 		break;
 
 	case write_only:
@@ -164,6 +163,11 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 
 		JVL_ABORT("unexpected atom for {} qualifier:\n{}", tbl_qualifier_kind[kind], lower);
 	} break;
+
+	case task_payload:
+		globals.special[task_payload][-1] = special_type(fidx, bidx);
+		extensions.insert("GL_EXT_mesh_shader");
+		break;
 
 	case hit_attribute:
 		globals.special[hit_attribute][-1] = special_type(fidx, bidx);

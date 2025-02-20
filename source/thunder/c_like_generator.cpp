@@ -148,6 +148,9 @@ std::string generate_primitive(const Primitive &p)
 		return fmt::format("{}", p.idata);
 	case u32:
 		return fmt::format("{}", p.udata);
+	case u64:
+		// Full data unavailable...
+		return fmt::format("{}", p.udata);
 	case f32:
 		return fmt::format("{}", p.fdata);
 	default:

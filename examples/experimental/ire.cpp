@@ -36,13 +36,20 @@ struct RayFrame {
 	}
 };
 
+// TODO: aggregates with unsized array
+
 auto ftn = procedure <void> ("main") << []()
 {
 	write_only <scalar <buffer <unsized_array <vec3>>>> bf(0);
 	// read_only <buffer <unsized_array <vec3>>> bf(0);
 	bf[1].x = 45;
 
-	// TODO: scalar buffer...
+	using temporary = scalar <buffer <ivec2>>;
+
+	u64 x = 0;
+	x = 12;
+
+	// TODO: buffer reference...
 };
 
 // TODO: shadertoy example

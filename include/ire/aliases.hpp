@@ -12,10 +12,13 @@ namespace jvl::ire {
 // Aliases for common primitive types //
 ////////////////////////////////////////
 
-using i32 = native_t <int32_t>;
-using u32 = native_t <uint32_t>;
-using f32 = native_t <float>;
+using i32     = native_t <int32_t>;
+using u32     = native_t <uint32_t>;
+using f32     = native_t <float>;
 using boolean = native_t <bool>;
+
+// Special primitives
+using u64     = native_t <uint64_t>;
 
 using ivec2 = vec <int32_t, 2>;
 using ivec3 = vec <int32_t, 3>;

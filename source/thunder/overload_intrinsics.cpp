@@ -99,6 +99,10 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 			overload::from(vec4, vec4),
 		} },
 
+		{ cast_to_uint64, {
+			overload::from(u64, u32),
+		} },
+
 		// Trigonometric functions
                 { sin, {
 			overload::from(f32, f32),

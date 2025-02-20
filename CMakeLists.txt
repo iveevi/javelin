@@ -43,6 +43,7 @@ endif()
 # Intermediate Representation Emitter
 add_library(javelin-ire SHARED
 	source/ire/emitter.cpp
+	source/ire/native.cpp
 	source/thunder/atom.cpp
 	source/thunder/autodiff_forward.cpp
 	source/thunder/buffer.cpp

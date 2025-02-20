@@ -90,7 +90,8 @@ std::vector <QualifiedType> Buffer::expand_list_types(Index i) const
 	std::vector <QualifiedType> args;
 	while (i != -1) {
 		auto &atom = atoms[i];
-		JVL_ASSERT_PLAIN(atom.is <List> ());
+
+		JVL_ASSERT(atom.is <List> (), "unexpected atom in list chain:\n{}", atom);
 
 		List list = atom.as <List> ();
 		i = list.next;

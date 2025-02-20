@@ -37,6 +37,9 @@ enum PrimitiveType : int8_t {
 	mat3,
 	mat4,
 
+	// Higher precision types
+	u64,
+
 	__pt_end
 };
 
@@ -64,6 +67,8 @@ static const char *tbl_primitive_types[] = {
 	"mat2",
 	"mat3",
 	"mat4",
+
+	"uint64_t",
 
 	"__end"
 };
@@ -131,6 +136,8 @@ enum QualifierKind : int8_t {
 	image_1d,
 	image_2d,
 	image_3d,
+
+	uint64,
 
 	// Mesh shaders
 	task_payload,
@@ -217,6 +224,8 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"image1D",
 	"image2D",
 	"image3D",
+
+	"uint64",
 
 	"task payload",
 
@@ -391,6 +400,8 @@ enum IntrinsicOperation : uint16_t {
 	cast_to_vec3,
 	cast_to_vec4,
 
+	cast_to_uint64,
+
 	// Trigonometric functions
 	sin,
 	cos,
@@ -482,6 +493,8 @@ static constexpr const char *tbl_intrinsic_operation[] = {
 	"vec2",
 	"vec3",
 	"vec4",
+
+	"uint64_t",
 
 	"sin",
 	"cos",

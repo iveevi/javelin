@@ -175,11 +175,8 @@ QualifiedType Buffer::classify(Index i)
 		if (operation.b != -1)
 			qts.push_back(types[operation.b]);
 
-		// TODO: binary ops, no vector
 		auto result = lookup_operation_overload(operation.code, qts);
-		if (!result)
-			dump();
-
+		
 		JVL_ASSERT(result, "failed to find overload for operation: {} (@{})", atom, i);
 
 		return result;

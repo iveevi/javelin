@@ -9,50 +9,12 @@
 
 namespace jvl::ire {
 
-// Methods to upcast C++ primitives into a workable type
-inline thunder::Index translate_primitive(bool b)
-{
-	auto &em = Emitter::active;
-
-	thunder::Primitive p;
-	p.type = thunder::boolean;
-	p.bdata = b;
-
-	return em.emit(p);
-}
-
-inline thunder::Index translate_primitive(int32_t i)
-{
-	auto &em = Emitter::active;
-
-	thunder::Primitive p;
-	p.type = thunder::i32;
-	p.idata = i;
-
-	return em.emit(p);
-}
-
-inline thunder::Index translate_primitive(uint32_t i)
-{
-	auto &em = Emitter::active;
-
-	thunder::Primitive p;
-	p.type = thunder::u32;
-	p.udata = i;
-
-	return em.emit(p);
-}
-
-inline thunder::Index translate_primitive(float f)
-{
-	auto &em = Emitter::active;
-
-	thunder::Primitive p;
-	p.type = thunder::f32;
-	p.fdata = f;
-
-	return em.emit(p);
-}
+// Methods to translate native C++ primitives
+thunder::Index translate_primitive(bool);
+thunder::Index translate_primitive(int32_t);
+thunder::Index translate_primitive(uint32_t);
+thunder::Index translate_primitive(uint64_t);
+thunder::Index translate_primitive(float);
 
 // Type class for natives
 template <typename T>
@@ -135,25 +97,20 @@ struct native_t : tagged {
 
 	native_t &operator=(const T &v) {
 		auto &em = Emitter::active;
-		if (cached()) {
-			// At this point we are required to have storage for this
+		if (cached())
 			em.emit_store(ref.id, translate_primitive(v));
-		} else {
+		else
 			ref = translate_primitive(v);
-		}
 
 		return *this;
 	}
 
 	native_t &operator=(const native_t &v) {
-		// At this point we are required to have storage for this
 		auto &em = Emitter::active;
-		if (cached()) {
-			// At this point we are required to have storage for this
+		if (cached())
 			em.emit_store(ref.id, v.synthesize().id);
-		} else {
+		else
 			ref = v.synthesize().id;
-		}
 
 		return *this;
 	}
@@ -230,29 +187,24 @@ struct native_t : tagged {
 	// Arithmetic operators //
 	//////////////////////////
 
-	friend native_t operator+(const native_t &a, const native_t &b)
-	{
+	friend native_t operator+(const native_t &a, const native_t &b) {
 		return operation_from_args <native_t> (thunder::addition, a, b);
 	}
 
-	friend native_t operator-(const native_t &a, const native_t &b)
-	{
+	friend native_t operator-(const native_t &a, const native_t &b) {
 		return operation_from_args <native_t> (thunder::subtraction, a, b);
 	}
 
-	friend native_t operator*(const native_t &a, const native_t &b)
-	{
+	friend native_t operator*(const native_t &a, const native_t &b) {
 		return operation_from_args <native_t> (thunder::multiplication, a, b);
 	}
 
-	friend native_t operator/(const native_t &a, const native_t &b)
-	{
+	friend native_t operator/(const native_t &a, const native_t &b) {
 		return operation_from_args <native_t> (thunder::division, a, b);
 	}
 
 	// TODO: different implementations for floating point (fmod)
-	friend native_t operator%(const native_t &a, const native_t &b)
-	{
+	friend native_t operator%(const native_t &a, const native_t &b) {
 		return operation_from_args <native_t> (thunder::modulus, a, b);
 	}
 

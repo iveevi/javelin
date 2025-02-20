@@ -100,6 +100,9 @@ std::string Primitive::to_string() const
         case u32:
                 result += fmt::format("\n          :: u32: {}", udata);
                 break;
+        case u64:
+                result += fmt::format("\n          :: u64: {}", udata);
+                break;
         case f32:
                 result += fmt::format("\n          :: f32: {}", fdata);
                 break;

@@ -30,17 +30,17 @@ void Emitter::pop()
 }
 
 // Emitting instructions during function invocation
-Emitter::index_t Emitter::emit(const thunder::Atom &atom)
+Emitter::Index Emitter::emit(const thunder::Atom &atom)
 {
 	JVL_ASSERT(scopes.size(), "in emit: no active scope");
 	return scopes.top().get().emit(atom, classify.top());
 }
 
-Emitter::index_t Emitter::emit(const thunder::Branch &branch, const precondition_t &pre)
+Emitter::Index Emitter::emit(const thunder::Branch &branch, const precondition_t &pre)
 {
 	auto &buffer = scopes.top().get();
 
-	index_t i = -1;
+	Index i = -1;
 	if (branch.kind != thunder::control_flow_end)
 		i = emit((thunder::Atom) branch);
 
@@ -97,11 +97,11 @@ Emitter::index_t Emitter::emit(const thunder::Branch &branch, const precondition
 	JVL_ABORT("unhandled case of control_flow_callback: {}", branch);
 }
 
-Emitter::index_t Emitter::emit_list_chain(const std::vector <index_t> &atoms)
+Emitter::Index Emitter::emit_list_chain(const std::vector <Index> &atoms)
 {
 	thunder::List list;
 
-	index_t next = -1;
+	Index next = -1;
 	for (auto it = std::rbegin(atoms); it != std::rend(atoms); it++) {
 		list.item = *it;
 		list.next = next;
@@ -109,15 +109,6 @@ Emitter::index_t Emitter::emit_list_chain(const std::vector <index_t> &atoms)
 	}
 
 	return next;
-}
-
-std::vector <Emitter::index_t> Emitter::emit_sequence(const std::initializer_list <thunder::Atom> &atoms)
-{
-	std::vector <index_t> result;
-	for (auto &atom : atoms)
-		result.push_back(emit(atom));
-
-	return result;
 }
 
 // Printing the IR state

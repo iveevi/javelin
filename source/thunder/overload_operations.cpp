@@ -61,6 +61,8 @@ QualifiedType lookup_operation_overload(const OperationCode &key, const std::vec
 		overload::from(uvec3, uvec3, u32),
 		overload::from(uvec4, uvec4, uvec4),
 		overload::from(uvec4, uvec4, u32),
+		
+		overload::from(u64, u64, u64),
 	};
 
 	static const overload_list comparison_overloads {
@@ -75,8 +77,12 @@ QualifiedType lookup_operation_overload(const OperationCode &key, const std::vec
 
 		overload::from(u32, u32, u32),
 		overload::from(u32, u32, i32),
+		
+		overload::from(u64, u64, u32),
+		overload::from(u64, u64, i32),
 
 		overload::from(uvec3, uvec3, u32),
+		overload::from(uvec3, uvec3, i32),
 	};
 
         static const overload_table <OperationCode> table {
