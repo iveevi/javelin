@@ -7,8 +7,7 @@ Procedure <void> task = procedure <void> ("main") << []()
 	task_payload <Payload> payload;
 
 	// TODO: buffer with atomically incremented stats
-
-	read_only_buffer <unsized_array <u32>> sizes(0);
+	read_only <buffer <unsized_array <u32>>> sizes(0);
 
 	u32 idx = gl_GlobalInvocationID.x;
 
@@ -32,7 +31,7 @@ Procedure <void> mesh = procedure <void> ("main") << []()
 	push_constant <ViewInfo> view_info;
 	
 	// TODO: scalar buffer...
-	read_only_buffer <unsized_array <vec3>> positions(1);
+	read_only <buffer <unsized_array <vec3>>> positions(1);
 
 	layout_out <unsized_array <vec3>> vertices(0);
 

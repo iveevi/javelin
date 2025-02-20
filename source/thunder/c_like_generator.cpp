@@ -35,8 +35,6 @@ static std::optional <std::string> generate_global_reference(const std::vector <
 		return fmt::format("_uniform{}", qualifier.numerical);
 
 	case storage_buffer:
-	case read_only_storage_buffer:
-	case write_only_storage_buffer:
 		return fmt::format("_buffer{}", qualifier.numerical);
 
 	case shared:

@@ -98,8 +98,6 @@ enum QualifierKind : int8_t {
 	uniform,
 
 	storage_buffer,
-	read_only_storage_buffer,
-	write_only_storage_buffer,
 
 	shared,
 
@@ -187,9 +185,7 @@ static constexpr const char *tbl_qualifier_kind[] = {
 
 	"uniform",
 
-	"buffer (read-write)",
-	"buffer (read-only)",
-	"buffer (write-only)",
+	"storage buffer",
 
 	"shared",
 

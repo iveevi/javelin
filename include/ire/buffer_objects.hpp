@@ -2,6 +2,7 @@
 
 #include "../thunder/enumerations.hpp"
 #include "concepts.hpp"
+#include "memory.hpp"
 
 namespace jvl::ire {
 
@@ -39,14 +40,18 @@ struct bound_buffer_object <T, K> : T {
 	bound_buffer_object(size_t binding_, const Args &... args)
 			: T(args...), binding(binding_) {
 		auto &em = Emitter::active;
+		auto value = em.emit_construct(qualifier(), -1, thunder::transient);
+		this->ref = value;
+	}
+
+	thunder::Index qualifier() const {
+		auto &em = Emitter::active;
 
 		auto type = type_info_generator <T> (*this)
 			.synthesize()
 			.concrete();
 		
-		auto pc = em.emit_qualifier(type, binding, K);
-		auto value = em.emit_construct(pc, -1, thunder::transient);
-		this->ref = value;
+		return em.emit_qualifier(type, binding, K);
 	}
 	
 	operator typename T::arithmetic_type() const {
@@ -97,11 +102,35 @@ using uniform = bound_buffer_object <T, thunder::uniform>;
 template <generic T>
 using buffer = bound_buffer_object <T, thunder::storage_buffer>;
 
-// TODO: deprecate in faor of read_only <...> and write_only <...>
+// Implementing qualifiers for buffer
 template <generic T>
-using read_only_buffer = bound_buffer_object <T, thunder::read_only_storage_buffer>;
+struct read_only <buffer <T>> : buffer <T> {
+	template <typename ... Args>
+	read_only(const Args &... args) : buffer <T> (args...) {
+		this->ref = synthesize();
+	}
+
+	cache_index_t synthesize() const {
+		auto &em = Emitter::active;
+		thunder::Index qualifier = em.emit_qualifier(this->qualifier(), -1, thunder::read_only);
+		thunder::Index value = em.emit_construct(qualifier, -1, thunder::transient);
+		return cache_index_t::from(value);
+	}
+};
 
 template <generic T>
-using write_only_buffer = bound_buffer_object <T, thunder::write_only_storage_buffer>;
+struct write_only <buffer <T>> : buffer <T> {
+	template <typename ... Args>
+	write_only(const Args &... args) : buffer <T> (args...) {
+		this->ref = synthesize();
+	}
+
+	cache_index_t synthesize() const {
+		auto &em = Emitter::active;
+		thunder::Index qualifier = em.emit_qualifier(this->qualifier(), -1, thunder::write_only);
+		thunder::Index value = em.emit_construct(qualifier, -1, thunder::transient);
+		return cache_index_t::from(value);
+	}
+};
 
 } // namespace jvl::ire

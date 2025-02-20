@@ -36,42 +36,17 @@ struct RayFrame {
 	}
 };
 
-auto rgen = procedure <void> ("main") << []()
+auto ftn = procedure <void> ("main") << []()
 {
-	push_constant <RayFrame> rayframe;
-
-	accelerationStructureEXT tlas(0);
-
-	ray_payload <vec3> payload(0);
-
-	// TODO: image formats restricted by native type
-	write_only <image2D> image(1);
-
-	hit_attribute <vec2> barycentric;
-
-	vec2 center = vec2(gl_LaunchIDEXT.xy()) + vec2(0.5);
-	vec2 uv = center / vec2(imageSize(image));
-	vec3 ray = rayframe.at(uv);
-
-	traceRayEXT(tlas,
-		gl_RayFlagsOpaqueEXT | gl_RayFlagsCullNoOpaqueEXT,
-		0xFF,
-		0, 0, 0,
-		rayframe.origin, 1e-3,
-		ray, 1e10,
-		0);
-
-	vec4 color = vec4(pow(payload, vec3(1/2.2)), 1.0);
-
-	imageStore(image, ivec2(gl_LaunchIDEXT.xy()), color);
+	write_only <buffer <unsized_array <vec3>>> bf(0);
+	bf[1].x = 45;
 };
 
-// TODO: raytracing example
 // TODO: shadertoy example
 
 int main()
 {
-	rgen.dump();
-	dump_lines("EXPERIMENTAL IRE", link(rgen).generate_glsl());
-	link(rgen).generate_spirv(vk::ShaderStageFlagBits::eRaygenKHR);
+	ftn.dump();
+	dump_lines("EXPERIMENTAL IRE", link(ftn).generate_glsl());
+	link(ftn).generate_spirv(vk::ShaderStageFlagBits::eRaygenKHR);
 }

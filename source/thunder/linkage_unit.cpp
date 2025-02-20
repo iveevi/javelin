@@ -64,13 +64,13 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 {
 	if (image_kind(qualifier.kind)) {
 		size_t binding = qualifier.numerical;
-		globals.images[binding] = local_layout_type(fidx, -1, qualifier.kind);
+		globals.images[binding] = local_layout_type(fidx, bidx, qualifier.kind);
 		return;
 	}
 
 	if (sampler_kind(qualifier.kind)) {
 		size_t binding = qualifier.numerical;
-		globals.samplers[binding] = local_layout_type(fidx, -1, qualifier.kind);
+		globals.samplers[binding] = local_layout_type(fidx, bidx, qualifier.kind);
 		return;
 	}
 
@@ -126,8 +126,6 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 	} break;
 
 	case storage_buffer:
-	case read_only_storage_buffer:
-	case write_only_storage_buffer:
 	{
 		size_t binding = qualifier.numerical;
 		local_layout_type bf(fidx, qualifier.underlying, qualifier.kind);
@@ -155,6 +153,9 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 		if (auto decl = lower.get <Qualifier> ()) {
 			if (image_kind(decl->kind)) {
 				globals.images[decl->numerical].extra.insert(qualifier.kind);
+				break;
+			} else if (decl->kind == storage_buffer) {
+				globals.buffers[decl->numerical].extra.insert(qualifier.kind);
 				break;
 			}
 		}
@@ -548,22 +549,6 @@ void generate_uniforms(std::string &result,
 	}
 }
 
-static std::string buffer_qualifier(QualifierKind kind)
-{
-	switch (kind) {
-	case storage_buffer:
-		return "";
-	case read_only_storage_buffer:
-		return "readonly ";
-	case write_only_storage_buffer:
-		return "writeonly ";
-	default:
-		break;
-	}
-
-	return "<buffer:?>";
-}
-
 void generate_buffers(std::string &result,
 		     const generator_list &generators,
 		     const std::vector <Function> &functions,
@@ -575,8 +560,15 @@ void generate_buffers(std::string &result,
 
 		auto ts = generator.type_to_string(types[llt.index]);
 
-		result += fmt::format("layout (binding = {}) {}buffer bblock{}\n",
-			b, buffer_qualifier(llt.kind), b);
+		std::string modifier = "";
+		for (auto &k : llt.extra) {
+			if (k == write_only)
+				modifier += "writeonly ";
+			if (k == read_only)
+				modifier += "readonly ";
+		}
+
+		result += fmt::format("layout (binding = {}) {}buffer bblock{}\n", b, modifier, b);
 		result += "{\n";
 		result += fmt::format("    {} _buffer{}{};\n", ts.pre, b, ts.post);
 		result += "};\n\n";

@@ -22,7 +22,7 @@ std::string format_as(const uvec3 &v)
 }
 
 template <generic T>
-using Buffer = write_only_buffer <unsized_array <T>>;
+using Buffer = write_only <buffer <unsized_array <T>>>;
 
 template <generic T, void (*f)(Buffer <T>)>
 Procedure <void> kernel = procedure <void> ("main") << []()
