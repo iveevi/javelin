@@ -51,7 +51,12 @@ add_library(javelin-ire SHARED
 	source/thunder/comparison.cpp
 	source/thunder/gcc.cpp
 	source/thunder/legalize_cc.cpp
-	source/thunder/linkage_unit.cpp
+	source/thunder/linkage/common.cpp
+	source/thunder/linkage/core.cpp
+	source/thunder/linkage/cplusplus.cpp
+	source/thunder/linkage/glsl.cpp
+	source/thunder/linkage/jit_gcc.cpp
+	source/thunder/linkage/spirv_binary.cpp
 	source/thunder/optimization.cpp
 	source/thunder/overload_intrinsics.cpp
 	source/thunder/overload_operations.cpp
