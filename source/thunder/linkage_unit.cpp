@@ -128,8 +128,15 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 	case storage_buffer:
 	{
 		size_t binding = qualifier.numerical;
-		local_layout_type bf(fidx, qualifier.underlying, qualifier.kind);
-		globals.buffers[binding] = bf;
+
+		// May be a redefinition
+		// TODO: sanity check for all other conditions
+		if (globals.buffers.contains(binding)) {
+			JVL_WARNING("redefinition of buffer @{}", binding);
+		} else {
+			local_layout_type bf(fidx, qualifier.underlying, qualifier.kind);
+			globals.buffers[binding] = bf;
+		}
 	} break;
 
 	case shared:
@@ -146,23 +153,30 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 
 	case write_only:
 	case read_only:
+	case scalar:
 	{
-		// TODO: method to search
+		static const std::set <QualifierKind> image_compatible {
+			write_only,
+			read_only,
+		};
+
+		auto &kind = qualifier.kind;
 		auto &lower = function.atoms[qualifier.underlying];
 
+		if (kind == scalar)
+			extensions.insert("GL_EXT_scalar_block_layout");
+
 		if (auto decl = lower.get <Qualifier> ()) {
-			if (image_kind(decl->kind)) {
-				globals.images[decl->numerical].extra.insert(qualifier.kind);
+			if (image_compatible.contains(kind) && image_kind(decl->kind)) {
+				globals.images[decl->numerical].extra.insert(kind);
 				break;
 			} else if (decl->kind == storage_buffer) {
-				globals.buffers[decl->numerical].extra.insert(qualifier.kind);
+				globals.buffers[decl->numerical].extra.insert(kind);
 				break;
 			}
 		}
 
-		JVL_ABORT("unexpected atom for {} qualifier:\n{}",
-			tbl_qualifier_kind[qualifier.kind],
-			lower);
+		JVL_ABORT("unexpected atom for {} qualifier:\n{}", tbl_qualifier_kind[kind], lower);
 	} break;
 
 	case hit_attribute:
@@ -183,6 +197,7 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 		break;
 
 	case glsl_SubgroupInvocationID:
+		// TODO: use (portable) enums for extensions
 		extensions.insert("GL_KHR_shader_subgroup_basic");
 		break;
 
@@ -560,15 +575,18 @@ void generate_buffers(std::string &result,
 
 		auto ts = generator.type_to_string(types[llt.index]);
 
+		std::string formats = "";
 		std::string modifier = "";
 		for (auto &k : llt.extra) {
 			if (k == write_only)
 				modifier += "writeonly ";
 			if (k == read_only)
 				modifier += "readonly ";
+			if (k == scalar)
+				formats += ", scalar";
 		}
 
-		result += fmt::format("layout (binding = {}) {}buffer bblock{}\n", b, modifier, b);
+		result += fmt::format("layout (binding = {}{}) {}buffer bblock{}\n", b, formats, modifier, b);
 		result += "{\n";
 		result += fmt::format("    {} _buffer{}{};\n", ts.pre, b, ts.post);
 		result += "};\n\n";

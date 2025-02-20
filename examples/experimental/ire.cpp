@@ -38,8 +38,11 @@ struct RayFrame {
 
 auto ftn = procedure <void> ("main") << []()
 {
-	write_only <buffer <unsized_array <vec3>>> bf(0);
+	write_only <scalar <buffer <unsized_array <vec3>>>> bf(0);
+	// read_only <buffer <unsized_array <vec3>>> bf(0);
 	bf[1].x = 45;
+
+	// TODO: scalar buffer...
 };
 
 // TODO: shadertoy example

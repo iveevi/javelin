@@ -28,4 +28,9 @@ struct write_only : T {
 	static_assert(false, "write_only is not supported for given type");
 };
 
+template <builtin T>
+struct scalar : T {
+	static_assert(false, "scalar is not supported for given type");
+};
+
 } // namespace jvl::ire

@@ -71,7 +71,7 @@ template <native T, size_t D>
 struct is_image_like <image <T, D>> : std::true_type {};
 
 template <typename T>
-concept image_like = is_image_like <T> ::value;
+concept image_like = builtin <T> && is_image_like <T> ::value;
 
 // Accessors functions from GLSL
 template <image_like Image>

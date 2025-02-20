@@ -101,9 +101,10 @@ enum QualifierKind : int8_t {
 
 	shared,
 
-	// Additional qualifiers
+	// Memory qualifiers
 	write_only,
 	read_only,
+	scalar,
 
 	// Samplers
 	isampler_1d,
@@ -191,6 +192,7 @@ static constexpr const char *tbl_qualifier_kind[] = {
 
 	"write_only",
 	"read_only",
+	"scalar",
 
 	"isampler1D",
 	"isampler2D",
