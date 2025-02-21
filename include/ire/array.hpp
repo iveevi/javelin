@@ -129,7 +129,7 @@ struct array : public array_base <T> {
 		MODULE(array);
 
 		JVL_ASSERT(this->cached(), "arrays must be cached by the time of use");
-		if (index < 0 || index >= this->length)
+		if (this->length >= 0 && (index < 0 || index >= this->length))
 			JVL_WARNING("index (={}) is out of bounds (size={})", index, this->length);
 
 		auto &em = Emitter::active;

@@ -215,11 +215,14 @@ struct hit_attribute <T> : T {
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
-		auto layout = this->layout().remove_const();
-		auto type = type_field_from_args(layout).id;
+		
+		auto layout = this->layout();
+		auto type = layout.generate_type().concrete();
 		auto qual = em.emit_qualifier(type, -1, thunder::hit_attribute);
 		auto value = em.emit_construct(qual, -1, thunder::transient);
-		layout.ref_with(cache_index_t::from(value));
+		layout.link(value);
+
+		return cache_index_t::from(value);
 	}
 };
 
