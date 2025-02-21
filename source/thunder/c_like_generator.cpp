@@ -31,7 +31,7 @@ static std::optional <std::string> generate_global_reference(const std::vector <
 	case push_constant:
 		return "_pc";
 
-	case uniform:
+	case uniform_buffer:
 		return fmt::format("_uniform{}", qualifier.numerical);
 
 	case storage_buffer:

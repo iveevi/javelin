@@ -104,7 +104,7 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 		globals.outputs[binding] = lout;
 	} break;
 
-	case uniform:
+	case uniform_buffer:
 	{
 		size_t binding = qualifier.numerical;
 		local_layout_type un(fidx, qualifier.underlying, qualifier.kind);

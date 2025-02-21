@@ -100,9 +100,11 @@ enum QualifierKind : int8_t {
 
 	push_constant,
 
-	uniform,
+	uniform_buffer,
 
 	storage_buffer,
+
+	buffer_reference,
 
 	shared,
 
@@ -194,6 +196,8 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"uniform",
 
 	"storage buffer",
+
+	"buffer reference",
 
 	"shared",
 

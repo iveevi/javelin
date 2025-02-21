@@ -38,16 +38,32 @@ struct RayFrame {
 
 // TODO: aggregates with unsized array
 
+// TODO: if not a buffer, reroute to buffer...
+template <generic T>
+struct buffer_reference {
+	// TODO: name hint for this
+	buffer_reference() {}
+
+	// TODO: operator()...
+
+	T operator()(const native_t <uint64_t> &x) {
+		auto &em = Emitter::active;
+	}
+};
+
 auto ftn = procedure <void> ("main") << []()
 {
 	write_only <scalar <buffer <unsized_array <vec3>>>> bf(0);
 	// read_only <buffer <unsized_array <vec3>>> bf(0);
 	bf[1].x = 45;
 
-	using temporary = scalar <buffer <ivec2>>;
+	// auto temporary = scalar <buffer_reference <ivec2>> ();
+	auto temporary = buffer_reference <buffer <ivec2>> ();
 
 	u64 x = 0;
 	x = 12;
+
+	auto b = temporary(x);
 
 	// TODO: buffer reference...
 };

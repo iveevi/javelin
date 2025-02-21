@@ -27,22 +27,24 @@ void header(const std::string &name, size_t size)
 void dump_lines(const std::string &name, const std::string &contents)
 {
 	std::vector <std::string> lines;
+	lines.emplace_back("");
 
-	std::string s = contents + "\n";
-
-	std::string interim;
+	std::string s = contents;
 
 	size_t mlen = 0;
 	for (auto c : s) {
+		auto &str = lines.back();
+		
 		if (c == '\n') {
-			lines.emplace_back(interim);
-			mlen = std::max(mlen, interim.size());
-			interim.clear();
-			continue;
+			mlen = std::max(mlen, str.size());
+			lines.emplace_back("");
+		} else {
+			str += c;
 		}
-
-		interim += c;
 	}
+
+	if (lines.back().empty())
+		lines.pop_back();
 
 	// header(name, mlen + 6);
 	header(name, 50);

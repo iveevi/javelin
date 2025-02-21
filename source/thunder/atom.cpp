@@ -4,10 +4,9 @@
 
 namespace jvl::thunder {
 
-// TODO: top level formatter...
-auto header(auto name, auto color)
+auto header(auto name, auto _)
 {
-        return fmt::format(fmt::emphasis::bold | fmt::fg(color), "{:15}", name);
+        return fmt::format(fmt::emphasis::bold, "{:15}", name);
 }
 
 // Qualifier
