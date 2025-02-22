@@ -6,7 +6,7 @@
 
 namespace jvl::ire {
 
-inline void cond(const boolean &b)
+inline void $if(const boolean &b)
 {
 	auto &em = Emitter::active;
 	thunder::Branch branch;
@@ -15,7 +15,7 @@ inline void cond(const boolean &b)
 	em.emit(branch);
 }
 
-inline void elif(const boolean &b)
+inline void $elif(const boolean &b)
 {
 	auto &em = Emitter::active;
 	thunder::Branch branch;
@@ -24,7 +24,7 @@ inline void elif(const boolean &b)
 	em.emit(branch);
 }
 
-inline void elif()
+inline void $else()
 {
 	// Treated as an else
 	auto &em = Emitter::active;
@@ -55,7 +55,7 @@ struct range {
 };
 
 template <builtin T>
-inline T loop(const range <T> &range)
+inline T $for(const range <T> &range)
 {
 	auto &em = Emitter::active;
 
@@ -73,43 +73,43 @@ inline T loop(const range <T> &range)
 }
 
 [[gnu::always_inline]]
-inline void stop()
+inline void $break()
 {
 	Emitter::active.emit_branch(-1, -1, thunder::control_flow_stop);
 }
 
 [[gnu::always_inline]]
-inline void skip()
+inline void $continue()
 {
 	Emitter::active.emit_branch(-1, -1, thunder::control_flow_skip);
 }
 
 [[gnu::always_inline]]
-inline void end()
+inline void $end()
 {
 	Emitter::active.emit_branch(-1, -1, thunder::control_flow_end);
 }
 
 // TODO: match/match_case statements
-inline void returns()
+inline void $return()
 {
 	Emitter::active.emit_return(-1);
 }
 
 template <native T>
-inline void returns(const T &value)
+inline void $return(const T &value)
 {
 	Emitter::active.emit_return(native_t <T> (value).synthesize().id);
 }
 
 template <builtin T>
-inline void returns(const T &value)
+inline void $return(const T &value)
 {
 	Emitter::active.emit_return(value.synthesize().id);
 }
 
 template <aggregate T>
-inline void returns(T &value)
+inline void $return(T &value)
 {
 	auto &em = Emitter::active;
 	auto layout = value.layout();

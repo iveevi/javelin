@@ -294,7 +294,7 @@ auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 
 		proc.call(args);
 		auto values = std::apply(ftn, args);
-		returns(values);
+		$return(values);
 	}
 	proc.end();
 

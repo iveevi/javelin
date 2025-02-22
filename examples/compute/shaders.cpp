@@ -48,9 +48,9 @@ void integrator()
 
 	u32 tid = gl_GlobalInvocationID.x;
 
-	cond(tid >= info.count);
-		returns();
-	end();
+	$if(tid >= info.count);
+		$return();
+	$end();
 
 	vec3 p = positions[tid];
 	vec3 v = velocities[tid];

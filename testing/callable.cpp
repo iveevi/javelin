@@ -58,7 +58,7 @@ TEST(callable, returns)
 	auto ftn = [](f32 x, f32 y, f32 z) {
 		f32 a = x + y * z;
 		f32 b = a / (x - y) * z * z;
-		returns(a / b);
+		$return(a / b);
 	};
 
 	auto F = procedure <f32> ("arithmetic") << ftn;
@@ -86,12 +86,12 @@ TEST(callable, conditional_returns)
 {
 	auto ftn = [](f32 x, f32 y, f32 z) {
 		f32 a = x + y * z;
-		cond(a < 0);
+		$if(a < 0);
 		{
 			f32 b = a / (x - y) * z * z;
-			returns(a / b);
+			$return(a / b);
 		}
-		end();
+		$end();
 
 		return a;
 	};

@@ -61,16 +61,16 @@ auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
 	vec3 vertex = mix(mix(v0, v1, uv.y), mix(v3, v2, uv.y), uv.x);
 
 	// TODO: native overload
-	{ auto i = loop(range <u32> (0u, FEATURE_SIZE, 1u));
+	{ auto i = $for(range <u32> (0u, FEATURE_SIZE, 1u));
 		vec4 fv = texelFetch(ftex, ivec2(i32(i), i32(payload.pindex)), 0);
 		A[i] = mix(mix(fv.x, fv.y, uv.y), mix(fv.w, fv.z, uv.y), uv.x);
-	end(); }
+	$end(); }
 
 	// Positional encoding
 	array <f32> powers = std::array <f32, 8> { 1, 2, 4, 8, 16, 32, 64, 128 };
 
 	u32 k = FEATURE_SIZE;
-	{ auto i = loop(range <u32> (0u, ENCODING_LEVELS, 1u));
+	{ auto i = $for(range <u32> (0u, ENCODING_LEVELS, 1u));
 		f32 p = powers[i];
 		vec3 sin_v = sin(p * vertex);
 		vec3 cos_v = cos(p * vertex);
@@ -82,42 +82,42 @@ auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
 		A[k] = cos_v.x; k += 1;
 		A[k] = cos_v.y; k += 1;
 		A[k] = cos_v.z; k += 1;
-	end(); }
+	$end(); }
 
 	// Network evaluation
 	u32 tid = gl_LocalInvocationID.x + gl_LocalInvocationID.y * gl_WorkGroupSize.x;
 
 	// Layer 0
 	// TODO: raw, with fmt references...
-	{ auto i = loop(range <i32> (0, 16, 1));
+	{ auto i = $for(range <i32> (0, 16, 1));
 		// Load matrix row into shared memory
-		cond(tid == 0);
+		$if(tid == 0);
 		{
-			auto j = loop(range(i32(0), i32(FFIN), i32(1)));
+			auto j = $for(range(i32(0), i32(FFIN), i32(1)));
 				row[j] = texelFetch(w0, ivec2(i, j), 0);
-			end();
+			$end();
 		}
-		end();
+		$end();
 
 		barrier();
 
 		// Evaluate
 		vec4 v = texelFetch(biases, i32(i), 0);
 
-		auto j = loop(range(i32(0), i32(FFIN), i32(1)));
+		auto j = $for(range(i32(0), i32(FFIN), i32(1)));
 			v += A[j] * row[j];
-		end();
+		$end();
 
 		B[i] = leaky_relu(v);
-	end(); }
+	$end(); }
 
 	// Layer 1
-	{ auto i = loop(range <i32> (0, 16, 1));
+	{ auto i = $for(range <i32> (0, 16, 1));
 		u32 k = u32(i) << 2;
 
 		// Evaluate
 		vec4 v = texelFetch(biases, i32(i) + 16, 0);
-		{ auto j = loop(range(i32(0), i32(16), i32(1)));
+		{ auto j = $for(range(i32(0), i32(16), i32(1)));
 			i32 l = j << 2;
 			vec4 v0 = texelFetch(w1, ivec2(i, l + 0), 0);
 			vec4 v1 = texelFetch(w1, ivec2(i, l + 1), 0);
@@ -126,22 +126,22 @@ auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
 			vec4 s = B[j];
 
 			v += s.x * v0 + s.y * v1 + s.z * v2 + s.w * v3;
-		end(); }
+		$end(); }
 
 		vec4 lv = leaky_relu(v);
 		A[k + 0] = lv.x;
 		A[k + 1] = lv.y;
 		A[k + 2] = lv.z;
 		A[k + 3] = lv.w;
-	end(); }
+	$end(); }
 
 	// Layer 2
-	{ auto i = loop(range <i32> (0, 16, 1));
+	{ auto i = $for(range <i32> (0, 16, 1));
 		// Evaluate
 		vec4 v = texelFetch(biases, i32(i) + 32, 0);
-		{ auto j = loop(range <i32> (0, 64, 1));
+		{ auto j = $for(range <i32> (0, 64, 1));
 			v += A[j] * texelFetch(w2, ivec2(i, j), 0);
-		end(); }
+		$end(); }
 
 		vec4 lv = leaky_relu(v);
 
@@ -153,7 +153,7 @@ auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
 		vertex.x += dot(wx, lv);
 		vertex.y += dot(wy, lv);
 		vertex.z += dot(wz, lv);
-	end(); }
+	$end(); }
 
 	vec4 b4 = texelFetch(biases, 3 << 6, 0);
 	vec3 bias = vec3(b4.x, b4.y, b4.z);
@@ -181,9 +181,9 @@ Procedure <void> mesh = procedure <void> ("main") << []()
 	u32 trix = res - 1;
 	u32 triy = res - 1;
 
-	cond(gl_LocalInvocationIndex >= res * res);
-		returns();
-	end();
+	$if(gl_LocalInvocationIndex >= res * res);
+		$return();
+	$end();
 
 	uvec2 local = uvec2(gl_LocalInvocationIndex / res, gl_LocalInvocationIndex % res);
 
@@ -199,13 +199,13 @@ Procedure <void> mesh = procedure <void> ("main") << []()
 	positions[gli] = v;
 	gl_MeshVerticesEXT[gli].gl_Position = pc.project(v);
 
-	cond(local.x < trix && local.y < triy);
+	$if(local.x < trix && local.y < triy);
 	{
 		u32 tri = 2 * (local.x + trix * local.y);
 		gl_PrimitiveTriangleIndicesEXT[tri] = uvec3(gli, gli + 1, gli + res);
 		gl_PrimitiveTriangleIndicesEXT[tri + 1] = uvec3(gli + 1, gli + res + 1, gli + res);
 	}
-	end();
+	$end();
 };
 
 Procedure <void> fragment = procedure <void> ("main") << []()
