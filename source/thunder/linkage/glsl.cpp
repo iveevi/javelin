@@ -116,6 +116,28 @@ void generate_aggregates(std::string &result,
 	}
 }
 
+// Generating the buffer references
+void generate_references(std::string &result,
+			 const generator_list &generators,
+			 const std::vector <Function> &functions,
+			 const std::vector <local_layout_type> &references)
+{
+	for (auto &reference : references) {
+		auto &function = functions[reference.function];
+		auto &generator = generators[reference.function];
+
+		// TODO: check for modifiers...
+
+		auto &qt = function.types[reference.index];
+		auto ts = generator.type_to_string(qt);
+
+		result += "layout (buffer_reference) buffer Buffer\n";
+		result += "{\n";
+		result += fmt::format("    {} {}{};\n", ts.pre, "_buf", ts.post);
+		result += "};\n\n";
+	}
+}
+
 // Generating layout inputs and outputs
 void generate_layout_io(std::string &result,
 			const generator_list &generators,
@@ -390,6 +412,9 @@ std::string LinkageUnit::generate_glsl() const
 
 	// Declare the aggregates used
 	generate_aggregates(result, generators, aggregates);
+
+	// Declare all buffer references
+	generate_references(result, generators, functions, references);
 
 	// Globals: layout inputs and outputs
 	generate_layout_io(result, generators, functions, "in", globals.inputs);

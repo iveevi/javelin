@@ -66,16 +66,21 @@ struct push_constant_info : local_layout_type {
 using generator_list = std::vector <detail::c_like_generator_t>;
 
 struct LinkageUnit {
-	// TODO: dirty flag for caching
+	// TODO: dirty flag for caching using hash?
 	std::optional <glm::uvec3> local_size;
 	std::optional <glm::uvec2> mesh_shader_size;
 
 	std::set <Index> loaded;
+
 	std::vector <Function> functions;
 	std::vector <Aggregate> aggregates;
+	std::vector <local_layout_type> references;
+
 	std::vector <TypeMap> maps;
+	
 	std::map <Index, Index> cids;
 	std::map <Index, std::set <Index>> dependencies;
+
 	std::set <std::string> extensions;
 
 	struct {

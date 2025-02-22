@@ -86,6 +86,15 @@ struct IntrinsicType {
 	std::size_t hash() const;
 };
 
+// Buffere reference types
+struct BufferReferenceType : public PlainDataType {
+	BufferReferenceType(PlainDataType);
+
+	bool operator==(const BufferReferenceType &) const;
+	std::string to_string() const;
+	std::size_t hash() const;
+};
+
 // Parameter IN type
 struct InArgType : public PlainDataType {
 	InArgType(PlainDataType);
@@ -122,6 +131,7 @@ using qualified_type_base = bestd::variant <
 	ImageType,
 	SamplerType,
 	IntrinsicType,
+	BufferReferenceType,
 	InArgType,
 	OutArgType,
 	InOutArgType

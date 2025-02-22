@@ -9,16 +9,86 @@
 namespace jvl::thunder {
 
 MODULE(classify-atoms);
+	
+void Buffer::transfer_decorations(Index dst, Index src)
+{
+	if (used_decorations.contains(src))
+		used_decorations[dst] = used_decorations[src];
+}
+
+QualifiedType Buffer::classify_qualifier(const Qualifier &qualifier, Index i)
+{
+	// Handling images and samplers
+	if (image_kind(qualifier.kind)) {
+		return QualifiedType::image(image_result(qualifier.kind),
+						image_dimension(qualifier.kind));
+	}
+	
+	if (sampler_kind(qualifier.kind)) {
+		return QualifiedType::sampler(sampler_result(qualifier.kind),
+						sampler_dimension(qualifier.kind));
+	}
+
+	// General intrinsic types
+	if (intrinsic_kind(qualifier.kind))
+		return QualifiedType::intrinsic(qualifier.kind);
+
+	// Ensure valid underlying type; OK to be invalid for images and samplers
+	JVL_ASSERT(qualifier.underlying >= 0
+		&& qualifier.underlying < (Index) atoms.size(),
+		"qualifier with invalid underlying reference: {}", qualifier);
+
+	QualifiedType decl = classify(qualifier.underlying);
+
+	// Extended qualifiers
+	if (qualifier.kind == write_only || qualifier.kind == read_only) {
+		// TODO: quick sanity check; only images and buffers allowed
+		// JVL_ASSERT(image_kind())
+		return decl;
+	}
+
+	// Handling arrays
+	if (qualifier.kind == arrays) {
+		// Simplify if needed
+		if (decl.is <StructFieldType> ())
+			decl = QualifiedType::concrete(qualifier.underlying);
+
+		return QualifiedType::array(decl, qualifier.numerical);
+	}
+
+	// Potentially primitive
+	PlainDataType base = qualifier.underlying;
+	if (auto pd = decl.get <PlainDataType> ()) {
+		if (pd->is <PrimitiveType> ())
+			base = pd->as <PrimitiveType> ();
+	}
+
+	// Buffer references get wrapped
+	if (qualifier.kind == buffer_reference)
+		return BufferReferenceType(base);
+
+	// Handling parameter types
+	if (qualifier.kind == qualifier_in)
+		return InArgType(base);
+	if (qualifier.kind == qualifier_out)
+		return OutArgType(base);
+	if (qualifier.kind == qualifier_inout)
+		return InOutArgType(base);
+
+	// Simplify in the case of special parameter types
+	if (decl.is <InArgType> ()
+			|| decl.is <OutArgType> ()
+			|| decl.is <InOutArgType> ())
+		return decl;
+
+	// Transfer name hints in the default case
+	transfer_decorations(i, qualifier.underlying);
+
+	return base;
+}
 
 QualifiedType Buffer::classify(Index i)
 {
-	auto transfer_decorations = [&](Index src) {
-		if (!used_decorations.contains(src))
-			return;
-		
-		used_decorations[i] = used_decorations[src];
-	};
-
 	// Caching
 	if (types[i])
 		return types[i];
@@ -51,79 +121,14 @@ QualifiedType Buffer::classify(Index i)
 		return QualifiedType::primitive(atom.as <Primitive> ().type);
 
 	case Atom::type_index <Qualifier> ():
-	{
-		auto &qualifier = atom.as <Qualifier> ();
-
-		// Handling images and samplers
-		if (image_kind(qualifier.kind)) {
-			return QualifiedType::image(image_result(qualifier.kind),
-						    image_dimension(qualifier.kind));
-		}
-		
-		if (sampler_kind(qualifier.kind)) {
-			return QualifiedType::sampler(sampler_result(qualifier.kind),
-						      sampler_dimension(qualifier.kind));
-		}
-
-		// General intrinsic types
-		if (intrinsic_kind(qualifier.kind))
-			return QualifiedType::intrinsic(qualifier.kind);
-
-		// Ensure valid underlying type; OK to be invalid for images and samplers
-		JVL_ASSERT(qualifier.underlying >= 0
-			&& qualifier.underlying < (Index) atoms.size(),
-			"qualifier with invalid underlying reference: {}", qualifier);
-
-		QualifiedType decl = classify(qualifier.underlying);
-
-		// Extended qualifiers
-		if (qualifier.kind == write_only || qualifier.kind == read_only) {
-			// TODO: quick sanity check; only images and buffers allowed
-			// JVL_ASSERT(image_kind())
-			return decl;
-		}
-
-		// Handling arrays
-		if (qualifier.kind == arrays) {
-			if (decl.is <StructFieldType> ())
-				decl = QualifiedType::concrete(qualifier.underlying);
-
-			return QualifiedType::array(decl, qualifier.numerical);
-		}
-
-		// Potentially primitive
-		PlainDataType base = qualifier.underlying;
-		if (auto pd = decl.get <PlainDataType> ()) {
-			if (pd->is <PrimitiveType> ())
-				base = pd->as <PrimitiveType> ();
-		}
-
-		// Handling parameter types
-		if (qualifier.kind == qualifier_in)
-			return InArgType(base);
-		if (qualifier.kind == qualifier_out)
-			return OutArgType(base);
-		if (qualifier.kind == qualifier_inout)
-			return InOutArgType(base);
-
-		// Simplify in the case of special parameter types
-		if (decl.is <InArgType> ()
-				|| decl.is <OutArgType> ()
-				|| decl.is <InOutArgType> ())
-			return decl;
-
-		// Transfer name hints in the default case
-		transfer_decorations(qualifier.underlying);
-
-		return base;
-	}
+		return classify_qualifier(atom.as <Qualifier> (), i);
 
 	case Atom::type_index <Construct> ():
 	{
 		auto &constructor = atom.as <Construct> ();
 
 		// Always transfer name hints
-		transfer_decorations(constructor.type);
+		transfer_decorations(i, constructor.type);
 
 		QualifiedType qt = classify(constructor.type);
 		if (qt.is <PlainDataType> ())
@@ -196,12 +201,17 @@ QualifiedType Buffer::classify(Index i)
 	case Atom::type_index <Swizzle> ():
 	{
 		auto &swz = atom.as <Swizzle> ();
+		
 		QualifiedType decl = classify(swz.src);
 		PlainDataType plain = decl.remove_qualifiers();
+
+		if (!plain.is <PrimitiveType> ())
+			dump();
+
 		JVL_ASSERT(plain.is <PrimitiveType> (),
-			"swizzle should only operate on vector types, "
-			"but operand is {} with type {}",
-			atoms[swz.src], decl.to_string());
+			"swizzle takes vector types, "
+			"but operand has type {}:\n{}",
+			decl.to_string(), atoms[swz.src]);
 
 		PrimitiveType swizzled = swizzle_type_of(plain.as <PrimitiveType> (), swz.code);
 
@@ -272,7 +282,7 @@ QualifiedType Buffer::classify(Index i)
 
 		auto concrete = base.get <Index> ();
 		if (concrete && used_decorations.contains(*concrete))
-			transfer_decorations(*concrete);
+			transfer_decorations(i, *concrete);
 
 		return base;
 	}

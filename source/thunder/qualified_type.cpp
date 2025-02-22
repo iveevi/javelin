@@ -179,6 +179,24 @@ std::size_t IntrinsicType::hash() const
         return kind;
 }
 
+// Buffer reference type
+BufferReferenceType::BufferReferenceType(PlainDataType p) : PlainDataType(p) {}
+
+bool BufferReferenceType::operator==(const BufferReferenceType &other) const
+{
+	return PlainDataType::operator==(other);
+}
+
+std::string BufferReferenceType::to_string() const
+{
+	return fmt::format("buffer({})", PlainDataType::to_string());
+}
+
+std::size_t BufferReferenceType::hash() const
+{
+	return PlainDataType::hash();
+}
+
 // Parameter IN type
 InArgType::InArgType(PlainDataType p) : PlainDataType(p) {}
 

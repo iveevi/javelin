@@ -388,15 +388,12 @@ std::vector <std::string> c_like_generator_t::arguments(Index start) const
 	while (l != -1) {
 		Atom h = atoms[l];
 		if (!h.is <List> ()) {
-			fmt::println("unexpected atom in arglist: {}", h.to_string());
-			fmt::print("\n");
-			abort();
+			JVL_ABORT("unexpected atom in argument list:\n{}", h.to_string());
 		}
 
 		List list = h.as <List> ();
 		if (list.item == -1) {
-			fmt::println("invalid index found in list item");
-			abort();
+			JVL_ABORT("invalid index (-1) found in list item");
 		}
 
 		args.push_back(inlined(list.item));
@@ -425,7 +422,7 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 		if (at.size < 0)
 			array = "[]";
 
-		return {
+		return type_string {
 			.pre = base.pre,
 			.post = fmt::format("{}{}", base.post, array)
 		};
@@ -434,14 +431,31 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 	variant_case(QualifiedType, PlainDataType):
 	{
 		auto &pd = qt.as <PlainDataType> ();
-		if (auto p = pd.get <PrimitiveType> ())
-			return { .pre = tbl_primitive_types[*p], .post = "" };
+		if (auto p = pd.get <PrimitiveType> ()) {
+			return type_string {
+				.pre = tbl_primitive_types[*p],
+				.post = ""
+			};
+		}
 
 		Index concrete = pd.as <Index> ();
-		if (struct_names.contains(concrete))
-			return { .pre = struct_names.at(concrete), .post = "" };
+		if (struct_names.contains(concrete)) {
+			return type_string {
+				.pre = struct_names.at(concrete),
+				.post = ""
+			};
+		}
 
 		return type_to_string(types[concrete]);
+	}
+
+	variant_case(QualifiedType, BufferReferenceType):
+	{
+		// TODO: ftch from struct names... (-> type_names)
+		return type_string {
+			.pre = "Buffer",
+			.post = "",
+		};
 	}
 
 	variant_case(QualifiedType, InArgType):
@@ -450,7 +464,7 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 		auto base = static_cast <PlainDataType> (in);
 		auto info = type_to_string(base);
 
-		return {
+		return type_string {
 			.pre = "in " + info.pre,
 			.post = info.post
 		};
@@ -462,7 +476,7 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 		auto base = static_cast <PlainDataType> (out);
 		auto info = type_to_string(base);
 
-		return {
+		return type_string {
 			.pre = "out " + info.pre,
 			.post = info.post
 		};
@@ -474,7 +488,7 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 		auto base = static_cast <PlainDataType> (inout);
 		auto info = type_to_string(base);
 
-		return {
+		return type_string {
 			.pre = "inout " + info.pre,
 			.post = info.post
 		};

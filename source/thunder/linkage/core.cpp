@@ -9,6 +9,11 @@ MODULE(linkage-unit);
 // Equality comparison for aggregates
 bool Aggregate::operator==(const Aggregate &other) const
 {
+	// TODO: use a unique id system...
+	// TODO: check if either is a default name?
+	if (name != other.name)
+		return false;
+
 	if (fields.size() != other.fields.size())
 		return false;
 
@@ -124,6 +129,13 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 			globals.buffers[binding] = bf;
 		}
 	} break;
+
+	case buffer_reference:
+		// TODO: check for duplicates (based on names as well...)
+		JVL_INFO("buffer reference!\n{}", qualifier);
+		references.emplace_back(fidx, qualifier.underlying, qualifier.kind);
+		extensions.insert("GL_EXT_buffer_reference");
+		break;
 
 	case shared:
 	{
@@ -283,7 +295,7 @@ void LinkageUnit::process_function_intrinsic(Function &function, size_t index, I
 	}
 }
 
-void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &function, size_t index, Index i, QualifiedType qt)
+void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &function, size_t fidx, Index bidx, QualifiedType qt)
 {
 	std::vector <Field> fields;
 
@@ -305,8 +317,8 @@ void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &funct
 	size_t size = aggregates.size();
 	
 	std::string name = fmt::format("s{}_t", size);
-	if (function.used_decorations.contains(i)) {
-		auto &id = function.used_decorations.at(i);
+	if (function.used_decorations.contains(bidx)) {
+		auto &id = function.used_decorations.at(bidx);
 		auto &decoration = function.decorations.at(id);
 		name = decoration.name;
 
@@ -314,10 +326,9 @@ void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &funct
 			fields[i].name = decoration.fields[i];
 	}
 
-	map[i] = new_aggregate(index, name, fields);
+	map[bidx] = new_aggregate(fidx, name, fields);
 }
 
-// TODO: return referenced callables
 std::set <Index> LinkageUnit::process_function(const Function &ftn)
 {
 	std::set <Index> referenced;

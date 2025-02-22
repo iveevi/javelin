@@ -12,7 +12,10 @@ struct QualifiedType;
 
 // Arbitrary pools of atoms
 class Buffer {
+	void transfer_decorations(Index, Index);
+
 	// Determine the qualified type of an instruction
+	QualifiedType classify_qualifier(const Qualifier &, Index);
 	QualifiedType classify(Index);
 
 	// Populate the synthesized set

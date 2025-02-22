@@ -38,8 +38,12 @@ struct cache_index_t {
 	}
 };
 
+// TODO: refactor cache_index_t -> Cached = bestd::optional <thunder::Index>
+
 // TODO: use optional...
+// TODO: rename to directly_synthesized(...)
 struct tagged {
+	// TODO: refactor to cache(...) method and idx() -> thunder::Index
 	mutable cache_index_t ref;
 	mutable bool immutable;
 

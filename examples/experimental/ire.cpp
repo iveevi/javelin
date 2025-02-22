@@ -40,32 +40,51 @@ struct RayFrame {
 
 // TODO: if not a buffer, reroute to buffer...
 template <generic T>
-struct buffer_reference {
+struct buffer_reference : tagged {
 	// TODO: name hint for this
-	buffer_reference() {}
+	buffer_reference() {
+		auto &em = Emitter::active;
 
-	// TODO: operator()...
+		auto v = T();
+		auto type = type_info_generator <T> (v)
+			.synthesize()
+			.concrete();
+
+		// TODO: numerical should be the unique index...
+		auto qual = em.emit_qualifier(type, -1, thunder::buffer_reference);
+
+		this->ref = qual;
+	}
 
 	T operator()(const native_t <uint64_t> &x) {
 		auto &em = Emitter::active;
+
+		auto list = em.emit_list(x.synthesize().id);
+		auto value = em.emit_construct(this->ref.id, list, thunder::normal);
+
+		// TODO: case by case for builtin
+		return cache_index_t::from(value);
 	}
 };
 
 auto ftn = procedure <void> ("main") << []()
 {
 	write_only <scalar <buffer <unsized_array <vec3>>>> bf(0);
-	// read_only <buffer <unsized_array <vec3>>> bf(0);
-	bf[1].x = 45;
+
+	// // read_only <buffer <unsized_array <vec3>>> bf(0);
+	// bf[1].x = 45;
 
 	// auto temporary = scalar <buffer_reference <ivec2>> ();
-	auto temporary = buffer_reference <buffer <ivec2>> ();
+
+	// TODO: ensure no duplicates...
+	auto temporary = buffer_reference <ivec2> ();
 
 	u64 x = 0;
-	x = 12;
+	// x = 12;
 
 	auto b = temporary(x);
 
-	// TODO: buffer reference...
+	bf[b.y] = vec3(1.04);
 };
 
 // TODO: shadertoy example
