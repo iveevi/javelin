@@ -131,11 +131,11 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 	} break;
 
 	case buffer_reference:
-		// TODO: check for duplicates (based on names as well...)
-		JVL_INFO("buffer reference!\n{}", qualifier);
-		references.emplace_back(fidx, qualifier.underlying, qualifier.kind);
+	{
+		size_t binding = qualifier.numerical;
+		globals.references[binding] = local_layout_type(fidx, bidx, qualifier.kind);
 		extensions.insert("GL_EXT_buffer_reference");
-		break;
+	} break;
 
 	case shared:
 	{

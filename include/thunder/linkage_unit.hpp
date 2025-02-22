@@ -74,7 +74,6 @@ struct LinkageUnit {
 
 	std::vector <Function> functions;
 	std::vector <Aggregate> aggregates;
-	std::vector <local_layout_type> references;
 
 	std::vector <TypeMap> maps;
 	
@@ -89,6 +88,7 @@ struct LinkageUnit {
 		std::map <Index, local_layout_type> inputs;
 		std::map <Index, local_layout_type> uniforms;
 		std::map <Index, local_layout_type> buffers;
+		std::map <Index, local_layout_type> references;
 		std::map <Index, local_layout_type> shared;
 		std::map <Index, local_layout_type> samplers;
 		std::map <Index, local_layout_type> images;

@@ -284,10 +284,12 @@ std::string QualifiedType::to_string() const
 PlainDataType QualifiedType::remove_qualifiers() const
 {
         switch (index()) {
-        case type_index <PlainDataType> ():
+        variant_case(QualifiedType, PlainDataType):
                 return as <PlainDataType> ();
-        case type_index <StructFieldType> ():
+        variant_case(QualifiedType, StructFieldType):
                 return as <StructFieldType> ().base();
+        variant_case(QualifiedType, BufferReferenceType):
+                return as <BufferReferenceType> ();
         default:
                 break;
         }

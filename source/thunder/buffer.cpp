@@ -42,9 +42,10 @@ void Buffer::dump() const
 	for (size_t i = 0; i < pointer; i++) {
 		fmt::println("   [{:4d}] {:55}"
 			"\n          :: type: {:20}"
-			"\n          :: decorations: ({})",
+			"\n          :: decorations: ({}{})",
 			i, atoms[i],
 			fmt::format(fmt::emphasis::underline, "{}", types[i]),
+			synthesized.contains(i) ? 's' : '-',
 			used_decorations.contains(i) ? 't' : '-');
 	}
 

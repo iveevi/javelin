@@ -15,6 +15,7 @@
 #include "ire/procedure.hpp"
 #include "ire/push_constant.hpp"
 #include "ire/qualified_wrapper.hpp"
+#include "ire/reference.hpp"
 #include "ire/sampler.hpp"
 #include "ire/shared.hpp"
 #include "ire/solidify.hpp"

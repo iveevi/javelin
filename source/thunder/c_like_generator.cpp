@@ -451,9 +451,9 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 
 	variant_case(QualifiedType, BufferReferenceType):
 	{
-		// TODO: ftch from struct names... (-> type_names)
+		auto base = type_to_string(qt.remove_qualifiers());
 		return type_string {
-			.pre = "Buffer",
+			.pre = "Buffer_" + base.pre,
 			.post = "",
 		};
 	}
