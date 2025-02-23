@@ -45,7 +45,6 @@ struct RayFrame {
 
 auto ftn = procedure <void> ("main") << []()
 {
-	// TODO: remove native from generics
 	// TODO: composite of template generics <..., ..., ...> --> composite <write_only, scalar, buffer, unsized_array <vec3>>
 	write_only <scalar <buffer <unsized_array <vec3>>>> bf(0);
 
@@ -60,9 +59,6 @@ auto ftn = procedure <void> ("main") << []()
 	bf[1] = tmp2(x).horizontal;
 	bf[2] = tmp3(x)[12].xyz();
 
-	// TODO: phantom layouts
-
-	// // TODO: avoid synthesizing arrays...
 	// auto &em = Emitter::active;
 	// auto value = em.emit_array_access(bf.ref.id, em.emit_primitive(0));
 

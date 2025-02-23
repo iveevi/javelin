@@ -16,7 +16,7 @@ struct __glsl_intrinsic_variable_t {};
 
 // Implementation for native types
 template <native T, thunder::QualifierKind code>
-struct __glsl_intrinsic_variable_t <T, code> {
+struct __glsl_intrinsic_variable_t <native_t <T>, code> {
 	using arithmetic_type = native_t <T>;
 
 	__glsl_intrinsic_variable_t() = default;
@@ -149,13 +149,13 @@ struct __glsl_intrinsic_variable_t <unsized_array <T>, code> {
 
 // Shorthands
 template <thunder::QualifierKind code>
-using __glsl_int = __glsl_intrinsic_variable_t <int32_t, code>;
+using __glsl_int = __glsl_intrinsic_variable_t <native_t <int32_t>, code>;
 
 template <thunder::QualifierKind code>
-using __glsl_uint = __glsl_intrinsic_variable_t <uint32_t, code>;
+using __glsl_uint = __glsl_intrinsic_variable_t <native_t <uint32_t>, code>;
 
 template <thunder::QualifierKind code>
-using __glsl_float = __glsl_intrinsic_variable_t <float, code>;
+using __glsl_float = __glsl_intrinsic_variable_t <native_t <float>, code>;
 
 template <thunder::QualifierKind code>
 using __glsl_vec4 = __glsl_intrinsic_variable_t <vec <float, 4>, code>;

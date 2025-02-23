@@ -14,33 +14,6 @@ struct array_base {
 	using element = void;
 };
 
-template <native T>
-struct array_base <T> : public tagged {
-	using element = native_t <T>;
-	using arithmetic_type = array <T>;
-
-	int32_t length = 0;
-
-	static thunder::Index type(int32_t N) {
-		auto &em = Emitter::active;
-		auto underlying = native_t <T> ::type();
-		return em.emit_qualifier(underlying, N, thunder::arrays);
-	}
-
-	array_base(int32_t N) : length(N) {
-		auto &em = Emitter::active;
-		this->ref = em.emit_construct(type(N), -1, thunder::normal);
-	}
-
-	// TODO: zero initializing constructor
-	template <generic ... Args>
-	array_base(size_t N, const Args &...args) : length(N) {
-		auto &em = Emitter::active;
-		auto l = list_from_args(args...);
-		this->ref = em.emit_construct(type(N), l, thunder::normal);
-	}
-};
-
 template <builtin T>
 struct array_base <T> : public tagged {
 	using element = T;

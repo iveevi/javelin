@@ -44,8 +44,7 @@ struct parameter_injection <T> : std::true_type {
 
 template <generic T>
 struct parameter_injection <in <T>> : std::true_type {
-	using U = promoted <T>;
-	using P = parameter_injection <U>;
+	using P = parameter_injection <T>;
 
 	static thunder::Index emit() {
 		auto &em = Emitter::active;
@@ -55,15 +54,14 @@ struct parameter_injection <in <T>> : std::true_type {
 	}
 
 	static void inject(in <T> &x, thunder::Index i) {
-		U &y = static_cast <U &> (x);
+		T &y = static_cast <T &> (x);
 		P::inject(y, i);
 	}
 };
 
 template <generic T>
 struct parameter_injection <out <T>> : std::true_type {
-	using U = promoted <T>;
-	using P = parameter_injection <U>;
+	using P = parameter_injection <T>;
 
 	static thunder::Index emit() {
 		auto &em = Emitter::active;
@@ -73,15 +71,14 @@ struct parameter_injection <out <T>> : std::true_type {
 	}
 
 	static void inject(out <T> &x, thunder::Index i) {
-		U &y = static_cast <U &> (x);
+		T &y = static_cast <T &> (x);
 		P::inject(y, i);
 	}
 };
 
 template <generic T>
 struct parameter_injection <inout <T>> : std::true_type {
-	using U = promoted <T>;
-	using P = parameter_injection <U>;
+	using P = parameter_injection <T>;
 
 	static thunder::Index emit() {
 		auto &em = Emitter::active;
@@ -91,13 +88,13 @@ struct parameter_injection <inout <T>> : std::true_type {
 	}
 
 	static void inject(inout <T> &x, thunder::Index i) {
-		U &y = static_cast <U &> (x);
+		T &y = static_cast <T &> (x);
 		P::inject(y, i);
 	}
 };
 
 // Internal construction of procedures
-template <void_or_non_native_generic R, typename ... Args>
+template <generic_and_void R, typename ... Args>
 struct Procedure : thunder::TrackedBuffer {
 	// TODO: put outside this defn
 	template <size_t index>
@@ -188,7 +185,7 @@ concept acceptable_callable = std::is_function_v <F> || requires(const F &ftn) {
 	{ std::function(ftn) };
 };
 
-template <void_or_non_native_generic R, typename ... Args>
+template <generic_and_void R, typename ... Args>
 struct signature_pair {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;
@@ -227,7 +224,7 @@ struct signature {
 };
 
 // Exception for real functions, which cannot be instantiated
-template <non_native_generic R, typename ... Args>
+template <generic R, typename ... Args>
 struct signature <R (Args...)> {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;
@@ -242,7 +239,7 @@ struct signature <R (Args...)> {
 
 // Interface for constructing callables from functions
 // TODO: optimization options
-template <void_or_non_native_generic R = void>
+template <generic_and_void R = void>
 struct procedure {
 	std::string name;
 
@@ -250,7 +247,7 @@ struct procedure {
 		: name(name_) {}
 };
 
-template <void_or_non_native_generic R, typename ... Args>
+template <generic_and_void R, typename ... Args>
 struct procedure_with_args : procedure <R> {
 	std::tuple <Args...> args;
 
@@ -259,20 +256,20 @@ struct procedure_with_args : procedure <R> {
 		: procedure <R> (name_), args(args_) {}
 };
 
-template <void_or_non_native_generic R, typename ... Args>
+template <generic_and_void R, typename ... Args>
 auto operator<<(const procedure <R> &C, const std::tuple <Args...> &args)
 {
 	return procedure_with_args <R, Args...> (C.name, args);
 }
 
-template <void_or_non_native_generic R, typename T>
+template <generic_and_void R, typename T>
 requires (!detail::acceptable_callable <T>)
 auto operator<<(const procedure <R> &C, const T &arg)
 {
 	return procedure_with_args <R, T> (C.name, std::make_tuple(arg));
 }
 
-template <void_or_non_native_generic R, detail::acceptable_callable F, typename ... Args>
+template <generic_and_void R, detail::acceptable_callable F, typename ... Args>
 requires (!std::same_as <typename detail::signature <F> ::return_t, void>)
 auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 {
@@ -304,7 +301,7 @@ auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 }
 
 // Void functions are presumbed to contain returns(...) statements already
-template <void_or_non_native_generic R, detail::acceptable_callable F, typename ... Args>
+template <generic_and_void R, detail::acceptable_callable F, typename ... Args>
 requires (std::same_as <typename detail::signature <F> ::return_t, void>)
 auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 {
@@ -336,7 +333,7 @@ auto operator<<(const procedure_with_args <R, Args...> &C, F ftn)
 	return proc.named(C.name);
 }
 
-template <void_or_non_native_generic R, typename F>
+template <generic_and_void R, typename F>
 requires detail::acceptable_callable <F>
 auto operator<<(const procedure <R> &C, F ftn)
 {

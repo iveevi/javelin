@@ -86,7 +86,7 @@ auto texture(const sampler <T, D> &handle, const U &loc)
 	return handle.sample(loc);
 }
 
-template <native T, size_t D, generic A, generic B>
+template <native T, size_t D, integral_arithmetic A, integral_arithmetic B>
 auto texelFetch(const sampler <T, D> &handle, const A &loc, const B &lod)
 {
 	return handle.fetch(loc, lod);

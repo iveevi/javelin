@@ -39,7 +39,7 @@ auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
 	sampler2D w2(6);
 	sampler2D w3(7);
 
-	array <float> A(MSIZE);
+	array <f32> A(MSIZE);
 
 	shared <array <vec4>> row(MSIZE);
 

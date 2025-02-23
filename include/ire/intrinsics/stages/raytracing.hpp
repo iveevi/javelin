@@ -1,16 +1,12 @@
 #pragma once
 
-#include "../../concepts.hpp"
 #include "../../aliases.hpp"
 
 namespace jvl::ire {
 
 // TODO: move to different header...
-template <generic T>
-struct static_constant;
-
 template <native T>
-struct static_constant <T> {
+struct static_constant {
 	using native_type = T;
 	using arithmetic_type = native_t <T>;
 

@@ -10,18 +10,6 @@ namespace jvl::ire {
 template <generic T>
 struct task_payload {};
 
-template <native T>
-struct task_payload <T> {
-	task_payload &operator=(const native_t <T> &value) {
-		auto &em = Emitter::active;
-		auto type = native_t <T> ::type();
-		auto qual = em.emit_qualifier(type, -1, thunder::task_payload);
-		auto dst = em.emit_construct(qual, -1, thunder::transient);
-		em.emit_store(dst, value.synthesize().id);
-		return *this;
-	}
-};
-
 template <builtin T>
 struct task_payload <T> : T {
 	template <typename ... Args>
@@ -53,24 +41,9 @@ struct task_payload <T> : T {
 };
 
 // Raytracing payload
+// TODO: move to intrinsics...
 template <generic T>
 struct ray_payload {};
-
-template <native T>
-struct ray_payload <T> {
-	uint32_t binding = 0;
-
-	ray_payload(uint32_t binding_) : binding(binding_) {}
-
-	ray_payload &operator=(const native_t <T> &value) {
-		auto &em = Emitter::active;
-		auto type = native_t <T> ::type();
-		auto qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload);
-		auto dst = em.emit_construct(qual, -1, thunder::transient);
-		em.emit_store(dst, value.synthesize().id);
-		return *this;
-	}
-};
 
 template <builtin T>
 struct ray_payload <T> : T {
@@ -113,22 +86,6 @@ struct ray_payload <T> : T {
 template <generic T>
 struct ray_payload_in {};
 
-template <native T>
-struct ray_payload_in <T> {
-	uint32_t binding = 0;
-
-	ray_payload_in(uint32_t binding_) : binding(binding_) {}
-
-	ray_payload_in &operator=(const native_t <T> &value) {
-		auto &em = Emitter::active;
-		auto type = native_t <T> ::type();
-		auto qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload_in);
-		auto dst = em.emit_construct(qual, -1, thunder::transient);
-		em.emit_store(dst, value.synthesize().id);
-		return *this;
-	}
-};
-
 template <builtin T>
 struct ray_payload_in <T> : T {
 	uint32_t binding = 0;
@@ -170,21 +127,6 @@ struct ray_payload_in <T> : T {
 template <generic T>
 struct hit_attribute {};
 
-template <native T>
-struct hit_attribute <T> {
-	hit_attribute() : T() {
-		synthesize();
-	}
-
-	cache_index_t synthesize() const {
-		auto &em = Emitter::active;
-		auto type = native_t <T> ::type();
-		auto qual = em.emit_qualifier(type, -1, thunder::hit_attribute);
-		auto dst = em.emit_construct(qual, -1, thunder::transient);
-		return cache_index_t::from(dst);
-	}
-};
-
 template <builtin T>
 struct hit_attribute <T> : T {
 	hit_attribute() : T() {
@@ -225,5 +167,8 @@ struct hit_attribute <T> : T {
 		return cache_index_t::from(value);
 	}
 };
+
+// TODO: transient_qualified_wrapper
+// then base all of this from that...
 
 } // namespace jvl::ire

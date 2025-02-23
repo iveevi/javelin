@@ -48,8 +48,8 @@ void synthesize_layout_io_inner()
 
 	em.push(buffer);
 	{
-		layout_in <T> lin(0);
-		layout_out <T> lout(0);
+		layout_in <native_t <T>> lin(0);
+		layout_out <native_t <T>> lout(0);
 		lout = lin;
 	}
 	em.pop();

@@ -28,15 +28,15 @@ void check_glsl_source(std::string &source, GLuint stage)
 	ASSERT_TRUE(success);
 }
 
-template <typename T>
+template <native T>
 void simple_layouts()
 {
 	if (!init_context())
 		GTEST_SKIP();
 
 	auto shader = []() {
-		layout_in <T> lin(0);
-		layout_out <T> lout(0);
+		layout_in <native_t <T>> lin(0);
+		layout_out <native_t <T>> lout(0);
 		lout = lin;
 	};
 

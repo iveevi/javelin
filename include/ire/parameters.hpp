@@ -4,35 +4,36 @@
 
 namespace jvl::ire {
 
+// TODO: use integer ids and aliases...
 template <generic T>
-struct in : promoted <T> {
+struct in : T {
 	in() = default;
-	in(const promoted <T> &other) : promoted <T> (other) {}
+	in(const T &other) : T(other) {}
 
-	in &operator=(const promoted <T> &other) {
-		promoted <T> ::operator=(other);
+	in &operator=(const T &other) {
+		T ::operator=(other);
 		return *this;
 	}
 };
 
 template <generic T>
-struct out : promoted <T> {
+struct out : T {
 	out() = default;
-	out(const promoted <T> &other) : promoted <T> (other) {}
+	out(const T &other) : T(other) {}
 
-	out &operator=(const promoted <T> &other) {
-		promoted <T> ::operator=(other);
+	out &operator=(const T &other) {
+		T ::operator=(other);
 		return *this;
 	}
 };
 
 template <generic T>
-struct inout : promoted <T> {
+struct inout : T {
 	inout() = default;
-	inout(const promoted <T> &other) : promoted <T> (other) {}
+	inout(const T &other) : T(other) {}
 
-	inout &operator=(const promoted <T> &other) {
-		promoted <T> ::operator=(other);
+	inout &operator=(const T &other) {
+		T ::operator=(other);
 		return *this;
 	}
 };

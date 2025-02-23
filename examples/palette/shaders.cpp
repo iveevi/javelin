@@ -25,7 +25,7 @@ void vertex()
 
 	// Stage outputs
 	layout_out <vec3> out_position(0);
-	layout_out <uint32_t, flat> out_id(1);
+	layout_out <u32, flat> out_id(1);
 
 	// Projection information
 	push_constant <MVP> mvp;
@@ -40,7 +40,7 @@ void vertex()
 void fragment(float saturation, float lightness, int splits)
 {
 	layout_in <vec3> position(0);
-	layout_in <uint32_t, flat> id(1);
+	layout_in <u32, flat> id(1);
 
 	// Resulting fragment color
 	layout_out <vec4> fragment(0);

@@ -27,8 +27,8 @@ static_assert(builtin <mat <float, 2, 2>>);
 static_assert(builtin <mat <float, 3, 3>>);
 static_assert(builtin <mat <float, 4, 4>>);
 
-static_assert(builtin <layout_in <bool>>);
-static_assert(builtin <layout_in <int>>);
-static_assert(builtin <layout_in <float>>);
+static_assert(builtin <layout_in <native_t <bool>>>);
+static_assert(builtin <layout_in <native_t <int32_t>>>);
+static_assert(builtin <layout_in <native_t <float>>>);
 
 } // namespace jvl::ire
