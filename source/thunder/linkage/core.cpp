@@ -125,13 +125,11 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 		size_t binding = qualifier.numerical;
 
 		// May be a redefinition
-		// TODO: sanity check for all other conditions
-		if (globals.buffers.contains(binding)) {
+		// TODO: sanity check to ensure that other properties are the same
+		if (globals.buffers.contains(binding))
 			JVL_WARNING("redefinition of buffer @{}", binding);
-		} else {
-			local_layout_type bf(fidx, qualifier.underlying, qualifier.kind);
-			globals.buffers[binding] = bf;
-		}
+		else
+			globals.buffers[binding] = local_layout_type(fidx, bidx, qualifier.kind);
 	} break;
 
 	case buffer_reference:
@@ -152,13 +150,13 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 		extensions.insert("GL_EXT_shader_explicit_arithmetic_types_int64");
 		break;
 
-	case write_only:
-	case read_only:
+	case writeonly:
+	case readonly:
 	case scalar:
 	{
 		static const std::set <QualifierKind> image_compatible {
-			write_only,
-			read_only,
+			writeonly,
+			readonly,
 		};
 
 		auto &kind = qualifier.kind;

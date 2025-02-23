@@ -87,6 +87,7 @@ struct IntrinsicType {
 };
 
 // Buffere reference types
+// TODO: refactor; this includes buffers and buffer references...
 struct BufferReferenceType : public PlainDataType {
 	Index unique;
 

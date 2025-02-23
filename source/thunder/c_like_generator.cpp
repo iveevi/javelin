@@ -42,8 +42,9 @@ static std::optional <std::string> generate_global_reference(const std::vector <
 		return fmt::format("_shared{}", qualifier.numerical);
 
 	// Extended qualifiers
-	case write_only:
-	case read_only:
+	case writeonly:
+	case readonly:
+	case scalar:
 		return generate_global_reference(atoms, qualifier.underlying);
 
 	// GLSL images and samplers

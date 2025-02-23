@@ -18,26 +18,29 @@ using namespace jvl::ire;
 
 MODULE(ire);
 
-struct RayFrame {
+struct Data {
 	vec3 origin;
 	vec3 lower_left;
 	vec3 horizontal;
 	vec3 vertical;
 
-	// unsized_array <vec3> data;
+	unsized_array <vec3> data;
 
 	vec3 at(vec2 uv) {
 		return normalize(lower_left + uv.x * horizontal + uv.y * vertical - origin);
 	}
 
 	auto layout() {
-		return layout_from("RayFrame",
+		return phantom_layout_from("Data",
 			verbatim_field(origin),
 			verbatim_field(lower_left),
 			verbatim_field(horizontal),
-			verbatim_field(vertical));
+			verbatim_field(vertical),
+			verbatim_field(data));
 	}
 };
+
+// TODO: type check for soft/concrete types... layout_from only for concrete types
 
 // TODO: unsized buffers in aggregates... only for buffers
 // TODO: generic is anything,
@@ -46,19 +49,21 @@ struct RayFrame {
 
 auto ftn = procedure <void> ("main") << []()
 {
-	// TODO: composite of template generics <..., ..., ...> --> composite <write_only, scalar, buffer, unsized_array <vec3>>
-	write_only <scalar <buffer <unsized_array <vec3>>>> bf(0);
+	// writeonly <scalar <buffer <Data>>> bf(0);
+	// scalar <buffer <Data>> bf(0);
+	scalar <buffer <Data>> bf(0);
 
-	bf[0] = vec3(1);
+	bf.data[0] = bf.origin;
 
-	auto tmp1 = buffer_reference <vec2> ();
-	auto tmp2 = buffer_reference <RayFrame> ();
-	auto tmp3 = buffer_reference <unsized_array <vec4>> ();
+	// // TODO: use constructor...
+	// auto tmp1 = buffer_reference <vec2> ();
+	// auto tmp2 = buffer_reference <Data> ();
+	// auto tmp3 = buffer_reference <unsized_array <vec4>> ();
 
-	u64 x = 0;
-	bf[0] = vec3(tmp1(x).y);
-	bf[1] = tmp2(x).horizontal;
-	bf[2] = tmp3(x)[12].xyz();
+	// u64 x = 0;
+	// bf.data[0] = vec3(tmp1(x).y);
+	// bf.data[1] = tmp2(x).horizontal;
+	// bf.data[2] = tmp3(x)[12].xyz();
 
 	// auto &em = Emitter::active;
 	// auto value = em.emit_array_access(bf.ref.id, em.emit_primitive(0));

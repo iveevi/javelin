@@ -42,7 +42,7 @@ QualifiedType Buffer::semalz_qualifier(const Qualifier &qualifier, Index i)
 	QualifiedType decl = semalz(qualifier.underlying);
 
 	// Extended qualifiers
-	if (qualifier.kind == write_only || qualifier.kind == read_only) {
+	if (qualifier.kind == writeonly || qualifier.kind == readonly) {
 		// TODO: quick sanity check; only images and buffers allowed
 		// JVL_ASSERT(image_kind())
 		return decl;
@@ -64,8 +64,8 @@ QualifiedType Buffer::semalz_qualifier(const Qualifier &qualifier, Index i)
 			base = pd->as <PrimitiveType> ();
 	}
 
-	// Buffer references get wrapped
-	if (qualifier.kind == buffer_reference)
+	// Buffers and references get wrapped
+	if (qualifier.kind == buffer_reference || qualifier.kind == storage_buffer)
 		return BufferReferenceType(base, qualifier.numerical);
 
 	// Handling parameter types
@@ -253,9 +253,14 @@ QualifiedType Buffer::semalz(Index i)
 
 			Index left = load.idx;
 			while (left--) {
-				JVL_ASSERT(concrete != -1, "load attempting to access out of bounds field");
+				JVL_BUFFER_DUMP_ON_ASSERT((concrete != -1),
+					"load attempting to access "
+					"out of bounds field");
 				auto &atom = atoms[concrete];
-				JVL_ASSERT(atom.is <TypeInformation> (), "expected type information, instead got:\n{}", atom);
+
+				JVL_BUFFER_DUMP_ON_ASSERT(atom.is <TypeInformation> (),
+					"expected type information, "
+					"instead got:\n{}", atom);
 				auto &ti = atom.as <TypeInformation> ();
 				concrete = ti.next;
 			}

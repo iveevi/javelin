@@ -2,7 +2,7 @@
 
 #include "transform.hpp"
 
-struct RayFrame {
+struct Data {
 	glm::vec3 origin;
 	glm::vec3 lower_left;
 	glm::vec3 horizontal;
@@ -15,12 +15,12 @@ struct Aperature {
 	float near = 0.1f;
 	float far = 10000.0f;
 
-	RayFrame rayframe(const Transform &) const;
+	Data rayframe(const Transform &) const;
 
 	glm::mat4 perspective() const;
 };
 
-inline RayFrame Aperature::rayframe(const Transform &transform) const
+inline Data Aperature::rayframe(const Transform &transform) const
 {
 	auto [forward, right, up] = transform.axes();
 
@@ -39,7 +39,7 @@ inline RayFrame Aperature::rayframe(const Transform &transform) const
 	glm::vec3 horizontal = u * vwidth;
 	glm::vec3 vertical = v * vheight;
 
-	return RayFrame {
+	return Data {
 		.origin = transform.translate,
 		.lower_left = transform.translate - horizontal/2.0f - vertical/2.0f - w,
 		.horizontal = horizontal,

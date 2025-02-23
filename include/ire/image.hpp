@@ -99,38 +99,38 @@ void imageStore(const Image &handle,
 
 // Implementing qualifiers
 template <native T, size_t D>
-struct read_only <image <T, D>> : image <T, D> {
+struct readonly <image <T, D>> : image <T, D> {
 	template <typename ... Args>
-	read_only(const Args &... args) : image <T, D> (args...) {}
+	readonly(const Args &... args) : image <T, D> (args...) {}
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
 		thunder::Index nested = em.emit_qualifier(-1, this->binding, image_qualifiers <T> ::table[D]);
-		thunder::Index qualifier = em.emit_qualifier(nested, -1, thunder::read_only);
+		thunder::Index qualifier = em.emit_qualifier(nested, -1, thunder::readonly);
 		thunder::Index value = em.emit_construct(qualifier, -1, thunder::transient);
 		return cache_index_t::from(value);
 	}
 };
 
 template <native T, size_t D>
-struct is_image_like <read_only <image <T, D>>> : std::true_type {};
+struct is_image_like <readonly <image <T, D>>> : std::true_type {};
 
 template <native T, size_t D>
-struct write_only <image <T, D>> : image <T, D> {
+struct writeonly <image <T, D>> : image <T, D> {
 	template <typename ... Args>
-	write_only(const Args &... args) : image <T, D> (args...) {}
+	writeonly(const Args &... args) : image <T, D> (args...) {}
 
 	cache_index_t synthesize() const {
 		auto &em = Emitter::active;
 		thunder::Index nested = em.emit_qualifier(-1, this->binding, image_qualifiers <T> ::table[D]);
-		thunder::Index qualifier = em.emit_qualifier(nested, -1, thunder::write_only);
+		thunder::Index qualifier = em.emit_qualifier(nested, -1, thunder::writeonly);
 		thunder::Index value = em.emit_construct(qualifier, -1, thunder::transient);
 		return cache_index_t::from(value);
 	}
 };
 
 template <native T, size_t D>
-struct is_image_like <write_only <image <T, D>>> : std::true_type {};
+struct is_image_like <writeonly <image <T, D>>> : std::true_type {};
 
 // Override type generation
 template <native T, size_t D>

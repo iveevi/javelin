@@ -21,7 +21,7 @@ struct qualified_wrapper <T, K> : T {
 		this->ref = value;
 	}
 
-	thunder::Index qualifier() const {
+	thunder::Index qualifier() {
 		auto &em = Emitter::active;
 
 		auto type = type_info_generator <T> (*this)
@@ -45,15 +45,18 @@ struct qualified_wrapper <T, K> : T {
 	qualified_wrapper(size_t binding_, const Args &... args)
 			: T(args...), binding(binding_) {
 		auto &em = Emitter::active;
-		
+		auto value = em.emit_construct(qualifier(), -1, thunder::transient);
+		this->layout().link(value);
+	}
+
+	thunder::Index qualifier() {
+		auto &em = Emitter::active;
+
 		auto type = type_info_generator <T> (*this)
 			.synthesize()
 			.concrete();
-
-		auto pc = em.emit_qualifier(type, binding, K);
-		auto value = em.emit_construct(pc, -1, thunder::transient);
-
-		this->layout().link(value);
+		
+		return em.emit_qualifier(type, binding, K);
 	}
 };
 

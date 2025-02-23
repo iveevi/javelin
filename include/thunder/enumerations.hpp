@@ -115,8 +115,8 @@ enum QualifierKind : int8_t {
 	shared,
 
 	// Memory qualifiers
-	write_only,
-	read_only,
+	writeonly,
+	readonly,
 	scalar,
 
 	// Samplers

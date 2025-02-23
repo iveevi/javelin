@@ -137,8 +137,10 @@ void generate_references(std::string &result,
 		result += fmt::format("layout (buffer_reference) buffer BufferReference{}\n", binding);
 		result += "{\n";
 		
-		// TODO: method... use in buffers as well
-		auto &original = function.atoms[reference.index].as <Qualifier> ();
+		auto &atom = function.atoms[reference.index];
+		JVL_ASSERT(atom.is <Qualifier> (), "expected buffer atom to be a qualifier:\n{}", atom);
+
+		auto &original = atom.as <Qualifier> ();
 
 		JVL_ASSERT(map.contains(original.underlying),
 			"aggregate structure corresponding to "
@@ -223,20 +225,21 @@ void generate_uniforms(std::string &result,
 void generate_buffers(std::string &result,
 		     const generator_list &generators,
 		     const std::vector <Function> &functions,
-		     const auto &list)
+		     const std::vector <TypeMap> &types,
+		     const std::vector <Aggregate> &aggregates,
+		     const std::map <Index, local_layout_type> &buffers)
 {
-	for (auto &[binding, llt] : list) {
-		auto &types = functions[llt.function].types;
-		auto &generator = generators[llt.function];
-
-		auto ts = generator.type_to_string(types[llt.index]);
+	for (auto &[binding, buffer] : buffers) {
+		auto &map = types[buffer.function];
+		auto &function = functions[buffer.function];
+		auto &generator = generators[buffer.function];
 
 		std::string formats = "";
 		std::string modifier = "";
-		for (auto &k : llt.extra) {
-			if (k == write_only)
+		for (auto &k : buffer.extra) {
+			if (k == writeonly)
 				modifier += "writeonly ";
-			if (k == read_only)
+			if (k == readonly)
 				modifier += "readonly ";
 			if (k == scalar)
 				formats += ", scalar";
@@ -247,8 +250,27 @@ void generate_buffers(std::string &result,
 			modifier, binding);
 
 		result += "{\n";
-		result += fmt::format("    {} _buffer{}{};\n", ts.pre, binding, ts.post);
-		result += "};\n\n";
+		
+		auto &atom = function.atoms[buffer.index];
+		JVL_ASSERT(atom.is <Qualifier> (), "expected buffer atom to be a qualifier:\n{}", atom);
+
+		auto &original = atom.as <Qualifier> ();
+
+		JVL_ASSERT(map.contains(original.underlying),
+			"aggregate structure corresponding to "
+			"buffer reference is missing");
+
+		auto &idx = map.at(original.underlying);
+		auto &aggregate = aggregates[idx];
+
+		// Replace with fields
+		for (size_t i = 0; i < aggregate.fields.size(); i++) {
+			auto &field = aggregate.fields[i];
+			auto ts = generator.type_to_string(field);
+			result += fmt::format("    {} {}{};\n", ts.pre, field.name, ts.post);
+		}
+		
+		result += fmt::format("}} _buffer{};\n\n", binding);
 	}
 }
 
@@ -275,9 +297,9 @@ void generate_images(std::string &result, const auto &images)
 	for (const auto &[binding, llt] : images) {
 		std::string modifier = " ";
 		for (auto &k : llt.extra) {
-			if (k == write_only)
+			if (k == writeonly)
 				modifier += "writeonly ";
-			if (k == read_only)
+			if (k == readonly)
 				modifier += "readonly ";
 		}
 
@@ -437,7 +459,12 @@ std::string LinkageUnit::generate_glsl() const
 	generate_aggregates(result, generators, aggregates);
 
 	// Declare all buffer references
-	generate_references(result, generators, functions, types, aggregates, globals.references);
+	generate_references(result,
+		generators,
+		functions,
+		types,
+		aggregates,
+		globals.references);
 
 	// Globals: layout inputs and outputs
 	generate_layout_io(result, generators, functions, "in", globals.inputs);
@@ -448,7 +475,14 @@ std::string LinkageUnit::generate_glsl() const
 
 	// Globals: uniform variables and buffers
 	generate_uniforms(result, generators, functions, globals.uniforms);
-	generate_buffers(result, generators, functions, globals.buffers);
+
+	// TODO: make these methods to avoid passing things...
+	generate_buffers(result,
+		generators,
+		functions,
+		types,
+		aggregates,
+		globals.buffers);
 
 	// Globals: shared variables
 	generate_shared(result, generators, functions, globals.shared);
