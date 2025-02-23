@@ -23,8 +23,8 @@ Index Buffer::emit(const Atom &atom, bool enable_classification)
 
 	atoms[pointer] = atom;
 	if (enable_classification) {
-		types[pointer] = classify(pointer);
-		include(pointer);
+		types[pointer] = semalz(pointer);
+		mark(pointer);
 	}
 
 	return pointer++;

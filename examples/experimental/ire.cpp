@@ -45,40 +45,47 @@ struct RayFrame {
 
 auto ftn = procedure <void> ("main") << []()
 {
-	// TODO: composite <..., ..., ...> --> composite <write_only, scalar, buffer, unsized_array <vec3>>
+	// TODO: remove native from generics
+	// TODO: composite of template generics <..., ..., ...> --> composite <write_only, scalar, buffer, unsized_array <vec3>>
 	write_only <scalar <buffer <unsized_array <vec3>>>> bf(0);
 
-	// // TODO: ensure no duplicates...
-	// auto tmp1 = buffer_reference <vec2> ();
-	// auto tmp2 = buffer_reference <RayFrame> ();
+	bf[0] = vec3(1);
 
-	// u64 x = 0;
-	// bf[0] = vec3(tmp1(x).y);
-	// bf[1] = tmp2(x).horizontal;
+	auto tmp1 = buffer_reference <vec2> ();
+	auto tmp2 = buffer_reference <RayFrame> ();
+	auto tmp3 = buffer_reference <unsized_array <vec4>> ();
 
-	// TODO: avoid synthesizing arrays...
-	auto &em = Emitter::active;
-	auto value = em.emit_array_access(bf.ref.id, em.emit_primitive(0));
+	u64 x = 0;
+	bf[0] = vec3(tmp1(x).y);
+	bf[1] = tmp2(x).horizontal;
+	bf[2] = tmp3(x)[12].xyz();
 
-	buffer_reference_wrapper <vec2> X;
+	// TODO: phantom layouts
 
-	// push_constant <buffer_reference_wrapper <vec2>> x;
-	// bf[0] = vec3(x.value.y);
+	// // TODO: avoid synthesizing arrays...
+	// auto &em = Emitter::active;
+	// auto value = em.emit_array_access(bf.ref.id, em.emit_primitive(0));
 
-	push_constant <RayFrame> rf;
-	bf[0] = rf.horizontal;
+	// buffer_reference_wrapper <vec2> X;
 
-	// X.value.x = 10;
+	// // push_constant <buffer_reference_wrapper <vec2>> x;
+	// // bf[0] = vec3(x.value.y);
 
-	// X.layout().link(value);
+	// push_constant <RayFrame> rf;
+	// bf[0] = rf.horizontal;
 
-	// X.value.x = 11;
+	// // X.value.x = 10;
+
+	// // X.layout().link(value);
+
+	// // X.value.x = 11;
 };
 
 // TODO: shadertoy example
 
 int main()
 {
+	// TODO: graphviz for the instructions (synthesized...)
 	ftn.dump();
 	dump_lines("EXPERIMENTAL IRE", link(ftn).generate_glsl());
 	link(ftn).generate_spirv(vk::ShaderStageFlagBits::eRaygenKHR);

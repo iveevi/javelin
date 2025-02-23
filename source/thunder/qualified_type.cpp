@@ -180,21 +180,23 @@ std::size_t IntrinsicType::hash() const
 }
 
 // Buffer reference type
-BufferReferenceType::BufferReferenceType(PlainDataType p) : PlainDataType(p) {}
+BufferReferenceType::BufferReferenceType(PlainDataType p, Index u)
+                : PlainDataType(p), unique(u) {}
 
 bool BufferReferenceType::operator==(const BufferReferenceType &other) const
 {
-	return PlainDataType::operator==(other);
+	return PlainDataType::operator==(other)
+                && unique == other.unique;
 }
 
 std::string BufferReferenceType::to_string() const
 {
-	return fmt::format("buffer({})", PlainDataType::to_string());
+	return fmt::format("buffer({}; #{})", PlainDataType::to_string(), unique);
 }
 
 std::size_t BufferReferenceType::hash() const
 {
-	return PlainDataType::hash();
+	return PlainDataType::hash() ^ unique;
 }
 
 // Parameter IN type
@@ -281,6 +283,18 @@ std::string QualifiedType::to_string() const
         return std::visit(ftn, *this);
 }
 
+bool QualifiedType::is_primitive() const
+{
+        auto pd = get <PlainDataType> ();
+        return pd && pd->is <PrimitiveType> ();
+}
+
+bool QualifiedType::is_concrete() const
+{
+        auto pd = get <PlainDataType> ();
+        return pd && pd->is <Index> ();
+}
+
 PlainDataType QualifiedType::remove_qualifiers() const
 {
         switch (index()) {
@@ -330,11 +344,6 @@ QualifiedType QualifiedType::sampler(PrimitiveType result, Index dimension)
 QualifiedType QualifiedType::intrinsic(QualifierKind kind)
 {
         return IntrinsicType(kind);
-}
-
-QualifiedType QualifiedType::nil()
-{
-        return NilType();
 }
 
 } // namespace jvl::thunder

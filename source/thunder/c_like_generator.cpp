@@ -10,6 +10,7 @@ namespace jvl::thunder::detail {
 
 MODULE(c-like-generator);
 
+// TODO: separate file at this point...
 static std::optional <std::string> generate_global_reference(const std::vector <Atom> &atoms, const Index &idx)
 {
 	auto &qualifier = atoms[idx].as <Qualifier> ();
@@ -250,7 +251,7 @@ std::string c_like_generator_t::reference(Index index) const
 
 	switch (atom.index()) {
 
-	case Atom::type_index <Qualifier> ():
+	variant_case(Atom, Qualifier):
 	{
 		auto ref = generate_global_reference(atoms, index);
 		if (ref)
@@ -259,14 +260,14 @@ std::string c_like_generator_t::reference(Index index) const
 		JVL_ABORT("failed to generate global reference for qualifier:\n{}", atom);
 	} break;
 
-	case Atom::type_index <Construct> ():
+	variant_case(Atom, Construct):
 	{
 		auto &constructor = atom.as <Construct> ();
 		if (constructor.mode == transient)
 			return inlined(constructor.type);
 	} break;
 
-	case Atom::type_index <Load> ():
+	variant_case(Atom, Load):
 	{
 		auto &load = atom.as <Load> ();
 
@@ -290,14 +291,14 @@ std::string c_like_generator_t::reference(Index index) const
 		return ref + accessor;
 	}
 
-	case Atom::type_index <Swizzle> ():
+	variant_case(Atom, Swizzle):
 	{
 		auto &swizzle = atom.as <Swizzle> ();
 		std::string accessor = tbl_swizzle_code[swizzle.code];
 		return reference(swizzle.src) + "." + accessor;
 	}
 
-	case Atom::type_index <ArrayAccess> ():
+	variant_case(Atom, ArrayAccess):
 	{
 		auto &access = atom.as <ArrayAccess> ();
 		return fmt::format("{}[{}]", inlined(access.src), inlined(access.loc));
@@ -322,10 +323,10 @@ std::string c_like_generator_t::inlined(Index index) const
 
 	switch (atom.index()) {
 
-	case Atom::type_index <Primitive> ():
+	variant_case(Atom, Primitive):
 		return generate_primitive(atom.as <Primitive> ());
 
-	case Atom::type_index <Operation> ():
+	variant_case(Atom, Operation):
 	{
 		auto &operation = atom.as <Operation> ();
 		std::string a = inlined(operation.a);
@@ -333,14 +334,14 @@ std::string c_like_generator_t::inlined(Index index) const
 		return generate_operation(operation.code, a, b);
 	}
 
-	case Atom::type_index <Intrinsic> ():
+	variant_case(Atom, Intrinsic):
 	{
 		auto &intrinsic = atom.as <Intrinsic> ();
 		auto args = arguments(intrinsic.args);
 		return tbl_intrinsic_operation[intrinsic.opn] + arguments_to_string(args);
 	}
 
-	case Atom::type_index <Construct> ():
+	variant_case(Atom, Construct):
 	{
 		auto &constructor = atom.as <Construct> ();
 		if (constructor.mode == transient)
@@ -355,7 +356,7 @@ std::string c_like_generator_t::inlined(Index index) const
 		return t.pre + t.post + "()";
 	}
 
-	case Atom::type_index <Call> ():
+	variant_case(Atom, Call):
 	{
 		auto &call = atom.as <Call> ();
 
@@ -367,10 +368,10 @@ std::string c_like_generator_t::inlined(Index index) const
 		return fmt::format("{}{}", cbl->name, args);
 	}
 
-	case Atom::type_index <Load> ():
-	case Atom::type_index <Swizzle> ():
-	case Atom::type_index <ArrayAccess> ():
-	case Atom::type_index <Qualifier> ():
+	variant_case(Atom, Load):
+	variant_case(Atom, Swizzle):
+	variant_case(Atom, ArrayAccess):
+	variant_case(Atom, Qualifier):
 		return reference(index);
 
 	default:
@@ -451,9 +452,10 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 
 	variant_case(QualifiedType, BufferReferenceType):
 	{
-		auto base = type_to_string(qt.remove_qualifiers());
+		auto &brt = qt.as <BufferReferenceType> ();
+
 		return type_string {
-			.pre = "Buffer_" + base.pre,
+			.pre = fmt::format("BufferReference{}", brt.unique),
 			.post = "",
 		};
 	}
@@ -498,9 +500,7 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 		break;
 	}
 
-	dump();
-
-	JVL_ABORT("failed to resolve type name for {}", qt);
+	JVL_BUFFER_DUMP_AND_ABORT("failed to resolve type name for {}", qt);
 }
 
 // Generators for each kind of instruction

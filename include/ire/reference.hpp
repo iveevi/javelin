@@ -10,7 +10,10 @@ struct buffer_reference_wrapper {
 	T value;
 
 	auto layout() {
-		return layout_from("Wrapped", verbatim_field(value));
+		// TODO: phantom structure...
+		static const std::string name = fmt::format("Wrapped{}", type_index <T> ());
+		return layout_from(name,
+			verbatim_field(value));
 	}
 };
 
@@ -39,9 +42,6 @@ struct buffer_reference : tagged {
 
 		auto qual = em.emit_qualifier(type, type_index <T> (), thunder::buffer_reference);
 
-		fmt::println("GENERATED QUAL:");
-		em.dump();
-
 		this->ref = qual;
 	}
 
@@ -58,8 +58,6 @@ struct buffer_reference : tagged {
 			return result.value;
 		} else {
 			// For aggregates, the fields are expanding within
-			fmt::println("REFERENCE WITH AGGREGATE");
-			em.dump();
 			auto result = T();
 			result.layout().link(value);
 			return result;

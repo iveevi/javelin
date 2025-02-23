@@ -16,7 +16,7 @@ void Buffer::transfer_decorations(Index dst, Index src)
 		used_decorations[dst] = used_decorations[src];
 }
 
-QualifiedType Buffer::classify_qualifier(const Qualifier &qualifier, Index i)
+QualifiedType Buffer::semalz_qualifier(const Qualifier &qualifier, Index i)
 {
 	// Handling images and samplers
 	if (image_kind(qualifier.kind)) {
@@ -38,7 +38,7 @@ QualifiedType Buffer::classify_qualifier(const Qualifier &qualifier, Index i)
 		&& qualifier.underlying < (Index) atoms.size(),
 		"qualifier with invalid underlying reference: {}", qualifier);
 
-	QualifiedType decl = classify(qualifier.underlying);
+	QualifiedType decl = semalz(qualifier.underlying);
 
 	// Extended qualifiers
 	if (qualifier.kind == write_only || qualifier.kind == read_only) {
@@ -65,7 +65,7 @@ QualifiedType Buffer::classify_qualifier(const Qualifier &qualifier, Index i)
 
 	// Buffer references get wrapped
 	if (qualifier.kind == buffer_reference)
-		return BufferReferenceType(base);
+		return BufferReferenceType(base, qualifier.numerical);
 
 	// Handling parameter types
 	if (qualifier.kind == qualifier_in)
@@ -87,8 +87,7 @@ QualifiedType Buffer::classify_qualifier(const Qualifier &qualifier, Index i)
 	return base;
 }
 
-// TODO: refactor to atom_semantic_analysis
-QualifiedType Buffer::classify(Index i)
+QualifiedType Buffer::semalz(Index i)
 {
 	// Cached results
 	if (types[i])
@@ -126,7 +125,7 @@ QualifiedType Buffer::classify(Index i)
 		return QualifiedType::primitive(atom.as <Primitive> ().type);
 
 	case Atom::type_index <Qualifier> ():
-		return classify_qualifier(atom.as <Qualifier> (), i);
+		return semalz_qualifier(atom.as <Qualifier> (), i);
 
 	case Atom::type_index <Construct> ():
 	{
@@ -135,12 +134,9 @@ QualifiedType Buffer::classify(Index i)
 		// Always transfer name hints
 		transfer_decorations(i, constructor.type);
 
-		QualifiedType qt = classify(constructor.type);
+		QualifiedType qt = semalz(constructor.type);
 		if (qt.is <PlainDataType> ())
 			return qt;
-
-		if (qt.is <BufferReferenceType> ())
-			return qt.remove_qualifiers();
 
 		if (constructor.mode == transient) {
 			// Reduce if its a parameter
@@ -200,6 +196,8 @@ QualifiedType Buffer::classify(Index i)
 		auto &intrinsic = atom.as <Intrinsic> ();
 		auto args = expand_list_types(intrinsic.args);
 		auto result = lookup_intrinsic_overload(intrinsic.opn, args);
+
+		// TODO: assert_and_dump macro
 		if (!result)
 			dump();
 		JVL_ASSERT(result, "failed to find overload for intrinsic: {} (@{})", atom, i);
@@ -210,7 +208,7 @@ QualifiedType Buffer::classify(Index i)
 	{
 		auto &swz = atom.as <Swizzle> ();
 		
-		QualifiedType decl = classify(swz.src);
+		QualifiedType decl = semalz(swz.src);
 		PlainDataType plain = decl.remove_qualifiers();
 
 		if (!plain.is <PrimitiveType> ())
@@ -230,11 +228,9 @@ QualifiedType Buffer::classify(Index i)
 	{
 		auto &load = atom.as <Load> ();
 
-		QualifiedType qt = classify(load.src);
+		QualifiedType qt = semalz(load.src);
 		if (load.idx == -1)
 			return qt;
-
-		fmt::println("QT for load: {}", qt);
 
 		// TODO: method...
 		switch (qt.index()) {
@@ -250,21 +246,16 @@ QualifiedType Buffer::classify(Index i)
 
 			auto &base = types[concrete];
 			if (base.is <BufferReferenceType> ()) {
-				dump();
-				fmt::println("BASE is BUF REF! {}", base);
 				auto &brt = base.as <BufferReferenceType> ();
 				concrete = static_cast <PlainDataType> (brt).as <Index> ();
 			}
 
 			Index left = load.idx;
-			fmt::println("LOAD!\n{}", load);
 			while (left--) {
 				JVL_ASSERT(concrete != -1, "load attempting to access out of bounds field");
 				auto &atom = atoms[concrete];
-				fmt::println("concrete atom:\n{}", atom);
 				JVL_ASSERT(atom.is <TypeInformation> (), "expected type information, instead got:\n{}", atom);
 				auto &ti = atom.as <TypeInformation> ();
-
 				concrete = ti.next;
 			}
 
@@ -281,12 +272,12 @@ QualifiedType Buffer::classify(Index i)
 	case Atom::type_index <ArrayAccess> ():
 	{
 		auto &access = atom.as <ArrayAccess> ();
-		QualifiedType qt = classify(access.src);
+		QualifiedType qt = semalz(access.src);
 
 		auto pd = qt.get <PlainDataType> ();
 		while (pd) {
 			if (pd->is <Index> ()) {
-				qt = classify(pd->as <Index> ());
+				qt = semalz(pd->as <Index> ());
 				pd = qt.get <PlainDataType> ();
 			} else {
 				dump();
@@ -321,7 +312,7 @@ QualifiedType Buffer::classify(Index i)
 	case Atom::type_index <List> ():
 	case Atom::type_index <Store> ():
 	case Atom::type_index <Branch> ():
-		return QualifiedType::nil();
+		return NilType();
 
 	default:
 		break;

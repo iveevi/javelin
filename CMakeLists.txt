@@ -48,7 +48,6 @@ add_library(javelin-ire SHARED
 	source/thunder/autodiff_forward.cpp
 	source/thunder/buffer.cpp
 	source/thunder/c_like_generator.cpp
-	source/thunder/classify.cpp
 	source/thunder/comparison.cpp
 	source/thunder/gcc.cpp
 	source/thunder/legalize_cc.cpp
@@ -58,12 +57,13 @@ add_library(javelin-ire SHARED
 	source/thunder/linkage/glsl.cpp
 	source/thunder/linkage/jit_gcc.cpp
 	source/thunder/linkage/spirv_binary.cpp
+	source/thunder/mark.cpp
 	source/thunder/optimization.cpp
 	source/thunder/overload_intrinsics.cpp
 	source/thunder/overload_operations.cpp
 	source/thunder/qualified_type.cpp
+	source/thunder/semalz.cpp
 	source/thunder/stitch.cpp
-	source/thunder/synthesized.cpp
 	source/thunder/tracked_buffer.cpp
 	source/thunder/usage.cpp)
 

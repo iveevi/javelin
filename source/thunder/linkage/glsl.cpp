@@ -133,14 +133,14 @@ void generate_references(std::string &result,
 		auto qt = function.types[reference.index].remove_qualifiers();
 		auto ts = generator.type_to_string(qt);
 
-		result += fmt::format("layout (buffer_reference) buffer Buffer_{}\n", ts.pre);
+		result += fmt::format("layout (buffer_reference) buffer BufferReference{}\n", binding);
 		result += "{\n";
 		
+		// TODO: method... use in buffers as well
 		auto &original = function.atoms[reference.index].as <Qualifier> ();
 		if (map.contains(original.underlying)) {
 			auto &idx = map.at(original.underlying);
 			auto &aggregate = aggregates[idx];
-			fmt::println("original has a map counterpart! {}", original);
 
 			// Replace with fields
 			for (size_t i = 0; i < aggregate.fields.size(); i++) {

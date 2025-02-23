@@ -337,7 +337,7 @@ gcc_type_info gcc_jit_function_generator_t::jitify_type(QualifiedType qt)
 			} else {
 				info = jitify_type(qt);
 
-				qt = QualifiedType::nil();
+				qt = NilType();
 			}
 
 			fmt::println("  size of resulting field: {}", info.size);

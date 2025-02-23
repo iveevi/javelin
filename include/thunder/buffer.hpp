@@ -14,12 +14,13 @@ struct QualifiedType;
 class Buffer {
 	void transfer_decorations(Index, Index);
 
-	// Determine the qualified type of an instruction
-	QualifiedType classify_qualifier(const Qualifier &, Index);
-	QualifiedType classify(Index);
+	// Semantic analysis for atoms
+	QualifiedType semalz_qualifier(const Qualifier &, Index);
+	QualifiedType semalz(Index);
 
 	// Populate the synthesized set
-	void include(Index);
+	void mark_children(Index);
+	void mark(Index, bool = false);
 public:
 	struct type_hint {
 		std::string name;
@@ -49,5 +50,11 @@ public:
 	std::vector <Index> expand_list(Index) const;
 	std::vector <QualifiedType> expand_list_types(Index) const;
 };
+
+#define JVL_BUFFER_DUMP_ON_ASSERT()
+
+#define JVL_BUFFER_DUMP_AND_ABORT(...)	\
+	dump();				\
+	JVL_ABORT(__VA_ARGS__)
 
 } // namespace jvl::thunder

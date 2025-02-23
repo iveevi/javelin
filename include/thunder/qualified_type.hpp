@@ -88,7 +88,9 @@ struct IntrinsicType {
 
 // Buffere reference types
 struct BufferReferenceType : public PlainDataType {
-	BufferReferenceType(PlainDataType);
+	Index unique;
+
+	BufferReferenceType(PlainDataType, Index);
 
 	bool operator==(const BufferReferenceType &) const;
 	std::string to_string() const;
@@ -140,30 +142,22 @@ using qualified_type_base = bestd::variant <
 struct QualifiedType : qualified_type_base {
 	using qualified_type_base::qualified_type_base;
 
-	bool is_primitive() const {
-		auto pd = get <PlainDataType> ();
-		return pd && pd->is <PrimitiveType> ();
-	}
-
-	bool is_concrete() const {
-		auto pd = get <PlainDataType> ();
-		// TODO: alias ConcreteIndex = index_t
-		return pd && pd->is <Index> ();
-	}
-
-	PlainDataType remove_qualifiers() const;
-
 	operator bool() const;
 	bool operator==(const QualifiedType &) const;
 	std::string to_string() const;
 
+	bool is_primitive() const;
+	bool is_concrete() const;
+
+	PlainDataType remove_qualifiers() const;
+
+	// TODO: remove these...
 	static QualifiedType primitive(PrimitiveType);
 	static QualifiedType concrete(Index);
 	static QualifiedType array(const QualifiedType &, Index);
 	static QualifiedType image(PrimitiveType, Index);
 	static QualifiedType sampler(PrimitiveType, Index);
 	static QualifiedType intrinsic(QualifierKind);
-	static QualifiedType nil();
 };
 
 // Support for direct printing through fmt
