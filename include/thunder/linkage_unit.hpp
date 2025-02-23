@@ -74,8 +74,7 @@ struct LinkageUnit {
 
 	std::vector <Function> functions;
 	std::vector <Aggregate> aggregates;
-
-	std::vector <TypeMap> maps;
+	std::vector <TypeMap> types;
 	
 	std::map <Index, Index> cids;
 	std::map <Index, std::set <Index>> dependencies;

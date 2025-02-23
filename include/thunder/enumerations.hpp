@@ -11,6 +11,11 @@ namespace jvl::thunder {
 
 enum PrimitiveType : int8_t {
 	bad,
+	
+	// end of structure
+	nil,
+
+	// void type
 	none,
 
 	// Scalar types
@@ -45,6 +50,7 @@ enum PrimitiveType : int8_t {
 
 static const char *tbl_primitive_types[] = {
 	"<BAD>",
+	"nil",
 	"void",
 
 	"bool",

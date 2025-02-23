@@ -49,6 +49,7 @@ struct is_layout_type <Layout <Fields...>> : std::true_type {};
 template <typename T>
 concept layout_type = is_layout_type <T> ::value;
 
+// TODO: ensure it has a default constructor...
 template <typename T>
 concept aggregate = requires(T &t) {
 	{ t.layout() } -> layout_type;

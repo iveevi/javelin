@@ -60,13 +60,15 @@ struct type_info_generator <aggregate_wrapper <Args...>> {
 		intermediate_type current = type_info_generator <tuple_element <I>> (std::get <I> (args)).synthesize();
 
 		if constexpr (I + 1 >= count) {
+			auto end = em.emit_type_information(-1, -1, thunder::nil);
+
 			if (current.is <primitive_type> ()) {
 				auto &p = current.as <primitive_type> ();
-				auto idx = em.emit_type_information(-1, -1, p.ptv);
+				auto idx = em.emit_type_information(-1, end, p.ptv);
 				return composite_type(idx);
 			} else {
 				auto &s = current.as <composite_type> ();
-				auto idx = em.emit_type_information(s.idx, -1, thunder::bad);
+				auto idx = em.emit_type_information(s.idx, end, thunder::bad);
 				return composite_type(idx);
 			}
 		} else {

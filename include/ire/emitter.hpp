@@ -59,7 +59,7 @@ struct Emitter {
 	// List chains
 	Index emit_list(Index, Index = -1);
 
-	// Constructions
+	// Constructions: type, args, mode
 	Index emit_construct(Index, Index, thunder::ConstructorMode);
 
 	// Invocations

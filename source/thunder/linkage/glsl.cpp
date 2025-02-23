@@ -81,7 +81,7 @@ generator_list LinkageUnit::configure_generators() const
 
 	for (size_t i = 0; i < functions.size(); i++) {
 		auto &function = functions[i];
-		auto &map = maps[i];
+		auto &map = types[i];
 
 		std::map <Index, std::string> structs;
 		for (auto &[k, v] : map)
@@ -120,20 +120,39 @@ void generate_aggregates(std::string &result,
 void generate_references(std::string &result,
 			 const generator_list &generators,
 			 const std::vector <Function> &functions,
+			 const std::vector <TypeMap> &types,
+			 const std::vector <Aggregate> &aggregates,
 			 const std::map <Index, local_layout_type> &references)
 {
 	for (auto &[binding, reference] : references) {
+		auto &map = types[reference.function];
 		auto &function = functions[reference.function];
 		auto &generator = generators[reference.function];
 
 		// TODO: check for modifiers...
-
 		auto qt = function.types[reference.index].remove_qualifiers();
 		auto ts = generator.type_to_string(qt);
 
 		result += fmt::format("layout (buffer_reference) buffer Buffer_{}\n", ts.pre);
 		result += "{\n";
-		result += fmt::format("    {} {}{};\n", ts.pre, "value", ts.post);
+		
+		auto &original = function.atoms[reference.index].as <Qualifier> ();
+		if (map.contains(original.underlying)) {
+			auto &idx = map.at(original.underlying);
+			auto &aggregate = aggregates[idx];
+			fmt::println("original has a map counterpart! {}", original);
+
+			// Replace with fields
+			for (size_t i = 0; i < aggregate.fields.size(); i++) {
+				auto &field = aggregate.fields[i];
+				auto ts = generator.type_to_string(field);
+				result += fmt::format("    {} {}{};\n", ts.pre, field.name, ts.post);
+			}
+		} else {
+			// Fallback, particularly for builtins
+			result += fmt::format("    {} {}{};\n", ts.pre, "value", ts.post);
+		}
+
 		result += "};\n\n";
 	}
 }
@@ -205,7 +224,7 @@ void generate_buffers(std::string &result,
 		     const std::vector <Function> &functions,
 		     const auto &list)
 {
-	for (auto &[b, llt] : list) {
+	for (auto &[binding, llt] : list) {
 		auto &types = functions[llt.function].types;
 		auto &generator = generators[llt.function];
 
@@ -222,9 +241,12 @@ void generate_buffers(std::string &result,
 				formats += ", scalar";
 		}
 
-		result += fmt::format("layout (binding = {}{}) {}buffer bblock{}\n", b, formats, modifier, b);
+		result += fmt::format("layout (binding = {}{}) {}buffer bblock{}\n",
+			binding, formats,
+			modifier, binding);
+
 		result += "{\n";
-		result += fmt::format("    {} _buffer{}{};\n", ts.pre, b, ts.post);
+		result += fmt::format("    {} _buffer{}{};\n", ts.pre, binding, ts.post);
 		result += "};\n\n";
 	}
 }
@@ -414,7 +436,7 @@ std::string LinkageUnit::generate_glsl() const
 	generate_aggregates(result, generators, aggregates);
 
 	// Declare all buffer references
-	generate_references(result, generators, functions, globals.references);
+	generate_references(result, generators, functions, types, aggregates, globals.references);
 
 	// Globals: layout inputs and outputs
 	generate_layout_io(result, generators, functions, "in", globals.inputs);

@@ -313,6 +313,11 @@ void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &funct
 		}
 	} while (qt.is <StructFieldType> ());
 
+	JVL_ASSERT(qt.is <NilType> (), "failed to reach nil marker for structure");
+
+	// Remove marker
+	fields.pop_back();
+
 	// Check for type hints
 	size_t size = aggregates.size();
 	
@@ -337,10 +342,10 @@ std::set <Index> LinkageUnit::process_function(const Function &ftn)
 	Index fidx = functions.size();
 
 	functions.emplace_back(ftn);
-	maps.emplace_back();
+	types.emplace_back();
 
 	auto &function = functions.back();
-	auto &map = maps.back();
+	auto &map = types.back();
 
 	for (Index bidx : function.synthesized) {
 		// Sanity check

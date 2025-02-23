@@ -87,9 +87,10 @@ QualifiedType Buffer::classify_qualifier(const Qualifier &qualifier, Index i)
 	return base;
 }
 
+// TODO: refactor to atom_semantic_analysis
 QualifiedType Buffer::classify(Index i)
 {
-	// Caching
+	// Cached results
 	if (types[i])
 		return types[i];
 
@@ -100,6 +101,10 @@ QualifiedType Buffer::classify(Index i)
 	case Atom::type_index <TypeInformation> ():
 	{
 		auto &type_field = atom.as <TypeInformation> ();
+
+		// Sometimes we explicitly want a nil type as a marker
+		if (type_field.item == nil)
+			return NilType();
 
 		std::optional <PlainDataType> pd;
 		if (type_field.item != bad)
@@ -114,7 +119,7 @@ QualifiedType Buffer::classify(Index i)
 				return pd.value();
 		}
 
-		return QualifiedType::nil();
+		return NilType();
 	}
 
 	case Atom::type_index <Primitive> ():
@@ -133,6 +138,9 @@ QualifiedType Buffer::classify(Index i)
 		QualifiedType qt = classify(constructor.type);
 		if (qt.is <PlainDataType> ())
 			return qt;
+
+		if (qt.is <BufferReferenceType> ())
+			return qt.remove_qualifiers();
 
 		if (constructor.mode == transient) {
 			// Reduce if its a parameter
@@ -226,20 +234,37 @@ QualifiedType Buffer::classify(Index i)
 		if (load.idx == -1)
 			return qt;
 
+		fmt::println("QT for load: {}", qt);
+
+		// TODO: method...
 		switch (qt.index()) {
 
-		case QualifiedType::type_index <PlainDataType> ():
+		variant_case(QualifiedType, PlainDataType):
 		{
 			auto &pd = qt.as <PlainDataType> ();
-			JVL_ASSERT(pd.is <Index> (), "cannot load field/element from primitive type: {}", qt);
+			if (!pd.is <Index> ())
+				dump();
+			JVL_ASSERT(pd.is <Index> (), "cannot load from primitive type: {}", qt);
 
 			Index concrete = pd.as <Index> ();
+
+			auto &base = types[concrete];
+			if (base.is <BufferReferenceType> ()) {
+				dump();
+				fmt::println("BASE is BUF REF! {}", base);
+				auto &brt = base.as <BufferReferenceType> ();
+				concrete = static_cast <PlainDataType> (brt).as <Index> ();
+			}
+
 			Index left = load.idx;
+			fmt::println("LOAD!\n{}", load);
 			while (left--) {
 				JVL_ASSERT(concrete != -1, "load attempting to access out of bounds field");
 				auto &atom = atoms[concrete];
-				JVL_ASSERT(atom.is <TypeInformation> (), "expected type information, instead got: {}", atom);
+				fmt::println("concrete atom:\n{}", atom);
+				JVL_ASSERT(atom.is <TypeInformation> (), "expected type information, instead got:\n{}", atom);
 				auto &ti = atom.as <TypeInformation> ();
+
 				concrete = ti.next;
 			}
 

@@ -23,6 +23,8 @@ struct RayFrame {
 	vec3 horizontal;
 	vec3 vertical;
 
+	// unsized_array <vec3> data;
+
 	vec3 at(vec2 uv) {
 		return normalize(lower_left + uv.x * horizontal + uv.y * vertical - origin);
 	}
@@ -43,15 +45,34 @@ struct RayFrame {
 
 auto ftn = procedure <void> ("main") << []()
 {
+	// TODO: composite <..., ..., ...> --> composite <write_only, scalar, buffer, unsized_array <vec3>>
 	write_only <scalar <buffer <unsized_array <vec3>>>> bf(0);
 
-	// TODO: ensure no duplicates...
-	auto tmp1 = buffer_reference <vec2> ();
-	auto tmp2 = buffer_reference <RayFrame> ();
+	// // TODO: ensure no duplicates...
+	// auto tmp1 = buffer_reference <vec2> ();
+	// auto tmp2 = buffer_reference <RayFrame> ();
 
-	u64 x = 0;
-	bf[0] = vec3(tmp1(x).y);
-	bf[1] = tmp2(x).horizontal;
+	// u64 x = 0;
+	// bf[0] = vec3(tmp1(x).y);
+	// bf[1] = tmp2(x).horizontal;
+
+	// TODO: avoid synthesizing arrays...
+	auto &em = Emitter::active;
+	auto value = em.emit_array_access(bf.ref.id, em.emit_primitive(0));
+
+	buffer_reference_wrapper <vec2> X;
+
+	// push_constant <buffer_reference_wrapper <vec2>> x;
+	// bf[0] = vec3(x.value.y);
+
+	push_constant <RayFrame> rf;
+	bf[0] = rf.horizontal;
+
+	// X.value.x = 10;
+
+	// X.layout().link(value);
+
+	// X.value.x = 11;
 };
 
 // TODO: shadertoy example

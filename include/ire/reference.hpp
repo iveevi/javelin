@@ -5,12 +5,12 @@
 namespace jvl::ire {
 
 // Buffer reference aggregate wrapper
-template <generic T>
+template <builtin T>
 struct buffer_reference_wrapper {
 	T value;
 
 	auto layout() {
-		return layout_from("Reference", verbatim_field(value));
+		return layout_from("Wrapped", verbatim_field(value));
 	}
 };
 
@@ -21,12 +21,26 @@ struct buffer_reference : tagged {
 	buffer_reference() {
 		auto &em = Emitter::active;
 
-		auto v = T();
-		auto type = type_info_generator <T> (v)
-			.synthesize()
-			.concrete();
+		thunder::Index type;
+
+		if constexpr (builtin <T>) {
+			using WT = buffer_reference_wrapper <T>;
+
+			auto v = WT();
+			type = type_info_generator <WT> (v)
+				.synthesize()
+				.concrete();
+		} else {
+			auto v = T();
+			type = type_info_generator <T> (v)
+				.synthesize()
+				.concrete();
+		}
 
 		auto qual = em.emit_qualifier(type, type_index <T> (), thunder::buffer_reference);
+
+		fmt::println("GENERATED QUAL:");
+		em.dump();
 
 		this->ref = qual;
 	}
@@ -37,9 +51,19 @@ struct buffer_reference : tagged {
 		auto list = em.emit_list(x.synthesize().id);
 		auto value = em.emit_construct(this->ref.id, list, thunder::normal);
 
-		auto wrapped = buffer_reference_wrapper <T> ();
-		wrapped.layout().link(value);
-		return wrapped.value;
+		if constexpr (builtin <T>) {
+			// For builtins, an element is needed within the buffer
+			auto result = buffer_reference_wrapper <T> ();
+			result.layout().link(value);
+			return result.value;
+		} else {
+			// For aggregates, the fields are expanding within
+			fmt::println("REFERENCE WITH AGGREGATE");
+			em.dump();
+			auto result = T();
+			result.layout().link(value);
+			return result;
+		}
 	}
 };
 

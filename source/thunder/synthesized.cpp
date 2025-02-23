@@ -22,6 +22,9 @@ void Buffer::include(Index i)
 {
 	auto &atom = atoms[i];
 
+	// TODO: use recursion to "repair" includes...
+	// TODO: pass parameter (bool forced)
+
 	switch (atom.index()) {
 
 	// Store instructions and their (root)

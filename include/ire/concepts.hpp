@@ -7,6 +7,7 @@
 namespace jvl::ire {
 
 // Fundamental types for IRE
+// TODO: remove native...
 template <typename T>
 concept generic = native <T> || builtin <T> || aggregate <T>;
 
