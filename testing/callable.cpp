@@ -162,8 +162,7 @@ struct Seed {
 
 Seed shift_seed(Seed _arg0)
 {
-    Seed s0 = Seed(((_arg0.root << _arg0.shifted) & (_arg0.shifted | _arg0.root)), (_arg0.shifted | _arg0.root));
-    return s0;
+    return Seed(((_arg0.root << _arg0.shifted) & (_arg0.shifted | _arg0.root)), (_arg0.shifted | _arg0.root));
 }
 )";
 

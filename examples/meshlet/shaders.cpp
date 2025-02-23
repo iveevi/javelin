@@ -39,6 +39,7 @@ Procedure <void> mesh = procedure <void> ("main") << []()
 	layout_out <unsized_array <u32>, flat> pids(1);
 
 	SetMeshOutputsEXT(3 * GROUP_SIZE, GROUP_SIZE);
+	// TODO: fix out of bounds errors with conditional...
 
 	u32 local_base = 3u * gl_LocalInvocationID.x;
 	u32 global_base = 3u * (gl_LocalInvocationID.x + payload.offset);

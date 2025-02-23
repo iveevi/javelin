@@ -6,6 +6,7 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P)/.."
 # Run all examples
 # TODO: prettify final statistics (dump_lines...)
 # TODO: options to run with validation...
+# TODO: produce fixed video and check with that each time... (MSE threshold)
 ./build/examples/colored/colored resources/meshes/nefertiti.obj --frames 300 --auto
 ./build/examples/normals/normals resources/meshes/nefertiti.obj --frames 300 --auto
 ./build/examples/palette/palette resources/meshes/nefertiti.obj --frames 300 --auto

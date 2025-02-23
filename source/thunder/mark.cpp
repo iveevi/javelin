@@ -1,4 +1,5 @@
 #include "thunder/buffer.hpp"
+#include "thunder/properties.hpp"
 
 namespace jvl::thunder {
 
@@ -80,9 +81,15 @@ bool Buffer::naturally_forced(const Atom &atom)
 	variant_case(Atom, Qualifier):
 	{
 		auto &kind = atom.as <Qualifier> ().kind;
-		if (kind == uint64)
+		if (kind == uint64 || kind == acceleration_structure)
 			return true;
 	} break;
+
+	variant_case(Atom, Intrinsic):
+	{
+		auto &opn = atom.as <Intrinsic> ().opn;
+		return side_effects(opn);
+	}
 
 	variant_case(Atom, Construct):
 	{
@@ -96,6 +103,7 @@ bool Buffer::naturally_forced(const Atom &atom)
 	variant_case(Atom, Store):
 	variant_case(Atom, Returns):
 	variant_case(Atom, Branch):
+	variant_case(Atom, Call):
 		return true;
 
 	default:

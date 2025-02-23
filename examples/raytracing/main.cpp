@@ -111,6 +111,7 @@ struct Application : CameraApplication {
 	}
 
 	void compile_rtx_pipeline() {
+		ray_generation.dump();
 		std::string rgen_shader = link(ray_generation).generate_glsl();
 		std::string rmiss_shader = link(ray_miss).generate_glsl();
 		std::string rchit_shader = link(ray_closest_hit).generate_glsl();

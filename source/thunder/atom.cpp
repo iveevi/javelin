@@ -69,8 +69,11 @@ bool Primitive::operator==(const Primitive &other) const
                 return false;
 
         switch (type) {
+        case boolean: return bdata == other.bdata;
         case i32: return idata == other.idata;
+        case u32: return udata == other.udata;
         case f32: return fdata == other.fdata;
+        case u64: return udata == other.udata;
         default:
                 break;
         }

@@ -2,6 +2,7 @@
 // TODO: partial evaluation of callables through substitution methods
 // TODO: external constant specialization
 // TODO: atomics
+// TODO: fix optimization...
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>

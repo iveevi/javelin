@@ -80,9 +80,6 @@ struct Layout {
 	void add_decorations(thunder::Index src, bool type) {
 		auto &em = Emitter::active;
 
-		fmt::println("HINTING FOR {}", src);
-
-		// TODO: evaluate once statically?
 		std::vector <std::string> fields = std::apply([](const auto &... fields) {
 			return std::vector <std::string> { fields.name... };
 		}, references);

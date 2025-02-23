@@ -192,4 +192,24 @@ constexpr int32_t sampler_dimension(QualifierKind kind)
 	}
 }
 
+constexpr bool side_effects(IntrinsicOperation opn)
+{
+	switch (opn) {
+	case discard:
+	case emit_mesh_tasks:
+	case layout_local_size:
+	case layout_mesh_shader_sizes:
+	case set_mesh_outputs:
+	case trace_ray:
+	case glsl_image_store:
+	case glsl_subgroupShuffle:
+	case glsl_barrier:
+		return true;
+	default:
+		break;
+	}
+
+	return false;
+}
+
 } // namespace jvl::thunder

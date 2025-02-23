@@ -101,9 +101,6 @@ struct Application : CameraApplication {
 	}
 
 	void compile_meshlet_pipeline() {
-		thunder::optimize(task);
-		thunder::optimize(mesh);
-
 		std::string task_shader = link(task).generate_glsl();
 		std::string mesh_shader = link(mesh).generate_glsl();
 		std::string fragment_shader = link(fragment).generate_glsl();

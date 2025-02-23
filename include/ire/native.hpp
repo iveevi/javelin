@@ -40,6 +40,8 @@ struct native_t : tagged {
 	T value = T();
 
 	static constexpr thunder::PrimitiveType primitive() {
+		if constexpr (std::same_as <T, bool>)
+			return thunder::boolean;
 		if constexpr (std::same_as <T, int32_t>)
 			return thunder::i32;
 		if constexpr (std::same_as <T, uint32_t>)
