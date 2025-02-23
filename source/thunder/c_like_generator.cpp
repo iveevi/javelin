@@ -280,9 +280,9 @@ std::string c_like_generator_t::reference(Index index) const
 		std::string accessor = fmt::format(".f{}", load.idx);
 		
 		// Check for name hints for the field
-		if (used_decorations.contains(load.src)) {
-			auto id = used_decorations.at(load.src);
-			auto th = decorations.at(id);
+		if (decorations.used.contains(load.src)) {
+			auto id = decorations.used.at(load.src);
+			auto th = decorations.all.at(id);
 			accessor = "." + th.fields[load.idx];
 		} else {
 			fmt::println("no decoration for load (@{}) source (@{})", index, load.src);

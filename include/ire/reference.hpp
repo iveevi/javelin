@@ -10,9 +10,8 @@ struct buffer_reference_wrapper {
 	T value;
 
 	auto layout() {
-		// TODO: phantom structure...
-		static const std::string name = fmt::format("Wrapped{}", type_index <T> ());
-		return layout_from(name,
+		static const std::string name = fmt::format("Wrapped{}", type_counter <T> ());
+		return phantom_layout_from(name,
 			verbatim_field(value));
 	}
 };
@@ -40,7 +39,7 @@ struct buffer_reference : tagged {
 				.concrete();
 		}
 
-		auto qual = em.emit_qualifier(type, type_index <T> (), thunder::buffer_reference);
+		auto qual = em.emit_qualifier(type, type_counter <T> (), thunder::buffer_reference);
 
 		this->ref = qual;
 	}

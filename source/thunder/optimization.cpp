@@ -229,9 +229,9 @@ bool optimize_dead_code_elimination(Buffer &result)
 
 	doubled.decorations = result.decorations;
 
-	for (auto &[i, j] : result.used_decorations) {
+	for (auto &[i, j] : result.decorations.used) {
 		auto k = relocation[i];
-		doubled.used_decorations[k] = j;
+		doubled.decorations.used[k] = j;
 	}
 
 	std::swap(result, doubled);

@@ -12,8 +12,9 @@ MODULE(classify-atoms);
 	
 void Buffer::transfer_decorations(Index dst, Index src)
 {
-	if (used_decorations.contains(src))
-		used_decorations[dst] = used_decorations[src];
+	auto &used = decorations.used;
+	if (used.contains(src))
+		used[dst] = used[src];
 }
 
 QualifiedType Buffer::semalz_qualifier(const Qualifier &qualifier, Index i)
@@ -297,7 +298,7 @@ QualifiedType Buffer::semalz(Index i)
 		auto base = qt.as <ArrayType> ().base();
 
 		auto concrete = base.get <Index> ();
-		if (concrete && used_decorations.contains(*concrete))
+		if (concrete && decorations.used.contains(*concrete))
 			transfer_decorations(i, *concrete);
 
 		return base;

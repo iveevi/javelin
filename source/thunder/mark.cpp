@@ -73,7 +73,7 @@ void Buffer::mark_children(Index i)
 	}
 }
 
-bool naturally_forced(const Atom &atom)
+bool Buffer::naturally_forced(const Atom &atom)
 {
 	switch (atom.index()) {
 
@@ -81,6 +81,15 @@ bool naturally_forced(const Atom &atom)
 	{
 		auto &kind = atom.as <Qualifier> ().kind;
 		if (kind == uint64)
+			return true;
+	} break;
+
+	variant_case(Atom, Construct):
+	{
+		auto &idx = atom.as <Construct> ().type;
+		auto &type = types[idx];
+		
+		if (type.is <BufferReferenceType> ())
 			return true;
 	} break;
 

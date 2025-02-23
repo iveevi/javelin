@@ -11,16 +11,20 @@
 namespace jvl::ire {
 
 // More advanced pool which manages control flow as well as scopes of pools
-struct Emitter {
+class Emitter {
+	thunder::Buffer &buffer();
+public:
 	using Index = thunder::Index;
 	using precondition = std::optional <std::function <void ()>>;
 	using reference = std::reference_wrapper <thunder::Buffer>;
 
+	// TODO: move inside, capitalize type...
 	struct cf_await {
 		Index ref;
 		precondition pre;
 	};
 
+	// TODO: move inside as well
 	std::stack <bool> classify;
 	std::stack <cf_await> control_flow_ends;
 	std::stack <reference> scopes;
@@ -91,7 +95,8 @@ struct Emitter {
 	}
 
 	// Emitting type hints
-	void emit_hint(Index, uint64_t, const std::string &, const std::vector <std::string> &);
+	void add_type_hint(Index, uint64_t, const std::string &, const std::vector <std::string> &);
+	void add_phantom_hint(Index);
 	
 	// Printing the active buffer
 	void dump();

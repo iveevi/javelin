@@ -14,6 +14,12 @@ namespace jvl::ire {
 
 MODULE(emitter);
 
+thunder::Buffer &Emitter::buffer()
+{
+	JVL_ASSERT(scopes.size(), "no active buffer scope in emitter");
+	return scopes.top().get();
+}
+
 // Scope management
 void Emitter::push(thunder::Buffer &scratch, bool enable_classify)
 {
@@ -224,15 +230,29 @@ Emitter::Index Emitter::emit_list_chain(const std::vector <Index> &atoms)
 }
 
 // Emitting type hints
-void Emitter::emit_hint(Index idx, uint64_t id, const std::string &name, const std::vector <std::string> &fields)
+void Emitter::add_type_hint(Index idx, uint64_t id, const std::string &name, const std::vector <std::string> &fields)
 {
-	auto &buf = scopes.top().get();
-	if (!buf.decorations.contains(id)) {
+	auto &buf = buffer();
+	// TODO: sanity check for type related?
+	if (!buf.decorations.all.contains(id)) {
 		auto th = thunder::Buffer::type_hint(name, fields);
-		buf.decorations[id] = th;
+		buf.decorations.all[id] = th;
 	}
 
-	buf.used_decorations[idx] = id;
+	buf.decorations.used[idx] = id;
+}
+
+// Emitting type phantoms hints
+void Emitter::add_phantom_hint(Index idx)
+{
+	auto &buf = buffer();
+	auto &target = buf[idx];
+
+	JVL_BUFFER_DUMP_ON_ASSERT(target.is <thunder::TypeInformation> (),
+		"phantom hints can only be applied "
+		"to type information atoms:\n{}", target);
+
+	buf.decorations.phantom.insert(idx);
 }
 
 // Printing the IR state
@@ -240,11 +260,12 @@ void Emitter::dump()
 {
 	JVL_ASSERT(scopes.size(), "no active scope in {}", __FUNCTION__);
 
-	auto &buffer = scopes.top().get();
+	auto &buf = buffer();
+	// TODO: box :)
 	fmt::println("------------------------------");
-	fmt::println("BUFFER IN PROGRESS ({}/{})", buffer.pointer, buffer.atoms.size());
+	fmt::println("BUFFER IN PROGRESS ({}/{})", buf.pointer, buf.atoms.size());
 	fmt::println("------------------------------");
-	buffer.dump();
+	buf.dump();
 }
 
 thread_local Emitter Emitter::active;

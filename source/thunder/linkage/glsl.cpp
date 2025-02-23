@@ -99,6 +99,9 @@ void generate_aggregates(std::string &result,
 			 const std::vector <Aggregate> &aggregates)
 {
 	for (auto &aggregate : aggregates) {
+		if (aggregate.phantom)
+			continue;
+		
 		JVL_ASSERT(aggregate.function >= 0 && aggregate.function < generators.size(),
 			"aggregate function is out of bounds "
 			" ({} when there are only {} generators)",
@@ -130,27 +133,25 @@ void generate_references(std::string &result,
 		auto &generator = generators[reference.function];
 
 		// TODO: check for modifiers...
-		auto qt = function.types[reference.index].remove_qualifiers();
-		auto ts = generator.type_to_string(qt);
 
 		result += fmt::format("layout (buffer_reference) buffer BufferReference{}\n", binding);
 		result += "{\n";
 		
 		// TODO: method... use in buffers as well
 		auto &original = function.atoms[reference.index].as <Qualifier> ();
-		if (map.contains(original.underlying)) {
-			auto &idx = map.at(original.underlying);
-			auto &aggregate = aggregates[idx];
 
-			// Replace with fields
-			for (size_t i = 0; i < aggregate.fields.size(); i++) {
-				auto &field = aggregate.fields[i];
-				auto ts = generator.type_to_string(field);
-				result += fmt::format("    {} {}{};\n", ts.pre, field.name, ts.post);
-			}
-		} else {
-			// Fallback, particularly for builtins
-			result += fmt::format("    {} {}{};\n", ts.pre, "value", ts.post);
+		JVL_ASSERT(map.contains(original.underlying),
+			"aggregate structure corresponding to "
+			"buffer reference is missing");
+
+		auto &idx = map.at(original.underlying);
+		auto &aggregate = aggregates[idx];
+
+		// Replace with fields
+		for (size_t i = 0; i < aggregate.fields.size(); i++) {
+			auto &field = aggregate.fields[i];
+			auto ts = generator.type_to_string(field);
+			result += fmt::format("    {} {}{};\n", ts.pre, field.name, ts.post);
 		}
 
 		result += "};\n\n";

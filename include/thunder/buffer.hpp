@@ -19,6 +19,8 @@ class Buffer {
 	QualifiedType semalz(Index);
 
 	// Populate the synthesized set
+	bool naturally_forced(const Atom &);
+	
 	void mark_children(Index);
 	void mark(Index, bool = false);
 public:
@@ -28,11 +30,16 @@ public:
 	};
 
 	size_t pointer;
-	std::map <thunder::Index, uint64_t> used_decorations;
-	std::map <uint64_t, type_hint> decorations;
 	std::set <Index> synthesized;
 	std::vector <Atom> atoms;
 	std::vector <QualifiedType> types;
+	
+	struct {
+		std::map <uint64_t, type_hint> all;
+		std::map <Index, uint64_t> used;
+		// TODO: vector <hint> and variant for hints... or multimap?
+		std::set <Index> phantom;
+	} decorations;
 
 	Buffer();
 
@@ -51,10 +58,13 @@ public:
 	std::vector <QualifiedType> expand_list_types(Index) const;
 };
 
-#define JVL_BUFFER_DUMP_ON_ASSERT()
+#define JVL_BUFFER_DUMP_ON_ASSERT(cond, ...)	\
+	if (!cond)				\
+		dump();				\
+	JVL_ASSERT(cond, __VA_ARGS__)
 
-#define JVL_BUFFER_DUMP_AND_ABORT(...)	\
-	dump();				\
+#define JVL_BUFFER_DUMP_AND_ABORT(...)		\
+	dump();					\
 	JVL_ABORT(__VA_ARGS__)
 
 } // namespace jvl::thunder

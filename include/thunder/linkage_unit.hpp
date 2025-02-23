@@ -23,6 +23,7 @@ struct Field : QualifiedType {
 
 struct Aggregate {
 	size_t function;
+	bool phantom;
 	std::string name;
 	std::vector <Field> fields;
 
@@ -94,7 +95,7 @@ struct LinkageUnit {
 		std::map <QualifierKind, special_type_set> special;
 	} globals;
 
-	Index new_aggregate(size_t, const std::string &, const std::vector <Field> &);
+	Index new_aggregate(size_t, bool, const std::string &, const std::vector <Field> &);
 
 	void process_function_qualifier(Function &, size_t, Index, const Qualifier &);
 	void process_function_intrinsic(Function &, size_t, Index, const Intrinsic &);

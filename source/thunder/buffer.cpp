@@ -42,17 +42,18 @@ void Buffer::dump() const
 	for (size_t i = 0; i < pointer; i++) {
 		fmt::println("   [{:4d}] {:55}"
 			"\n          :: type: {:20}"
-			"\n          :: decorations: ({}{})",
+			"\n          :: decorations: ({}{}{})",
 			i, atoms[i],
 			fmt::format(fmt::emphasis::underline, "{}", types[i]),
 			synthesized.contains(i) ? 's' : '-',
-			used_decorations.contains(i) ? 't' : '-');
+			decorations.used.contains(i) ? 't' : '-',
+			decorations.phantom.contains(i) ? 'p' : '-');
 	}
 
 	// Decorations
 	fmt::println("   [   X] {}", fmt::format(fmt::emphasis::bold, "{}", "DECORATIONS"));
 
-	for (auto &[i, th] : decorations) {
+	for (auto &[i, th] : decorations.all) {
 		fmt::println("          :: {} (#{})", fmt::format(fmt::emphasis::underline, "{}", th.name), i);
 		for (auto &s : th.fields)
 			fmt::println("             {}", s);

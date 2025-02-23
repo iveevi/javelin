@@ -13,6 +13,9 @@ bool Aggregate::operator==(const Aggregate &other) const
 	// TODO: check if either is a default name?
 	if (name != other.name)
 		return false;
+	
+	if (phantom != other.phantom)
+		return false;
 
 	if (fields.size() != other.fields.size())
 		return false;
@@ -30,12 +33,13 @@ Function::Function(const Buffer &buffer, const std::string &name_, size_t cid_)
 		: Buffer(buffer), cid(cid_), name(name_) {}
 
 // Linkage unit methods
-Index LinkageUnit::new_aggregate(size_t ftn, const std::string &name, const std::vector <Field> &fields)
+Index LinkageUnit::new_aggregate(size_t ftn, bool phantom, const std::string &name, const std::vector <Field> &fields)
 {
 	size_t index = aggregates.size();
 
 	Aggregate aggr {
 		.function = ftn,
+		.phantom = phantom,
 		.name = name,
 		.fields = fields
 	};
@@ -319,19 +323,19 @@ void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &funct
 	fields.pop_back();
 
 	// Check for type hints
-	size_t size = aggregates.size();
+	auto &decorations = function.decorations;
 	
-	std::string name = fmt::format("s{}_t", size);
-	if (function.used_decorations.contains(bidx)) {
-		auto &id = function.used_decorations.at(bidx);
-		auto &decoration = function.decorations.at(id);
+	std::string name = fmt::format("s{}_t", aggregates.size());
+	if (decorations.used.contains(bidx)) {
+		auto &id = decorations.used.at(bidx);
+		auto &decoration = decorations.all.at(id);
 		name = decoration.name;
 
 		for (size_t i = 0; i < fields.size(); i++)
 			fields[i].name = decoration.fields[i];
 	}
 
-	map[bidx] = new_aggregate(fidx, name, fields);
+	map[bidx] = new_aggregate(fidx, decorations.phantom.contains(bidx), name, fields);
 }
 
 std::set <Index> LinkageUnit::process_function(const Function &ftn)
