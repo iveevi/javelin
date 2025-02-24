@@ -49,40 +49,19 @@ struct Data {
 
 auto ftn = procedure <void> ("main") << []()
 {
-	// TODO: buffer_ext <T, scalar, writeonly...> with template <generic> typenames...
-	// writeonly <scalar <buffer <unsized_array <vec3>>>> bf(0);
+	writeonly <scalar <buffer <unsized_array <vec3>>>> bf(0);
 
-	// bf[0] = vec3(10);
+	bf[0] = vec3(10);
 
 	shared <array <vec4>> arr(16);
 	arr[0] = vec4(0);
 
-	// // TODO: use constructor...
-	// auto tmp1 = buffer_reference <vec2> ();
-	// auto tmp2 = buffer_reference <Data> ();
-	// auto tmp3 = buffer_reference <unsized_array <vec4>> ();
-
-	// u64 x = 0;
-	// bf.data[0] = vec3(tmp1(x).y);
-	// bf.data[1] = tmp2(x).horizontal;
-	// bf.data[2] = tmp3(x)[12].xyz();
-
-	// auto &em = Emitter::active;
-	// auto value = em.emit_array_access(bf.ref.id, em.emit_primitive(0));
-
-	// buffer_reference_wrapper <vec2> X;
-
-	// // push_constant <buffer_reference_wrapper <vec2>> x;
-	// // bf[0] = vec3(x.value.y);
-
-	// push_constant <RayFrame> rf;
-	// bf[0] = rf.horizontal;
-
-	// // X.value.x = 10;
-
-	// // X.layout().link(value);
-
-	// // X.value.x = 11;
+	u64 x = 0x12;
+	auto br1 = buffer_reference <unsized_array <vec4>> (x);
+	arr[1] = br1[12];
+	
+	auto br2 = buffer_reference <Data> (x);
+	arr[1] = vec4(br2.data[14], 1);
 };
 
 // TODO: shadertoy example
@@ -92,5 +71,5 @@ int main()
 	// TODO: graphviz for the instructions (synthesized...)
 	ftn.dump();
 	dump_lines("EXPERIMENTAL IRE", link(ftn).generate_glsl());
-	link(ftn).generate_spirv(vk::ShaderStageFlagBits::eRaygenKHR);
+	link(ftn).generate_spirv(vk::ShaderStageFlagBits::eCompute);
 }

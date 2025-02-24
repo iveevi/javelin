@@ -27,14 +27,12 @@ struct builtin_wrapper {
 // Implementation built-ins
 template <builtin T, thunder::QualifierKind K, qualifier_extension_t Ext>
 class qualified_wrapper <T, K, Ext> : public T {
+private:
 	size_t binding;
-public:
-	using base = T;
-	static constexpr auto qualifier = K;
-	static inline qualifier_extension_t extension = Ext;
-
+protected:
 	template <typename ... Args>
-	qualified_wrapper(size_t binding_, const Args &... args) : T(args...), binding(binding_) {
+	qualified_wrapper(cache_index_t source, thunder::ConstructorMode mode, size_t binding_, const Args &... args)
+			: T(args...), binding(binding_) {
 		auto &em = Emitter::active;
 
 		builtin_wrapper <T> wrapper(args...);
@@ -47,10 +45,21 @@ public:
 		if (Ext)
 			extd = Ext(extd);
 
-		auto value = em.emit_construct(extd, -1, thunder::transient);
+		auto value = em.emit_construct(extd, source.id, mode);
 		wrapper.layout().link(value);
 		this->ref = wrapper.value.ref;
 	}
+public:
+	using base = T;
+	static constexpr auto qualifier = K;
+	static inline qualifier_extension_t extension = Ext;
+
+	template <typename ... Args>
+	qualified_wrapper(size_t binding_, const Args &... args)
+			: qualified_wrapper(cache_index_t::from(-1),
+				thunder::transient,
+				binding_,
+				args...) {}
 
 	operator typename T::arithmetic_type() const {
 		return arithmetic_type(T::synthesize());
@@ -60,14 +69,11 @@ public:
 // Implementation for aggregate types
 template <aggregate T, thunder::QualifierKind K, qualifier_extension_t Ext>
 class qualified_wrapper <T, K, Ext> : public T {
+private:
 	size_t binding;
-public:
-	using base = T;
-	static constexpr auto qualifier = K;
-	static inline qualifier_extension_t extension = Ext;
-
+protected:
 	template <typename ... Args>
-	qualified_wrapper(size_t binding_, const Args &... args)
+	qualified_wrapper(cache_index_t source, thunder::ConstructorMode mode, size_t binding_, const Args &... args)
 			: T(args...), binding(binding_) {
 		auto &em = Emitter::active;
 
@@ -79,9 +85,20 @@ public:
 		if (Ext)
 			extd = Ext(extd);
 
-		auto value = em.emit_construct(extd, -1, thunder::transient);
+		auto value = em.emit_construct(extd, source.id, mode);
 		layout.link(value);
 	}
+public:
+	using base = T;
+	static constexpr auto qualifier = K;
+	static inline qualifier_extension_t extension = Ext;
+
+	template <typename ... Args>
+	qualified_wrapper(size_t binding_, const Args &... args)
+			: qualified_wrapper(cache_index_t::from(-1),
+				thunder::transient,
+				binding_,
+				args...) {}
 };
 
 // TODO: bindless qualifier

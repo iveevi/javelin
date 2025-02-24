@@ -185,4 +185,6 @@ struct type_info_generator <unsized_array <T>> {
 	}
 };
 
+// TODO: static array type...
+
 } // namespace jvl::ire
