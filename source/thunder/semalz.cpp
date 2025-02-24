@@ -42,7 +42,9 @@ QualifiedType Buffer::semalz_qualifier(const Qualifier &qualifier, Index i)
 	QualifiedType decl = semalz(qualifier.underlying);
 
 	// Extended qualifiers
-	if (qualifier.kind == writeonly || qualifier.kind == readonly) {
+	if (qualifier.kind == writeonly
+		|| qualifier.kind == readonly
+		|| qualifier.kind == scalar) {
 		// TODO: quick sanity check; only images and buffers allowed
 		// JVL_ASSERT(image_kind())
 		return decl;

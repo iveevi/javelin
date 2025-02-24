@@ -154,6 +154,7 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 	case readonly:
 	case scalar:
 	{
+		// TODO: method...
 		// Manage the extensions
 		auto &kind = qualifier.kind;
 		if (kind == scalar)
@@ -184,6 +185,9 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 				break;
 			} else if (decl->kind == storage_buffer) {
 				globals.buffers[decl->numerical].extra.insert(kind);
+				break;
+			} else if (kind == scalar && decl->kind == buffer_reference) {
+				globals.references[decl->numerical].extra.insert(kind);
 				break;
 			}
 		}

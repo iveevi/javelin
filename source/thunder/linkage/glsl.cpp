@@ -93,6 +93,29 @@ generator_list LinkageUnit::configure_generators() const
 	return generators;
 }
 
+// Retrieve the underlying aggregate for a qualifier
+auto underlying_aggregate(const std::vector <Function> &functions,
+			  const std::vector <TypeMap> &types,
+			  const std::vector <Aggregate> &aggregates,
+			  local_layout_type llt)
+{
+	auto &map = types[llt.function];
+	auto &function = functions[llt.function];
+		
+	auto &atom = function.atoms[llt.index];
+	JVL_ASSERT(atom.is <Qualifier> (), "expected buffer atom to be a qualifier:\n{}", atom);
+
+	auto &original = atom.as <Qualifier> ();
+
+	JVL_ASSERT(map.contains(original.underlying),
+		"aggregate structure corresponding to "
+		"buffer reference is missing");
+
+	auto &idx = map.at(original.underlying);
+
+	return aggregates[idx];
+}
+
 // Generating the aggregates
 void generate_aggregates(std::string &result,
 			 const generator_list &generators,
@@ -128,26 +151,18 @@ void generate_references(std::string &result,
 			 const std::map <Index, local_layout_type> &references)
 {
 	for (auto &[binding, reference] : references) {
-		auto &map = types[reference.function];
-		auto &function = functions[reference.function];
 		auto &generator = generators[reference.function];
 
-		// TODO: check for modifiers...
+		std::string formats = "";
+		for (auto &k : reference.extra) {
+			if (k == scalar)
+				formats += ", scalar";
+		}
 
-		result += fmt::format("layout (buffer_reference) buffer BufferReference{}\n", binding);
+		result += fmt::format("layout (buffer_reference{}) buffer BufferReference{}\n", formats, binding);
 		result += "{\n";
-		
-		auto &atom = function.atoms[reference.index];
-		JVL_ASSERT(atom.is <Qualifier> (), "expected buffer atom to be a qualifier:\n{}", atom);
 
-		auto &original = atom.as <Qualifier> ();
-
-		JVL_ASSERT(map.contains(original.underlying),
-			"aggregate structure corresponding to "
-			"buffer reference is missing");
-
-		auto &idx = map.at(original.underlying);
-		auto &aggregate = aggregates[idx];
+		auto aggregate = underlying_aggregate(functions, types, aggregates, reference);
 
 		// Replace with fields
 		for (size_t i = 0; i < aggregate.fields.size(); i++) {
@@ -193,28 +208,12 @@ void generate_push_constant(std::string &result,
 	if (pc.index == -1)
 		return;
 
-	auto &map = types[pc.function];
-	auto &function = functions[pc.function];
 	auto &generator = generators[pc.function];
 
 	result += "layout (push_constant) uniform PushConstant\n";
 	result += "{\n";
 	
-	auto &atom = function.atoms[pc.index];
-	JVL_ASSERT(atom.is <Qualifier> (), "expected buffer atom to be a qualifier:\n{}", atom);
-
-	auto &original = atom.as <Qualifier> ();
-
-	// TODO: DUMP_ON
-	if (!map.contains(original.underlying))
-		function.dump();
-
-	JVL_ASSERT(map.contains(original.underlying),
-		"aggregate structure (@{}) corresponding to "
-		"buffer is missing", original.underlying);
-
-	auto &idx = map.at(original.underlying);
-	auto &aggregate = aggregates[idx];
+	auto aggregate = underlying_aggregate(functions, types, aggregates, pc);
 
 	// Replace with fields
 	for (size_t i = 0; i < aggregate.fields.size(); i++) {
@@ -255,8 +254,6 @@ void generate_buffers(std::string &result,
 		     const std::map <Index, local_layout_type> &buffers)
 {
 	for (auto &[binding, buffer] : buffers) {
-		auto &map = types[buffer.function];
-		auto &function = functions[buffer.function];
 		auto &generator = generators[buffer.function];
 
 		std::string formats = "";
@@ -276,21 +273,7 @@ void generate_buffers(std::string &result,
 
 		result += "{\n";
 		
-		auto &atom = function.atoms[buffer.index];
-		JVL_ASSERT(atom.is <Qualifier> (), "expected buffer atom to be a qualifier:\n{}", atom);
-
-		auto &original = atom.as <Qualifier> ();
-
-		// TODO: DUMP_ON
-		if (!map.contains(original.underlying))
-			function.dump();
-
-		JVL_ASSERT(map.contains(original.underlying),
-			"aggregate structure (@{}) corresponding to "
-			"buffer is missing", original.underlying);
-
-		auto &idx = map.at(original.underlying);
-		auto &aggregate = aggregates[idx];
+		auto aggregate = underlying_aggregate(functions, types, aggregates, buffer);
 
 		// Replace with fields
 		for (size_t i = 0; i < aggregate.fields.size(); i++) {

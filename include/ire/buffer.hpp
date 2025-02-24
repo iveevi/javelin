@@ -15,8 +15,10 @@ using uniform = qualified_wrapper <T, thunder::uniform_buffer, nullptr>;
 template <generic T>
 using buffer = qualified_wrapper <T, thunder::storage_buffer, nullptr>;
 
-template <generic T>
-struct buffer_reference : public qualified_wrapper <T, thunder::buffer_reference, nullptr> {
+template <generic T, qualifier_extension_t Ext = nullptr>
+struct buffer_reference : public qualified_wrapper <T, thunder::buffer_reference, Ext> {
+	static inline qualifier_extension_t extension = Ext;
+	
 	static cache_index_t construct(const native_t <uint64_t> &address) {
 		auto &em = Emitter::active;
 		auto list = em.emit_list(address.synthesize().id);
@@ -24,7 +26,7 @@ struct buffer_reference : public qualified_wrapper <T, thunder::buffer_reference
 	}
 
 	buffer_reference(const native_t <uint64_t> &address)
-			: qualified_wrapper <T, thunder::buffer_reference, nullptr>
+			: qualified_wrapper <T, thunder::buffer_reference, Ext>
 				(construct(address), thunder::normal, type_counter <T> ()) {}
 };
 
@@ -38,14 +40,11 @@ struct is_buffer_like <buffer <T>> : std::true_type {};
 template <generic T>
 struct is_buffer_like <uniform <T>> : std::true_type {};
 
-template <generic T>
-struct is_buffer_like <buffer_reference <T>> : std::true_type {};
-
 template <typename T>
 concept buffer_like = generic <T> && is_buffer_like <T> ::value;
 
 // Extended qualifiers for buffers
-template <buffer_like Buffer, thunder::QualifierKind kind>
+template <generic Buffer, thunder::QualifierKind kind>
 inline thunder::Index qualifier_extension(thunder::Index idx)
 {
 	static auto &ext = Buffer::extension;
@@ -57,6 +56,7 @@ inline thunder::Index qualifier_extension(thunder::Index idx)
 	return em.emit_qualifier(idx, -1, kind);
 }
 
+// For ordinary buffers
 template <buffer_like Buffer>
 struct writeonly <Buffer> : qualified_wrapper <
 	typename Buffer::base,
@@ -76,6 +76,13 @@ struct scalar <Buffer> : qualified_wrapper <
 	typename Buffer::base,
 	Buffer::qualifier,
 	qualifier_extension <Buffer, thunder::scalar>
+> {};
+
+// For buffer references
+template <generic T, qualifier_extension_t Ext>
+struct scalar <buffer_reference <T, Ext>> : buffer_reference <
+	T,
+	&qualifier_extension <buffer_reference <T, Ext>, thunder::scalar>
 > {};
 
 // Enable chained qualifiers

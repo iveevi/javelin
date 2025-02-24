@@ -51,17 +51,17 @@ auto ftn = procedure <void> ("main") << []()
 {
 	writeonly <scalar <buffer <unsized_array <vec3>>>> bf(0);
 
-	bf[0] = vec3(10);
+	// bf[0] = vec3(10);
 
-	shared <array <vec4>> arr(16);
-	arr[0] = vec4(0);
+	// shared <array <vec4>> arr(16);
+	// arr[0] = vec4(0);
 
 	u64 x = 0x12;
-	auto br1 = buffer_reference <unsized_array <vec4>> (x);
-	arr[1] = br1[12];
+	auto br1 = scalar <buffer_reference <unsized_array <vec3>>> (x);
+	bf[1] = br1[12];
 	
-	auto br2 = buffer_reference <Data> (x);
-	arr[1] = vec4(br2.data[14], 1);
+	// auto br2 = buffer_reference <Data> (x);
+	// arr[1] = vec4(br2.data[14], 1);
 };
 
 // TODO: shadertoy example
