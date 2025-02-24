@@ -50,6 +50,7 @@ add_library(javelin-ire SHARED
 	source/thunder/c_like_generator.cpp
 	source/thunder/comparison.cpp
 	source/thunder/gcc.cpp
+	source/thunder/graphviz.cpp
 	source/thunder/legalize_cc.cpp
 	source/thunder/linkage/common.cpp
 	source/thunder/linkage/core.cpp

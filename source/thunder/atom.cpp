@@ -116,6 +116,27 @@ std::string Primitive::to_string() const
         return result;
 }
 
+std::string Primitive::value_string() const
+{
+	switch (type) {
+	case boolean:
+		return fmt::format("{}", bdata);
+	case i32:
+		return fmt::format("{}", idata);
+	case u32:
+		return fmt::format("{}", udata);
+	case u64:
+		// Full data unavailable...
+		return fmt::format("{}", udata);
+	case f32:
+		return fmt::format("{}", fdata);
+	default:
+		break;
+	}
+
+        return "?";
+}
+
 // Swizzle
 bool Swizzle::operator==(const Swizzle &other) const
 {
@@ -292,7 +313,7 @@ std::string Load::to_string() const
                 + fmt::format("\n          :: field: %{}", idx);
 }
 
-// Load
+// Array access
 bool ArrayAccess::operator==(const ArrayAccess &other) const
 {
         return (src == other.src)

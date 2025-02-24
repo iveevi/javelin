@@ -52,6 +52,10 @@ struct Application : CameraApplication {
 			<< std::make_tuple(saturation, lightness, splits)
 			<< fragment;
 
+		std::string local = std::filesystem::path(__FILE__).parent_path();
+		vs_callable.graphviz(local + "/vertex.dot");
+		fs_callable.graphviz(local + "/fragment.dot");
+
 		std::string vertex_shader = link(vs_callable).generate_glsl();
 		std::string fragment_shader = link(fs_callable).generate_glsl();
 

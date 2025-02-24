@@ -194,6 +194,11 @@ struct Application : CameraApplication {
 		// thunder::opt_transform(task);
 		// TODO: do not optimize primitives of different storages...
 		// thunder::opt_transform(mesh);
+		
+		std::string local = std::filesystem::path(__FILE__).parent_path();
+		task.graphviz(local + "/task.dot");
+		mesh.graphviz(local + "/mesh.dot");
+		fragment.graphviz(local + "/fragment.dot");
 
 		std::string task_shader = link(task).generate_glsl();
 		std::string mesh_shader = link(mesh).generate_glsl();

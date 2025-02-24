@@ -102,6 +102,7 @@ struct Primitive {
 	bool operator==(const Primitive &) const;
 	Addresses addresses();
 	std::string to_string() const;
+	std::string value_string() const;
 };
 #pragma pack(pop)
 
@@ -299,7 +300,6 @@ using atom_base = bestd::variant <
 struct alignas(4) Atom : atom_base {
 	using atom_base::atom_base;
 
-	// TODO: use visitor pattern
 	bool operator==(const Atom &) const;
 
 	Addresses addresses() {

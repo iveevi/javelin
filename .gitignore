@@ -1,4 +1,5 @@
 *.cap
+*.dot
 *.jvlx
 .cache/
 .vscode/

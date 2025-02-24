@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <set>
 
 #include "atom.hpp"
@@ -50,6 +51,7 @@ public:
 
 	void clear();
 	void dump() const;
+	void graphviz(const std::filesystem::path &) const;
 
 	// TODO: shrink to fit method
 

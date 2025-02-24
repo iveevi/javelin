@@ -141,27 +141,6 @@ static std::string arguments_to_string(const std::vector <std::string> &args)
 	return ret;
 }
 
-std::string generate_primitive(const Primitive &p)
-{
-	switch (p.type) {
-	case boolean:
-		return fmt::format("{}", p.bdata);
-	case i32:
-		return fmt::format("{}", p.idata);
-	case u32:
-		return fmt::format("{}", p.udata);
-	case u64:
-		// Full data unavailable...
-		return fmt::format("{}", p.udata);
-	case f32:
-		return fmt::format("{}", p.fdata);
-	default:
-		break;
-	}
-
-	JVL_ABORT("unsupported primitive: {}", p);
-}
-
 std::string generate_operation(OperationCode code, const std::string &a, const std::string &b)
 {
 	// Binary operator strings
@@ -325,7 +304,7 @@ std::string c_like_generator_t::inlined(Index index) const
 	switch (atom.index()) {
 
 	variant_case(Atom, Primitive):
-		return generate_primitive(atom.as <Primitive> ());
+		return atom.as <Primitive> ().value_string();
 
 	variant_case(Atom, Operation):
 	{
@@ -523,7 +502,7 @@ void c_like_generator_t::generate(const TypeInformation &, Index)
 template <>
 void c_like_generator_t::generate(const Primitive &primitive, Index index)
 {
-	define(index, generate_primitive(primitive));
+	define(index, primitive.value_string());
 }
 
 template <>

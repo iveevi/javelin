@@ -38,7 +38,7 @@ std::string PlainDataType::to_string() const
         if (auto p = get <PrimitiveType> ())
                 return tbl_primitive_types[*p];
 
-        return fmt::format("concrete(%{})", as <Index> ());
+        return fmt::format("concrete %{}", as <Index> ());
 }
 
 std::size_t PlainDataType::hash() const
@@ -61,7 +61,7 @@ bool StructFieldType::operator==(const StructFieldType &other) const
 
 std::string StructFieldType::to_string() const
 {
-        return fmt::format("{}; %{}", PlainDataType::to_string(), next);
+        return fmt::format("{}, to %{}", PlainDataType::to_string(), next);
 }
 
 PlainDataType StructFieldType::base() const
@@ -191,7 +191,7 @@ bool BufferReferenceType::operator==(const BufferReferenceType &other) const
 
 std::string BufferReferenceType::to_string() const
 {
-	return fmt::format("buffer({}; #{})", PlainDataType::to_string(), unique);
+	return fmt::format("buffer {}", PlainDataType::to_string());
 }
 
 std::size_t BufferReferenceType::hash() const
@@ -209,7 +209,7 @@ bool InArgType::operator==(const InArgType &other) const
 
 std::string InArgType::to_string() const
 {
-	return fmt::format("in({})", PlainDataType::to_string());
+	return fmt::format("in {}", PlainDataType::to_string());
 }
 
 std::size_t InArgType::hash() const
@@ -227,7 +227,7 @@ bool OutArgType::operator==(const OutArgType &other) const
 
 std::string OutArgType::to_string() const
 {
-	return fmt::format("out({})", PlainDataType::to_string());
+	return fmt::format("out {}", PlainDataType::to_string());
 }
 
 std::size_t OutArgType::hash() const
@@ -245,7 +245,7 @@ bool InOutArgType::operator==(const InOutArgType &other) const
 
 std::string InOutArgType::to_string() const
 {
-	return fmt::format("inout({})", PlainDataType::to_string());
+	return fmt::format("inout {}", PlainDataType::to_string());
 }
 
 std::size_t InOutArgType::hash() const

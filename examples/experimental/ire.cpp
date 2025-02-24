@@ -68,8 +68,8 @@ auto ftn = procedure <void> ("main") << []()
 
 int main()
 {
-	// TODO: graphviz for the instructions (synthesized...)
 	ftn.dump();
+	ftn.graphviz("graph.dot");
 	dump_lines("EXPERIMENTAL IRE", link(ftn).generate_glsl());
 	link(ftn).generate_spirv(vk::ShaderStageFlagBits::eCompute);
 }

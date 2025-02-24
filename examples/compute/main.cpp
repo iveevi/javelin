@@ -100,6 +100,10 @@ struct Application : CameraApplication {
 
 		auto vs_callable = procedure("main") << vertex;
 		auto fs_callable = procedure("main") << std::make_tuple(cmap) << fragment;
+		
+		std::string local = std::filesystem::path(__FILE__).parent_path();
+		vs_callable.graphviz(local + "/vertex.dot");
+		fs_callable.graphviz(local + "/fragment.dot");
 
 		std::string vertex_shader = link(vs_callable).generate_glsl();
 		std::string fragment_shader = link(fs_callable).generate_glsl();
@@ -128,6 +132,9 @@ struct Application : CameraApplication {
 	void configure_compute_pipeline() {
 		auto cs = procedure("main") << integrator;
 		auto compute_shader = link(cs).generate_glsl();
+		
+		std::string local = std::filesystem::path(__FILE__).parent_path();
+		cs.graphviz(local + "/compute.dot");
 
 		dump_lines("COMPUTE", compute_shader);
 

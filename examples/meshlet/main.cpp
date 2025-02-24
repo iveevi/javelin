@@ -101,6 +101,11 @@ struct Application : CameraApplication {
 	}
 
 	void compile_meshlet_pipeline() {
+		std::string local = std::filesystem::path(__FILE__).parent_path();
+		task.graphviz(local + "/task.dot");
+		mesh.graphviz(local + "/mesh.dot");
+		fragment.graphviz(local + "/fragment.dot");
+
 		std::string task_shader = link(task).generate_glsl();
 		std::string mesh_shader = link(mesh).generate_glsl();
 		std::string fragment_shader = link(fragment).generate_glsl();
