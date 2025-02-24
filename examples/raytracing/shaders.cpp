@@ -73,11 +73,29 @@ Procedure <void> ray_closest_hit = procedure <void> ("main") << []()
 	ray_payload_in <vec3> value(0);
 	ray_payload_in <vec3> position(1);
 
-	buffer <u64> references(2);
+	buffer <unsized_array <Reference>> references(2);
 
-	hit_attribute <vec2> barycentrics;
+	hit_attribute <vec2> bary;
 
-	value = vec3(1.0f - barycentrics.x - barycentrics.y, barycentrics.x, barycentrics.y);
+	u32 iid = gl_InstanceCustomIndexEXT;
+	u32 pid = gl_PrimitiveID;
+
+	Reference ref = references[iid];
+
+	Triangles triangles = Triangles(ref.triangles);
+	Positions vertices = Positions(ref.vertices);
+
+	ivec3 tri = triangles[pid];
+
+	vec3 v0 = vertices[tri.x];
+	vec3 v1 = vertices[tri.y];
+	vec3 v2 = vertices[tri.z];
+
+	value = vec3(1.0f - bary.x - bary.y, bary.x, bary.y);
+	
+	vec3 p = value.x * v0 + value.y * v1 + value.z * v2;
+	// position = vec3(gl_ObjectToWorldEXT * vec4(p, 1));
+	position = (gl_ObjectToWorldEXT * vec4(p, 1)).xyz();
 };
 
 Procedure <void> ray_miss = procedure <void> ("main") << []()

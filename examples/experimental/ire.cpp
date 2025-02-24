@@ -77,6 +77,7 @@ auto ftn = procedure <void> ("main") << []()
 	// arr[1] = vec4(br2.data[14], 1);
 };
 
+// TODO: l-value propagation
 // TODO: shadertoy example
 // TODO: optimization using graphviz for visualization...
 

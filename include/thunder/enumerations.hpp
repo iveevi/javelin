@@ -172,6 +172,9 @@ enum QualifierKind : int8_t {
 	glsl_PrimitiveTriangleIndicesEXT,
 	glsl_LaunchIDEXT,
 	glsl_LaunchSizeEXT,
+	glsl_InstanceCustomIndexEXT,
+	glsl_PrimitiveID,
+	glsl_ObjectToWorldEXT,
 
 	__gq_end
 };
@@ -257,6 +260,9 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"glsl:PrimitiveTrianglesIndicesEXT",
 	"glsl:LaunchIDEXT",
 	"glsl:LaunchSizeEXT",
+	"glsl:InstanceCustomIndexEXT",
+	"glsl:PrimitiveID",
+	"glsl:ObjectToWorldEXT",
 
 	"__end"
 };

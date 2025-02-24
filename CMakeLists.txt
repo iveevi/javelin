@@ -41,7 +41,7 @@ if(ENABLE_COVERAGE)
 endif()
 
 # Intermediate Representation Emitter
-add_library(javelin-ire SHARED
+add_library(javelin SHARED
 	source/ire/emitter.cpp
 	source/ire/native.cpp
 	source/thunder/atom.cpp
@@ -68,18 +68,18 @@ add_library(javelin-ire SHARED
 	source/thunder/tracked_buffer.cpp
 	source/thunder/usage.cpp)
 
-target_compile_options(javelin-ire PRIVATE
+target_compile_options(javelin PRIVATE
 	${STATIC_ANALYSIS}
 	$<$<CONFIG:Debug>:-Wall;-Werror;${COVERAGE_FLAGS}>)
 
-target_link_libraries(javelin-ire
+target_link_libraries(javelin
 	fmt::fmt
 	gccjit
 	glslang::glslang
 	glslang::glslang-default-resource-limits
 	$<$<CONFIG:Debug>:${COVERAGE_FLAGS}>)
 
-target_compile_definitions(javelin-ire PRIVATE
+target_compile_definitions(javelin PRIVATE
 	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
 
 # Testing suite

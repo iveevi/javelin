@@ -299,6 +299,7 @@ struct native_t : tagged {
 // Type system infrastructure for arithmetic //
 ///////////////////////////////////////////////
 
+// TODO: separate header...
 template <typename T>
 concept builtin_arithmetic = builtin <T>
 		&& builtin <typename T::arithmetic_type>

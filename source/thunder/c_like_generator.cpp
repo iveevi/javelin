@@ -119,6 +119,12 @@ static std::optional <std::string> generate_global_reference(const std::vector <
 		return "gl_MeshVerticesEXT";
 	case glsl_PrimitiveTriangleIndicesEXT:
 		return "gl_PrimitiveTriangleIndicesEXT";
+	case glsl_InstanceCustomIndexEXT:
+		return "gl_InstanceCustomIndexEXT";
+	case glsl_PrimitiveID:
+		return "gl_PrimitiveID";
+	case glsl_ObjectToWorldEXT:
+		return "gl_ObjectToWorldEXT";
 
 	default:
 		break;

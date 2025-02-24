@@ -11,7 +11,7 @@ set(IMGUI_SOURCES
 	${ORIGIN}/thirdparty/imgui/backends/imgui_impl_vulkan.cpp)
 
 # Javelin graphics stack
-add_library(common-gfx STATIC
+add_library(common STATIC
 	${IMGUI_SOURCES}
 	acceleration_structure.cpp
 	camera_controller.cpp
@@ -26,14 +26,14 @@ add_library(common-gfx STATIC
 	vulkan_resources.cpp
 	vulkan_triangle_mesh.cpp)
 
-target_compile_options(common-gfx PRIVATE
+target_compile_options(common PRIVATE
 	${STATIC_ANALYSIS}
 	$<$<CONFIG:Debug>:-Wall;-Werror;${COVERAGE_FLAGS}>)
 
-target_link_libraries(common-gfx PRIVATE
+target_link_libraries(common PRIVATE
 	fmt::fmt
 	${VULKAN_LIBRARY_SET}
 	$<$<CONFIG:Debug>:${COVERAGE_FLAGS}>)
 
-target_compile_definitions(common-gfx PRIVATE
+target_compile_definitions(common PRIVATE
 	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)

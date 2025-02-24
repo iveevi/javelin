@@ -16,11 +16,22 @@ struct ViewFrame {
 	}
 
 	auto layout() {
-		return layout_from("Frame",
+		return layout_from("Rayframe",
 			verbatim_field(origin),
 			verbatim_field(lower_left),
 			verbatim_field(horizontal),
 			verbatim_field(vertical));
+	}
+};
+
+struct Reference {
+	u64 vertices;
+	u64 triangles;
+
+	auto layout() {
+		return layout_from("Reference",
+			verbatim_field(vertices),
+			verbatim_field(triangles));
 	}
 };
 

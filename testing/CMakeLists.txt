@@ -15,7 +15,7 @@ set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)
 
 target_link_libraries(test
 	GTest::gtest_main
-	javelin-ire
+	javelin
 	glfw
 	gccjit)
 

@@ -6,7 +6,7 @@
 #include "../tagged.hpp"
 #include "../util.hpp"
 #include "../vector.hpp"
-#include "../swizzle_expansion.hpp"
+#include "../matrix.hpp"
 
 namespace jvl::ire {
 
@@ -112,6 +112,31 @@ struct __glsl_intrinsic_variable_t <vec <T, 4>, code> : basic_swizzle_base <T, _
 	}
 };
 
+// Implementation for matrix types
+template <native T, size_t N, size_t M, thunder::QualifierKind code>
+struct __glsl_intrinsic_variable_t <mat <T, N, M>, code> {
+	using arithmetic_type = mat <T, N, M>;
+
+	__glsl_intrinsic_variable_t() = default;
+
+	cache_index_t synthesize() const {
+		auto &em = Emitter::active;
+
+		auto v = arithmetic_type();
+		auto type = type_info_generator <arithmetic_type> (v)
+			.synthesize()
+			.concrete();
+
+		auto qualifier = em.emit_qualifier(type, -1, code);
+
+		return cache_index_t::from(qualifier);
+	}
+
+	operator arithmetic_type() const {
+		return synthesize();
+	}
+};
+
 // Implementation for array types
 template <generic T, thunder::QualifierKind code>
 struct __glsl_intrinsic_variable_t <unsized_array <T>, code> {
@@ -163,6 +188,9 @@ using __glsl_vec4 = __glsl_intrinsic_variable_t <vec <float, 4>, code>;
 template <thunder::QualifierKind code>
 using __glsl_uvec3 = __glsl_intrinsic_variable_t <vec <uint32_t, 3>, code>;
 
+template <thunder::QualifierKind code>
+using __glsl_mat4 = __glsl_intrinsic_variable_t <mat <float, 4, 4>, code>;
+
 template <generic T, thunder::QualifierKind code>
 using __glsl_array = __glsl_intrinsic_variable_t <unsized_array <T>, code>;
 
@@ -184,6 +212,9 @@ using gl_WorkGroupSize_t	= __glsl_uvec3 <thunder::glsl_WorkGroupSize>;
 using gl_SubgroupInvocationID_t	= __glsl_uint <thunder::glsl_SubgroupInvocationID>;
 using gl_LaunchIDEXT_t		= __glsl_uvec3 <thunder::glsl_LaunchIDEXT>;
 using gl_LaunchSizeEXT_t	= __glsl_uvec3 <thunder::glsl_LaunchSizeEXT>;
+using gl_InstanceCustomIndexEXT_t = __glsl_uint <thunder::glsl_InstanceCustomIndexEXT>;
+using gl_PrimitiveID_t		= __glsl_uint <thunder::glsl_PrimitiveID>;
+using gl_ObjectToWorldEXT_t		= __glsl_mat4 <thunder::glsl_ObjectToWorldEXT>;
 
 static const gl_FragCoord_t		gl_FragCoord;
 static const gl_FragDept_t		gl_FragDepth;
@@ -197,8 +228,13 @@ static const gl_LocalInvocationIndex_t	gl_LocalInvocationIndex;
 static const gl_WorkGroupID_t		gl_WorkGroupID;
 static const gl_WorkGroupSize_t		gl_WorkGroupSize;
 static const gl_SubgroupInvocationID_t	gl_SubgroupInvocationID;
+// TODO: move to mesh.hpp
 static const gl_LaunchIDEXT_t		gl_LaunchIDEXT;
 static const gl_LaunchSizeEXT_t		gl_LaunchSizeEXT;
+// TODO: move to raytrace.hpp
+static const gl_InstanceCustomIndexEXT_t gl_InstanceCustomIndexEXT;
+static const gl_PrimitiveID_t gl_PrimitiveID;
+static const gl_ObjectToWorldEXT_t gl_ObjectToWorldEXT;
 
 // Mutable intrinsics
 using gl_Position_t = __glsl_vec4 <thunder::glsl_Position>;

@@ -12,22 +12,7 @@ template <typename T, size_t N, size_t M>
 struct mat_base : tagged {
 	T data[N][M];
 
-	static constexpr thunder::PrimitiveType primitive() {
-		if constexpr (std::same_as <T, float>) {
-			switch (N) {
-			case 2:
-				return M == 2 ? thunder::mat2 : thunder::bad;
-			case 3:
-				return M == 3 ? thunder::mat3 : thunder::bad;
-			case 4:
-				return M == 4 ? thunder::mat4 : thunder::bad;
-			default:
-				break;
-			}
-		}
-
-		return thunder::bad;
-	}
+	using tagged::tagged;
 
 	// TODO: operator[]
 	cache_index_t synthesize() const {
@@ -56,16 +41,53 @@ struct mat_base : tagged {
 
 		return this->ref;
 	}
+
+	static constexpr thunder::PrimitiveType primitive() {
+		if constexpr (std::same_as <T, float>) {
+			switch (N) {
+			case 2:
+				return M == 2 ? thunder::mat2 : thunder::bad;
+			case 3:
+				return M == 3 ? thunder::mat3 : thunder::bad;
+			case 4:
+				return M == 4 ? thunder::mat4 : thunder::bad;
+			default:
+				break;
+			}
+		}
+
+		return thunder::bad;
+	}
 };
 
 template <typename T, size_t N, size_t M>
 struct mat : mat_base <T, N, M> {
 	using mat_base <T, N, M> ::mat_base;
+	
+	using native_type = T;
+	using arithmetic_type = mat <T, N, M>;
 
-	friend vec <T, N> operator*(const mat &m, const vec <T, M> &v) {
-		return operation_from_args <vec <T, N>> (thunder::multiplication, m, v);
-	}
+	using result_type = vec <T, M>;
+	using input_type = vec <T, N>;
 };
+
+// Matrix concept
+template <typename T>
+struct is_matrix_base : std::false_type {};
+
+template <native T, size_t N, size_t M>
+struct is_matrix_base <mat <T, N, M>> : std::true_type {};
+
+template <typename T>
+concept matrix_arithmetic = is_matrix_base <typename T::arithmetic_type> ::value;
+
+// Operations with matrices
+template <matrix_arithmetic T>
+auto operator*(const T &m, const typename T::arithmetic_type::input_type &v)
+{
+	using result = typename T::arithmetic_type::result_type;
+	return operation_from_args <result> (thunder::multiplication, m, v);
+}
 
 // Override type generation
 template <native T, size_t N, size_t M>
