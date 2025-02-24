@@ -46,6 +46,8 @@ struct native_t : tagged {
 			return thunder::i32;
 		if constexpr (std::same_as <T, uint32_t>)
 			return thunder::u32;
+		if constexpr (std::same_as <T, uint64_t>)
+			return thunder::u64;
 		if constexpr (std::same_as <T, float>)
 			return thunder::f32;
 		return thunder::bad;

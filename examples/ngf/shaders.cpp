@@ -19,7 +19,7 @@ auto leaky_relu(const T &v)
 	return max(v, 0.01 * v);
 }
 
-auto eval = procedure("eval") << [](const vec2 &uv) -> vec3
+Procedure <vec3, vec2> eval = procedure("eval") << [](const vec2 &uv)
 {
 	task_payload <Payload> payload;
 

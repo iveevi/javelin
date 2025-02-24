@@ -67,7 +67,6 @@ constexpr PrimitiveType swizzle_type_of(PrimitiveType primitive, SwizzleCode cod
 constexpr bool intrinsic_kind(QualifierKind kind)
 {
 	switch (kind) {
-	case uint64:
 	case acceleration_structure:
 		return true;
 	default:

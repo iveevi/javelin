@@ -39,7 +39,8 @@ Procedure <void> blit = procedure <void> ("main") << []()
 
 Procedure <void> ray_generation = procedure <void> ("main") << []()
 {
-	ray_payload <vec3> payload(0);
+	ray_payload <vec3> value(0);
+	ray_payload <vec3> position(1);
 
 	accelerationStructureEXT tlas(0);
 
@@ -59,27 +60,29 @@ Procedure <void> ray_generation = procedure <void> ("main") << []()
 		ray, 1e10,
 		0);
 
-	vec4 color = vec4(payload, 1.0);
+	vec4 color = vec4(value, 1.0);
 
 	imageStore(image, ivec2(gl_LaunchIDEXT.xy()), color);
 };
 
 Procedure <void> ray_closest_hit = procedure <void> ("main") << []()
 {
-	// TODO: scalar buffers...
-	// TODO: buffer references...
-	ray_payload_in <vec3> payload(0);
+	using Triangles = scalar <buffer_reference <unsized_array <ivec3>>>;
+	using Positions = scalar <buffer_reference <unsized_array <vec3>>>;
+
+	ray_payload_in <vec3> value(0);
+	ray_payload_in <vec3> position(1);
+
+	buffer <u64> references(2);
 
 	hit_attribute <vec2> barycentrics;
 
-	// TODO: debug printf and strings...
-
-	payload = vec3(1.0f - barycentrics.x - barycentrics.y, barycentrics.x, barycentrics.y);
+	value = vec3(1.0f - barycentrics.x - barycentrics.y, barycentrics.x, barycentrics.y);
 };
 
 Procedure <void> ray_miss = procedure <void> ("main") << []()
 {
-	ray_payload_in <vec3> payload(0);
+	ray_payload_in <vec3> value(0);
 
-	payload = vec3(1);
+	value = vec3(1);
 };

@@ -198,6 +198,7 @@ struct Application : CameraApplication {
 		std::string local = std::filesystem::path(__FILE__).parent_path();
 		task.graphviz(local + "/task.dot");
 		mesh.graphviz(local + "/mesh.dot");
+		eval.graphviz(local + "/eval.dot");
 		fragment.graphviz(local + "/fragment.dot");
 
 		std::string task_shader = link(task).generate_glsl();

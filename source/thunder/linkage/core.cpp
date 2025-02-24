@@ -146,10 +146,6 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 		globals.shared[id] = bf;
 	} break;
 
-	case uint64:
-		extensions.insert("GL_EXT_shader_explicit_arithmetic_types_int64");
-		break;
-
 	case writeonly:
 	case readonly:
 	case scalar:
@@ -308,6 +304,10 @@ void LinkageUnit::process_function_intrinsic(Function &function, size_t index, I
 	case thunder::glsl_subgroupShuffle:
 		extensions.insert("GL_KHR_shader_subgroup_shuffle");
 		break;
+
+	case thunder::cast_to_uint64:
+		extensions.insert("GL_EXT_shader_explicit_arithmetic_types_int64");
+		break;
 	
 	default:
 		break;
@@ -389,6 +389,13 @@ std::set <Index> LinkageUnit::process_function(const Function &ftn)
 		// Checking for special intrinsics
 		if (atom.is <Intrinsic> ())
 			process_function_intrinsic(function, fidx, bidx, atom.as <Intrinsic> ());
+
+		// Extensions for special primitives
+		if (atom.is <TypeInformation> ()) {
+			auto &ti = atom.as <TypeInformation> ();
+			if (ti.item == u64)
+				extensions.insert("GL_EXT_shader_explicit_arithmetic_types_int64");
+		}
 
 		// Checking for structs used by the function
 		auto qt = function.types[bidx];

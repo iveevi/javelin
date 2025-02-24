@@ -97,31 +97,18 @@ struct array : public array_base <T> {
 	using array_base <T> ::array_base;
 	using element = typename array_base <T> ::element;
 
-	template <integral_native U>
-	element operator[](const U &index) const {
-		MODULE(array);
-
-		JVL_ASSERT(this->cached(), "arrays must be cached by the time of use");
-		if (this->length >= 0 && (index < 0 || index >= this->length))
-			JVL_WARNING("index (={}) is out of bounds (size={})", index, this->length);
-
-		auto &em = Emitter::active;
-		native_t <int32_t> location(index);
-		thunder::Index l = location.synthesize().id;
-		thunder::Index c = em.emit_array_access(this->ref.id, l);
-		return cache_index_t::from(c);
-	}
-
 	template <integral_arithmetic U>
 	element operator[](const U &index) const
-	requires (builtin <T> || native <T>) && (!native <U>) {
+	requires builtin <T> {
 		MODULE(array);
 
 		JVL_ASSERT(this->cached(), "arrays must be cached by the time of use");
+
 		auto &em = Emitter::active;
-		thunder::Index l = index.synthesize().id;
-		thunder::Index c = em.emit_array_access(this->ref.id, l);
-		return cache_index_t::from(c);
+		auto idx = underlying(index);
+		auto loc = idx.synthesize().id;
+		auto access = em.emit_array_access(this->ref.id, loc);
+		return cache_index_t::from(access);
 	}
 
 	template <integral_arithmetic U>
@@ -132,11 +119,12 @@ struct array : public array_base <T> {
 		JVL_ASSERT(this->cached(), "arrays must be cached by the time of use");
 
 		auto &em = Emitter::active;
-		auto l = index.synthesize().id;
-		auto c = em.emit_array_access(this->ref.id, l);
+		auto idx = underlying(index);
+		auto loc = idx.synthesize().id;
+		auto access = em.emit_array_access(this->ref.id, loc);
 		
 		element returned;
-		returned.layout().link(c);
+		returned.layout().link(access);
 		return returned;
 	}
 };

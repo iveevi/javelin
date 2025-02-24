@@ -109,7 +109,7 @@ auto underlying_aggregate(const std::vector <Function> &functions,
 
 	JVL_ASSERT(map.contains(original.underlying),
 		"aggregate structure corresponding to "
-		"buffer reference is missing");
+		"@{} is missing", original.underlying);
 
 	auto &idx = map.at(original.underlying);
 

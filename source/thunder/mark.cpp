@@ -81,7 +81,7 @@ bool Buffer::naturally_forced(const Atom &atom)
 	variant_case(Atom, Qualifier):
 	{
 		auto &kind = atom.as <Qualifier> ().kind;
-		if (kind == uint64 || kind == acceleration_structure)
+		if (kind == acceleration_structure)
 			return true;
 	} break;
 

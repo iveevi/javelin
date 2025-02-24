@@ -43,10 +43,6 @@ thunder::Index translate_primitive(uint64_t i)
 {
 	auto &em = Emitter::active;
 
-	// TODO: folded scopes for visualization (debug only...)
-
-	em.emit_qualifier(-1, -1, thunder::QualifierKind::uint64);
-
 	auto high = translate_primitive(uint32_t(i >> 32));
 	auto hlist = em.emit_list(high);
 	auto h64 = em.emit_intrinsic(hlist, thunder::IntrinsicOperation::cast_to_uint64);

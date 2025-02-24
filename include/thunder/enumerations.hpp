@@ -145,8 +145,6 @@ enum QualifierKind : int8_t {
 	image_2d,
 	image_3d,
 
-	uint64,
-
 	// Mesh shaders
 	task_payload,
 
@@ -234,8 +232,6 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"image1D",
 	"image2D",
 	"image3D",
-
-	"uint64",
 
 	"task payload",
 

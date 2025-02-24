@@ -47,16 +47,29 @@ struct Data {
 // 	but solid_t aggregates must take only concrete_generics
 //      and soft_t aggregates can take anything, defaults to solid_t is all concrete
 
+struct Reference {
+	u64 triangles;
+	u64 vertices;
+
+	auto layout() {
+		return layout_from("Reference",
+			verbatim_field(triangles),
+			verbatim_field(vertices));
+	}
+};
+
 auto ftn = procedure <void> ("main") << []()
 {
 	writeonly <scalar <buffer <unsized_array <vec3>>>> bf(0);
+
+	buffer <unsized_array <Reference>> references(1);
 
 	// bf[0] = vec3(10);
 
 	// shared <array <vec4>> arr(16);
 	// arr[0] = vec4(0);
 
-	u64 x = 0x12;
+	u64 x = references[0].vertices;
 	auto br1 = scalar <buffer_reference <unsized_array <vec3>>> (x);
 	bf[1] = br1[12];
 	
@@ -65,6 +78,7 @@ auto ftn = procedure <void> ("main") << []()
 };
 
 // TODO: shadertoy example
+// TODO: optimization using graphviz for visualization...
 
 int main()
 {
