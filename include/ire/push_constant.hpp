@@ -5,11 +5,13 @@
 namespace jvl::ire {
 
 // Bindless versions, for push constants
+template <typename T>
+using push_constant_base = qualified_wrapper <T, thunder::push_constant, nullptr>;
+
 template <generic T>
-struct push_constant : qualified_wrapper <T, thunder::push_constant> {
+struct push_constant : push_constant_base <T> {
 	template <typename ... Args>
-	push_constant(size_t offset = 0, const Args &... args)
-		: qualified_wrapper <T, thunder::push_constant> (offset, args...) {}
+	push_constant(size_t offset = 0, const Args &... args) : push_constant_base <T> (offset, args...) {}
 
 	push_constant(const push_constant &) = default;
 

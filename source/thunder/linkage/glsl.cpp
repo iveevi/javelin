@@ -186,23 +186,48 @@ void generate_layout_io(std::string &result,
 void generate_push_constant(std::string &result,
 			    const generator_list &generators,
 			    const std::vector <Function> &functions,
+			    const std::vector <TypeMap> &types,
+			    const std::vector <Aggregate> &aggregates,
 			    push_constant_info pc)
 {
 	if (pc.index == -1)
 		return;
 
-	auto &types = functions[pc.function].types;
+	auto &map = types[pc.function];
+	auto &function = functions[pc.function];
 	auto &generator = generators[pc.function];
 
-	auto ts = generator.type_to_string(types[pc.index]);
-
-	result += "layout (push_constant) uniform block\n";
+	result += "layout (push_constant) uniform PushConstant\n";
 	result += "{\n";
-	if (pc.offset == 0)
-		result += fmt::format("    {} _pc;\n", ts.pre + ts.post);
-	else
-		result += fmt::format("    layout (offset = {}) {} _pc;\n", pc.offset, ts.pre + ts.post);
-	result += "};\n\n";
+	
+	auto &atom = function.atoms[pc.index];
+	JVL_ASSERT(atom.is <Qualifier> (), "expected buffer atom to be a qualifier:\n{}", atom);
+
+	auto &original = atom.as <Qualifier> ();
+
+	// TODO: DUMP_ON
+	if (!map.contains(original.underlying))
+		function.dump();
+
+	JVL_ASSERT(map.contains(original.underlying),
+		"aggregate structure (@{}) corresponding to "
+		"buffer is missing", original.underlying);
+
+	auto &idx = map.at(original.underlying);
+	auto &aggregate = aggregates[idx];
+
+	// Replace with fields
+	for (size_t i = 0; i < aggregate.fields.size(); i++) {
+		auto &field = aggregate.fields[i];
+		auto ts = generator.type_to_string(field);
+	
+		if (i == 0 && pc.offset != 0)
+			result += fmt::format("    layout (offset = {}) {} {}{};\n", pc.offset, ts.pre, field.name, ts.post);
+		else
+			result += fmt::format("    {} {}{};\n", ts.pre, field.name, ts.post);
+	}
+
+	result += "} _pc;\n\n";
 }
 
 void generate_uniforms(std::string &result,
@@ -256,9 +281,13 @@ void generate_buffers(std::string &result,
 
 		auto &original = atom.as <Qualifier> ();
 
+		// TODO: DUMP_ON
+		if (!map.contains(original.underlying))
+			function.dump();
+
 		JVL_ASSERT(map.contains(original.underlying),
-			"aggregate structure corresponding to "
-			"buffer reference is missing");
+			"aggregate structure (@{}) corresponding to "
+			"buffer is missing", original.underlying);
 
 		auto &idx = map.at(original.underlying);
 		auto &aggregate = aggregates[idx];
@@ -471,7 +500,7 @@ std::string LinkageUnit::generate_glsl() const
 	generate_layout_io(result, generators, functions, "out", globals.outputs);
 
 	// Globals: push constants
-	generate_push_constant(result, generators, functions, globals.push_constant);
+	generate_push_constant(result, generators, functions, types, aggregates, globals.push_constant);
 
 	// Globals: uniform variables and buffers
 	generate_uniforms(result, generators, functions, globals.uniforms);

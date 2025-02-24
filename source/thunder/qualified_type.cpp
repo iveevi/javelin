@@ -295,20 +295,24 @@ bool QualifiedType::is_concrete() const
         return pd && pd->is <Index> ();
 }
 
-PlainDataType QualifiedType::remove_qualifiers() const
+QualifiedType QualifiedType::remove_qualifiers() const
 {
         switch (index()) {
-        variant_case(QualifiedType, PlainDataType):
-                return as <PlainDataType> ();
+                
         variant_case(QualifiedType, StructFieldType):
                 return as <StructFieldType> ().base();
+        
         variant_case(QualifiedType, BufferReferenceType):
-                return as <BufferReferenceType> ();
+        {
+                auto &brt = as <BufferReferenceType> ();
+                return static_cast <PlainDataType> (brt);
+        }
+
         default:
                 break;
         }
-        
-        JVL_ABORT("failed to remove qualifiers from {}", to_string());
+
+        return *this;
 }
 
 QualifiedType QualifiedType::primitive(PrimitiveType primitive)

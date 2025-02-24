@@ -88,6 +88,115 @@ QualifiedType Buffer::semalz_qualifier(const Qualifier &qualifier, Index i)
 	return base;
 }
 
+QualifiedType Buffer::semalz_construct(const Construct &constructor, Index i)
+{
+	// Always transfer name hints
+	transfer_decorations(i, constructor.type);
+
+	QualifiedType qt = semalz(constructor.type);
+	if (qt.is <PlainDataType> ())
+		return qt;
+
+	if (constructor.mode == transient) {
+		// Reduce if its a parameter
+		if (auto in = qt.get <InArgType> ())
+			return static_cast <PlainDataType> (*in);
+		if (auto out = qt.get <OutArgType> ())
+			return static_cast <PlainDataType> (*out);
+		if (auto inout = qt.get <InOutArgType> ())
+			return static_cast <PlainDataType> (*inout);
+
+		// Or other special kind of resource
+		if (auto image = qt.get <ImageType> ())
+			return static_cast <ImageType> (*image);
+		if (auto sampler = qt.get <SamplerType> ())
+			return static_cast <SamplerType> (*sampler);
+	}
+
+	return QualifiedType::concrete(constructor.type);
+}
+
+QualifiedType Buffer::semalz_load(const Load &load, Index i)
+{
+	QualifiedType qt = semalz(load.src);
+	if (load.idx == -1)
+		return qt;
+
+	switch (qt.index()) {
+
+	variant_case(QualifiedType, PlainDataType):
+	{
+		auto &pd = qt.as <PlainDataType> ();
+		if (!pd.is <Index> ())
+			dump();
+		JVL_ASSERT(pd.is <Index> (), "cannot load from primitive type: {}", qt);
+
+		Index concrete = pd.as <Index> ();
+
+		auto &base = types[concrete];
+		if (base.is <BufferReferenceType> ()) {
+			auto &brt = base.as <BufferReferenceType> ();
+			concrete = static_cast <PlainDataType> (brt).as <Index> ();
+		}
+
+		Index left = load.idx;
+		while (left--) {
+			JVL_BUFFER_DUMP_ON_ASSERT((concrete != -1),
+				"load attempting to access "
+				"out of bounds field");
+			auto &atom = atoms[concrete];
+
+			JVL_BUFFER_DUMP_ON_ASSERT(atom.is <TypeInformation> (),
+				"expected type information, "
+				"instead got:\n{}", atom);
+			auto &ti = atom.as <TypeInformation> ();
+			concrete = ti.next;
+		}
+
+		return types[concrete].remove_qualifiers();
+	}
+
+	default:
+		break;
+	}
+
+	JVL_BUFFER_DUMP_AND_ABORT("unfinished implementation for load: {}", load);
+}
+
+QualifiedType Buffer::semalz_access(const ArrayAccess &access, Index i)
+{
+	QualifiedType qt = semalz(access.src);
+
+	while (true) {
+		if (auto pd = qt.get <PlainDataType> ()) {
+			if (pd->is <Index> ())
+				qt = semalz(pd->as <Index> ());
+			else
+				JVL_BUFFER_DUMP_AND_ABORT("unexpected path, is the base type an array?");
+		} else if (auto sft = qt.get <StructFieldType> ()) {
+			qt = sft->base();
+		} else if (auto brt = qt.get <BufferReferenceType> ()) {
+			qt = qt.remove_qualifiers();
+		} else {
+			break;
+		}
+	}
+
+	if (!qt.is <ArrayType> ()) {
+		JVL_BUFFER_DUMP_AND_ABORT("array accesses must operate "
+			"on array types, but source is of type {}:\n{}", qt, atoms[i]);
+	}
+
+	// Check for possible name hints
+	auto base = qt.as <ArrayType> ().base();
+
+	auto concrete = base.get <Index> ();
+	if (concrete && decorations.used.contains(*concrete))
+		transfer_decorations(i, *concrete);
+
+	return base;
+}
+
 QualifiedType Buffer::semalz(Index i)
 {
 	// Cached results
@@ -129,34 +238,7 @@ QualifiedType Buffer::semalz(Index i)
 		return semalz_qualifier(atom.as <Qualifier> (), i);
 
 	case Atom::type_index <Construct> ():
-	{
-		auto &constructor = atom.as <Construct> ();
-
-		// Always transfer name hints
-		transfer_decorations(i, constructor.type);
-
-		QualifiedType qt = semalz(constructor.type);
-		if (qt.is <PlainDataType> ())
-			return qt;
-
-		if (constructor.mode == transient) {
-			// Reduce if its a parameter
-			if (auto in = qt.get <InArgType> ())
-				return static_cast <PlainDataType> (*in);
-			if (auto out = qt.get <OutArgType> ())
-				return static_cast <PlainDataType> (*out);
-			if (auto inout = qt.get <InOutArgType> ())
-				return static_cast <PlainDataType> (*inout);
-
-			// Or other special kind of resource
-			if (auto image = qt.get <ImageType> ())
-				return static_cast <ImageType> (*image);
-			if (auto sampler = qt.get <SamplerType> ())
-				return static_cast <SamplerType> (*sampler);
-		}
-
-		return QualifiedType::concrete(constructor.type);
-	}
+		return semalz_construct(atom.as <Construct> (), i);
 
 	case Atom::type_index <Call> ():
 	{
@@ -198,10 +280,8 @@ QualifiedType Buffer::semalz(Index i)
 		auto args = expand_list_types(intrinsic.args);
 		auto result = lookup_intrinsic_overload(intrinsic.opn, args);
 
-		// TODO: assert_and_dump macro
-		if (!result)
-			dump();
-		JVL_ASSERT(result, "failed to find overload for intrinsic: {} (@{})", atom, i);
+		JVL_BUFFER_DUMP_ON_ASSERT(result, "failed to find overload for intrinsic: {} (@{})", atom, i);
+
 		return result;
 	}
 
@@ -210,104 +290,27 @@ QualifiedType Buffer::semalz(Index i)
 		auto &swz = atom.as <Swizzle> ();
 		
 		QualifiedType decl = semalz(swz.src);
-		PlainDataType plain = decl.remove_qualifiers();
+		QualifiedType plain = decl.remove_qualifiers();
 
-		if (!plain.is <PrimitiveType> ())
+		if (!plain.is_primitive())
 			dump();
 
-		JVL_ASSERT(plain.is <PrimitiveType> (),
+		JVL_ASSERT(plain.is_primitive(),
 			"swizzle takes vector types, "
 			"but operand has type {}:\n{}",
 			decl.to_string(), atoms[swz.src]);
 
-		PrimitiveType swizzled = swizzle_type_of(plain.as <PrimitiveType> (), swz.code);
+		PrimitiveType original = plain.as <PlainDataType> ().as <PrimitiveType> ();
+		PrimitiveType swizzled = swizzle_type_of(original, swz.code);
 
-		return QualifiedType::primitive(swizzled);
+		return PlainDataType(swizzled);
 	}
 
 	case Atom::type_index <Load> ():
-	{
-		auto &load = atom.as <Load> ();
-
-		QualifiedType qt = semalz(load.src);
-		if (load.idx == -1)
-			return qt;
-
-		// TODO: method...
-		switch (qt.index()) {
-
-		variant_case(QualifiedType, PlainDataType):
-		{
-			auto &pd = qt.as <PlainDataType> ();
-			if (!pd.is <Index> ())
-				dump();
-			JVL_ASSERT(pd.is <Index> (), "cannot load from primitive type: {}", qt);
-
-			Index concrete = pd.as <Index> ();
-
-			auto &base = types[concrete];
-			if (base.is <BufferReferenceType> ()) {
-				auto &brt = base.as <BufferReferenceType> ();
-				concrete = static_cast <PlainDataType> (brt).as <Index> ();
-			}
-
-			Index left = load.idx;
-			while (left--) {
-				JVL_BUFFER_DUMP_ON_ASSERT((concrete != -1),
-					"load attempting to access "
-					"out of bounds field");
-				auto &atom = atoms[concrete];
-
-				JVL_BUFFER_DUMP_ON_ASSERT(atom.is <TypeInformation> (),
-					"expected type information, "
-					"instead got:\n{}", atom);
-				auto &ti = atom.as <TypeInformation> ();
-				concrete = ti.next;
-			}
-
-			return types[concrete].remove_qualifiers();
-		}
-
-		}
-
-		dump();
-
-		JVL_ABORT("unfinished implementation for load: {}", atom);
-	}
+		return semalz_load(atom.as <Load> (), i);
 
 	case Atom::type_index <ArrayAccess> ():
-	{
-		auto &access = atom.as <ArrayAccess> ();
-		QualifiedType qt = semalz(access.src);
-
-		auto pd = qt.get <PlainDataType> ();
-		while (pd) {
-			if (pd->is <Index> ()) {
-				qt = semalz(pd->as <Index> ());
-				pd = qt.get <PlainDataType> ();
-			} else {
-				dump();
-
-				JVL_ABORT("unexpected path, is the type an array?");
-			}
-		}
-
-		if (!qt.is <ArrayType> ()) {
-			dump();
-
-			JVL_ABORT("array accesses must operate on array "
-				"types, but source is of type {}", qt);
-		}
-
-		// Check for possible name hints
-		auto base = qt.as <ArrayType> ().base();
-
-		auto concrete = base.get <Index> ();
-		if (concrete && decorations.used.contains(*concrete))
-			transfer_decorations(i, *concrete);
-
-		return base;
-	}
+		return semalz_access(atom.as <ArrayAccess> (), i);
 
 	case Atom::type_index <Returns> ():
 	{

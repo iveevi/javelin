@@ -16,6 +16,9 @@ class Buffer {
 
 	// Semantic analysis for atoms
 	QualifiedType semalz_qualifier(const Qualifier &, Index);
+	QualifiedType semalz_construct(const Construct &, Index);
+	QualifiedType semalz_load(const Load &, Index);
+	QualifiedType semalz_access(const ArrayAccess &, Index);
 	QualifiedType semalz(Index);
 
 	// Populate the synthesized set
@@ -59,12 +62,16 @@ public:
 };
 
 #define JVL_BUFFER_DUMP_ON_ASSERT(cond, ...)	\
-	if (!cond)				\
-		dump();				\
-	JVL_ASSERT(cond, __VA_ARGS__)
+	do {					\
+		if (!cond)			\
+			dump();			\
+		JVL_ASSERT(cond, __VA_ARGS__);	\
+	} while (0)
 
 #define JVL_BUFFER_DUMP_AND_ABORT(...)		\
-	dump();					\
-	JVL_ABORT(__VA_ARGS__)
+	do {					\
+		dump();				\
+		JVL_ABORT(__VA_ARGS__);		\
+	} while(0)
 
 } // namespace jvl::thunder

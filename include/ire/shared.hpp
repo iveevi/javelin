@@ -1,20 +1,47 @@
 #pragma once
 
-#include "qualified_wrapper.hpp"
+#include "concepts.hpp"
 
 namespace jvl::ire {
 
-// Shared variables need some unique tracking info (takes over the binding)
+// TODO: should be concrete_generic (vs. weak_generic involving unsized arrays)
 template <generic T>
-struct shared : qualified_wrapper <T, thunder::shared> {
-	static thunder::Index id() {
+struct shared : T {
+	// Unique index for each shared variable
+	static thunder::Index counter() {
 		static thunder::Index id = 0;
 		return id++;
-		// TODO: callbacks on scopes...
 	}
 
+	// Builtin implementation...
 	template <typename ... Args>
-	shared(const Args &...args) : qualified_wrapper <T, thunder::shared> (id(), args...) {}
+	shared(const Args &...args)
+	requires builtin <T> : T(args...) {
+		auto &em = Emitter::active;
+
+		auto type = type_info_generator <T> (*this)
+			.synthesize()
+			.concrete();
+
+		auto qual = em.emit_qualifier(type, counter(), thunder::shared);
+		auto ctor = em.emit_construct(qual, -1, thunder::transient);
+
+		this->ref = cache_index_t::from(ctor);
+	}
+
+	// Aggregate implementation...
+	template <typename ... Args>
+	shared(const Args &...args)
+	requires aggregate <T> : T(args...) {
+		auto &em = Emitter::active;
+
+		auto layout = this->layout();
+		auto type = layout.generate_type().concrete();
+		auto qual = em.emit_qualifier(type, counter(), thunder::shared);
+		auto ctor = em.emit_construct(qual, -1, thunder::transient);
+
+		layout.link(ctor);
+	}
 };
 
 } // namespace jvl::ire

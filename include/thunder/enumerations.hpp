@@ -207,8 +207,8 @@ static constexpr const char *tbl_qualifier_kind[] = {
 
 	"shared",
 
-	"write_only",
-	"read_only",
+	"writeonly",
+	"readonly",
 	"scalar",
 
 	"isampler1D",

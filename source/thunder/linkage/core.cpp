@@ -154,16 +154,29 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 	case readonly:
 	case scalar:
 	{
+		// Manage the extensions
+		auto &kind = qualifier.kind;
+		if (kind == scalar)
+			extensions.insert("GL_EXT_scalar_block_layout");
+
+		// Find base qualifier (i.e. image or buffer)
+		auto lower = function.atoms[bidx];
+
+		while (lower.is <Qualifier> ()) {
+			auto &qt = lower.as <Qualifier> ();
+
+			// Acceptable chained qualifiers
+			if (qt.kind == writeonly || qt.kind == readonly || qt.kind == scalar)
+				lower = function.atoms[qt.underlying];
+			else
+				break;
+		}
+
+		// Compatibility checks for qualifiers and targets
 		static const std::set <QualifierKind> image_compatible {
 			writeonly,
 			readonly,
 		};
-
-		auto &kind = qualifier.kind;
-		auto &lower = function.atoms[qualifier.underlying];
-
-		if (kind == scalar)
-			extensions.insert("GL_EXT_scalar_block_layout");
 
 		if (auto decl = lower.get <Qualifier> ()) {
 			if (image_compatible.contains(kind) && image_kind(decl->kind)) {

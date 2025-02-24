@@ -43,7 +43,7 @@ Procedure <void> ray_generation = procedure <void> ("main") << []()
 
 	accelerationStructureEXT tlas(0);
 
-	write_only <image2D> image(1);
+	writeonly <image2D> image(1);
 
 	push_constant <ViewFrame> rayframe;
 	

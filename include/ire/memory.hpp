@@ -19,13 +19,13 @@ struct restrict : T {
 };
 
 template <generic T>
-struct readonly : T {
-	static_assert(false, "read_only is not supported for given type");
+struct writeonly : T {
+	static_assert(false, "writeonly is not supported for given type");
 };
 
 template <generic T>
-struct writeonly : T {
-	static_assert(false, "write_only is not supported for given type");
+struct readonly : T {
+	static_assert(false, "readonly is not supported for given type");
 };
 
 template <generic T>

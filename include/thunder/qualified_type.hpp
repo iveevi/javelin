@@ -150,7 +150,7 @@ struct QualifiedType : qualified_type_base {
 	bool is_primitive() const;
 	bool is_concrete() const;
 
-	PlainDataType remove_qualifiers() const;
+	QualifiedType remove_qualifiers() const;
 
 	// TODO: remove these...
 	static QualifiedType primitive(PrimitiveType);

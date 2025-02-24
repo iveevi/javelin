@@ -49,11 +49,13 @@ struct Data {
 
 auto ftn = procedure <void> ("main") << []()
 {
-	// writeonly <scalar <buffer <Data>>> bf(0);
-	// scalar <buffer <Data>> bf(0);
-	scalar <buffer <Data>> bf(0);
+	// TODO: buffer_ext <T, scalar, writeonly...> with template <generic> typenames...
+	// writeonly <scalar <buffer <unsized_array <vec3>>>> bf(0);
 
-	bf.data[0] = bf.origin;
+	// bf[0] = vec3(10);
+
+	shared <array <vec4>> arr(16);
+	arr[0] = vec4(0);
 
 	// // TODO: use constructor...
 	// auto tmp1 = buffer_reference <vec2> ();
