@@ -265,10 +265,10 @@ std::string Call::to_string() const
 {
         std::string result;
 
-        TrackedBuffer *cbl = TrackedBuffer::search_tracked(cid);
+        auto &buffer = TrackedBuffer::cache_load(cid);
        
         result += header("CALL", fmt::color::dark_magenta);
-        result += fmt::format("\n          :: callable: ${}", cbl->name);
+        result += fmt::format("\n          :: callable: ${}", buffer.name);
         if (args != -1)
                 result += fmt::format("\n          :: args: %{}", args);
 

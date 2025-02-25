@@ -140,8 +140,8 @@ std::string instruction_record(const Atom &atom)
 	variant_case(Atom, Call):
 	{
 		auto &call = atom.as <Call> ();
-		TrackedBuffer *cbl = TrackedBuffer::search_tracked(call.cid);
-		return cbl->name + " | ";
+		auto &buffer= TrackedBuffer::cache_load(call.cid);
+		return buffer.name + " | ";
 	}
 	
 	variant_case(Atom, Load):

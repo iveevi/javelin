@@ -77,14 +77,28 @@ auto ftn = procedure <void> ("main") << []()
 	// arr[1] = vec4(br2.data[14], 1);
 };
 
+auto B = procedure("B") << [](vec3 v) -> vec3
+{
+	return sin(v.y);
+};
+
+auto A = procedure("A") << [](vec3 v) -> vec3
+{
+	return v * B(v);
+};
+
 // TODO: l-value propagation
 // TODO: shadertoy example
 // TODO: optimization using graphviz for visualization...
 
 int main()
 {
-	ftn.dump();
-	ftn.graphviz("graph.dot");
-	dump_lines("EXPERIMENTAL IRE", link(ftn).generate_glsl());
-	link(ftn).generate_spirv(vk::ShaderStageFlagBits::eCompute);
+	dump_lines("A", link(A).generate_glsl());
+	dump_lines("B", link(B).generate_glsl());
+	dump_lines("A", link(A).generate_glsl());
+
+	// ftn.dump();
+	// ftn.graphviz("graph.dot");
+	// dump_lines("EXPERIMENTAL IRE", link(ftn).generate_glsl());
+	// link(ftn).generate_spirv(vk::ShaderStageFlagBits::eCompute);
 }

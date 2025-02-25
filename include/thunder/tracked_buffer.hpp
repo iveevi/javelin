@@ -6,35 +6,36 @@
 
 namespace jvl::thunder {
 
-struct TrackedBuffer : Buffer {
+// Buffer with name
+struct NamedBuffer : Buffer {
+	std::string name;
+};
+
+// Buffer with name and unique index
+struct TrackedBuffer : NamedBuffer {
 	// Global list of callables
-	static auto &tracked() {
-		static std::map <size_t, TrackedBuffer *> map;
-		return map;
-	}
+	struct cache_entry_t {
+		int32_t count;
+		NamedBuffer buffer;
+		const NamedBuffer *link;
+	};
 
-	static TrackedBuffer *search_tracked(size_t cid) {
-		auto &t = tracked();
-		if (t.contains(cid))
-			return t[cid];
+	using cache_t = std::map <int32_t, cache_entry_t>;
 
-		return nullptr;
-	}
+	static cache_t &cache();
+	static const NamedBuffer &cache_load(int32_t);
+	static void cache_increment(int32_t);
+	static void cache_decrement(int32_t);
+	static void cache_unlink(int32_t);
+	static void cache_insert(const TrackedBuffer *);
 
 	// Unique id
-	size_t cid;
-
-	// An optional name (defaults to "callable<cid>")
-	std::string name;
-
-	// For callables we can track back used and synthesized
-	// insructions from working backwards at the returns
+	int32_t cid;
 
 	TrackedBuffer();
 	TrackedBuffer(const TrackedBuffer &);
 	TrackedBuffer &operator=(const TrackedBuffer &);
-
-	// TODO: destructor, which offloads it from the global list
+	~TrackedBuffer();
 
 	void dump() const;
 };

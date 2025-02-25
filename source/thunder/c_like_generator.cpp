@@ -348,12 +348,12 @@ std::string c_like_generator_t::inlined(Index index) const
 	{
 		auto &call = atom.as <Call> ();
 
-		TrackedBuffer *cbl = TrackedBuffer::search_tracked(call.cid);
+		auto &buffer = TrackedBuffer::cache_load(call.cid);
 		std::string args;
 		if (call.args != -1)
 			args = arguments_to_string(arguments(call.args));
 
-		return fmt::format("{}{}", cbl->name, args);
+		return fmt::format("{}{}", buffer.name, args);
 	}
 
 	variant_case(Atom, Load):
@@ -573,12 +573,12 @@ void c_like_generator_t::generate(const Construct &construct, Index index)
 template <>
 void c_like_generator_t::generate(const Call &call, Index index)
 {
-	TrackedBuffer *cbl = TrackedBuffer::search_tracked(call.cid);
+	auto &buffer = TrackedBuffer::cache_load(call.cid);
 	std::string args = "()";
 	if (call.args != -1)
 		args = arguments_to_string(arguments(call.args));
 
-	define(index, cbl->name + args);
+	define(index, buffer.name + args);
 }
 
 template <>

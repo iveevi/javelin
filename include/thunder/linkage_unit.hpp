@@ -103,6 +103,7 @@ struct LinkageUnit {
 
 	std::set <Index> process_function(const Function &);
 
+	void add(uint32_t, const NamedBuffer &);
 	void add(const TrackedBuffer &);
 
 	generator_list configure_generators() const;

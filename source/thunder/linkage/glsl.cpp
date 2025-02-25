@@ -420,6 +420,7 @@ auto topological_sort(const std::map <Index, std::set <Index>> &dependencies)
 		included.insert(i);
 		sorted.push_front(i);
 
+		JVL_ASSERT(dependencies.contains(i), "dependencies missing function index {}", i);
 		for (auto j : dependencies.at(i))
 			proc.push_front(j);
 	}

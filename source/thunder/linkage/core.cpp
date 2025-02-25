@@ -219,6 +219,11 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 		break;
 
 	// Miscellaneous
+	case qualifier_in:
+	case qualifier_out:
+	case qualifier_inout:
+		break;
+		
 	case arrays:
 		break;
 
@@ -412,22 +417,27 @@ std::set <Index> LinkageUnit::process_function(const Function &ftn)
 	return referenced;
 }
 
-void LinkageUnit::add(const TrackedBuffer &callable)
+void LinkageUnit::add(uint32_t cid, const NamedBuffer &callable)
 {
-	if (loaded.contains(callable.cid))
+	if (loaded.contains(cid))
 		return;
 
 	Function converted {
 		callable,
 		callable.name,
-		callable.cid
+		cid
 	};
 
 	auto referenced = process_function(converted);
 
-	loaded.insert(callable.cid);
+	loaded.insert(cid);
 	for (Index i : referenced)
-		add(*TrackedBuffer::search_tracked(i));
+		add(i, TrackedBuffer::cache_load(i));
+}
+
+void LinkageUnit::add(const TrackedBuffer &callable)
+{
+	return add(callable.cid, callable);
 }
 
 } // namespace jvl::thunder
