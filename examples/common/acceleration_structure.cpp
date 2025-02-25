@@ -12,7 +12,8 @@ vk::TransformMatrixKHR vk_transform(const glm::mat4 &m)
 
 VulkanAccelerationStructure VulkanAccelerationStructure::blas(VulkanResources &resources,
 							      const vk::CommandBuffer &cmd,
-							      const VulkanTriangleMesh &tm)
+							      const VulkanTriangleMesh &tm,
+							      size_t vertex_stride)
 {
 	auto &device = resources.device;
 
@@ -23,7 +24,7 @@ VulkanAccelerationStructure VulkanAccelerationStructure::blas(VulkanResources &r
 		.setIndexData(device.getBufferAddress(tm.triangles.buffer))
 		.setIndexType(vk::IndexType::eUint32)
 		.setMaxVertex(tm.vertex_count)
-		.setVertexStride(sizeof(glm::vec3))
+		.setVertexStride(vertex_stride)
 		.setVertexFormat(vk::Format::eR32G32B32Sfloat);
 
 	auto blas_geometry_data = vk::AccelerationStructureGeometryDataKHR()

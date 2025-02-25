@@ -28,18 +28,21 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 
 		// Casting operations
 		{ cast_to_int, {
+			overload::from(i32, boolean),
 			overload::from(i32, i32),
 			overload::from(i32, u32),
 			overload::from(i32, f32),
 		} },
 
 		{ cast_to_uint, {
+			overload::from(u32, boolean),
 			overload::from(u32, i32),
 			overload::from(u32, u32),
 			overload::from(u32, f32),
 		} },
 
 		{ cast_to_float, {
+			overload::from(f32, boolean),
 			overload::from(f32, i32),
 			overload::from(f32, u32),
 			overload::from(f32, f32),

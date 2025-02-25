@@ -136,7 +136,7 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 	{
 		size_t binding = qualifier.numerical;
 		globals.references[binding] = local_layout_type(fidx, bidx, qualifier.kind);
-		extensions.insert("GL_EXT_buffer_reference");
+		extensions.insert("GL_EXT_buffer_reference2");
 	} break;
 
 	case shared:

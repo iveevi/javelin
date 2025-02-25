@@ -22,7 +22,8 @@ struct VulkanAccelerationStructure {
 
 	static VulkanAccelerationStructure blas(VulkanResources &,
 		const vk::CommandBuffer &,
-		const VulkanTriangleMesh &);
+		const VulkanTriangleMesh &,
+		size_t);
 
 	static VulkanAccelerationStructure tlas(VulkanResources &,
 		const vk::CommandBuffer &,

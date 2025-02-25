@@ -79,7 +79,16 @@ struct aggregate_insert <T, aggregate_storage <Args...>> {
 	using type = aggregate_storage <T, Args...>;
 };
 
+// Alignment method
+template <class I>
+constexpr I align_up(I x, size_t a)
+{
+	return I((x + (I(a) - 1)) & ~I(a - 1));
+}
+
 // Building aggregates recursively
+// TODO: handle scalar layouts...
+// TODO: rethink model...
 template <size_t Offset, typename ... Args>
 struct solid_builder {};
 

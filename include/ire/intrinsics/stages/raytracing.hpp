@@ -53,9 +53,9 @@ const static_constant <uint32_t> gl_RayFlagsCullNoOpaqueEXT = 128U;
 inline void traceRayEXT(const accelerationStructureEXT &as,
 			const u32 &flags,
 			const u32 &mask,
-			const u32 &sbt0,
-			const u32 &sbt1,
-			const u32 &sbt2,
+			const u32 &sbt_offset,
+			const u32 &sbt_stride,
+			const u32 &sbt_miss,
 			const vec3 &origin,
 			const f32 &tmin,
 			const vec3 &ray,
@@ -63,7 +63,7 @@ inline void traceRayEXT(const accelerationStructureEXT &as,
 			const i32 &pidx)
 {
 	return void_platform_intrinsic_from_args(thunder::trace_ray,
-		as, flags, mask, sbt0, sbt1, sbt2,
+		as, flags, mask, sbt_offset, sbt_stride, sbt_miss,
 		origin, tmin, ray, tmax, pidx);
 }
 

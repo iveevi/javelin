@@ -37,41 +37,91 @@ Procedure <void> blit = procedure <void> ("main") << []()
 // Ray tracing shaders //
 /////////////////////////
 
+struct Hit {
+	vec3 color;
+	vec3 position;
+	vec3 normal;
+	boolean missed;
+
+	auto layout() {
+		return layout_from("Hit",
+			verbatim_field(color),
+			verbatim_field(position),
+			verbatim_field(normal),
+			verbatim_field(missed));
+	}
+};
+
 Procedure <void> ray_generation = procedure <void> ("main") << []()
 {
-	ray_payload <vec3> value(0);
-	ray_payload <vec3> position(1);
+	ray_payload <Hit> hit(0);
+	ray_payload <boolean> shadow(1);
 
 	accelerationStructureEXT tlas(0);
 
 	writeonly <image2D> image(1);
 
-	push_constant <ViewFrame> rayframe;
+	push_constant <Constants> constants;
 	
 	vec2 center = vec2(gl_LaunchIDEXT.xy()) + vec2(0.5);
 	vec2 uv = center / vec2(imageSize(image));
-	vec3 ray = rayframe.at(uv);
+	vec3 ray = constants.at(uv);
 
 	traceRayEXT(tlas,
 		gl_RayFlagsOpaqueEXT,
 		0xFF,
 		0, 0, 0,
-		rayframe.origin, 1e-3,
+		constants.origin, 1e-3,
 		ray, 1e10,
 		0);
 
-	vec4 color = vec4(value, 1.0);
+	vec4 color = vec4(hit.color, 1.0);
 
+	// Shadow testing
+	$if(!hit.missed);
+	{
+		shadow = true;
+		
+		vec3 offset = hit.position + 1e-3 * hit.normal;
+
+		traceRayEXT(tlas,
+			gl_RayFlagsOpaqueEXT
+			| gl_RayFlagsTerminateOnFirstHitEXT
+			| gl_RayFlagsSkipClosestHitShaderEXT,
+			0xFF,
+			0, 0, 1,
+			offset, 1e-3,
+			constants.light, 1e10,
+			1);
+
+		hit.color = 0.5 + 0.5 * hit.normal;
+		hit.color *= 0.5 + 0.5 * (1.0f - f32(shadow));
+	}
+	$end();
+
+	// TODO: more semantic traceRaysEXT...
+	// traceRayEXT(tlas, flags, mask, nullptr, ..., shadow_miss, ray..., shadow)
+	
 	imageStore(image, ivec2(gl_LaunchIDEXT.xy()), color);
 };
 
-Procedure <void> ray_closest_hit = procedure <void> ("main") << []()
+struct Vertex {
+	vec3 position;
+	vec3 normal;
+
+	auto layout() {
+		return layout_from("Vertex",
+			verbatim_field(position),
+			verbatim_field(normal));
+	}
+};
+
+Procedure <void> primary_closest_hit = procedure <void> ("main") << []()
 {
 	using Triangles = scalar <buffer_reference <unsized_array <ivec3>>>;
-	using Positions = scalar <buffer_reference <unsized_array <vec3>>>;
+	using Vertices = scalar <buffer_reference <unsized_array <Vertex>>>;
 
-	ray_payload_in <vec3> value(0);
-	ray_payload_in <vec3> position(1);
+	ray_payload_in <Hit> hit(0);
 
 	buffer <unsized_array <Reference>> references(2);
 
@@ -83,24 +133,37 @@ Procedure <void> ray_closest_hit = procedure <void> ("main") << []()
 	Reference ref = references[iid];
 
 	Triangles triangles = Triangles(ref.triangles);
-	Positions vertices = Positions(ref.vertices);
+	Vertices vertices = Vertices(ref.vertices);
 
 	ivec3 tri = triangles[pid];
 
-	vec3 v0 = vertices[tri.x];
-	vec3 v1 = vertices[tri.y];
-	vec3 v2 = vertices[tri.z];
+	Vertex v0 = vertices[tri.x];
+	Vertex v1 = vertices[tri.y];
+	Vertex v2 = vertices[tri.z];
 
-	value = vec3(1.0f - bary.x - bary.y, bary.x, bary.y);
-	
-	vec3 p = value.x * v0 + value.y * v1 + value.z * v2;
+	vec3 b = vec3(1.0f - bary.x - bary.y, bary.x, bary.y);
+	vec3 p = b.x * v0.position + b.y * v1.position + b.z * v2.position;
+	vec3 n = b.x * v0.normal + b.y * v1.normal + b.z * v2.normal;
+
 	// position = vec3(gl_ObjectToWorldEXT * vec4(p, 1));
-	position = (gl_ObjectToWorldEXT * vec4(p, 1)).xyz();
+	hit.position = (gl_ObjectToWorldEXT * vec4(p, 1)).xyz();
+	hit.normal = normalize(n);
+	hit.color = b;
+	hit.missed = false;
 };
 
-Procedure <void> ray_miss = procedure <void> ("main") << []()
+Procedure <void> primary_miss = procedure <void> ("main") << []()
 {
-	ray_payload_in <vec3> value(0);
+	ray_payload_in <Hit> hit(0);
 
-	value = vec3(1);
+	hit.position = vec3(0);
+	hit.color = vec3(1);
+	hit.missed = true;
+};
+
+Procedure <void> shadow_miss = procedure <void> ("main") << []()
+{
+	ray_payload_in <boolean> shadow(1);
+
+	shadow = false;
 };

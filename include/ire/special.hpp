@@ -116,11 +116,11 @@ struct ray_payload_in <T> : T {
 	template <typename ... Args>
 	explicit ray_payload_in(uint32_t binding_, const Args &... args) : T(args...), binding(binding_) {
 		auto &em = Emitter::active;
-		auto layout = this->layout().remove_const();
-		auto type = type_field_from_args(layout).id;
+		auto layout = this->layout();
+		auto type = layout.generate_type().concrete();
 		auto qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload_in);
 		auto value = em.emit_construct(qual, -1, thunder::transient);
-		layout.ref_with(cache_index_t::from(value));
+		layout.link(value);
 	}
 };
 

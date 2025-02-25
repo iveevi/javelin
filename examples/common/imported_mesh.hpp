@@ -16,4 +16,6 @@ struct ImportedMesh {
 	size_t vertex_count;
 	property <typed_vector> vertex_properties;
 	property <typed_vector> face_properties;
+
+	ImportedMesh &recompute_normals();
 };
