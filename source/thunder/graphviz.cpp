@@ -144,6 +144,12 @@ std::string instruction_record(const Atom &atom)
 		return cbl->name + " | ";
 	}
 	
+	variant_case(Atom, Load):
+	{
+		auto &load = atom.as <Load> ();
+		return fmt::format("Index: {} | ", load.idx);
+	}
+	
 	variant_case(Atom, Branch):
 	{
 		auto &branch = atom.as <Branch> ();
