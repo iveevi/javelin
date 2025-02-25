@@ -297,7 +297,7 @@ struct Application : CameraApplication {
 		max = -min;
 
 		for (auto &g : asset.geometries) {
-			g.recompute_normals();
+			g.deduplicate_vertices().recompute_normals();
 
 			auto tm = TriangleMesh::from(g).value();
 			

@@ -505,6 +505,16 @@ struct vec : swizzle_base <T, N> {
 	}
 };
 
+// Vector type concept
+template <typename T>
+struct is_vector_base : std::false_type {};
+
+template <native T, size_t N>
+struct is_vector_base <vec <T, N>> : std::true_type {};
+
+template <typename T>
+concept vector_arithmetic = is_vector_base <typename T::arithmetic_type> ::value;
+
 // Bitwise operators
 template <integral_native T, size_t N>
 vec <T, N> operator|(const vec <T, N>  &a, const vec <T, N> &b)

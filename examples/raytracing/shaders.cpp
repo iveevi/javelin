@@ -82,7 +82,7 @@ Procedure <void> ray_generation = procedure <void> ("main") << []()
 	{
 		shadow = true;
 		
-		vec3 offset = hit.position + 1e-3 * hit.normal;
+		vec3 offset = hit.position + 1e-2 * hit.normal;
 
 		traceRayEXT(tlas,
 			gl_RayFlagsOpaqueEXT
@@ -142,12 +142,19 @@ Procedure <void> primary_closest_hit = procedure <void> ("main") << []()
 	Vertex v2 = vertices[tri.z];
 
 	vec3 b = vec3(1.0f - bary.x - bary.y, bary.x, bary.y);
+	
 	vec3 p = b.x * v0.position + b.y * v1.position + b.z * v2.position;
-	vec3 n = b.x * v0.normal + b.y * v1.normal + b.z * v2.normal;
+	p = (gl_ObjectToWorldEXT * vec4(p, 1)).xyz();
 
-	// position = vec3(gl_ObjectToWorldEXT * vec4(p, 1));
-	hit.position = (gl_ObjectToWorldEXT * vec4(p, 1)).xyz();
-	hit.normal = normalize(n);
+	vec3 n = b.x * v0.normal + b.y * v1.normal + b.z * v2.normal;
+	n = normalize(n);
+
+	// $if(dot(n, gl_WorldRayDirectionEXT) > 0);
+	// 	n = -n;
+	// $end();
+
+	hit.position = p;
+	hit.normal = n;
 	hit.color = b;
 	hit.missed = false;
 };

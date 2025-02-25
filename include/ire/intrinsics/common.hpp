@@ -172,9 +172,12 @@ vec <T, N> pow(const vec <T, N> &v, const vec <T, N> &exp)
 }
 
 // Dot product
-template <typename T, size_t N>
-native_t <T> dot(const vec <T, N> &v, const vec <T, N> &w)
+template <vector_arithmetic A, vector_arithmetic B>
+// TODO: same_vector_as <....> and so on
+requires std::same_as <typename A::arithmetic_type, typename B::arithmetic_type>
+auto dot(const A &v, const B &w)
 {
+	using T = typename A::arithmetic_type::native_type;
 	return platform_intrinsic_from_args <native_t <T>> (thunder::dot, v, w);
 }
 

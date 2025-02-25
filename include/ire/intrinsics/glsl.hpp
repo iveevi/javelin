@@ -183,6 +183,9 @@ template <thunder::QualifierKind code>
 using __glsl_float = __glsl_intrinsic_variable_t <native_t <float>, code>;
 
 template <thunder::QualifierKind code>
+using __glsl_vec3 = __glsl_intrinsic_variable_t <vec <float, 3>, code>;
+
+template <thunder::QualifierKind code>
 using __glsl_vec4 = __glsl_intrinsic_variable_t <vec <float, 4>, code>;
 
 template <thunder::QualifierKind code>
@@ -215,6 +218,7 @@ using gl_LaunchSizeEXT_t	= __glsl_uvec3 <thunder::glsl_LaunchSizeEXT>;
 using gl_InstanceCustomIndexEXT_t = __glsl_uint <thunder::glsl_InstanceCustomIndexEXT>;
 using gl_PrimitiveID_t		= __glsl_uint <thunder::glsl_PrimitiveID>;
 using gl_ObjectToWorldEXT_t		= __glsl_mat4 <thunder::glsl_ObjectToWorldEXT>;
+using gl_WorldRayDirection_t		= __glsl_vec3 <thunder::glsl_WorldRayDirectionEXT>;
 
 static const gl_FragCoord_t		gl_FragCoord;
 static const gl_FragDept_t		gl_FragDepth;
@@ -235,6 +239,7 @@ static const gl_LaunchSizeEXT_t		gl_LaunchSizeEXT;
 static const gl_InstanceCustomIndexEXT_t gl_InstanceCustomIndexEXT;
 static const gl_PrimitiveID_t gl_PrimitiveID;
 static const gl_ObjectToWorldEXT_t gl_ObjectToWorldEXT;
+static const gl_WorldRayDirection_t gl_WorldRayDirectionEXT;
 
 // Mutable intrinsics
 using gl_Position_t = __glsl_vec4 <thunder::glsl_Position>;

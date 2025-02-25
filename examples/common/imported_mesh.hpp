@@ -17,5 +17,6 @@ struct ImportedMesh {
 	property <typed_vector> vertex_properties;
 	property <typed_vector> face_properties;
 
+	ImportedMesh &deduplicate_vertices();
 	ImportedMesh &recompute_normals();
 };

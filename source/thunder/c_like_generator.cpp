@@ -125,6 +125,8 @@ static std::optional <std::string> generate_global_reference(const std::vector <
 		return "gl_PrimitiveID";
 	case glsl_ObjectToWorldEXT:
 		return "gl_ObjectToWorldEXT";
+	case glsl_WorldRayDirectionEXT:
+		return "gl_WorldRayDirectionEXT";
 
 	default:
 		break;

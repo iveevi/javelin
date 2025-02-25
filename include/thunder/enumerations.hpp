@@ -175,6 +175,7 @@ enum QualifierKind : int8_t {
 	glsl_InstanceCustomIndexEXT,
 	glsl_PrimitiveID,
 	glsl_ObjectToWorldEXT,
+	glsl_WorldRayDirectionEXT,
 
 	__gq_end
 };
@@ -263,6 +264,7 @@ static constexpr const char *tbl_qualifier_kind[] = {
 	"glsl:InstanceCustomIndexEXT",
 	"glsl:PrimitiveID",
 	"glsl:ObjectToWorldEXT",
+	"glsl:WorldRayDirectionEXT",
 
 	"__end"
 };
