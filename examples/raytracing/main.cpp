@@ -1,24 +1,18 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/string_cast.hpp>
 
+#include "common/acceleration_structure.hpp"
 #include "common/aperature.hpp"
+#include "common/application.hpp"
 #include "common/default_framebuffer_set.hpp"
 #include "common/imgui.hpp"
 #include "common/imported_asset.hpp"
-#include "common/vulkan_resources.hpp"
-#include "common/application.hpp"
+#include "common/sbt.hpp"
 #include "common/util.hpp"
+#include "common/vulkan_resources.hpp"
 #include "common/vulkan_triangle_mesh.hpp"
-#include "common/acceleration_structure.hpp"
 
 #include "shaders.hpp"
-
-struct ShaderBindingTable {
-	vk::StridedDeviceAddressRegionKHR ray_generation;
-	vk::StridedDeviceAddressRegionKHR misses;
-	vk::StridedDeviceAddressRegionKHR closest_hits;
-	vk::StridedDeviceAddressRegionKHR callables;
-};
 
 struct Application : CameraApplication {
 	littlevk::Pipeline rtx_pipeline;
@@ -130,121 +124,33 @@ struct Application : CameraApplication {
 		dump_lines("PRIMARY MISS", rmiss_shader);
 		dump_lines("SHADOW MISS", smiss_shader);
 		
-		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
-			.source(rgen_shader, vk::ShaderStageFlagBits::eRaygenKHR)
-			.source(rmiss_shader, vk::ShaderStageFlagBits::eMissKHR)
-			.source(smiss_shader, vk::ShaderStageFlagBits::eMissKHR)
-			.source(rchit_shader, vk::ShaderStageFlagBits::eClosestHitKHR);
-
-		std::vector <vk::RayTracingShaderGroupCreateInfoKHR> groups {
-			vk::RayTracingShaderGroupCreateInfoKHR()
-				.setType(vk::RayTracingShaderGroupTypeKHR::eGeneral)
-				.setGeneralShader(0),
-			vk::RayTracingShaderGroupCreateInfoKHR()
-				.setType(vk::RayTracingShaderGroupTypeKHR::eGeneral)
-				.setGeneralShader(1),
-			vk::RayTracingShaderGroupCreateInfoKHR()
-				.setType(vk::RayTracingShaderGroupTypeKHR::eGeneral)
-				.setGeneralShader(2),
-			vk::RayTracingShaderGroupCreateInfoKHR()
-				.setType(vk::RayTracingShaderGroupTypeKHR::eTrianglesHitGroup)
-				.setClosestHitShader(3),
-		};
-
-		auto pc_range = vk::PushConstantRange()
+		auto rgen_spv = link(ray_generation).generate_spirv(vk::ShaderStageFlagBits::eRaygenKHR);
+		auto rgen_info = vk::ShaderModuleCreateInfo().setCode(rgen_spv);
+		auto rgen_module = resources.device.createShaderModule(rgen_info);
+		
+		auto rchit_spv = link(primary_closest_hit).generate_spirv(vk::ShaderStageFlagBits::eClosestHitKHR);
+		auto rchit_info = vk::ShaderModuleCreateInfo().setCode(rchit_spv);
+		auto rchit_module = resources.device.createShaderModule(rchit_info);
+		
+		auto rmiss_spv = link(primary_miss).generate_spirv(vk::ShaderStageFlagBits::eMissKHR);
+		auto rmiss_info = vk::ShaderModuleCreateInfo().setCode(rmiss_spv);
+		auto rmiss_module = resources.device.createShaderModule(rmiss_info);
+		
+		auto smiss_spv = link(shadow_miss).generate_spirv(vk::ShaderStageFlagBits::eMissKHR);
+		auto smiss_info = vk::ShaderModuleCreateInfo().setCode(smiss_spv);
+		auto smiss_module = resources.device.createShaderModule(smiss_info);
+		
+		auto constants = vk::PushConstantRange()
 			.setOffset(0)
 			.setSize(sizeof(solid_t <Constants>))
 			.setStageFlags(vk::ShaderStageFlagBits::eRaygenKHR);
-
-		auto dsl_info = vk::DescriptorSetLayoutCreateInfo()
-			.setBindings(bindings);
-
-		rtx_pipeline.dsl = resources.device.createDescriptorSetLayout(dsl_info);
-
-		auto layout_info = vk::PipelineLayoutCreateInfo()
-			.setPushConstantRanges(pc_range)
-			.setSetLayouts(*rtx_pipeline.dsl);
-
-		rtx_pipeline.layout = resources.device.createPipelineLayout(layout_info);
-
-		auto pipeline_info = vk::RayTracingPipelineCreateInfoKHR()
-			.setStages(bundle.stages)
-			.setGroups(groups)
-			.setMaxPipelineRayRecursionDepth(1)
-			.setLayout(rtx_pipeline.layout);
-
-		rtx_pipeline.handle = resources.device.createRayTracingPipelineKHR(nullptr, { }, pipeline_info).value;
-
-		auto pr_raytracing = vk::PhysicalDeviceRayTracingPipelinePropertiesKHR();
-		auto properties = vk::PhysicalDeviceProperties2KHR();
-
-		properties.pNext = &pr_raytracing;
-
-		resources.phdev.getProperties2(&properties);
-
-		uint32_t handle_size = pr_raytracing.shaderGroupHandleSize;
-		uint32_t handle_alignment = pr_raytracing.shaderGroupHandleAlignment;
-		uint32_t base_alignment = pr_raytracing.shaderGroupBaseAlignment;
-		uint32_t handle_size_aligned = align_up(handle_size, handle_alignment);
-
-		uint32_t ray_generation_size = align_up(handle_size_aligned, base_alignment);
-		sbt.ray_generation = vk::StridedDeviceAddressRegionKHR()
-			.setSize(ray_generation_size)
-			.setStride(ray_generation_size);
-
-		sbt.misses = vk::StridedDeviceAddressRegionKHR()
-			.setSize(align_up(2 * handle_size_aligned, base_alignment))
-			.setStride(handle_size_aligned);
-		
-		sbt.closest_hits = vk::StridedDeviceAddressRegionKHR()
-			.setSize(align_up(handle_size_aligned, base_alignment))
-			.setStride(handle_size_aligned);
-		
-		sbt.callables = vk::StridedDeviceAddressRegionKHR();
-
-		std::vector <uint8_t> handles(handle_size * groups.size());
-
-		auto result = resources.device.getRayTracingShaderGroupHandlesKHR(rtx_pipeline.handle,
-			0, groups.size(),
-			handles.size(),
-			handles.data());
-
-		uint32_t sbt_size = sbt.ray_generation.size
-			+ sbt.misses.size
-			+ sbt.closest_hits.size;
-
-		std::vector <uint8_t> sbt_data(sbt_size);
-
-		// Ray generation
-		std::memcpy(sbt_data.data(), handles.data(), handle_size);
-
-		// Miss
-		std::memcpy(sbt_data.data() + sbt.ray_generation.size,
-			handles.data() + handle_size,
-			handle_size);
-		
-		std::memcpy(sbt_data.data() + sbt.ray_generation.size + sbt.misses.stride,
-			handles.data() + 2 * handle_size,
-			handle_size);
-
-		// Closest hit
-		std::memcpy(sbt_data.data()
-				+ sbt.ray_generation.size
-				+ sbt.misses.size,
-			handles.data() + 3 * handle_size,
-			handle_size);
-
-		// Upload to the GPU
-		littlevk::Buffer sbt_buffer = resources.allocator()
-			.buffer(sbt_data,
-				vk::BufferUsageFlagBits::eShaderBindingTableKHR
-				| vk::BufferUsageFlagBits::eShaderDeviceAddress);
-
-		auto sbt_address = resources.device.getBufferAddress(sbt_buffer.buffer);
-
-		sbt.ray_generation.setDeviceAddress(sbt_address);
-		sbt.misses.setDeviceAddress(sbt_address + sbt.ray_generation.size);
-		sbt.closest_hits.setDeviceAddress(sbt_address + sbt.ray_generation.size + sbt.misses.size);
+			
+		std::tie(rtx_pipeline, sbt) = raytracing_pipeline(resources,
+			rgen_module,
+			{ rmiss_module, smiss_module },
+			{ rchit_module },
+			bindings,
+			{ constants });
 		
 		rtx_descriptor = littlevk::bind(resources.device, resources.descriptor_pool)
 			.allocate_descriptor_sets(*rtx_pipeline.dsl)

@@ -21,6 +21,7 @@ add_library(common STATIC
 	imported_mesh.cpp
 	interactive_window.cpp
 	material.cpp
+	sbt.cpp
 	texture.cpp
 	texture_bank.cpp
 	triangle_mesh.cpp
