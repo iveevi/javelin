@@ -12,7 +12,7 @@ MODULE(linkage-unit);
 // Generation: JIT compilation with GCC //
 //////////////////////////////////////////
 
-void *LinkageUnit::jit() const
+void *LinkageUnit::generate_jit_gcc() const
 {
 	JVL_INFO("compiling linkage atoms with gcc jit");
 

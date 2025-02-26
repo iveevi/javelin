@@ -11,6 +11,7 @@
 #include "qualified_type.hpp"
 #include "tracked_buffer.hpp"
 #include "c_like_generator.hpp"
+#include "../target.hpp"
 
 namespace jvl::thunder {
 
@@ -66,8 +67,15 @@ struct push_constant_info : local_layout_type {
 
 using generator_list = std::vector <detail::c_like_generator_t>;
 
+// Target generation results
+using SourceResult = std::string;
+using BinaryResult = std::vector <uint32_t>;
+using FunctionResult = void *;
+
+using GeneratedResult = bestd::variant <SourceResult, BinaryResult, FunctionResult>;
+
+// Linkage information package
 struct LinkageUnit {
-	// TODO: dirty flag for caching using hash?
 	std::optional <glm::uvec3> local_size;
 	std::optional <glm::uvec2> mesh_shader_size;
 
@@ -109,17 +117,17 @@ struct LinkageUnit {
 	generator_list configure_generators() const;
 
 	// Generating code
-	std::string generate_glsl() const;
-	std::string generate_cpp() const;
-	std::string generate_cuda() const;
-
 	static void generate_function(std::string &, detail::c_like_generator_t &, const Function &);
 
-	// TODO: conditional guard for SPIRV support
-	std::vector <uint32_t> generate_spirv(const vk::ShaderStageFlagBits &) const;
+	SourceResult generate_glsl() const;
+	SourceResult generate_cpp() const;
+	SourceResult generate_cuda() const;
 
-	// TODO: cuda JIT as well
-	void *jit() const;
+	BinaryResult generate_spirv_via_glsl(const vk::ShaderStageFlagBits &) const;
+
+	FunctionResult generate_jit_gcc() const;
+
+	GeneratedResult generate(const Target &) const;
 };
 
 } // namespace jvl::thunder

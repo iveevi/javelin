@@ -440,4 +440,29 @@ void LinkageUnit::add(const TrackedBuffer &callable)
 	return add(callable.cid, callable);
 }
 
+GeneratedResult LinkageUnit::generate(const Target &target) const
+{
+	static constexpr const char *tbl_targets[] {
+		"glsl",
+		"slang",
+		"cplusplus",
+		"cuda",
+		"cuda (nvrtc)",
+		"spirv (assembly)",
+		"spirv (binary)",
+		"spirv (binary via glsl)",
+	};
+
+	switch (target) {
+	case Target::glsl:
+		return generate_glsl();
+	case Target::cplusplus:
+		return generate_cpp();
+	default:
+		break;
+	}
+
+	JVL_ABORT("generation target {} is currently unsupported", tbl_targets[(int) target]);
+}
+
 } // namespace jvl::thunder

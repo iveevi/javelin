@@ -69,13 +69,13 @@ struct Program <ShaderStageFlags::eGraphicsVertexFragment, Specifiers...> {
 		auto vunit = thunder::LinkageUnit();
 			vunit.add(ir_vertex);
 
-		spv_vertex = vunit.generate_spirv(vk::ShaderStageFlagBits::eVertex);
+		spv_vertex = vunit.generate_spirv_via_glsl(vk::ShaderStageFlagBits::eVertex);
 
 		// Compile the fragment program
 		auto funit = thunder::LinkageUnit();
 			funit.add(ir_fragment);
 
-		spv_fragment = funit.generate_spirv(vk::ShaderStageFlagBits::eFragment);
+		spv_fragment = funit.generate_spirv_via_glsl(vk::ShaderStageFlagBits::eFragment);
 	}
 
 	// TODO: caching of the shader modules?

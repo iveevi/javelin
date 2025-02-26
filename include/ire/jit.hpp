@@ -30,7 +30,7 @@ auto jit(const Procedure <R, Args...> &callable)
 
 	thunder::LinkageUnit unit;
 	unit.add(callable);
-	auto ftn = unit.jit();
+	auto ftn = unit.generate_jit_gcc();
 
 	return function_t(ftn);
 }

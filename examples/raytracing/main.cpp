@@ -124,19 +124,19 @@ struct Application : CameraApplication {
 		dump_lines("PRIMARY MISS", rmiss_shader);
 		dump_lines("SHADOW MISS", smiss_shader);
 		
-		auto rgen_spv = link(ray_generation).generate_spirv(vk::ShaderStageFlagBits::eRaygenKHR);
+		auto rgen_spv = link(ray_generation).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eRaygenKHR);
 		auto rgen_info = vk::ShaderModuleCreateInfo().setCode(rgen_spv);
 		auto rgen_module = resources.device.createShaderModule(rgen_info);
 		
-		auto rchit_spv = link(primary_closest_hit).generate_spirv(vk::ShaderStageFlagBits::eClosestHitKHR);
+		auto rchit_spv = link(primary_closest_hit).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eClosestHitKHR);
 		auto rchit_info = vk::ShaderModuleCreateInfo().setCode(rchit_spv);
 		auto rchit_module = resources.device.createShaderModule(rchit_info);
 		
-		auto rmiss_spv = link(primary_miss).generate_spirv(vk::ShaderStageFlagBits::eMissKHR);
+		auto rmiss_spv = link(primary_miss).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eMissKHR);
 		auto rmiss_info = vk::ShaderModuleCreateInfo().setCode(rmiss_spv);
 		auto rmiss_module = resources.device.createShaderModule(rmiss_info);
 		
-		auto smiss_spv = link(shadow_miss).generate_spirv(vk::ShaderStageFlagBits::eMissKHR);
+		auto smiss_spv = link(shadow_miss).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eMissKHR);
 		auto smiss_info = vk::ShaderModuleCreateInfo().setCode(smiss_spv);
 		auto smiss_module = resources.device.createShaderModule(smiss_info);
 		

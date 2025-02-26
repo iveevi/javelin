@@ -52,7 +52,7 @@ constexpr EShLanguage translate_shader_stage(const vk::ShaderStageFlagBits &stag
 	return EShLangVertex;
 }
 
-std::vector <uint32_t> LinkageUnit::generate_spirv(const vk::ShaderStageFlagBits &flags) const
+std::vector <uint32_t> LinkageUnit::generate_spirv_via_glsl(const vk::ShaderStageFlagBits &flags) const
 {
 	EShLanguage stage = translate_shader_stage(flags);
 
