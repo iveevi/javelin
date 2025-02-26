@@ -117,7 +117,7 @@ struct BaseApplication {
 			const auto &cmd = command_buffers[frame];
 
 			cmd.begin(vk::CommandBufferBeginInfo {});
-				render(cmd, op.index);
+				render(cmd, op.index, total);
 			cmd.end();
 
 			// Submit command buffer while signaling the semaphore
@@ -198,7 +198,8 @@ struct BaseApplication {
 	}
 
 	// Render loop required methods
-	virtual void render(const vk::CommandBuffer &, uint32_t) = 0;
+	// TODO: pass extra data to render loop
+	virtual void render(const vk::CommandBuffer &, uint32_t, uint32_t) = 0;
 	virtual void resize() = 0;
 
 	// Mouse controls

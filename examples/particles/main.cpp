@@ -238,7 +238,7 @@ struct Application : CameraApplication {
 		automatic = (program["auto"] == true);
 	}
 	
-	void render(const vk::CommandBuffer &cmd, uint32_t index) override {
+	void render(const vk::CommandBuffer &cmd, uint32_t index, uint32_t) override {
 		if (automatic) {
 			glm::vec3 min = glm::vec3(1e10);
 			glm::vec3 max = -min;
@@ -248,18 +248,17 @@ struct Application : CameraApplication {
 				min = glm::min(min, p);
 				max = glm::max(max, p);
 			}
-			
-			float time = 0.5 * glfwGetTime();
 
 			auto &xform = camera.transform;
 
+			float angle = 0;
 			float r = 0.75 * glm::length(max - min);
-			float a = time + glm::pi <float> () / 2.0f;
+			float a = angle + glm::pi <float> () / 2.0f;
 
 			xform.translate = glm::vec3 {
-				r * glm::cos(time),
+				r * glm::cos(angle),
 				0,
-				r * glm::sin(time),
+				r * glm::sin(angle),
 			};
 
 			xform.rotation = glm::angleAxis(-a, glm::vec3(0, 1, 0));

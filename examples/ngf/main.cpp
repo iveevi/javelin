@@ -297,12 +297,11 @@ struct Application : CameraApplication {
 		automatic = (program["auto"] == true);
 	}
 
-	void render(const vk::CommandBuffer &cmd, uint32_t index) override {
+	void render(const vk::CommandBuffer &cmd, uint32_t index, uint32_t total) override {
 		if (automatic) {
-			float time = 2.5 * glfwGetTime();
-
 			auto &xform = camera.transform;
 
+			float time = 0.01 * total;
 			float r = 0.75 * glm::length(max - min);
 			float a = time + glm::pi <float> () / 2.0f;
 

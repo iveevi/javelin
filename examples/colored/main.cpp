@@ -111,9 +111,9 @@ struct Application : CameraApplication {
 		automatic = (program["auto"] == true);
 	}
 
-	void render(const vk::CommandBuffer &cmd, uint32_t index) override {
+	void render(const vk::CommandBuffer &cmd, uint32_t index, uint32_t total) override {
 		if (automatic) {
-			float time = 2.5 * glfwGetTime();
+			float time = 0.01 * total;
 
 			auto &xform = camera.transform;
 
