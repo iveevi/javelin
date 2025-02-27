@@ -1,3 +1,5 @@
+#include <vulkan/vulkan.hpp>
+
 #include "thunder/enumerations.hpp"
 #include "thunder/linkage_unit.hpp"
 #include "thunder/properties.hpp"
@@ -440,7 +442,54 @@ void LinkageUnit::add(const TrackedBuffer &callable)
 	return add(callable.cid, callable);
 }
 
-GeneratedResult LinkageUnit::generate(const Target &target) const
+// Translating target stages into Vulkan counterparts
+vk::ShaderStageFlagBits to_vulkan(Stage stage)
+{
+	static constexpr const char *tbl_stage[] {
+		"vertex",
+		"fragment",
+		"compute",
+		"mesh",
+		"task",
+		"ray generation",
+		"intersection",
+		"any hit",
+		"closest hit",
+		"miss",
+		"callable",
+	};
+
+	switch (stage) {
+	case Stage::vertex:
+		return vk::ShaderStageFlagBits::eVertex;
+	case Stage::fragment:
+		return vk::ShaderStageFlagBits::eFragment;
+	case Stage::compute:
+		return vk::ShaderStageFlagBits::eCompute;
+	case Stage::mesh:
+		return vk::ShaderStageFlagBits::eMeshEXT;
+	case Stage::task:
+		return vk::ShaderStageFlagBits::eTaskEXT;
+	case Stage::ray_generation:
+		return vk::ShaderStageFlagBits::eRaygenKHR;
+	case Stage::intersection:
+		return vk::ShaderStageFlagBits::eIntersectionKHR;
+	case Stage::any_hit:
+		return vk::ShaderStageFlagBits::eAnyHitKHR;
+	case Stage::closest_hit:
+		return vk::ShaderStageFlagBits::eClosestHitKHR;
+	case Stage::miss:
+		return vk::ShaderStageFlagBits::eMissKHR;
+	case Stage::callable:
+		return vk::ShaderStageFlagBits::eCallableKHR;
+	default:
+		break;
+	}
+	
+	JVL_ABORT("unsupported stage {}", tbl_stage[(int) stage]);
+}
+
+GeneratedResult LinkageUnit::generate(const Target &target, const Stage &stage) const
 {
 	static constexpr const char *tbl_targets[] {
 		"glsl",
@@ -458,6 +507,8 @@ GeneratedResult LinkageUnit::generate(const Target &target) const
 		return generate_glsl();
 	case Target::cplusplus:
 		return generate_cpp();
+	case Target::spirv_binary_via_glsl:
+		return generate_spirv_via_glsl(to_vulkan(stage));
 	default:
 		break;
 	}

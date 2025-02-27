@@ -15,6 +15,20 @@ enum class Target {
 	__end,
 };
 
-// TODO: target stage...
+// Target pipeline stages
+enum class Stage {
+	vertex,
+	fragment,
+	compute,
+	mesh,
+	task,
+	ray_generation,
+	intersection,
+	any_hit,
+	closest_hit,
+	miss,
+	callable,
+	__end,
+};
 
 } // namespace jvl

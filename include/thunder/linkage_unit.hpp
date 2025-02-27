@@ -127,7 +127,7 @@ struct LinkageUnit {
 
 	FunctionResult generate_jit_gcc() const;
 
-	GeneratedResult generate(const Target &) const;
+	GeneratedResult generate(const Target &, const Stage & = Stage::compute) const;
 };
 
 } // namespace jvl::thunder
