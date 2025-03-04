@@ -177,17 +177,21 @@ void Buffer::graphviz(const std::filesystem::path &path) const
 	for (size_t i = 0; i < pointer; i++) {
 		auto &atom = atoms[i];
 		auto &type = types[i];
+
+		uint64_t hash = reinterpret_cast <const uint64_t &> (atom);
+		uint32_t low = hash & 0xFFFFFFFF;
+		uint32_t high = hash >> 32;
 		
 		std::string extra;
-		if (synthesized.contains(i))
-			extra = ", color=\"#000000\"";
-		else
-			extra = ", color=\"#888888\"";
+		if (!synthesized.contains(i))
+			extra = ", style=\"filled, rounded, dashed\"";
 
-		result += fmt::format("\tI{} [label=\"{{ {} [{}] | {} {} }}\", fillcolor=\"{}\"{}]\n",
+		result += fmt::format("\tI{} [label=\"{{ {} [{}] | {}{} | {:08x}{:08x} }}\", fillcolor=\"{}\"{}]\n",
 			i, instruction_string(atom),
 			i, instruction_record(atom),
-			type.to_string(), instruction_color(atom), extra);
+			type.to_string(),
+			high, low,
+			instruction_color(atom), extra);
 	}
 
 	result += "\n";

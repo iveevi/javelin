@@ -300,7 +300,7 @@ using atom_base = bestd::variant <
 struct alignas(4) Atom : atom_base {
 	using atom_base::atom_base;
 
-	bool operator==(const Atom &) const;
+	// bool operator==(const Atom &) const;
 
 	Addresses addresses() {
 		auto ftn = [](auto &x) -> Addresses { return x.addresses(); };
@@ -330,7 +330,7 @@ static_assert(atom_instruction <Atom>);
 // Atom size checks
 static_assert(sizeof(Qualifier)		== 6);
 static_assert(sizeof(TypeInformation)	== 6);
-static_assert(sizeof(Primitive)		== 5);
+static_assert(sizeof(Primitive)		== 6);
 static_assert(sizeof(Swizzle)		== 4);
 static_assert(sizeof(Operation)		== 6);
 static_assert(sizeof(Intrinsic)		== 4);

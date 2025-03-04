@@ -29,14 +29,11 @@ usage_set usage(const Buffer &, Index);
 usage_graph usage(const Buffer &);
 
 // Optimization transformation passes
-// TODO: store-assignment elision
-bool optimize_compaction(Buffer &);
-bool optimize_constructor_elision(Buffer &);
+bool optimize_dead_code_elimination_iteration(Buffer &);
 bool optimize_dead_code_elimination(Buffer &);
 
-// Full optimization pass
-// TODO: options to control level of optimization
-void optimize(Buffer &);
+// TODO: Full optimization pass
+// void optimize(Buffer &);
 
 // Legalizing instructions for C-family compiled targets
 void legalize_for_cc(Buffer &);

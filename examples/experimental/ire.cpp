@@ -77,6 +77,70 @@ auto ftn = procedure <void> ("main") << []()
 	// arr[1] = vec4(br2.data[14], 1);
 };
 
+namespace jvl::thunder {
+
+bool optimize_deduplicate_iteration(Buffer &result)
+{
+	static_assert(sizeof(Atom) == sizeof(uint64_t));
+	
+	bool changed = false;
+
+	// Each atom converted to a 64-bit integer
+	std::map <uint64_t, Index> existing;
+
+	auto unique = [&](Index i) -> Index {
+		auto &atom = result.atoms[i];
+
+		// Handle exceptions
+		if (atom.is <Store> () || atom.is <Call> ())
+			return i;
+
+		auto &hash = reinterpret_cast <uint64_t &> (atom);
+
+		auto it = existing.find(hash);
+		if (it != existing.end()) {
+			if (i != it->second) {
+				changed = true;
+				result.synthesized.erase(i);
+			}
+
+			return it->second;
+		}
+
+		existing[hash] = i;
+
+		return i;
+	};
+
+	for (Index i = 0; i < result.pointer; i++) {
+		auto addresses = result.atoms[i].addresses();
+		if (addresses.a0 != -1)
+			addresses.a0 = unique(addresses.a0);
+		if (addresses.a1 != -1)
+			addresses.a1 = unique(addresses.a1);
+	}
+
+	return changed;
+}
+
+bool optimize_deduplicate(Buffer &result)
+{
+	uint32_t counter = 0;
+
+	bool changed;
+
+	do {
+		changed = optimize_deduplicate_iteration(result);
+		counter++;
+	} while (changed);
+
+	JVL_INFO("ran deduplication pass {} times", counter);
+
+	return (counter > 1);
+}
+
+}
+
 // TODO: l-value propagation
 // TODO: shadertoy and fonts example
 // TODO: optimization using graphviz for visualization...
@@ -84,9 +148,30 @@ auto ftn = procedure <void> ("main") << []()
 
 int main()
 {
-	ftn.dump();
+	// ftn.dump();
 	ftn.graphviz("graph.dot");
-	link(ftn).generate(Target::glsl);
-	dump_lines("EXPERIMENTAL IRE", link(ftn).generate_glsl());
-	link(ftn).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eCompute);
+
+	thunder::optimize_dead_code_elimination(ftn);
+	thunder::optimize_deduplicate(ftn);
+	thunder::optimize_dead_code_elimination(ftn);
+
+	ftn.graphviz("graph-optimized.dot");
+
+	// ftn.dump();
+
+	// Computing mask for atoms
+	{
+		thunder::Atom type0 = thunder::TypeInformation(0, 0, thunder::PrimitiveType(0));
+		thunder::Atom typeF = thunder::TypeInformation(0xFFFF, 0xFFFF, thunder::PrimitiveType(0xFFFF));
+		fmt::println("type0: {:016x}", reinterpret_cast <uint64_t &> (type0));
+		fmt::println("typeF: {:016x}", reinterpret_cast <uint64_t &> (typeF));
+		uint64_t bits0 = reinterpret_cast <uint64_t &> (type0);
+		uint64_t bitsF = reinterpret_cast <uint64_t &> (typeF);
+		uint64_t mask = bitsF ^ bits0;
+		fmt::println("mask: {:016x}", mask);
+	}
+
+	// link(ftn).generate(Target::glsl);
+	// dump_lines("EXPERIMENTAL IRE", link(ftn).generate_glsl());
+	// link(ftn).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eCompute);
 }

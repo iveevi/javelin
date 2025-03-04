@@ -9,7 +9,7 @@ namespace jvl::thunder {
 // Primitive types //
 /////////////////////
 
-enum PrimitiveType : int8_t {
+enum PrimitiveType : int16_t {
 	bad,
 	
 	// end of structure

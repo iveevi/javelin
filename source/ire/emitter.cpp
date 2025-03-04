@@ -1,5 +1,4 @@
 #include <cassert>
-#include <initializer_list>
 #include <unordered_map>
 #include <unordered_set>
 

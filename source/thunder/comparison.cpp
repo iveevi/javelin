@@ -14,10 +14,10 @@ static bool compare(const A &a, const A &b)
 	return a == b;
 }
 
-bool Atom::operator==(const Atom &other) const
-{
-	auto ftn = [](auto a, auto b) { return compare(a, b); };
-	return std::visit(ftn, *this, other);
-}
+// bool Atom::operator==(const Atom &other) const
+// {
+// 	auto ftn = [](auto a, auto b) { return compare(a, b); };
+// 	return std::visit(ftn, *this, other);
+// }
 
 } // namespace jvl::thunder

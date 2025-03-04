@@ -62,6 +62,12 @@ struct type_info_generator <aggregate_wrapper <Args...>> {
 		if constexpr (I + 1 >= count) {
 			auto end = em.emit_type_information(-1, -1, thunder::nil);
 
+			auto &buffer = em.scopes.top().get();
+			fmt::println("nil as uint64_t: {:016x}", reinterpret_cast <uint64_t &> (buffer.atoms[end]));
+			
+			auto end2 = em.emit_type_information(-1, -1, thunder::nil);
+			fmt::println("---- nil as uint64_t: {:016x}", reinterpret_cast <uint64_t &> (buffer.atoms[end2]));
+
 			if (current.is <primitive_type> ()) {
 				auto &p = current.as <primitive_type> ();
 				auto idx = em.emit_type_information(-1, end, p.ptv);
