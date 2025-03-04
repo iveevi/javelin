@@ -99,7 +99,7 @@ QualifiedType Buffer::semalz_construct(const Construct &constructor, Index i)
 	if (qt.is <PlainDataType> ())
 		return qt;
 
-	if (constructor.mode == transient) {
+	if (constructor.mode == global) {
 		// Reduce if its a parameter
 		if (auto in = qt.get <InArgType> ())
 			return static_cast <PlainDataType> (*in);

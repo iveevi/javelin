@@ -283,7 +283,7 @@ void legalize_for_cc(Buffer &buffer)
 		// with the arguments provided
 		if (auto constructor = atom.get <Construct> ()) {
 			auto ptype = primitive_type_of(buffer, constructor->type);
-			if (!(constructor->mode == transient) && vector_type(ptype)) {
+			if (!(constructor->mode == global) && vector_type(ptype)) {
 				auto args = buffer.expand_list(constructor->args);
 				std::vector <PrimitiveType> types;
 				for (auto i : args) {

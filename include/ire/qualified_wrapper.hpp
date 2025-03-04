@@ -57,7 +57,7 @@ public:
 	template <typename ... Args>
 	qualified_wrapper(size_t binding_, const Args &... args)
 			: qualified_wrapper(cache_index_t::from(-1),
-				thunder::transient,
+				thunder::global,
 				binding_,
 				args...) {}
 
@@ -96,7 +96,7 @@ public:
 	template <typename ... Args>
 	qualified_wrapper(size_t binding_, const Args &... args)
 			: qualified_wrapper(cache_index_t::from(-1),
-				thunder::transient,
+				thunder::global,
 				binding_,
 				args...) {}
 };

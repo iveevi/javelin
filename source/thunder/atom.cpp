@@ -122,15 +122,15 @@ std::string Primitive::to_assembly_string() const
 {
         switch (type) {
         case boolean:
-                return fmt::format("bool {}", bdata);
+                return fmt::format(".bool {}", bdata);
         case i32:
-                return fmt::format("i32 {}", idata);
+                return fmt::format(".i32 {}", idata);
         case u32:
-                return fmt::format("u32 {}", udata);
+                return fmt::format(".u32 {}", udata);
         case u64:
-                return fmt::format("u64 {}", udata);
+                return fmt::format(".u64 {}", udata);
         case f32:
-                return fmt::format("f32 {}", fdata);
+                return fmt::format(".f32 {}", fdata);
         default:
                 break;
         }

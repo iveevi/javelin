@@ -8,7 +8,12 @@ namespace jvl::thunder {
 
 MODULE(buffer);
 
-Buffer::Buffer() : pointer(0), atoms(4), types(4) {}
+static constexpr size_t BUFFER_STARTUP_SIZE = 64;
+
+Buffer::Buffer()
+	: pointer(0),
+	atoms(BUFFER_STARTUP_SIZE),
+	types(BUFFER_STARTUP_SIZE) {}
 
 Index Buffer::emit(const Atom &atom, bool enable_classification)
 {

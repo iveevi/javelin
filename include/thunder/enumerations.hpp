@@ -184,7 +184,7 @@ extern const char *tbl_branch_kind[__bk_end];
 // Operation Code //
 ////////////////////
 
-enum OperationCode : uint8_t {
+enum OperationCode : uint16_t {
 	unary_negation,
 
 	addition,
@@ -210,6 +210,11 @@ enum OperationCode : uint8_t {
 	cmp_geq,
 	cmp_le,
 	cmp_leq,
+	
+	swz_x,
+	swz_y,
+	swz_z,
+	swz_w,
 
 	__oc_end,
 };
@@ -325,7 +330,7 @@ extern const char *tbl_intrinsic_operation[__io_end];
 enum ConstructorMode : uint8_t {
 	normal,
 	assignment,
-	transient,
+	global,
 	__cm_end,
 };
 

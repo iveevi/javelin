@@ -24,7 +24,7 @@ struct shared : T {
 			.concrete();
 
 		auto qual = em.emit_qualifier(type, counter(), thunder::shared);
-		auto ctor = em.emit_construct(qual, -1, thunder::transient);
+		auto ctor = em.emit_construct(qual, -1, thunder::global);
 
 		this->ref = cache_index_t::from(ctor);
 	}
@@ -38,7 +38,7 @@ struct shared : T {
 		auto layout = this->layout();
 		auto type = layout.generate_type().concrete();
 		auto qual = em.emit_qualifier(type, counter(), thunder::shared);
-		auto ctor = em.emit_construct(qual, -1, thunder::transient);
+		auto ctor = em.emit_construct(qual, -1, thunder::global);
 
 		layout.link(ctor);
 	}

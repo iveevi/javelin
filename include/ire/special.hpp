@@ -17,7 +17,7 @@ struct task_payload <T> : T {
 		auto &em = Emitter::active;
 		auto type = type_info_generator <T> (*this).synthesize();
 		auto qual = em.emit_qualifier(type, -1, thunder::task_payload);
-		auto value = em.emit_construct(qual, -1, thunder::transient);
+		auto value = em.emit_construct(qual, -1, thunder::global);
 		this->ref = value;
 	}
 
@@ -35,7 +35,7 @@ struct task_payload <T> : T {
 		auto layout = this->layout();
 		auto type = layout.generate_type().concrete();
 		auto qual = em.emit_qualifier(type, -1, thunder::task_payload);
-		auto value = em.emit_construct(qual, -1, thunder::transient);
+		auto value = em.emit_construct(qual, -1, thunder::global);
 		layout.link(value);
 	}
 };
@@ -58,7 +58,7 @@ struct ray_payload <T> : T {
 			.concrete();
 
 		auto qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload);
-		auto value = em.emit_construct(qual, -1, thunder::transient);
+		auto value = em.emit_construct(qual, -1, thunder::global);
 		this->ref = value;
 	}
 
@@ -78,7 +78,7 @@ struct ray_payload <T> : T {
 		auto layout = this->layout();
 		auto type = layout.generate_type().concrete();
 		auto qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload);
-		auto value = em.emit_construct(qual, -1, thunder::transient);
+		auto value = em.emit_construct(qual, -1, thunder::global);
 		layout.link(value);
 	}
 };
@@ -99,7 +99,7 @@ struct ray_payload_in <T> : T {
 			.concrete();
 
 		auto qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload_in);
-		auto value = em.emit_construct(qual, -1, thunder::transient);
+		auto value = em.emit_construct(qual, -1, thunder::global);
 		this->ref = value;
 	}
 
@@ -119,7 +119,7 @@ struct ray_payload_in <T> : T {
 		auto layout = this->layout();
 		auto type = layout.generate_type().concrete();
 		auto qual = em.emit_qualifier(type, binding, thunder::ray_tracing_payload_in);
-		auto value = em.emit_construct(qual, -1, thunder::transient);
+		auto value = em.emit_construct(qual, -1, thunder::global);
 		layout.link(value);
 	}
 };
@@ -141,7 +141,7 @@ struct hit_attribute <T> : T {
 			.concrete();
 
 		auto qual = em.emit_qualifier(type, -1, thunder::hit_attribute);
-		auto dst = em.emit_construct(qual, -1, thunder::transient);
+		auto dst = em.emit_construct(qual, -1, thunder::global);
 		// TODO: refactor to cached
 		this->ref = dst;
 
@@ -161,7 +161,7 @@ struct hit_attribute <T> : T {
 		auto layout = this->layout();
 		auto type = layout.generate_type().concrete();
 		auto qual = em.emit_qualifier(type, -1, thunder::hit_attribute);
-		auto value = em.emit_construct(qual, -1, thunder::transient);
+		auto value = em.emit_construct(qual, -1, thunder::global);
 		layout.link(value);
 
 		return cache_index_t::from(value);

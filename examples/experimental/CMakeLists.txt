@@ -7,6 +7,8 @@ set_property(TARGET ire PROPERTY ENABLE_EXPORTS ON)
 
 target_link_libraries(ire glfw fmt::fmt javelin common gccjit)
 
+target_compile_definitions(ire PRIVATE $<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
+
 # Experimental program for the TSG system
 add_executable(tsg tsg.cpp ${ORIGIN}/thirdparty/glad/src/gl.c)
 

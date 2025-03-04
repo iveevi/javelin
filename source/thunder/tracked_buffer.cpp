@@ -47,7 +47,7 @@ void TrackedBuffer::cache_decrement(int32_t cid)
 	JVL_ASSERT(c.contains(cid), "no tracked buffer cache entry @{}", cid);
 	if (--c[cid].count <= 0) {
 		auto p = c[cid];
-		JVL_INFO("offloading cache entry {} (@{})", p.buffer.name, cid);
+		JVL_INFO("offloading cache entry '{}' (@{})", p.buffer.name, cid);
 		c.erase(cid);
 	}
 }

@@ -52,7 +52,7 @@ struct sampler {
 		auto &em = Emitter::active;
 		auto type = vec <T, 4> ::type();
 		auto sampler = em.emit_qualifier(type, binding, sampler_qualifiers <T> ::table[D]);
-		auto value = em.emit_construct(sampler, -1, thunder::transient);
+		auto value = em.emit_construct(sampler, -1, thunder::global);
 		return cache_index_t::from(value);
 	}
 

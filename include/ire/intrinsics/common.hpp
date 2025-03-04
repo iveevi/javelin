@@ -183,6 +183,12 @@ auto dot(const A &v, const B &w)
 
 // Cross product
 template <native T>
+native_t <T> cross(const vec <T, 2> &v, const vec <T, 2> &w)
+{
+	return v.x * w.y - v.y * w.x;
+}
+
+template <native T>
 vec <T, 3> cross(const vec <T, 3> &v, const vec <T, 3> &w)
 {
 	return platform_intrinsic_from_args <vec <T, 3>> (thunder::cross, v, w);

@@ -489,7 +489,7 @@ template <>
 gcc_jit_object *gcc_jit_function_generator_t::generate(const Construct &constructor, Index index)
 {
 	// Handle the special case of transient constructors
-	if (constructor.mode == transient) {
+	if (constructor.mode == global) {
 		auto &atom = atoms[constructor.type];
 		JVL_ASSERT(atom.is <Qualifier> (), "transient constructors must be typed to qualifiers");
 

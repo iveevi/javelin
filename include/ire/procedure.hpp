@@ -111,7 +111,7 @@ struct Procedure : thunder::TrackedBuffer {
 		if constexpr (P::value) {
 			thunder::Index t = P::emit();
 			thunder::Index q = em.emit_qualifier(t, index, thunder::parameter);
-			thunder::Index c = em.emit_construct(q, -1, thunder::transient);
+			thunder::Index c = em.emit_construct(q, -1, thunder::global);
 			P::inject(x, c);
 		}
 

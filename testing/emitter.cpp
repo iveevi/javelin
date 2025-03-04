@@ -53,13 +53,13 @@ void synthesize_layout_io_inner()
 		em.emit_primitive(T());
 		auto type_in = em.emit_type_information(-1, -1, p);
 		auto in_ql = em.emit_qualifier(type_in, 0, thunder::layout_in_smooth);
-		auto in = em.emit_construct(in_ql, -1, jvl::thunder::transient);
+		auto in = em.emit_construct(in_ql, -1, jvl::thunder::global);
 		
 		// Duplicate type is expected to be generated
 		em.emit_primitive(T());
 		auto type_out = em.emit_type_information(-1, -1, p);
 		auto out_ql = em.emit_qualifier(type_out, 0, thunder::layout_out_smooth);
-		auto out = em.emit_construct(out_ql, -1, jvl::thunder::transient);
+		auto out = em.emit_construct(out_ql, -1, jvl::thunder::global);
 		em.emit_store(out, in);
 	}
 	em.pop();

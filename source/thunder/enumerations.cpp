@@ -162,24 +162,29 @@ const char *tbl_operation_code[] = {
 	"multiply",
 	"divide",
 
-	"modulus",
+	"mod",
 
-	"not",
-	"or",
-	"and",
+	"lnot",
+	"lor",
+	"land",
 
-	"bit_or",
-	"bit_and",
-	"bit_xor",
-	"shift_left",
-	"shift_right",
+	"bor",
+	"band",
+	"bxor",
+	"shle",
+	"shri",
 
-	"equals",
-	"not_equals",
-	"greater",
-	"greater_equal",
-	"less",
-	"less_equal",
+	"eq",
+	"neq",
+	"ge",
+	"geq",
+	"le",
+	"leq",
+
+	"swz.x",
+	"swz.y",
+	"swz.z",
+	"swz.w",
 };
 
 /////////////////////////
@@ -273,7 +278,7 @@ const char *tbl_intrinsic_operation[] = {
 const char *tbl_constructor_mode[] = {
 	"normal",
 	"assignment",
-	"transient",
+	"global",
 };
 
 } // namespace jvl::thunder

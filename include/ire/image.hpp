@@ -58,7 +58,7 @@ struct image {
 		// TODO: why do we need this?
 		auto type = vec <T, 4> ::type();
 		auto image = em.emit_qualifier(type, binding, image_qualifiers <T> ::table[D]);
-		auto value = em.emit_construct(image, -1, thunder::transient);
+		auto value = em.emit_construct(image, -1, thunder::global);
 		return cache_index_t::from(value);
 	}
 };
@@ -107,7 +107,7 @@ struct readonly <image <T, D>> : image <T, D> {
 		auto &em = Emitter::active;
 		thunder::Index nested = em.emit_qualifier(-1, this->binding, image_qualifiers <T> ::table[D]);
 		thunder::Index qualifier = em.emit_qualifier(nested, -1, thunder::readonly);
-		thunder::Index value = em.emit_construct(qualifier, -1, thunder::transient);
+		thunder::Index value = em.emit_construct(qualifier, -1, thunder::global);
 		return cache_index_t::from(value);
 	}
 };
@@ -124,7 +124,7 @@ struct writeonly <image <T, D>> : image <T, D> {
 		auto &em = Emitter::active;
 		thunder::Index nested = em.emit_qualifier(-1, this->binding, image_qualifiers <T> ::table[D]);
 		thunder::Index qualifier = em.emit_qualifier(nested, -1, thunder::writeonly);
-		thunder::Index value = em.emit_construct(qualifier, -1, thunder::transient);
+		thunder::Index value = em.emit_construct(qualifier, -1, thunder::global);
 		return cache_index_t::from(value);
 	}
 };

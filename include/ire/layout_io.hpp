@@ -62,7 +62,7 @@ struct layout_in <T, kind> : T {
 			.concrete();
 
 		auto lin = em.emit_qualifier(type, binding, layout_in_as(kind));
-		auto value = em.emit_construct(lin, -1, thunder::transient);
+		auto value = em.emit_construct(lin, -1, thunder::global);
 		this->ref = value;
 	}
 
@@ -88,7 +88,7 @@ struct layout_in <T, kind> : T {
 		auto layout = this->layout().remove_const();
 		thunder::Index type = type_field_from_args(layout).id;
 		thunder::Index lin = em.emit_qualifier(type, binding, layout_in_as(kind));
-		thunder::Index value = em.emit_construct(lin, -1, thunder::transient);
+		thunder::Index value = em.emit_construct(lin, -1, thunder::global);
 		layout.ref_with(cache_index_t::from(value));
 	}
 };
@@ -114,7 +114,7 @@ struct layout_out <T, kind> : T {
 			.concrete();
 			
 		auto lout = em.emit_qualifier(type, binding, layout_out_as(kind));
-		auto dst = em.emit_construct(lout, -1, thunder::transient);
+		auto dst = em.emit_construct(lout, -1, thunder::global);
 		this->ref = dst;
 	}
 
