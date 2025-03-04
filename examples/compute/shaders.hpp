@@ -48,3 +48,5 @@ struct SimulationInfo {
 extern void vertex();
 extern void fragment(vec3 (*)(f32));
 extern void integrator();
+
+extern void shader_debug();

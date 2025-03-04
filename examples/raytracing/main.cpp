@@ -108,22 +108,6 @@ struct Application : CameraApplication {
 	}
 
 	void compile_rtx_pipeline() {
-		std::string local = std::filesystem::path(__FILE__).parent_path();
-		ray_generation.graphviz(local + "/ray_generation.dot");
-		primary_closest_hit.graphviz(local + "/primary_closest_hit.dot");
-		primary_miss.graphviz(local + "/primary_miss.dot");
-		shadow_miss.graphviz(local + "/shadow_miss.dot");
-		
-		std::string rgen_shader = link(ray_generation).generate_glsl();
-		std::string rchit_shader = link(primary_closest_hit).generate_glsl();
-		std::string rmiss_shader = link(primary_miss).generate_glsl();
-		std::string smiss_shader = link(shadow_miss).generate_glsl();
-
-		dump_lines("RAY GENERATION", rgen_shader);
-		dump_lines("PRIMARY CLOSEST HIT", rchit_shader);
-		dump_lines("PRIMARY MISS", rmiss_shader);
-		dump_lines("SHADOW MISS", smiss_shader);
-		
 		auto rgen_spv = link(ray_generation).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eRaygenKHR);
 		auto rgen_info = vk::ShaderModuleCreateInfo().setCode(rgen_spv);
 		auto rgen_module = resources.device.createShaderModule(rgen_info);
@@ -158,15 +142,12 @@ struct Application : CameraApplication {
 	}
 
 	void compile_blit_pipeline() {
-		std::string quad_shader = link(quad).generate_glsl();
-		std::string blit_shader = link(blit).generate_glsl();
-
-		dump_lines("QUAD", quad_shader);
-		dump_lines("BLIT", blit_shader);
+		auto quad_spv = link(quad).generate(Target::spirv_binary_via_glsl, Stage::vertex);
+		auto blit_spv = link(blit).generate(Target::spirv_binary_via_glsl, Stage::fragment);
 
 		auto blit_bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
-			.source(quad_shader, vk::ShaderStageFlagBits::eVertex)
-			.source(blit_shader, vk::ShaderStageFlagBits::eFragment);
+			.code(quad_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eVertex)
+			.code(blit_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eFragment);
 
 		blit_pipeline = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
 			(resources.device, resources.window, resources.dal)

@@ -29,3 +29,5 @@ struct MVP {
 // Actual shaders
 extern void vertex();
 extern void fragment(vec3 (*)(f32));
+
+extern void shader_debug();

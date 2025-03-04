@@ -189,39 +189,23 @@ struct Application : CameraApplication {
 		ingf = ImportedNGF::load(path);
 		hngf = HomogenizedNGF::from(ingf);
 
-		// Compile appropriate pipeline
-		// TODO: fix bugs with unoptimized version (variables instantiated inside block)
-		// thunder::opt_transform(task);
-		// TODO: do not optimize primitives of different storages...
-		// thunder::opt_transform(mesh);
-		
-		std::string local = std::filesystem::path(__FILE__).parent_path();
-		task.graphviz(local + "/task.dot");
-		mesh.graphviz(local + "/mesh.dot");
-		eval.graphviz(local + "/eval.dot");
-		fragment.graphviz(local + "/fragment.dot");
-
-		std::string task_shader = link(task).generate_glsl();
-		std::string mesh_shader = link(mesh).generate_glsl();
-		std::string fragment_shader = link(fragment).generate_glsl();
-
 		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal);
 
 		if (program["--file"] == true) {
 			bundle.file("examples/ngf/ngf.task", vk::ShaderStageFlagBits::eTaskEXT);
 			bundle.file("examples/ngf/ngf.mesh", vk::ShaderStageFlagBits::eMeshEXT);
 		} else {
-			bundle.source(task_shader, vk::ShaderStageFlagBits::eTaskEXT);
-			bundle.source(mesh_shader, vk::ShaderStageFlagBits::eMeshEXT);
+			auto task_spv = link(task).generate(Target::spirv_binary_via_glsl, Stage::task);
+			auto mesh_spv = link(mesh).generate(Target::spirv_binary_via_glsl, Stage::mesh);
 
-			dump_lines("TASK", task_shader);
-			dump_lines("MESH", mesh_shader);
-			dump_lines("FRAGMENT", fragment_shader);
+			bundle.code(task_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eTaskEXT);
+			bundle.code(mesh_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eMeshEXT);
+			shader_debug();
 		}
 
-		// TODO: slang-like buffer compute tests...
+		auto fragment_spv = link(fragment).generate(Target::spirv_binary_via_glsl, Stage::fragment);
 
-		bundle.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
+		bundle.code(fragment_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eFragment);
 
 		traditional = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
 			(resources.device, resources.window, resources.dal)

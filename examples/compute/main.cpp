@@ -12,24 +12,6 @@
 
 #include "shaders.hpp"
 
-// Function to generate random points and use them as positions for spheres
-std::vector <glm::vec3> generate_random_points(int N, float spread)
-{
-	std::vector <glm::vec3> points;
-
-	for (int i = 0; i < N; i++) {
-		while (true) {
-			glm::vec3 p = glm::linearRand(-glm::vec3(spread), glm::vec3(spread));
-			if (length(p) > spread / 2.0f) {
-				points.push_back(p);
-				break;
-			}
-		}
-	}
-
-	return points;
-}
-
 struct Application : CameraApplication {
 	littlevk::Pipeline raster;
 	littlevk::Pipeline compute;
@@ -78,6 +60,7 @@ struct Application : CameraApplication {
 		// Pipelines
 		configure_render_pipeline(jet);
 		configure_compute_pipeline();
+		shader_debug();
 
 		// Configure ImGui
 		configure_imgui(resources, render_pass);
@@ -131,15 +114,9 @@ struct Application : CameraApplication {
 
 	void configure_compute_pipeline() {
 		auto cs = procedure("main") << integrator;
-		auto compute_shader = link(cs).generate_glsl();
-		
-		std::string local = std::filesystem::path(__FILE__).parent_path();
-		cs.graphviz(local + "/compute.dot");
-
-		dump_lines("COMPUTE", compute_shader);
-
+		auto cs_spv = link(cs).generate(Target::spirv_binary_via_glsl);
 		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
-			.source(compute_shader, vk::ShaderStageFlagBits::eCompute);
+			.code(cs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eCompute);
 
 		compute = littlevk::PipelineAssembler <littlevk::PipelineType::eCompute>
 			(resources.device, resources.dal)
@@ -399,6 +376,23 @@ struct Application : CameraApplication {
 	
 	void resize() override {
 		framebuffers.resize(resources, render_pass);
+	}
+
+	// Function to generate random points and use them as positions for spheres
+	static std::vector <glm::vec3> generate_random_points(int N, float spread) {
+		std::vector <glm::vec3> points;
+
+		for (int i = 0; i < N; i++) {
+			while (true) {
+				glm::vec3 p = glm::linearRand(-glm::vec3(spread), glm::vec3(spread));
+				if (length(p) > spread / 2.0f) {
+					points.push_back(p);
+					break;
+				}
+			}
+		}
+
+		return points;
 	}
 };
 

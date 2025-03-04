@@ -1,3 +1,5 @@
+#include "common/cmaps.hpp"
+#include "common/util.hpp"
 #include "shaders.hpp"
 
 // Shader kernels for the sphere rendering
@@ -70,4 +72,34 @@ void integrator()
 
 	velocities[tid] = v;
 	positions[tid] = p;
+}
+
+// Debugging
+void shader_debug()
+{
+	static const std::string local = std::filesystem::path(__FILE__).parent_path();
+
+	auto vs_callable = procedure("main") << vertex;
+	auto fs_callable = procedure("main") << std::make_tuple(jet) << fragment;
+	auto cs_callable = procedure("main") << integrator;
+
+	std::string vertex_shader = link(vs_callable).generate_glsl();
+	std::string fragment_shader = link(fs_callable).generate_glsl();
+	std::string compute_shader = link(cs_callable).generate_glsl();
+
+	dump_lines("VERTEX", vertex_shader);
+	dump_lines("FRAGMENT", fragment_shader);
+	dump_lines("COMPUTE", compute_shader);
+
+	vs_callable.graphviz(local + "/vertex.dot");
+	fs_callable.graphviz(local + "/fragment.dot");
+	cs_callable.graphviz(local + "/compute.dot");
+
+	thunder::optimize(vs_callable);
+	thunder::optimize(fs_callable);
+	thunder::optimize(cs_callable);
+
+	vs_callable.graphviz(local + "/vertex-optimized.dot");
+	fs_callable.graphviz(local + "/fragment-optimized.dot");
+	cs_callable.graphviz(local + "/compute-optimized.dot");
 }

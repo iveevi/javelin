@@ -1,4 +1,5 @@
 #include "common/color.hpp"
+#include "common/util.hpp"
 
 #include "shaders.hpp"
 
@@ -58,4 +59,32 @@ void fragment(float saturation, float lightness, int splits)
 	vec3 color = lighting * palette[id % u32(palette.length)];
 
 	fragment = vec4(color, 1);
+}
+
+// Debugging
+void shader_debug()
+{
+	static const std::string local = std::filesystem::path(__FILE__).parent_path();
+
+	auto vs_callable = procedure("main")
+		<< vertex;
+
+	auto fs_callable = procedure("main")
+		<< std::make_tuple(0.5f, 0.5f, 16)
+		<< fragment;
+
+	std::string vertex_shader = link(vs_callable).generate_glsl();
+	std::string fragment_shader = link(fs_callable).generate_glsl();
+
+	dump_lines("VERTEX", vertex_shader);
+	dump_lines("FRAGMENT", fragment_shader);
+
+	vs_callable.graphviz(local + "/vertex.dot");
+	fs_callable.graphviz(local + "/fragment.dot");
+
+	thunder::optimize(vs_callable);
+	thunder::optimize(fs_callable);
+
+	vs_callable.graphviz(local + "/vertex-optimized.dot");
+	fs_callable.graphviz(local + "/fragment-optimized.dot");
 }

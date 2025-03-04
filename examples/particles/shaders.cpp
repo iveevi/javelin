@@ -1,3 +1,6 @@
+#include "common/cmaps.hpp"
+#include "common/util.hpp"
+
 #include "shaders.hpp"
 
 // Shader kernels for the sphere rendering
@@ -35,4 +38,28 @@ void fragment(vec3 (*cmap)(f32))
 	f32 t = (speed - range.x) / (range.y - range.x);
 
 	fragment = vec4(cmap(t), 1.0f);
+}
+
+// Debugging
+void shader_debug()
+{
+	static const std::string local = std::filesystem::path(__FILE__).parent_path();
+
+	auto vs_callable = procedure("main") << vertex;
+	auto fs_callable = procedure("main") << std::make_tuple(jet) << fragment;
+
+	std::string vertex_shader = link(vs_callable).generate_glsl();
+	std::string fragment_shader = link(fs_callable).generate_glsl();
+
+	dump_lines("VERTEX", vertex_shader);
+	dump_lines("FRAGMENT", fragment_shader);
+	
+	vs_callable.graphviz(local + "/vertex.dot");
+	fs_callable.graphviz(local + "/fragment.dot");
+
+	thunder::optimize(vs_callable);
+	thunder::optimize(fs_callable);
+
+	vs_callable.graphviz(local + "/vertex-optimized.dot");
+	fs_callable.graphviz(local + "/fragment-optimized.dot");
 }

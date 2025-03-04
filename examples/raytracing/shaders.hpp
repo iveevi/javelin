@@ -45,3 +45,5 @@ extern Procedure <void> ray_generation;
 extern Procedure <void> primary_closest_hit;
 extern Procedure <void> primary_miss;
 extern Procedure <void> shadow_miss;
+
+extern void shader_debug();

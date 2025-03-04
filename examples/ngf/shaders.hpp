@@ -41,3 +41,5 @@ extern Procedure <void> task;
 extern Procedure <void> mesh;
 extern Procedure <vec3, vec2> eval;
 extern Procedure <void> fragment;
+
+extern void shader_debug();

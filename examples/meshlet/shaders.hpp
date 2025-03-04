@@ -43,3 +43,5 @@ struct Payload {
 extern Procedure <void> task;
 extern Procedure <void> mesh;
 extern Procedure <void> fragment;
+
+extern void shader_debug();

@@ -1,3 +1,5 @@
+#include "common/util.hpp"
+
 #include "shaders.hpp"
 
 ////////////////////////////
@@ -174,3 +176,30 @@ Procedure <void> shadow_miss = procedure <void> ("main") << []()
 
 	shadow = false;
 };
+
+// Debugging
+void shader_debug()
+{
+	static const std::string local = std::filesystem::path(__FILE__).parent_path();
+
+	ray_generation.graphviz(local + "/ray_generation.dot");
+	primary_closest_hit.graphviz(local + "/primary_closest_hit.dot");
+	primary_miss.graphviz(local + "/primary_miss.dot");
+	shadow_miss.graphviz(local + "/shadow_miss.dot");
+	quad.graphviz(local + "/quad.dot");
+	blit.graphviz(local + "/blit.dot");
+		
+	std::string rgen_shader = link(ray_generation).generate_glsl();
+	std::string rchit_shader = link(primary_closest_hit).generate_glsl();
+	std::string rmiss_shader = link(primary_miss).generate_glsl();
+	std::string smiss_shader = link(shadow_miss).generate_glsl();
+	// std::string quad_shader = link(quad).generate_glsl();
+	// std::string blit_shader = link(blit).generate_glsl();
+
+	dump_lines("RAY GENERATION", rgen_shader);
+	dump_lines("PRIMARY CLOSEST HIT", rchit_shader);
+	dump_lines("PRIMARY MISS", rmiss_shader);
+	dump_lines("SHADOW MISS", smiss_shader);
+	// dump_lines("QUAD", quad_shader);
+	// dump_lines("BLIT", blit_shader);
+}

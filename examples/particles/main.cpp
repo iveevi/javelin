@@ -147,33 +147,29 @@ struct Application : CameraApplication {
 	}
 
 	// Pipeline configuration for rendering spheres
-	void configure_pipeline(auto cmap) {
+	void configure_pipeline(vec3 (*cmap)(f32)) {
 		auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
 
 		auto vs_callable = procedure("main") << vertex;
 		auto fs_callable = procedure("main") << std::make_tuple(cmap) << fragment;
-		
-		std::string local = std::filesystem::path(__FILE__).parent_path();
-		vs_callable.graphviz(local + "/vertex.dot");
-		fs_callable.graphviz(local + "/fragment.dot");
 
-		std::string vertex_shader = link(vs_callable).generate_glsl();
-		std::string fragment_shader = link(fs_callable).generate_glsl();
+		auto vs_spv = link(vs_callable).generate(Target::spirv_binary_via_glsl, Stage::vertex);
+		auto fs_spv = link(fs_callable).generate(Target::spirv_binary_via_glsl, Stage::fragment);
 
+		// TODO: automatic generation by observing used layouts
 		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
-			.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
-			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
+			.code(vs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eVertex)
+			.code(fs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eFragment);
 
-		dump_lines("VERTEX", vertex_shader);
-		dump_lines("FRAGMENT", fragment_shader);
+		shader_debug();
 
 		raster = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
 			(resources.device, resources.window, resources.dal)
 			.with_render_pass(render_pass, 0)
 			.with_vertex_layout(vertex_layout)
 			.with_shader_bundle(bundle)
-			.with_push_constant <solid_t<MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
-			.with_push_constant <solid_t<u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t<MVP>))
+			.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
+			.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t <MVP>))
 			.with_dsl_binding(0, vk::DescriptorType::eStorageBuffer,
 					1, vk::ShaderStageFlagBits::eVertex)
 			.with_dsl_binding(1, vk::DescriptorType::eStorageBuffer,

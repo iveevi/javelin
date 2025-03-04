@@ -1,7 +1,9 @@
+#include "common/util.hpp"
+
 #include "shaders.hpp"
 
 // Shader kernels
-void vertex()
+Procedure <void> vertex = procedure("main") << []()
 {
 	// Vertex inputs
 	layout_in <vec3> position(0);
@@ -17,9 +19,9 @@ void vertex()
 
 	// Regurgitate positions
 	out_position = position;
-}
+};
 
-void fragment()
+Procedure <void> fragment = procedure("main") << []()
 {
 	layout_in <vec3> position(0);
 	
@@ -32,4 +34,25 @@ void fragment()
 	vec3 N = normalize(cross(dV, dU));
 	
 	fragment = vec4(0.5f + 0.5f * N, 1.0f);
+};
+
+// Debugging
+void shader_debug()
+{
+	std::string local = std::filesystem::path(__FILE__).parent_path();
+
+	std::string vertex_shader = link(vertex).generate_glsl();
+	std::string fragment_shader = link(fragment).generate_glsl();
+
+	dump_lines("VERTEX", vertex_shader);
+	dump_lines("FRAGMENT", fragment_shader);
+
+	vertex.graphviz(local + "/vertex.dot");
+	fragment.graphviz(local + "/fragment.dot");
+
+	thunder::optimize(vertex);
+	thunder::optimize(fragment);
+
+	vertex.graphviz(local + "/vertex-optimized.dot");
+	fragment.graphviz(local + "/fragment-optimized.dot");
 }

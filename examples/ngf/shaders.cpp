@@ -1,3 +1,5 @@
+#include "common/util.hpp"
+
 #include "shaders.hpp"
 
 const uint32_t WORK_GROUP_SIZE = 8;
@@ -226,3 +228,34 @@ Procedure <void> fragment = procedure <void> ("main") << []()
 	// fragment = vec4(vec3(uv, 1) * lighting, 1);
 	fragment = vec4(0.5 * N + 0.5, 1);
 };
+
+// Debugging
+void shader_debug()
+{
+	static const std::string local = std::filesystem::path(__FILE__).parent_path();
+
+	std::string task_shader = link(task).generate_glsl();
+	std::string mesh_shader = link(mesh).generate_glsl();
+	std::string eval_shader = link(eval).generate_glsl();
+	std::string fragment_shader = link(fragment).generate_glsl();
+
+	dump_lines("TASK", task_shader);
+	dump_lines("MESH", mesh_shader);
+	dump_lines("EVAL", eval_shader);
+	dump_lines("FRAGMENT", fragment_shader);
+
+	task.graphviz(local + "/task.dot");
+	mesh.graphviz(local + "/mesh.dot");
+	eval.graphviz(local + "/eval.dot");
+	fragment.graphviz(local + "/fragment.dot");
+
+	thunder::optimize(task);
+	thunder::optimize(mesh);
+	thunder::optimize(eval);
+	thunder::optimize(fragment);
+
+	task.graphviz(local + "/task-optimize.dot");
+	mesh.graphviz(local + "/mesh-optimize.dot");
+	eval.graphviz(local + "/eval-optimize.dot");
+	fragment.graphviz(local + "/fragment-optimize.dot");
+}

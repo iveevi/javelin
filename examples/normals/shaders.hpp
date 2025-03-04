@@ -24,5 +24,7 @@ struct MVP {
 };
 
 // Actual shaders
-extern void vertex();
-extern void fragment();
+extern Procedure <void> vertex;
+extern Procedure <void> fragment;
+
+extern void shader_debug();

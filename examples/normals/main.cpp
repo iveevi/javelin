@@ -38,6 +38,7 @@ struct Application : CameraApplication {
 
 		// Configure pipeline
 		compile_pipeline();
+		shader_debug();
 		
 		// Framebuffer manager
 		framebuffers.resize(resources, render_pass);
@@ -46,23 +47,13 @@ struct Application : CameraApplication {
 	void compile_pipeline() {
 		auto [binding, attributes] = binding_and_attributes(VertexFlags::ePosition);
 
-		auto vs_callable = procedure("main") << vertex;
-		auto fs_callable = procedure("main") << fragment;
-		
-		std::string local = std::filesystem::path(__FILE__).parent_path();
-		vs_callable.graphviz(local + "/vertex.dot");
-		fs_callable.graphviz(local + "/fragment.dot");
-
-		std::string vertex_shader = link(vs_callable).generate_glsl();
-		std::string fragment_shader = link(fs_callable).generate_glsl();
-
-		dump_lines("VERTEX", vertex_shader);
-		dump_lines("FRAGMENT", fragment_shader);
+		auto vertex_spv = link(vertex).generate(Target::spirv_binary_via_glsl, Stage::vertex);
+		auto fragment_spv = link(fragment).generate(Target::spirv_binary_via_glsl, Stage::fragment);
 
 		// TODO: automatic generation by observing used layouts
 		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
-			.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
-			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
+			.code(vertex_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eVertex)
+			.code(fragment_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eFragment);
 
 		raster = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
 			(resources.device, resources.window, resources.dal)

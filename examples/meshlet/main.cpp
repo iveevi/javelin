@@ -74,6 +74,7 @@ struct Application : CameraApplication {
 
 		// Compile the pipeline
 		compile_meshlet_pipeline();
+		shader_debug();
 	}
 
 	static void features_include(VulkanFeatureChain &features) {
@@ -101,23 +102,14 @@ struct Application : CameraApplication {
 	}
 
 	void compile_meshlet_pipeline() {
-		std::string local = std::filesystem::path(__FILE__).parent_path();
-		task.graphviz(local + "/task.dot");
-		mesh.graphviz(local + "/mesh.dot");
-		fragment.graphviz(local + "/fragment.dot");
-
-		std::string task_shader = link(task).generate_glsl();
-		std::string mesh_shader = link(mesh).generate_glsl();
-		std::string fragment_shader = link(fragment).generate_glsl();
-
-		dump_lines("TASK", task_shader);
-		dump_lines("MESH", mesh_shader);
-		dump_lines("FRAGMENT", fragment_shader);
+		auto task_spv = link(task).generate(Target::spirv_binary_via_glsl, Stage::task);
+		auto mesh_spv = link(mesh).generate(Target::spirv_binary_via_glsl, Stage::mesh);
+		auto fragment_spv = link(fragment).generate(Target::spirv_binary_via_glsl, Stage::fragment);
 
 		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
-			.source(task_shader, vk::ShaderStageFlagBits::eTaskEXT)
-			.source(mesh_shader, vk::ShaderStageFlagBits::eMeshEXT)
-			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
+			.code(task_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eTaskEXT)
+			.code(mesh_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eMeshEXT)
+			.code(fragment_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eFragment);
 
 		meshlet = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
 			(resources.device, resources.window, resources.dal)
