@@ -37,7 +37,8 @@ struct TrackedBuffer : NamedBuffer {
 	TrackedBuffer &operator=(const TrackedBuffer &);
 	~TrackedBuffer();
 
-	void dump() const;
+	void display_assembly() const;
+	void display_pretty() const;
 };
 
 } // namespace jvl::thunder

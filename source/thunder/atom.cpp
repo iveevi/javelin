@@ -203,7 +203,7 @@ Addresses Swizzle::addresses()
 
 std::string Swizzle::to_assembly_string() const
 {
-        return fmt::format("swizzle {} {}", fmtaddr(src), tbl_swizzle_code[code]);
+        return fmt::format("${} {}", tbl_swizzle_code[code], fmtaddr(src));
 }
 
 std::string Swizzle::to_pretty_string() const
@@ -228,10 +228,10 @@ Addresses Operation::addresses()
 
 std::string Operation::to_assembly_string() const
 {
-        return fmt::format("operation {} {} {}",
+        return fmt::format("${} {} {}",
+                tbl_operation_code[code],
                 fmtaddr(a),
-                fmtaddr(b),
-                tbl_operation_code[code]);
+                fmtaddr(b));
 }
         
 std::string Operation::to_pretty_string() const
@@ -255,9 +255,9 @@ Addresses Intrinsic::addresses()
 
 std::string Intrinsic::to_assembly_string() const
 {
-        return fmt::format("intrinsic {} {}",
-                fmtaddr(args),
-                tbl_intrinsic_operation[opn]);
+        return fmt::format("${} {}",
+                tbl_intrinsic_operation[opn],
+                fmtaddr(args));
 }
 
 std::string Intrinsic::to_pretty_string() const
@@ -350,8 +350,10 @@ Addresses Call::addresses()
 
 std::string Call::to_assembly_string() const
 {
-        return fmt::format("call {} {} {}",
-                fmtidx(cid),
+        auto &buffer = TrackedBuffer::cache_load(cid);
+
+        return fmt::format("call ${} {} {}",
+                buffer.name,
                 fmtaddr(args),
                 fmtaddr(type));
 }

@@ -95,10 +95,11 @@ int main()
 	ftn.display_assembly();
 	ftn.graphviz("graph-optimized.dot");
 	
-	dump_lines("EXPERIMENTAL IRE", link(ftn).generate_glsl());
-	link(ftn).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eCompute);
+	auto unit = link(ftn);
 
-	// TODO: string_assembly(), string_pretty() for buffers
-	// TODO: write(file) and write_assembly(file) for linkage units...
-	// link(ftn).write("ire.jvl.asm");
+	dump_lines("EXPERIMENTAL IRE", unit.generate_glsl());
+
+	unit.generate_spirv_via_glsl(vk::ShaderStageFlagBits::eCompute);
+	unit.write_assembly("ire.jvl.asm");
+	unit.write("ire.jvl.bin");
 }

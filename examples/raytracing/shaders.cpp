@@ -202,4 +202,6 @@ void shader_debug()
 	dump_lines("SHADOW MISS", smiss_shader);
 	// dump_lines("QUAD", quad_shader);
 	// dump_lines("BLIT", blit_shader);
+
+	link(ray_generation, primary_closest_hit, primary_miss, shadow_miss).write_assembly(local + "/shaders.jvl.asm");
 }

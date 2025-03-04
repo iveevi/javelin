@@ -107,7 +107,13 @@ TrackedBuffer::~TrackedBuffer()
 	cache_decrement(cid);
 }
 
-void TrackedBuffer::dump() const
+void TrackedBuffer::display_assembly() const
+{
+	fmt::println("{}:", name);
+	Buffer::display_assembly();
+}
+
+void TrackedBuffer::display_pretty() const
 {
 	fmt::println("------------------------------");
 	fmt::println("TRACKED BUFFER ${} ({}/{})", name, pointer, atoms.size());

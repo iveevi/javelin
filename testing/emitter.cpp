@@ -11,15 +11,15 @@ MODULE(test-emitter);
 bool check_contents(const thunder::TrackedBuffer &ref, const thunder::TrackedBuffer &given)
 {
 	if (ref.pointer != given.pointer) {
-		ref.dump();
-		given.dump();
+		ref.display_assembly();
+		given.display_assembly();
 		return false;
 	}
 
 	for (size_t i = 0; i < ref.pointer; i++) {
 		if (ref[i] != given[i]) {
-			ref.dump();
-			given.dump();
+			ref.display_assembly();
+			given.display_assembly();
 			JVL_ERROR("generate buffer differs @{}:\n{}\nVersus:\n{}",
 				i, ref[i], given[i]);
 			return false;

@@ -38,6 +38,62 @@ void Buffer::clear()
 }
 
 // Debugging utilities
+void Buffer::write(std::ofstream &file) const
+{
+	size_t synthesized_count = synthesized.size();
+	file.write(reinterpret_cast <const char *> (&synthesized_count), sizeof(size_t));
+
+	std::vector <Index> synthesized_vector(synthesized.begin(), synthesized.end());
+	file.write(reinterpret_cast <const char *> (synthesized_vector.data()), synthesized_count * sizeof(Index));
+
+	file.write(reinterpret_cast <const char *> (&pointer), sizeof(size_t));
+	file.write(reinterpret_cast <const char *> (atoms.data()), pointer * sizeof(Atom));
+	file.write(reinterpret_cast <const char *> (types.data()), pointer * sizeof(QualifiedType));
+
+	// TODO: write decorations
+}
+
+std::string Buffer::to_string_assembly() const
+{
+	std::string result;
+
+	for (size_t i = 0; i < pointer; i++) {
+		std::string s = fmt::format("%{}", i);
+		result += fmt::format("{:>5} = {}\n", s, atoms[i].to_assembly_string());
+	}
+
+	return result;
+}
+
+std::string Buffer::to_string_pretty() const
+{
+	std::string result;
+
+	for (size_t i = 0; i < pointer; i++) {
+		result += fmt::format("   [{:4d}] {:55}"
+			"\n          :: type: {:20}"
+			"\n          :: decorations: ({}{}{})\n",
+			i, atoms[i],
+			fmt::format(fmt::emphasis::underline, "{}", types[i]),
+			synthesized.contains(i) ? 's' : '-',
+			decorations.used.contains(i) ? 't' : '-',
+			decorations.phantom.contains(i) ? 'p' : '-');
+	}
+
+	// Decorations
+	result += fmt::format("   [   X] {}\n", fmt::format(fmt::emphasis::bold, "{}", "DECORATIONS"));
+
+	for (auto &[i, th] : decorations.all) {
+		result += fmt::format("          :: {} (#{})\n",
+			fmt::format(fmt::emphasis::underline, "{}", th.name), i);
+
+		for (auto &s : th.fields)
+			result += fmt::format("             {}\n", s);
+	}
+
+	return result;
+}
+
 void Buffer::display_assembly() const
 {
 	for (size_t i = 0; i < pointer; i++) {

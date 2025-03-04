@@ -69,6 +69,10 @@ using generator_list = std::vector <detail::c_like_generator_t>;
 
 // Linkage information package
 struct LinkageUnit {
+	////////////////
+	// Properties //
+	////////////////
+
 	std::optional <glm::uvec3> local_size;
 	std::optional <glm::uvec2> mesh_shader_size;
 
@@ -96,6 +100,10 @@ struct LinkageUnit {
 		std::map <QualifierKind, special_type_set> special;
 	} globals;
 
+	/////////////
+	// Methods //
+	/////////////
+
 	Index new_aggregate(size_t, bool, const std::string &, const std::vector <Field> &);
 
 	void process_function_qualifier(Function &, size_t, Index, const Qualifier &);
@@ -121,6 +129,10 @@ struct LinkageUnit {
 	FunctionResult generate_jit_gcc() const;
 
 	GeneratedResult generate(const Target &, const Stage & = Stage::compute) const;
+
+	// Serializing
+	void write(const std::filesystem::path &) const;
+	void write_assembly(const std::filesystem::path &) const;
 };
 
 } // namespace jvl::thunder

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <fstream>
 #include <set>
 
 #include "atom.hpp"
@@ -52,8 +53,14 @@ public:
 	void clear();
 	
 	// Debugging and visualization utilities
+	void write(std::ofstream &) const;
+
+	std::string to_string_assembly() const;
+	std::string to_string_pretty() const;
+
 	void display_assembly() const;
 	void display_pretty() const;
+
 	void graphviz(const std::filesystem::path &) const;
 
 	// TODO: shrink to fit method

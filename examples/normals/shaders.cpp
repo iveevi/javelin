@@ -55,4 +55,6 @@ void shader_debug()
 
 	vertex.graphviz(local + "/vertex-optimized.dot");
 	fragment.graphviz(local + "/fragment-optimized.dot");
+
+	link(vertex, fragment).write_assembly(local + "/shaders.jvl.asm");
 }

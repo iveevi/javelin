@@ -87,4 +87,6 @@ void shader_debug()
 
 	vs_callable.graphviz(local + "/vertex-optimized.dot");
 	fs_callable.graphviz(local + "/fragment-optimized.dot");
+
+	link(vs_callable, fs_callable).write_assembly(local + "/shaders.jvl.asm");
 }

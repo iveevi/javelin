@@ -258,4 +258,6 @@ void shader_debug()
 	mesh.graphviz(local + "/mesh-optimize.dot");
 	eval.graphviz(local + "/eval-optimize.dot");
 	fragment.graphviz(local + "/fragment-optimize.dot");
+
+	link(task, mesh, eval, fragment).write_assembly(local + "/shaders.jvl.asm");
 }

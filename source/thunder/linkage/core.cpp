@@ -1,3 +1,5 @@
+#include <fstream>
+
 #include <vulkan/vulkan.hpp>
 
 #include "thunder/enumerations.hpp"
@@ -360,6 +362,7 @@ void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &funct
 	map[bidx] = new_aggregate(fidx, decorations.phantom.contains(bidx), name, fields);
 }
 
+// TODO: check for duplicate names... shouldnt exist in linkage unit
 std::set <Index> LinkageUnit::process_function(const Function &ftn)
 {
 	std::set <Index> referenced;
@@ -514,6 +517,50 @@ GeneratedResult LinkageUnit::generate(const Target &target, const Stage &stage) 
 	}
 
 	JVL_ABORT("generation target {} is currently unsupported", tbl_targets[(int) target]);
+}
+
+// Serialization
+void LinkageUnit::write(const std::filesystem::path &path) const
+{
+	std::ofstream file(path, std::ios::binary);
+	if (!file.is_open()) {
+		JVL_ERROR("failed to open file '{}' for writing", path.string());
+		return;
+	}
+
+	auto write_string = [&](const std::string &str) {
+		size_t size = str.size();
+		file.write(reinterpret_cast <const char *> (&size), sizeof(size_t));
+		file.write(str.data(), size);
+	};
+
+	// TODO: other properties
+
+	size_t count = functions.size();
+	file.write(reinterpret_cast <const char *> (&count), sizeof(size_t));
+	
+	for (auto &ftn : functions) {
+		write_string(ftn.name);
+		ftn.write(file);
+	}
+
+	file.close();
+}
+
+void LinkageUnit::write_assembly(const std::filesystem::path &path) const
+{
+	std::ofstream file(path);
+	if (!file.is_open()) {
+		JVL_ERROR("failed to open file '{}' for writing", path.string());
+		return;
+	}
+
+	for (auto &ftn : functions) {
+		file << ftn.name << '.' << ftn.cid << ":\n";
+		file << ftn.to_string_assembly() << '\n';
+	}
+
+	return file.close();
 }
 
 } // namespace jvl::thunder
