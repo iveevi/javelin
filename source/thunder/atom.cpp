@@ -203,7 +203,7 @@ Addresses Swizzle::addresses()
 
 std::string Swizzle::to_assembly_string() const
 {
-        return fmt::format("${} {}", tbl_swizzle_code[code], fmtaddr(src));
+        return fmt::format(".{} {}", tbl_swizzle_code[code], fmtaddr(src));
 }
 
 std::string Swizzle::to_pretty_string() const
@@ -228,7 +228,7 @@ Addresses Operation::addresses()
 
 std::string Operation::to_assembly_string() const
 {
-        return fmt::format("${} {} {}",
+        return fmt::format(".{} {} {}",
                 tbl_operation_code[code],
                 fmtaddr(a),
                 fmtaddr(b));
@@ -255,7 +255,7 @@ Addresses Intrinsic::addresses()
 
 std::string Intrinsic::to_assembly_string() const
 {
-        return fmt::format("${} {}",
+        return fmt::format(".{} {}",
                 tbl_intrinsic_operation[opn],
                 fmtaddr(args));
 }

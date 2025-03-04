@@ -17,7 +17,7 @@ namespace jvl::thunder {
 using Index = int16_t;
 
 // Addresses referenced in an instruction,
-// useful for a variety of reindexing operations
+// useful for various reindexing operations
 struct Addresses {
 	Index &a0;
 	Index &a1;

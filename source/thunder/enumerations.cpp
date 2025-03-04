@@ -155,12 +155,12 @@ const char *tbl_branch_kind[] = {
 ////////////////////
 
 const char *tbl_operation_code[] = {
-	"negation",
+	"negate",
 
-	"addition",
-	"subtraction",
-	"multiplication",
-	"division",
+	"add",
+	"subtract",
+	"multiply",
+	"divide",
 
 	"modulus",
 

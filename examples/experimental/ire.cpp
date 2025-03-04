@@ -81,6 +81,15 @@ auto ftn = procedure <void> ("main") << []()
 // TODO: shadertoy and fonts example
 // TODO: get line numbers for each invocation if possible?
 
+// High level intermediate representation
+namespace jvl::mir {
+
+struct Qualifier : std::vector <thunder::QualifierKind> {};
+
+// struct Molecule {};
+
+} // namespace jvl::mir
+
 int main()
 {
 	ftn.display_assembly();
