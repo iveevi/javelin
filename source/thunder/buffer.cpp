@@ -37,7 +37,16 @@ void Buffer::clear()
 	atoms.resize(4);
 }
 
-void Buffer::dump() const
+// Debugging utilities
+void Buffer::display_assembly() const
+{
+	for (size_t i = 0; i < pointer; i++) {
+		std::string s = fmt::format("%{}", i);
+		fmt::println("{:>5} = {}", s, atoms[i].to_assembly_string());
+	}
+}
+
+void Buffer::display_pretty() const
 {
 	for (size_t i = 0; i < pointer; i++) {
 		fmt::println("   [{:4d}] {:55}"

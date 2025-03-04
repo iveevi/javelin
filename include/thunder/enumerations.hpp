@@ -48,38 +48,7 @@ enum PrimitiveType : int16_t {
 	__pt_end
 };
 
-static const char *tbl_primitive_types[] = {
-	"<BAD>",
-	"nil",
-	"void",
-
-	"bool",
-	"int",
-	"uint",
-	"float",
-
-	"vec2",
-	"vec3",
-	"vec4",
-
-	"ivec2",
-	"ivec3",
-	"ivec4",
-
-	"uvec2",
-	"uvec3",
-	"uvec4",
-
-	"mat2",
-	"mat3",
-	"mat4",
-
-	"uint64_t",
-
-	"__end"
-};
-
-static_assert(__pt_end + 1 == sizeof(tbl_primitive_types) / sizeof(const char *));
+extern const char *tbl_primitive_types[__pt_end];
 
 //////////////////////
 // Global qualifier //
@@ -180,96 +149,7 @@ enum QualifierKind : int8_t {
 	__gq_end
 };
 
-static constexpr const char *tbl_qualifier_kind[] = {
-	"basic",
-
-	"parameter",
-
-	"in",
-	"out",
-	"inout",
-
-	"arrays",
-
-	"layout_input_flat",
-	"layout_input_noperspective",
-	"layout_input_smooth",
-
-	"layout_output_flat",
-	"layout_output_noperspective",
-	"layout_output_smooth",
-
-	"push_constant",
-
-	"uniform",
-
-	"storage buffer",
-
-	"buffer reference",
-
-	"shared",
-
-	"writeonly",
-	"readonly",
-	"scalar",
-
-	"isampler1D",
-	"isampler2D",
-	"isampler3D",
-
-	"usampler1D",
-	"usampler2D",
-	"usampler3D",
-
-	"sampler1D",
-	"sampler2D",
-	"sampler3D",
-
-	"iimage1D",
-	"iimage2D",
-	"iimage3D",
-
-	"uimage1D",
-	"uimage2D",
-	"uimage3D",
-
-	"image1D",
-	"image2D",
-	"image3D",
-
-	"task payload",
-
-	"hit attribute",
-	"ray tracing payload",
-	"ray tracing payload (in)",
-	"acceleration structure",
-
-	"glsl:FragCoord",
-	"glsl:FragDepth",
-	"glsl:InstanceID",
-	"glsl:InstanceIndex",
-	"glsl:VertexID",
-	"glsl:VertexIndex",
-	"glsl:GlobalInvocationID",
-	"glsl:LocalInvocationID",
-	"glsl:LocalInvocationIndex",
-	"glsl:WorkGroupID",
-	"glsl:WorkGroupSize",
-	"glsl:SubgroupInvocationID",
-	"glsl:Position",
-	"glsl:MeshVerticesEXT",
-	"glsl:PrimitiveTrianglesIndicesEXT",
-	"glsl:LaunchIDEXT",
-	"glsl:LaunchSizeEXT",
-	"glsl:InstanceCustomIndexEXT",
-	"glsl:PrimitiveID",
-	"glsl:ObjectToWorldEXT",
-	"glsl:WorldRayDirectionEXT",
-
-	"__end"
-};
-
-static_assert(__gq_end + 1 == sizeof(tbl_qualifier_kind) / sizeof(const char *));
+extern const char *tbl_qualifier_kind[__gq_end];
 
 //////////////////
 // Swizzle Code //
@@ -280,12 +160,7 @@ enum SwizzleCode : int8_t {
 	__sc_end
 };
 
-static constexpr const char *tbl_swizzle_code[] = {
-	"x", "y", "z", "w", "xy",
-	"__end"
-};
-
-static_assert(__sc_end + 1 == sizeof(tbl_swizzle_code) / sizeof(const char *));
+extern const char *tbl_swizzle_code[__sc_end];
 
 /////////////////////
 // Branching Kinds //
@@ -303,20 +178,7 @@ enum BranchKind : int8_t {
 	__bk_end
 };
 
-// TODO: put into source file...
-static constexpr const char *tbl_branch_kind[] = {
-	"if",
-	"else if",
-	"else",
-	"while",
-	"for",
-	"continue",
-	"break",
-	"end",
-	"__end"
-};
-
-static_assert(__bk_end + 1 == sizeof(tbl_branch_kind) / sizeof(const char *));
+extern const char *tbl_branch_kind[__bk_end];
 
 ////////////////////
 // Operation Code //
@@ -352,37 +214,7 @@ enum OperationCode : uint8_t {
 	__oc_end,
 };
 
-static constexpr const char *tbl_operation_code[] = {
-	"negation",
-
-	"addition",
-	"subtraction",
-	"multiplication",
-	"division",
-
-	"modulus",
-
-	"not",
-	"or",
-	"and",
-
-	"bit_or",
-	"bit_and",
-	"bit_xor",
-	"shift_left",
-	"shift_right",
-
-	"equals",
-	"not_equals",
-	"greater",
-	"greater_equal",
-	"less",
-	"less_equal",
-
-	"__end"
-};
-
-static_assert(__oc_end + 1 == sizeof(tbl_operation_code) / sizeof(const char *));
+extern const char *tbl_operation_code[__oc_end];
 
 /////////////////////////
 // Intrinsic Operation //
@@ -484,95 +316,12 @@ enum IntrinsicOperation : uint16_t {
 	__io_end
 };
 
-static constexpr const char *tbl_intrinsic_operation[] = {
-	"discard",
-
-	"local_size",
-	"mesh_shader_size",
-
-	"EmitMeshTasksEXT",
-	"SetMeshOutputsEXT",
-
-	"int",
-	"ivec2",
-	"ivec3",
-	"ivec4",
-	
-	"uint",
-	"uvec2",
-	"uvec3",
-	"uvec4",
-
-	"float",
-	"vec2",
-	"vec3",
-	"vec4",
-
-	"uint64_t",
-
-	"sin",
-	"cos",
-	"tan",
-
-	"asin",
-	"acos",
-	"atan",
-
-	"sqrt",
-	"exp",
-	"pow",
-	"log",
-
-	"abs",
-	"clamp",
-	"min",
-	"max",
-	"fract",
-	"floor",
-	"ceil",
-
-	"length",
-	"dot",
-	"cross",
-	"normalize",
-	"reflect",
-
-	"mod",
-	"mix",
-
-	"traceRayEXT",
-
-	"imageSize",
-	"imageLoad",
-	"imageStore",
-
-	"texture",
-	"texelFetch",
-
-	"dFdx",
-	"dFdy",
-	"dFdxFine",
-	"dFdyFine",
-
-	"floatBitsToInt",
-	"floatBitsToUint",
-	"intBitsToFloat",
-	"uintBitsToFloat",
-
-	"subgroupShuffle",
-
-	"barrier",
-
-	"__end"
-};
-
-static_assert(__io_end + 1 == sizeof(tbl_intrinsic_operation) / sizeof(const char *));
+extern const char *tbl_intrinsic_operation[__io_end];
 
 ///////////////////////
 // Constructor modes //
 ///////////////////////
 
-// TODO: static
 enum ConstructorMode : uint8_t {
 	normal,
 	assignment,
@@ -580,13 +329,6 @@ enum ConstructorMode : uint8_t {
 	__cm_end,
 };
 
-static constexpr const char *tbl_constructor_mode[] = {
-	"normal",
-	"assignment",
-	"transient",
-	"__end",
-};
-
-static_assert(__cm_end + 1 == sizeof(tbl_constructor_mode) / sizeof(const char *));
+extern const char *tbl_constructor_mode[__cm_end];
 
 } // namespace jvl::thunder

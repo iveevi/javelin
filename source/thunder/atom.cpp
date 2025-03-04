@@ -9,6 +9,22 @@ auto header(auto name, auto _)
         return fmt::format(fmt::emphasis::bold, "{:15}", name);
 }
 
+auto fmtaddr(Index i)
+{
+        if (i < 0)
+                return fmt::format("-");
+
+        return fmt::format("%{}", i);
+}
+
+auto fmtidx(Index i)
+{
+        if (i < 0)
+                return fmt::format("-");
+
+        return fmt::format("@{}", i);
+}
+
 // Qualifier
 bool Qualifier::operator==(const Qualifier &other) const
 {
@@ -22,7 +38,15 @@ Addresses Qualifier::addresses()
         return { underlying, Addresses::null() };
 }
 
-std::string Qualifier::to_string() const
+std::string Qualifier::to_assembly_string() const
+{
+        return fmt::format("qualifier {} {} {}",
+                fmtaddr(underlying),
+                fmtidx(numerical),
+                tbl_qualifier_kind[kind]);
+}
+
+std::string Qualifier::to_pretty_string() const
 {
         return header("QUALIFIER", fmt::color::orange)
                 + fmt::format("\n          :: kind: {}", tbl_qualifier_kind[kind])
@@ -43,7 +67,15 @@ Addresses TypeInformation::addresses()
         return { down, next };
 }
 
-std::string TypeInformation::to_string() const
+std::string TypeInformation::to_assembly_string() const
+{
+        return fmt::format("type {} {} {}",
+                fmtaddr(down),
+                fmtaddr(next),
+                tbl_primitive_types[item]);
+}
+
+std::string TypeInformation::to_pretty_string() const
 {
         std::string result;
 
@@ -86,7 +118,27 @@ Addresses Primitive::addresses()
         return { Addresses::null(), Addresses::null() };
 }
 
-std::string Primitive::to_string() const
+std::string Primitive::to_assembly_string() const
+{
+        switch (type) {
+        case boolean:
+                return fmt::format("bool {}", bdata);
+        case i32:
+                return fmt::format("i32 {}", idata);
+        case u32:
+                return fmt::format("u32 {}", udata);
+        case u64:
+                return fmt::format("u64 {}", udata);
+        case f32:
+                return fmt::format("f32 {}", fdata);
+        default:
+                break;
+        }
+
+        return "UNKNOWN";
+}
+
+std::string Primitive::to_pretty_string() const
 {
         std::string result;
         
@@ -149,7 +201,12 @@ Addresses Swizzle::addresses()
         return { src, Addresses::null() };
 }
 
-std::string Swizzle::to_string() const
+std::string Swizzle::to_assembly_string() const
+{
+        return fmt::format("swizzle {} {}", fmtaddr(src), tbl_swizzle_code[code]);
+}
+
+std::string Swizzle::to_pretty_string() const
 {
         return header("SWIZZLE", fmt::color::azure)
                 + fmt::format("\n          :: src: %{}", src)
@@ -168,8 +225,16 @@ Addresses Operation::addresses()
 {
         return { a, b };
 }
+
+std::string Operation::to_assembly_string() const
+{
+        return fmt::format("operation {} {} {}",
+                fmtaddr(a),
+                fmtaddr(b),
+                tbl_operation_code[code]);
+}
         
-std::string Operation::to_string() const
+std::string Operation::to_pretty_string() const
 {
         return header("OPERATION", fmt::color::indigo)
                 + fmt::format("\n          :: code: {}", tbl_operation_code[code])
@@ -187,8 +252,15 @@ Addresses Intrinsic::addresses()
 {
         return { args, Addresses::null() };
 }
-        
-std::string Intrinsic::to_string() const
+
+std::string Intrinsic::to_assembly_string() const
+{
+        return fmt::format("intrinsic {} {}",
+                fmtaddr(args),
+                tbl_intrinsic_operation[opn]);
+}
+
+std::string Intrinsic::to_pretty_string() const
 {
         return header("INTRINSIC", fmt::color::yellow)
                 + fmt::format("\n          :: code: {}", tbl_intrinsic_operation[opn])
@@ -207,7 +279,14 @@ Addresses List::addresses()
         return { item, next };
 }
 
-std::string List::to_string() const
+std::string List::to_assembly_string() const
+{
+        return fmt::format("list {} {}",
+                fmtaddr(item),
+                fmtaddr(next));
+}
+
+std::string List::to_pretty_string() const
 {
         std::string result;
 
@@ -232,7 +311,15 @@ Addresses Construct::addresses()
         return { type, args };
 }
 
-std::string Construct::to_string() const
+std::string Construct::to_assembly_string() const
+{
+        return fmt::format("construct {} {} {}",
+                fmtaddr(type),
+                fmtaddr(args),
+                tbl_constructor_mode[mode]);
+}
+
+std::string Construct::to_pretty_string() const
 {
         std::string result;
         
@@ -261,7 +348,15 @@ Addresses Call::addresses()
         return { args, type };
 }
 
-std::string Call::to_string() const
+std::string Call::to_assembly_string() const
+{
+        return fmt::format("call {} {} {}",
+                fmtidx(cid),
+                fmtaddr(args),
+                fmtaddr(type));
+}
+
+std::string Call::to_pretty_string() const
 {
         std::string result;
 
@@ -286,8 +381,15 @@ Addresses Store::addresses()
 {
         return { dst, src };
 }
+
+std::string Store::to_assembly_string() const
+{
+        return fmt::format("store {} {}",
+                fmtaddr(src),
+                fmtaddr(dst));
+}
         
-std::string Store::to_string() const
+std::string Store::to_pretty_string() const
 {
         return header("STORE", fmt::color::blue)
                 + fmt::format("\n          :: src: %{}", src)
@@ -306,7 +408,14 @@ Addresses Load::addresses()
         return { src, Addresses::null() };
 }
 
-std::string Load::to_string() const
+std::string Load::to_assembly_string() const
+{
+        return fmt::format("load {} {}",
+                fmtaddr(src),
+                fmtidx(idx));
+}
+
+std::string Load::to_pretty_string() const
 {
         return header("LOAD", fmt::color::green)
                 + fmt::format("\n          :: src: %{}", src)
@@ -325,7 +434,14 @@ Addresses ArrayAccess::addresses()
         return { src, loc };
 }
 
-std::string ArrayAccess::to_string() const
+std::string ArrayAccess::to_assembly_string() const
+{
+        return fmt::format("index {} {}",
+                fmtaddr(src),
+                fmtaddr(loc));
+}
+
+std::string ArrayAccess::to_pretty_string() const
 {
         return header("ACCESS", fmt::color::red)
                 + fmt::format("\n          :: src: %{}", src)
@@ -343,8 +459,25 @@ Addresses Branch::addresses()
 {
         return { cond, failto };
 }
+
+std::string Branch::to_assembly_string() const
+{
+        if (kind == control_flow_end)
+                return "end";
+
+        if (cond >= 0) {
+                return fmt::format("branch {} {} {}",
+                        tbl_branch_kind[kind],
+                        fmtaddr(cond),
+                        fmtaddr(failto));
+        }
+
+        return fmt::format("branch {} {}",
+                tbl_branch_kind[kind],
+                fmtaddr(failto));
+}
         
-std::string Branch::to_string() const
+std::string Branch::to_pretty_string() const
 {
         std::string hstr = header("BRANCH", fmt::color::cyan);
         
@@ -374,10 +507,46 @@ Addresses Returns::addresses()
         return { value, Addresses::null() };
 }
 
-std::string Returns::to_string() const
+std::string Returns::to_assembly_string() const
+{
+        return fmt::format("return {}", fmtaddr(value));
+}
+
+std::string Returns::to_pretty_string() const
 {
         return header("RETURN", fmt::color::black)
                 + fmt::format("\n          :: value: %{}", value);
+}
+
+// Top level atom
+Addresses Atom::addresses()
+{
+        auto ftn = [](auto &x) -> Addresses { return x.addresses(); };
+        return std::visit(ftn, *this);
+}
+
+void Atom::reindex(const jvl::reindex <Index> &reindexer)
+{
+        auto &&addrs = addresses();
+        if (addrs.a0 != -1) reindexer(addrs.a0);
+        if (addrs.a1 != -1) reindexer(addrs.a1);
+}
+
+std::string Atom::to_assembly_string() const
+{
+        auto ftn = [](const auto &x) -> std::string { return x.to_assembly_string(); };
+        return std::visit(ftn, *this);
+}
+
+std::string Atom::to_pretty_string() const
+{
+        auto ftn = [](const auto &x) -> std::string { return x.to_pretty_string(); };
+        return std::visit(ftn, *this);
+}
+
+std::string format_as(const Atom &atom)
+{
+	return atom.to_pretty_string();
 }
 
 } // namespace jvl::thunder

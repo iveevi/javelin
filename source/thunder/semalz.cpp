@@ -130,7 +130,7 @@ QualifiedType Buffer::semalz_load(const Load &load, Index i)
 	{
 		auto &pd = qt.as <PlainDataType> ();
 		if (!pd.is <Index> ())
-			dump();
+			display_pretty();
 		JVL_ASSERT(pd.is <Index> (), "cannot load from primitive type: {}", qt);
 
 		Index concrete = pd.as <Index> ();
@@ -295,7 +295,7 @@ QualifiedType Buffer::semalz(Index i)
 		QualifiedType plain = decl.remove_qualifiers();
 
 		if (!plain.is_primitive())
-			dump();
+			display_pretty();
 
 		JVL_ASSERT(plain.is_primitive(),
 			"swizzle takes vector types, "

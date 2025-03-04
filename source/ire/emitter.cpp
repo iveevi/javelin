@@ -255,7 +255,7 @@ void Emitter::add_phantom_hint(Index idx)
 }
 
 // Printing the IR state
-void Emitter::dump()
+void Emitter::display_pretty()
 {
 	JVL_ASSERT(scopes.size(), "no active scope in {}", __FUNCTION__);
 
@@ -264,7 +264,7 @@ void Emitter::dump()
 	fmt::println("------------------------------");
 	fmt::println("BUFFER IN PROGRESS ({}/{})", buf.pointer, buf.atoms.size());
 	fmt::println("------------------------------");
-	buf.dump();
+	buf.display_pretty();
 }
 
 thread_local Emitter Emitter::active;

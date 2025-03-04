@@ -79,12 +79,11 @@ auto ftn = procedure <void> ("main") << []()
 
 // TODO: l-value propagation
 // TODO: shadertoy and fonts example
-// TODO: optimization using graphviz for visualization...
 // TODO: get line numbers for each invocation if possible?
 
 int main()
 {
-	// ftn.dump();
+	ftn.display_assembly();
 	ftn.graphviz("graph.dot");
 
 	// thunder::optimize_dead_code_elimination(ftn);
@@ -93,10 +92,13 @@ int main()
 
 	thunder::optimize(ftn);
 
+	ftn.display_assembly();
 	ftn.graphviz("graph-optimized.dot");
-
-	// ftn.dump();
 	
 	dump_lines("EXPERIMENTAL IRE", link(ftn).generate_glsl());
 	link(ftn).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eCompute);
+
+	// TODO: string_assembly(), string_pretty() for buffers
+	// TODO: write(file) and write_assembly(file) for linkage units...
+	// link(ftn).write("ire.jvl.asm");
 }

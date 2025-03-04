@@ -99,7 +99,7 @@ public:
 	void add_phantom_hint(Index);
 	
 	// Printing the active buffer
-	void dump();
+	void display_pretty();
 
 	// Per-thread singleton
 	static thread_local Emitter active;

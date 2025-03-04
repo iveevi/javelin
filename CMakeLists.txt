@@ -48,7 +48,7 @@ add_library(javelin SHARED
 	source/thunder/autodiff_forward.cpp
 	source/thunder/buffer.cpp
 	source/thunder/c_like_generator.cpp
-	source/thunder/comparison.cpp
+	source/thunder/enumerations.cpp
 	source/thunder/gcc.cpp
 	source/thunder/graphviz.cpp
 	source/thunder/legalize_cc.cpp
@@ -57,7 +57,7 @@ add_library(javelin SHARED
 	source/thunder/linkage/cplusplus.cpp
 	source/thunder/linkage/glsl.cpp
 	source/thunder/linkage/jit_gcc.cpp
-	source/thunder/linkage/spirv_binary.cpp
+	source/thunder/linkage/spirv_via_glsl.cpp
 	source/thunder/mark.cpp
 	source/thunder/optimization.cpp
 	source/thunder/overload_intrinsics.cpp

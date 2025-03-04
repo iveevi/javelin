@@ -377,7 +377,7 @@ std::vector <std::string> c_like_generator_t::arguments(Index start) const
 	while (l != -1) {
 		Atom h = atoms[l];
 		if (!h.is <List> ()) {
-			JVL_ABORT("unexpected atom in argument list:\n{}", h.to_string());
+			JVL_ABORT("unexpected atom in argument list:\n{}", h.to_pretty_string());
 		}
 
 		List list = h.as <List> ();

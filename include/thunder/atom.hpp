@@ -31,23 +31,6 @@ struct Addresses {
 	}
 };
 
-// Interface to enforce guarantees about operations,
-// useful when enforcing decisions to change the layout
-template <typename T>
-concept atom_instruction = requires(T &t, const T &cta, const T &ctb) {
-	{
-		t.addresses()
-	} -> std::same_as <Addresses>;
-
-	{
-		cta == ctb
-	} -> std::same_as <bool>;
-
-	{
-		cta.to_string()
-	} -> std::same_as <std::string>;
-};
-
 // Qualifier for an underlying type
 //
 //   underlying: reference to the underlying type
@@ -59,11 +42,12 @@ struct Qualifier {
 	QualifierKind kind;
 
 	bool operator==(const Qualifier &) const;
-	Addresses addresses();
-	std::string to_string() const;
-};
 
-static_assert(atom_instruction <Qualifier>);
+	Addresses addresses();
+
+	std::string to_assembly_string() const;
+	std::string to_pretty_string() const;
+};
 
 // Type information, including primitives and structs
 //
@@ -76,11 +60,12 @@ struct TypeInformation {
 	PrimitiveType item = bad;
 
 	bool operator==(const TypeInformation &) const;
-	Addresses addresses();
-	std::string to_string() const;
-};
 
-static_assert(atom_instruction <TypeInformation>);
+	Addresses addresses();
+	
+	std::string to_assembly_string() const;
+	std::string to_pretty_string() const;
+};
 
 // Primitive value
 //
@@ -100,13 +85,14 @@ struct Primitive {
 	PrimitiveType type = bad;
 
 	bool operator==(const Primitive &) const;
+
 	Addresses addresses();
-	std::string to_string() const;
+	
+	std::string to_assembly_string() const;
+	std::string to_pretty_string() const;
 	std::string value_string() const;
 };
 #pragma pack(pop)
-
-static_assert(atom_instruction <Primitive>);
 
 // Swizzle instruction
 //
@@ -117,11 +103,12 @@ struct Swizzle {
 	SwizzleCode code;
 
 	bool operator==(const Swizzle &) const;
-	Addresses addresses();
-	std::string to_string() const;
-};
 
-static_assert(atom_instruction <Swizzle>);
+	Addresses addresses();
+	
+	std::string to_assembly_string() const;
+	std::string to_pretty_string() const;
+};
 
 // Operation instruction
 //
@@ -134,11 +121,12 @@ struct Operation {
 	OperationCode code;
 
 	bool operator==(const Operation &) const;
-	Addresses addresses();
-	std::string to_string() const;
-};
 
-static_assert(atom_instruction <Operation>);
+	Addresses addresses();
+	
+	std::string to_assembly_string() const;
+	std::string to_pretty_string() const;
+};
 
 // Intrinsic instruction, for invoking platform intrinsics
 //
@@ -150,11 +138,12 @@ struct Intrinsic {
 	IntrinsicOperation opn;
 
 	bool operator==(const Intrinsic &) const;
-	Addresses addresses();
-	std::string to_string() const;
-};
 
-static_assert(atom_instruction <Intrinsic>);
+	Addresses addresses();
+	
+	std::string to_assembly_string() const;
+	std::string to_pretty_string() const;
+};
 
 // List chain node
 //
@@ -165,11 +154,12 @@ struct List {
 	Index next = -1;
 
 	bool operator==(const List &) const;
-	Addresses addresses();
-	std::string to_string() const;
-};
 
-static_assert(atom_instruction <List>);
+	Addresses addresses();
+	
+	std::string to_assembly_string() const;
+	std::string to_pretty_string() const;
+};
 
 // Constructing a (complex) primitive or composite type
 //
@@ -182,11 +172,12 @@ struct Construct {
 	ConstructorMode mode = normal;
 
 	bool operator==(const Construct &) const;
-	Addresses addresses();
-	std::string to_string() const;
-};
 
-static_assert(atom_instruction <Construct>);
+	Addresses addresses();
+	
+	std::string to_assembly_string() const;
+	std::string to_pretty_string() const;
+};
 
 // Invoking a callable function (subroutine)
 //
@@ -199,11 +190,12 @@ struct Call {
 	Index type = -1;
 
 	bool operator==(const Call &) const;
-	Addresses addresses();
-	std::string to_string() const;
-};
 
-static_assert(atom_instruction <Call>);
+	Addresses addresses();
+	
+	std::string to_assembly_string() const;
+	std::string to_pretty_string() const;
+};
 
 // Store instruction
 //
@@ -214,11 +206,12 @@ struct Store {
 	Index src = -1;
 
 	bool operator==(const Store &) const;
-	Addresses addresses();
-	std::string to_string() const;
-};
 
-static_assert(atom_instruction <Store>);
+	Addresses addresses();
+	
+	std::string to_assembly_string() const;
+	std::string to_pretty_string() const;
+};
 
 // Load instruction, with fields
 //
@@ -229,11 +222,12 @@ struct Load {
 	Index idx = -1;
 
 	bool operator==(const Load &) const;
-	Addresses addresses();
-	std::string to_string() const;
-};
 
-static_assert(atom_instruction <Load>);
+	Addresses addresses();
+	
+	std::string to_assembly_string() const;
+	std::string to_pretty_string() const;
+};
 
 // Accessing elements of arrays
 //
@@ -244,11 +238,12 @@ struct ArrayAccess {
 	Index loc = -1;
 	
 	bool operator==(const ArrayAccess &) const;
-	Addresses addresses();
-	std::string to_string() const;
-};
 
-static_assert(atom_instruction <ArrayAccess>);
+	Addresses addresses();
+	
+	std::string to_assembly_string() const;
+	std::string to_pretty_string() const;
+};
 
 // Branching instruction
 //
@@ -260,11 +255,12 @@ struct Branch {
 	BranchKind kind = conditional_if;
 
 	bool operator==(const Branch &) const;
-	Addresses addresses();
-	std::string to_string() const;
-};
 
-static_assert(atom_instruction <Branch>);
+	Addresses addresses();
+	
+	std::string to_assembly_string() const;
+	std::string to_pretty_string() const;
+};
 
 // Returning values from subroutines and kernels
 //
@@ -273,11 +269,12 @@ struct Returns {
 	Index value = -1;
 
 	bool operator==(const Returns &) const;
-	Addresses addresses();
-	std::string to_string() const;
-};
 
-static_assert(atom_instruction <Returns>);
+	Addresses addresses();
+	
+	std::string to_assembly_string() const;
+	std::string to_pretty_string() const;
+};
 
 // Atom instructions
 using atom_base = bestd::variant <
@@ -300,32 +297,16 @@ using atom_base = bestd::variant <
 struct alignas(4) Atom : atom_base {
 	using atom_base::atom_base;
 
-	// bool operator==(const Atom &) const;
+	Addresses addresses();
 
-	Addresses addresses() {
-		auto ftn = [](auto &x) -> Addresses { return x.addresses(); };
-		return std::visit(ftn, *this);
-	}
-
-	void reindex(const reindex <Index> &reindexer) {
-		auto &&addrs = addresses();
-		if (addrs.a0 != -1) reindexer(addrs.a0);
-		if (addrs.a1 != -1) reindexer(addrs.a1);
-	}
-
-	std::string to_string() const {
-		auto ftn = [](const auto &x) -> std::string { return x.to_string(); };
-		return std::visit(ftn, *this);
-	}
+	void reindex(const reindex <Index> &);
+	
+	std::string to_assembly_string() const;
+	std::string to_pretty_string() const;
 };
 
 // Support for direct printing through fmt
-inline auto format_as(const Atom &atom)
-{
-	return atom.to_string();
-}
-
-static_assert(atom_instruction <Atom>);
+std::string format_as(const Atom &atom);
 
 // Atom size checks
 static_assert(sizeof(Qualifier)		== 6);

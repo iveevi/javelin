@@ -456,7 +456,7 @@ gcc_jit_function_generator_t::expanded_list_chain gcc_jit_function_generator_t::
 }
 
 // Per-atom generator
-template <atom_instruction T>
+template <typename T>
 gcc_jit_object *generate(const T &atom, Index i) {
 	JVL_ABORT("failed to JIT (gcc-jit) compile atom: {} (@{})", atom, i);
 }

@@ -43,7 +43,7 @@ struct c_like_generator_t : auxiliary_block_t {
 	// Per-atom generator
 	void generate(Index);
 
-	template <atom_instruction T>
+	template <typename T>
 	void generate(const T &atom, Index i) {
                 MODULE(c-like-generator-generate);
 

@@ -112,7 +112,7 @@ void TrackedBuffer::dump() const
 	fmt::println("------------------------------");
 	fmt::println("TRACKED BUFFER ${} ({}/{})", name, pointer, atoms.size());
 	fmt::println("------------------------------");
-	Buffer::dump();
+	Buffer::display_pretty();
 }
 
 } // namespace jvl::thunder

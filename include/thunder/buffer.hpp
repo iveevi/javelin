@@ -50,7 +50,10 @@ public:
 	Index emit(const Atom &, bool = true);
 
 	void clear();
-	void dump() const;
+	
+	// Debugging and visualization utilities
+	void display_assembly() const;
+	void display_pretty() const;
 	void graphviz(const std::filesystem::path &) const;
 
 	// TODO: shrink to fit method
@@ -66,13 +69,13 @@ public:
 #define JVL_BUFFER_DUMP_ON_ASSERT(cond, ...)	\
 	do {					\
 		if (!cond)			\
-			dump();			\
+			display_pretty();	\
 		JVL_ASSERT(cond, __VA_ARGS__);	\
 	} while (0)
 
 #define JVL_BUFFER_DUMP_AND_ABORT(...)		\
 	do {					\
-		dump();				\
+		display_pretty();		\
 		JVL_ABORT(__VA_ARGS__);		\
 	} while(0)
 

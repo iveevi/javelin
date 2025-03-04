@@ -41,7 +41,7 @@ struct gcc_jit_function_generator_t : Buffer {
 	// Per-atom generator
 	void generate(Index);
 
-	template <atom_instruction T>
+	template <typename T>
 	gcc_jit_object *generate(const T &atom, Index i) {
 		MODULE(gcc-jit-generate);
 
