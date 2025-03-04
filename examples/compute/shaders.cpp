@@ -77,7 +77,11 @@ void integrator()
 // Debugging
 void shader_debug()
 {
-	static const std::string local = std::filesystem::path(__FILE__).parent_path();
+	static const std::filesystem::path root = std::filesystem::path(__FILE__).parent_path() / ".." / "..";
+	static const std::filesystem::path local = root / "output" / "compute";
+	
+	std::filesystem::remove_all(local);
+	std::filesystem::create_directories(local);
 
 	auto vs_callable = procedure("main") << vertex;
 	auto fs_callable = procedure("main") << std::make_tuple(jet) << fragment;
@@ -91,17 +95,17 @@ void shader_debug()
 	dump_lines("FRAGMENT", fragment_shader);
 	dump_lines("COMPUTE", compute_shader);
 
-	vs_callable.graphviz(local + "/vertex.dot");
-	fs_callable.graphviz(local + "/fragment.dot");
-	cs_callable.graphviz(local + "/compute.dot");
+	vs_callable.graphviz(local / "vertex.dot");
+	fs_callable.graphviz(local / "fragment.dot");
+	cs_callable.graphviz(local / "compute.dot");
 
 	thunder::optimize(vs_callable);
 	thunder::optimize(fs_callable);
 	thunder::optimize(cs_callable);
 
-	vs_callable.graphviz(local + "/vertex-optimized.dot");
-	fs_callable.graphviz(local + "/fragment-optimized.dot");
-	cs_callable.graphviz(local + "/compute-optimized.dot");
+	vs_callable.graphviz(local / "vertex-optimized.dot");
+	fs_callable.graphviz(local / "fragment-optimized.dot");
+	cs_callable.graphviz(local / "compute-optimized.dot");
 
-	link(vs_callable, fs_callable, cs_callable).write_assembly(local + "/shaders.jvl.asm");
+	link(vs_callable, fs_callable, cs_callable).write_assembly(local / "shaders.jvl.asm");
 }

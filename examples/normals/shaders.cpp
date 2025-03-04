@@ -39,7 +39,11 @@ Procedure <void> fragment = procedure("main") << []()
 // Debugging
 void shader_debug()
 {
-	std::string local = std::filesystem::path(__FILE__).parent_path();
+	static const std::filesystem::path root = std::filesystem::path(__FILE__).parent_path() / ".." / "..";
+	static const std::filesystem::path local = root / "output" / "normals";
+	
+	std::filesystem::remove_all(local);
+	std::filesystem::create_directories(local);
 
 	std::string vertex_shader = link(vertex).generate_glsl();
 	std::string fragment_shader = link(fragment).generate_glsl();
@@ -47,14 +51,14 @@ void shader_debug()
 	dump_lines("VERTEX", vertex_shader);
 	dump_lines("FRAGMENT", fragment_shader);
 
-	vertex.graphviz(local + "/vertex.dot");
-	fragment.graphviz(local + "/fragment.dot");
+	vertex.graphviz(local / "vertex.dot");
+	fragment.graphviz(local / "fragment.dot");
 
 	thunder::optimize(vertex);
 	thunder::optimize(fragment);
 
-	vertex.graphviz(local + "/vertex-optimized.dot");
-	fragment.graphviz(local + "/fragment-optimized.dot");
+	vertex.graphviz(local / "vertex-optimized.dot");
+	fragment.graphviz(local / "fragment-optimized.dot");
 
-	link(vertex, fragment).write_assembly(local + "/shaders.jvl.asm");
+	link(vertex, fragment).write_assembly(local / "shaders.jvl.asm");
 }

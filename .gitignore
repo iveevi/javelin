@@ -10,4 +10,5 @@ compile_commands.json
 gcc_jit_result*.c
 graph*.pdf
 imgui.ini
+output/
 vgcore.*

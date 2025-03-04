@@ -201,16 +201,20 @@ Procedure <void> shadow_miss = procedure <void> ("main") << []()
 // Debugging
 void shader_debug()
 {
-	std::string local = std::filesystem::path(__FILE__).parent_path();
+	static const std::filesystem::path root = std::filesystem::path(__FILE__).parent_path() / ".." / "..";
+	static const std::filesystem::path local = root / "output" / "pathtracing";
+	
+	std::filesystem::remove_all(local);
+	std::filesystem::create_directories(local);
 
-	ray_generation.graphviz(local + "/ray_generation.dot");
-	primary_closest_hit.graphviz(local + "/primary_closest_hit.dot");
-	primary_miss.graphviz(local + "/primary_miss.dot");
-	shadow_miss.graphviz(local + "/shadow_miss.dot");
-	B.graphviz(local + "/pcg3d.dot");
-	A.graphviz(local + "/random3.dot");
-	quad.graphviz(local + "/quad.dot");
-	blit.graphviz(local + "/blit.dot");
+	ray_generation.graphviz(local / "ray_generation.dot");
+	primary_closest_hit.graphviz(local / "primary_closest_hit.dot");
+	primary_miss.graphviz(local / "primary_miss.dot");
+	shadow_miss.graphviz(local / "shadow_miss.dot");
+	B.graphviz(local / "pcg3d.dot");
+	A.graphviz(local / "random3.dot");
+	quad.graphviz(local / "quad.dot");
+	blit.graphviz(local / "blit.dot");
 		
 	std::string rgen_shader = link(ray_generation).generate_glsl();
 	std::string rchit_shader = link(primary_closest_hit).generate_glsl();
@@ -230,5 +234,5 @@ void shader_debug()
 	// dump_lines("QUAD", quad_shader);
 	// dump_lines("BLIT", blit_shader);
 
-	link(ray_generation, primary_closest_hit, primary_miss, shadow_miss, B, A).write_assembly(local + "/shaders.jvl.asm");
+	link(ray_generation, primary_closest_hit, primary_miss, shadow_miss, B, A).write_assembly(local / "shaders.jvl.asm");
 }

@@ -64,7 +64,11 @@ void fragment(float saturation, float lightness, int splits)
 // Debugging
 void shader_debug()
 {
-	static const std::string local = std::filesystem::path(__FILE__).parent_path();
+	static const std::filesystem::path root = std::filesystem::path(__FILE__).parent_path() / ".." / "..";
+	static const std::filesystem::path local = root / "output" / "palette";
+	
+	std::filesystem::remove_all(local);
+	std::filesystem::create_directories(local);
 
 	auto vs_callable = procedure("main")
 		<< vertex;
@@ -79,14 +83,14 @@ void shader_debug()
 	dump_lines("VERTEX", vertex_shader);
 	dump_lines("FRAGMENT", fragment_shader);
 
-	vs_callable.graphviz(local + "/vertex.dot");
-	fs_callable.graphviz(local + "/fragment.dot");
+	vs_callable.graphviz(local / "vertex.dot");
+	fs_callable.graphviz(local / "fragment.dot");
 
 	thunder::optimize(vs_callable);
 	thunder::optimize(fs_callable);
 
-	vs_callable.graphviz(local + "/vertex-optimized.dot");
-	fs_callable.graphviz(local + "/fragment-optimized.dot");
+	vs_callable.graphviz(local / "vertex-optimized.dot");
+	fs_callable.graphviz(local / "fragment-optimized.dot");
 
-	link(vs_callable, fs_callable).write_assembly(local + "/shaders.jvl.asm");
+	link(vs_callable, fs_callable).write_assembly(local / "shaders.jvl.asm");
 }

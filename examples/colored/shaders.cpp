@@ -45,7 +45,11 @@ void fragment(glm::vec3 C)
 // Debugging
 void shader_debug()
 {
-	std::string local = std::filesystem::path(__FILE__).parent_path();
+	static const std::filesystem::path root = std::filesystem::path(__FILE__).parent_path() / ".." / "..";
+	static const std::filesystem::path local = root / "output" / "colored";
+	
+	std::filesystem::remove_all(local);
+	std::filesystem::create_directories(local);
 		
 	auto vs_callable = procedure("main") << vertex;
 	auto fs_callable = procedure("main") << std::make_tuple(glm::vec3(1, 0, 1)) << fragment;
@@ -56,14 +60,14 @@ void shader_debug()
 	dump_lines("VERTEX", vertex_shader);
 	dump_lines("FRAGMENT", fragment_shader);
 
-	vs_callable.graphviz(local + "/vertex.dot");
-	fs_callable.graphviz(local + "/fragment.dot");
+	vs_callable.graphviz(local / "vertex.dot");
+	fs_callable.graphviz(local / "fragment.dot");
 
 	thunder::optimize(vs_callable);
 	thunder::optimize(fs_callable);
 
-	vs_callable.graphviz(local + "/vertex-optimized.dot");
-	fs_callable.graphviz(local + "/fragment-optimized.dot");
+	vs_callable.graphviz(local / "vertex-optimized.dot");
+	fs_callable.graphviz(local / "fragment-optimized.dot");
 
-	link(vs_callable, fs_callable).write_assembly(local + "/shaders.jvl.asm");
+	link(vs_callable, fs_callable).write_assembly(local / "shaders.jvl.asm");
 }

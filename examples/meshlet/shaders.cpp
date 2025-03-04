@@ -101,7 +101,11 @@ Procedure <void> fragment = procedure <void> ("main") << []()
 // Debugging
 void shader_debug()
 {
-	static const std::string local = std::filesystem::path(__FILE__).parent_path();
+	static const std::filesystem::path root = std::filesystem::path(__FILE__).parent_path() / ".." / "..";
+	static const std::filesystem::path local = root / "output" / "meshlet";
+	
+	std::filesystem::remove_all(local);
+	std::filesystem::create_directories(local);
 
 	std::string task_shader = link(task).generate_glsl();
 	std::string mesh_shader = link(mesh).generate_glsl();
@@ -111,17 +115,17 @@ void shader_debug()
 	dump_lines("MESH", mesh_shader);
 	dump_lines("FRAGMENT", fragment_shader);
 	
-	task.graphviz(local + "/task.dot");
-	mesh.graphviz(local + "/mesh.dot");
-	fragment.graphviz(local + "/fragment.dot");
+	task.graphviz(local / "task.dot");
+	mesh.graphviz(local / "mesh.dot");
+	fragment.graphviz(local / "fragment.dot");
 
 	thunder::optimize(task);
 	thunder::optimize(mesh);
 	thunder::optimize(fragment);
 	
-	task.graphviz(local + "/task-optimize.dot");
-	mesh.graphviz(local + "/mesh-optimize.dot");
-	fragment.graphviz(local + "/fragment-optimize.dot");
+	task.graphviz(local / "task-optimize.dot");
+	mesh.graphviz(local / "mesh-optimize.dot");
+	fragment.graphviz(local / "fragment-optimize.dot");
 
-	link(task, mesh, fragment).write_assembly(local + "/shaders.jvl.asm");
+	link(task, mesh, fragment).write_assembly(local / "shaders.jvl.asm");
 }
