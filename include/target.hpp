@@ -1,5 +1,11 @@
 #pragma once
 
+#include <cstdint>
+#include <string>
+#include <vector>
+
+#include <bestd/variant.hpp>
+
 namespace jvl {
 
 // Target generation modes
@@ -30,5 +36,12 @@ enum class Stage {
 	callable,
 	__end,
 };
+
+// Target generation results
+using SourceResult = std::string;
+using BinaryResult = std::vector <uint32_t>;
+using FunctionResult = void *;
+
+using GeneratedResult = bestd::variant <SourceResult, BinaryResult, FunctionResult>;
 
 } // namespace jvl

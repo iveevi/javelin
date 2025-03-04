@@ -1,3 +1,5 @@
+#include "common/util.hpp"
+
 #include "shaders.hpp"
 
 // Shader kernels
@@ -38,4 +40,28 @@ void fragment(glm::vec3 C)
 	vec3 color = lighting * vec3(C.x, C.y, C.z);
 
 	fragment = vec4(color, 1);
+}
+
+// Debugging
+void shader_debug()
+{
+	std::string local = std::filesystem::path(__FILE__).parent_path();
+		
+	auto vs_callable = procedure("main") << vertex;
+	auto fs_callable = procedure("main") << std::make_tuple(glm::vec3(1, 0, 1)) << fragment;
+
+	std::string vertex_shader = link(vs_callable).generate_glsl();
+	std::string fragment_shader = link(fs_callable).generate_glsl();
+
+	dump_lines("VERTEX", vertex_shader);
+	dump_lines("FRAGMENT", fragment_shader);
+
+	vs_callable.graphviz(local + "/vertex.dot");
+	fs_callable.graphviz(local + "/fragment.dot");
+
+	thunder::optimize(vs_callable);
+	thunder::optimize(fs_callable);
+
+	vs_callable.graphviz(local + "/vertex-optimized.dot");
+	fs_callable.graphviz(local + "/fragment-optimized.dot");
 }

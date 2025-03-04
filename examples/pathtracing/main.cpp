@@ -72,6 +72,7 @@ struct Application : CameraApplication {
 	
 		compile_rtx_pipeline();
 		compile_blit_pipeline();
+		shader_debug();
 	}
 
 	static void features_include(VulkanFeatureChain &features) {
@@ -107,8 +108,6 @@ struct Application : CameraApplication {
 	}
 
 	void compile_rtx_pipeline() {
-		shader_debug();
-
 		auto rgen_spv = link(ray_generation).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eRaygenKHR);
 		auto rgen_info = vk::ShaderModuleCreateInfo().setCode(rgen_spv);
 		auto rgen_module = resources.device.createShaderModule(rgen_info);
@@ -145,9 +144,6 @@ struct Application : CameraApplication {
 	void compile_blit_pipeline() {
 		std::string quad_shader = link(quad).generate_glsl();
 		std::string blit_shader = link(blit).generate_glsl();
-
-		dump_lines("QUAD", quad_shader);
-		dump_lines("BLIT", blit_shader);
 
 		auto blit_bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
 			.source(quad_shader, vk::ShaderStageFlagBits::eVertex)

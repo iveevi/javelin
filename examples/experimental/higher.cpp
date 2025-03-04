@@ -118,13 +118,11 @@ auto rasterizer(const A &assembly, auto vertex_layout, auto vertex_transform, au
 	// TODO: extract render pass outputs and dependencies...
 
 	auto vbuffer = compile <Vin> (vertex_transform);
-	thunder::optimize(vbuffer);
 	vbuffer.dump();
 
 	auto vspirv = ire::link(vbuffer).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eVertex);
 	
 	auto fbuffer = compile <Fin> (fragment_processor);
-	thunder::optimize(fbuffer);
 	fbuffer.dump();
 	
 	auto fspirv = ire::link(vbuffer).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eVertex);

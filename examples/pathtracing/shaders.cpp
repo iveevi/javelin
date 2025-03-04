@@ -209,6 +209,8 @@ void shader_debug()
 	shadow_miss.graphviz(local + "/shadow_miss.dot");
 	B.graphviz(local + "/pcg3d.dot");
 	A.graphviz(local + "/random3.dot");
+	quad.graphviz(local + "/quad.dot");
+	blit.graphviz(local + "/blit.dot");
 		
 	std::string rgen_shader = link(ray_generation).generate_glsl();
 	std::string rchit_shader = link(primary_closest_hit).generate_glsl();
@@ -216,6 +218,8 @@ void shader_debug()
 	std::string smiss_shader = link(shadow_miss).generate_glsl();
 	std::string pcg3d_shader = link(B).generate_glsl();
 	std::string random3_shader = link(A).generate_glsl();
+	// std::string quad_shader = link(quad).generate_glsl();
+	// std::string blit_shader = link(blit).generate_glsl();
 
 	dump_lines("RAY GENERATION", rgen_shader);
 	dump_lines("PRIMARY CLOSEST HIT", rchit_shader);
@@ -223,4 +227,6 @@ void shader_debug()
 	dump_lines("SHADOW MISS", smiss_shader);
 	dump_lines("PCG3D", pcg3d_shader);
 	dump_lines("RANDOM3", random3_shader);
+	// dump_lines("QUAD", quad_shader);
+	// dump_lines("BLIT", blit_shader);
 }

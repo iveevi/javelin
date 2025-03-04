@@ -67,13 +67,6 @@ struct push_constant_info : local_layout_type {
 
 using generator_list = std::vector <detail::c_like_generator_t>;
 
-// Target generation results
-using SourceResult = std::string;
-using BinaryResult = std::vector <uint32_t>;
-using FunctionResult = void *;
-
-using GeneratedResult = bestd::variant <SourceResult, BinaryResult, FunctionResult>;
-
 // Linkage information package
 struct LinkageUnit {
 	std::optional <glm::uvec3> local_size;

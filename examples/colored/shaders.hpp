@@ -26,3 +26,5 @@ struct MVP {
 // Actual shaders
 extern void vertex();
 extern void fragment(glm::vec3 color);
+
+void shader_debug();

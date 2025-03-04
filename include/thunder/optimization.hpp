@@ -32,8 +32,11 @@ usage_graph usage(const Buffer &);
 bool optimize_dead_code_elimination_iteration(Buffer &);
 bool optimize_dead_code_elimination(Buffer &);
 
-// TODO: Full optimization pass
-// void optimize(Buffer &);
+bool optimize_deduplicate_iteration(Buffer &);
+bool optimize_deduplicate(Buffer &);
+
+// Full optimization pass
+void optimize(Buffer &);
 
 // Legalizing instructions for C-family compiled targets
 void legalize_for_cc(Buffer &);

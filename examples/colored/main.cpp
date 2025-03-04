@@ -38,6 +38,9 @@ struct Application : CameraApplication {
 				.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
 				.depth_attachment(1, vk::ImageLayout::eDepthStencilAttachmentOptimal)
 				.done();
+		
+		// Framebuffer manager
+		framebuffers.resize(resources, render_pass);
 
 		// Configure ImGui
 		configure_imgui(resources, render_pass);
@@ -46,29 +49,20 @@ struct Application : CameraApplication {
 		color = glm::vec3(1, 0, 0);
 
 		compile_pipeline(color);
-		
-		// Framebuffer manager
-		framebuffers.resize(resources, render_pass);
+		shader_debug();
 	}
 
 	void compile_pipeline(const glm::vec3 &color) {
 		auto vs_callable = procedure("main") << vertex;
 		auto fs_callable = procedure("main") << std::make_tuple(color) << fragment;
 
-		std::string local = std::filesystem::path(__FILE__).parent_path();
-		vs_callable.graphviz(local + "/vertex.dot");
-		fs_callable.graphviz(local + "/fragment.dot");
-
-		std::string vertex_shader = link(vs_callable).generate_glsl();
-		std::string fragment_shader = link(fs_callable).generate_glsl();
-
-		dump_lines("VERTEX", vertex_shader);
-		dump_lines("FRAGMENT", fragment_shader);
+		auto vs_spv = link(vs_callable).generate(Target::spirv_binary_via_glsl, Stage::vertex);
+		auto fs_spv = link(fs_callable).generate(Target::spirv_binary_via_glsl, Stage::fragment);
 
 		// TODO: automatic generation by observing used layouts
 		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
-			.source(vertex_shader, vk::ShaderStageFlagBits::eVertex)
-			.source(fragment_shader, vk::ShaderStageFlagBits::eFragment);
+			.code(vs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eVertex)
+			.code(fs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eFragment);
 		
 		auto [binding, attributes] = binding_and_attributes(VertexFlags::ePosition);
 

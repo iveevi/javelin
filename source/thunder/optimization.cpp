@@ -3,7 +3,6 @@
 
 #include "core/reindex.hpp"
 #include "core/logging.hpp"
-#include "thunder/enumerations.hpp"
 #include "thunder/optimization.hpp"
 
 namespace jvl::thunder {
@@ -105,6 +104,81 @@ bool optimize_dead_code_elimination(Buffer &result)
 	JVL_INFO("ran dead code elimination pass {} times, reduced size from {} to {}", counter, size_begin, size_end);
 
 	return size_begin != size_end;
+}
+
+bool optimize_deduplicate_iteration(Buffer &result)
+{
+	static_assert(sizeof(Atom) == sizeof(uint64_t));
+	
+	bool changed = false;
+
+	// Each atom converted to a 64-bit integer
+	std::map <uint64_t, Index> existing;
+
+	auto unique = [&](Index i) -> Index {
+		auto &atom = result.atoms[i];
+
+		// Handle exceptions
+		if (atom.is <Store> () || atom.is <Call> ())
+			return i;
+
+		auto &hash = reinterpret_cast <uint64_t &> (atom);
+
+		auto it = existing.find(hash);
+		if (it != existing.end()) {
+			if (i != it->second) {
+				changed = true;
+				result.synthesized.erase(i);
+			}
+
+			return it->second;
+		}
+
+		existing[hash] = i;
+
+		return i;
+	};
+
+	for (size_t i = 0; i < result.pointer; i++) {
+		auto addresses = result.atoms[i].addresses();
+		if (addresses.a0 != -1)
+			addresses.a0 = unique(addresses.a0);
+		if (addresses.a1 != -1)
+			addresses.a1 = unique(addresses.a1);
+	}
+
+	return changed;
+}
+
+bool optimize_deduplicate(Buffer &result)
+{
+	uint32_t counter = 0;
+
+	bool changed;
+
+	do {
+		changed = optimize_deduplicate_iteration(result);
+		counter++;
+	} while (changed);
+
+	JVL_INFO("ran deduplication pass {} times", counter);
+
+	return (counter > 1);
+}
+
+void optimize(Buffer &result)
+{
+	uint32_t counter = 0;
+
+	bool changed;
+
+	do {
+		changed = optimize_dead_code_elimination(result);
+		changed |= optimize_deduplicate(result);
+		counter++;
+	} while (changed);
+
+	JVL_INFO("ran full optimization pass {} times", counter);
 }
 
 } // namespace jvl::thunder
