@@ -76,13 +76,13 @@ struct LinkageUnit {
 	std::optional <glm::uvec3> local_size;
 	std::optional <glm::uvec2> mesh_shader_size;
 
-	std::set <Index> loaded;
+	// Mapping function CIDs to local indices
+	std::map <Index, uint32_t> loaded;
 
 	std::vector <Function> functions;
 	std::vector <Aggregate> aggregates;
 	std::vector <TypeMap> types;
 	
-	std::map <Index, Index> cids;
 	std::map <Index, std::set <Index>> dependencies;
 
 	std::set <std::string> extensions;
@@ -110,10 +110,12 @@ struct LinkageUnit {
 	void process_function_intrinsic(Function &, size_t, Index, const Intrinsic &);
 	void process_function_aggregate(TypeMap &, const Function &, size_t, Index, QualifiedType);
 
-	std::set <Index> process_function(const Function &);
+	using function_result_t = std::pair <Index, std::set <Index>>;
 
-	void add(uint32_t, const NamedBuffer &);
-	void add(const TrackedBuffer &);
+	function_result_t process_function(const Function &);
+
+	Index add(uint32_t, const NamedBuffer &);
+	Index add(const TrackedBuffer &);
 
 	generator_list configure_generators() const;
 

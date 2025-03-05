@@ -222,8 +222,8 @@ void shader_debug()
 	std::string smiss_shader = link(shadow_miss).generate_glsl();
 	std::string pcg3d_shader = link(B).generate_glsl();
 	std::string random3_shader = link(A).generate_glsl();
-	// std::string quad_shader = link(quad).generate_glsl();
-	// std::string blit_shader = link(blit).generate_glsl();
+	std::string quad_shader = link(quad).generate_glsl();
+	std::string blit_shader = link(blit).generate_glsl();
 
 	dump_lines("RAY GENERATION", rgen_shader);
 	dump_lines("PRIMARY CLOSEST HIT", rchit_shader);
@@ -231,8 +231,13 @@ void shader_debug()
 	dump_lines("SHADOW MISS", smiss_shader);
 	dump_lines("PCG3D", pcg3d_shader);
 	dump_lines("RANDOM3", random3_shader);
-	// dump_lines("QUAD", quad_shader);
-	// dump_lines("BLIT", blit_shader);
+	dump_lines("QUAD", quad_shader);
+	dump_lines("BLIT", blit_shader);
 
-	link(ray_generation, primary_closest_hit, primary_miss, shadow_miss, B, A).write_assembly(local / "shaders.jvl.asm");
+	link(ray_generation,
+		primary_closest_hit,
+		primary_miss,
+		shadow_miss,
+		B, A,
+		quad, blit).write_assembly(local / "shaders.jvl.asm");
 }

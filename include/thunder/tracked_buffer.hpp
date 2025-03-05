@@ -28,6 +28,7 @@ struct TrackedBuffer : NamedBuffer {
 	static void cache_decrement(int32_t);
 	static void cache_unlink(int32_t);
 	static void cache_insert(const TrackedBuffer *);
+	static void cache_display();
 
 	// Unique id
 	int32_t cid;

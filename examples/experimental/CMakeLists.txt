@@ -26,3 +26,12 @@ set_property(TARGET higher PROPERTY ENABLE_EXPORTS ON)
 target_link_libraries(higher glfw fmt::fmt javelin common gccjit ${VULKAN_LIBRARY_SET})
 
 target_compile_definitions(higher PRIVATE $<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
+
+# Experimental program for the Molecule intermediarte representation
+add_executable(mir mir.cpp ${ORIGIN}/thirdparty/glad/src/gl.c)
+
+set_property(TARGET mir PROPERTY ENABLE_EXPORTS ON)
+
+target_link_libraries(mir glfw fmt::fmt javelin common gccjit ${VULKAN_LIBRARY_SET})
+
+target_compile_definitions(mir PRIVATE $<$<CONFIG:DEBUG>:JVL_DEBUG=1>)

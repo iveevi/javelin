@@ -8,16 +8,18 @@ MODULE(tracked-buffer);
 TrackedBuffer::cache_t &TrackedBuffer::cache()
 {
 	static cache_t cache;
-	
-	// JVL_INFO("cached buffers:");
-	// for (auto &[k, entry] : cache) {
-	// 	fmt::println("\t{} -> ({}, {}, {})",
-	// 		k, entry.count,
-	// 		entry.buffer.name,
-	// 		(void *) entry.link);
-	// }
-
 	return cache;
+}
+
+void TrackedBuffer::cache_display()
+{
+	JVL_INFO("cached buffers:");
+	for (auto &[k, entry] : cache()) {
+		fmt::println("\t{} -> ({}, {}, {})",
+			k, entry.count,
+			entry.buffer.name,
+			(void *) entry.link);
+	}
 }
 	
 const NamedBuffer &TrackedBuffer::cache_load(int32_t cid)

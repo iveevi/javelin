@@ -363,7 +363,7 @@ void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &funct
 }
 
 // TODO: check for duplicate names... shouldnt exist in linkage unit
-std::set <Index> LinkageUnit::process_function(const Function &ftn)
+LinkageUnit::function_result_t LinkageUnit::process_function(const Function &ftn)
 {
 	std::set <Index> referenced;
 
@@ -415,17 +415,13 @@ std::set <Index> LinkageUnit::process_function(const Function &ftn)
 		// TODO: static initializers (e.g. arrays and constants)
 	}
 
-	// Mark the dependencies
-	dependencies[fidx] = referenced;
-	cids[ftn.cid] = fidx;
-
-	return referenced;
+	return std::make_pair(fidx, referenced);
 }
 
-void LinkageUnit::add(uint32_t cid, const NamedBuffer &callable)
+Index LinkageUnit::add(uint32_t cid, const NamedBuffer &callable)
 {
 	if (loaded.contains(cid))
-		return;
+		return loaded[cid];
 
 	Function converted {
 		callable,
@@ -433,14 +429,23 @@ void LinkageUnit::add(uint32_t cid, const NamedBuffer &callable)
 		cid
 	};
 
-	auto referenced = process_function(converted);
+	auto [fidx, referenced] = process_function(converted);
 
-	loaded.insert(cid);
-	for (Index i : referenced)
-		add(i, TrackedBuffer::cache_load(i));
+	loaded[cid] = fidx;
+
+	std::set <Index> translated;
+	for (Index i : referenced) {
+		Index j = add(i, TrackedBuffer::cache_load(i));
+		translated.insert(j);
+	}
+
+	// Mark the dependencies
+	dependencies[fidx] = translated;
+
+	return fidx;
 }
 
-void LinkageUnit::add(const TrackedBuffer &callable)
+Index LinkageUnit::add(const TrackedBuffer &callable)
 {
 	return add(callable.cid, callable);
 }
