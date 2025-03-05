@@ -163,6 +163,11 @@ struct Application : CameraApplication {
 	void configure(argparse::ArgumentParser &program) override {
 		program.add_argument("mesh")
 			.help("input mesh");
+		
+		program.add_argument("--smooth")
+			.help("smooth mesh normals")
+			.default_value(false)
+			.flag();
 	}
 	
 	void preload(const argparse::ArgumentParser &program) override {
@@ -182,9 +187,12 @@ struct Application : CameraApplication {
 
 		min = glm::vec3(1e10);
 		max = -min;
+		
+		bool smooth = (program["--smooth"] == true);
 
 		for (auto &g : asset.geometries) {
-			g.deduplicate_vertices().recompute_normals();
+			if (smooth)
+				g.deduplicate_vertices().recompute_normals();
 
 			auto tm = TriangleMesh::from(g).value();
 			

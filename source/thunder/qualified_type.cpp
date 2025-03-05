@@ -308,6 +308,23 @@ QualifiedType QualifiedType::remove_qualifiers() const
                 return static_cast <PlainDataType> (brt);
         }
 
+        variant_case(QualifiedType, InArgType):
+        {
+                auto &iat = as <InArgType> ();
+                return static_cast <PlainDataType> (iat);
+        }
+        
+        variant_case(QualifiedType, OutArgType):
+        {
+                auto &oat = as <OutArgType> ();
+                return static_cast <PlainDataType> (oat);
+        }
+        
+        variant_case(QualifiedType, InOutArgType):
+        {
+                auto &ioat = as <InOutArgType> ();
+                return static_cast <PlainDataType> (ioat);
+        }
         default:
                 break;
         }

@@ -73,6 +73,22 @@ Procedure random3 = procedure("random3") << [](inout <vec3> seed) -> vec3
 	return seed;
 };
 
+Procedure spherical = procedure("spherical") << [](f32 theta, f32 phi) -> vec3
+{
+	return vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+};
+
+Procedure randomH2 = procedure("randomH2") << [](inout <vec3> seed) -> vec3
+{
+	// TODO: fix
+	vec3 s;
+	s = seed;
+	random3(s);
+	f32 theta = acos(s.x);
+	f32 phi = float(2 * M_PI) * s.y;
+	return spherical(theta, phi);
+};
+
 Procedure <void> ray_generation = procedure("main") << []()
 {
 	ray_payload <Hit> hit(0);
@@ -113,15 +129,11 @@ Procedure <void> ray_generation = procedure("main") << []()
 		}
 		$end();
 
-		beta *= max(dot(hit.normal, -ray), 0.0f);
-		// color += beta;
+		vec3 r = randomH2(seed);
 
-		origin = hit.position + 1e-3 * hit.normal;
-		ray = reflect(ray, hit.normal);
-
-		// color = vec3(max(dot(-ray, hit.normal), 0.0f));
+		color += 0.5 + 0.5 * r;
 		// color = 0.5 + 0.5 * hit.normal;
-		// $break();
+		$break();
 	}
 	$end();
 
@@ -173,11 +185,11 @@ Procedure <void> primary_closest_hit = procedure("main") << []()
 	p = (gl_ObjectToWorldEXT * vec4(p, 1)).xyz();
 
 	vec3 n = b.x * v0.normal + b.y * v1.normal + b.z * v2.normal;
-	n = -normalize(n);
+	n = normalize((n * gl_ObjectToWorldEXT).xyz());
 
-	// $if (dot(n, gl_WorldRayDirectionEXT) > 0);
-	// 	n = -n;
-	// $end();
+	$if (dot(n, gl_WorldRayDirectionEXT) > 0);
+		n = -n;
+	$end();
 
 	hit.position = p;
 	hit.normal = n;

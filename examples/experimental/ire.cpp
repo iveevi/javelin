@@ -51,16 +51,141 @@ Procedure random3 = procedure("random3") << [](inout <vec3> seed) -> vec3
 	return seed;
 };
 
-// TODO: promote atoms to synthesizable if used multiple times
+Procedure spherical = procedure("spherical") << [](f32 theta, f32 phi) -> vec3
+{
+	return vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+};
 
+Procedure randomH2 = procedure("randomH2") << [](inout <vec3> seed) -> vec3
+{
+	// TODO: fix
+	vec3 eta = random3(seed);
+	f32 theta = acos(eta.x);
+	f32 phi = float(2 * M_PI) * eta.y;
+	return spherical(theta, phi);
+};
+
+namespace jvl::thunder {
+
+bool casting_intrinsic(const Intrinsic &intr)
+{
+	switch (intr.opn) {
+	case cast_to_float:
+		return true;
+	default:
+		break;
+	}
+
+	return false;
+}
+
+// TODO: optimizer class...
+bool optimize_casting_elision(Buffer &result)
+{
+	bool changed = false;
+
+	usage_graph graph = usage(result);
+	
+	reindex <Index> relocation;
+	for (size_t i = 0; i < result.pointer; i++)
+		relocation[i] = i;
+
+	for (Index i = 0; i < result.pointer; i++) {
+		auto &atom = result.atoms[i];
+
+		if (atom.is <Construct> ()) {
+			// Constructors with one argument of the same type
+			auto &ctor = atom.as <Construct> ();
+			if (ctor.mode != normal)
+				continue;
+
+			auto oqt = result.types[i];
+			auto aqt = QualifiedType();
+			
+			auto &args = result.atoms[ctor.args];
+			JVL_ASSERT(args.is <List> (), "constructor arguments should be a list chain");
+
+			auto &list = args.as <List> ();
+
+			// Only handle singletons
+			if (list.next != -1)
+				continue;
+
+			aqt = result.types[list.item];
+			if (oqt == aqt) {
+				relocation[i] = list.item;
+				result.synthesized.erase(i);
+			}
+		} else if (atom.is <Intrinsic> ()) {
+			auto &intr = atom.as <Intrinsic> ();
+			if (!casting_intrinsic(intr))
+				continue;
+
+			// Casting intrinsics with the same type
+			fmt::println("potentially optimizable: {}", intr.to_assembly_string());
+			
+			// TODO: this is the same code as for the constructor at the end...
+			auto oqt = result.types[i];
+			auto aqt = QualifiedType();
+			
+			auto &args = result.atoms[intr.args];
+			JVL_ASSERT(args.is <List> (), "constructor arguments should be a list chain");
+
+			auto &list = args.as <List> ();
+
+			// Only handle singletons
+			if (list.next != -1)
+				continue;
+
+			aqt = result.types[list.item];
+			if (oqt == aqt) {
+				relocation[i] = list.item;
+				result.synthesized.erase(i);
+			}
+		}
+	}
+
+	// TODO: refine relocation
+	for (auto &[k, v] : relocation) {
+		auto pv = v;
+
+		do {
+			pv = v;
+			relocation(v);
+		} while (pv != v);
+	}
+ 
+	fmt::println("relocation:");
+	for (auto [k, v] : relocation)
+		fmt::println("\t{} -> {}", k, v);
+	
+	for (size_t i = 0; i < result.pointer; i++)
+		result.atoms[i].reindex(relocation);
+
+	return changed;
+}
+
+} // namespace jvl::thunder
+
+// TODO: promote atoms to synthesizable if used multiple times
 int main()
 {
-	std::string pcg3d_shader = link(pcg3d).generate_glsl();
-	std::string random3_shader = link(random3).generate_glsl();
+	thunder::optimize(pcg3d);
+	thunder::optimize(random3);
+	thunder::optimize(spherical);
+	thunder::optimize(randomH2);
 
-	dump_lines("PCG3D", pcg3d_shader);
-	dump_lines("RANDOM3", random3_shader);
+	thunder::optimize_casting_elision(randomH2);
+	thunder::optimize_dead_code_elimination(randomH2);
+	randomH2.graphviz("randomH2.dot");
 	
-	link(pcg3d).generate_glsl();
-	link(random3).generate_glsl();
+	spherical.graphviz("spherical.dot");
+
+	auto unit = link(randomH2);
+
+	dump_lines("RANDOM H2", unit.generate_glsl());
+
+	unit.write_assembly("ire.jvl.asm");
+
+	// unit.generate_spirv_via_glsl(vk::ShaderStageFlagBits::eCompute);
 }
