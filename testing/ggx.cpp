@@ -32,7 +32,7 @@ struct Material {
 };
 
 // Random number generation
-auto B = procedure("pcg3d") << [](uvec3 v)
+auto pcg3d = procedure("pcg3d") << [](uvec3 v)
 {
 	v = v * 1664525u + 1013904223u;
 	v.x += v.y * v.z;
@@ -45,10 +45,10 @@ auto B = procedure("pcg3d") << [](uvec3 v)
 	return v;
 };
 
-auto A = procedure("random3") << [](/* inout */ vec3 seed)
+auto random3 = procedure("random3") << [](/* inout */ vec3 seed)
 {
 	seed = uintBitsToFloat(
-		(B(floatBitsToUint(seed)) & 0x007FFFFFu)
+		(pcg3d(floatBitsToUint(seed)) & 0x007FFFFFu)
 			| 0x3F800000u
 	) - 1.0;
 
@@ -164,7 +164,7 @@ auto ggx_sample = procedure <f32> ("ggx_sample") << [](Material mat, vec3 n, vec
 		t = max(avg_Ks/(avg_Kd + avg_Ks), 0.25f);
 	$end();
 
-	vec3 eta = fract(A(seed));
+	vec3 eta = fract(random3(seed));
 
 	$if(eta.x < t);
 	{

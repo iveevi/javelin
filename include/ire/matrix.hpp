@@ -50,7 +50,9 @@ struct mat_base : tagged {
 			case 3:
 				return M == 3 ? thunder::mat3 : thunder::bad;
 			case 4:
-				return M == 4 ? thunder::mat4 : thunder::bad;
+				return M == 4 ? thunder::mat4
+					: M == 3 ? thunder::mat4x3
+					: thunder::bad;
 			default:
 				break;
 			}
@@ -67,7 +69,7 @@ struct mat : mat_base <T, N, M> {
 	using native_type = T;
 	using arithmetic_type = mat <T, N, M>;
 
-	using result_type = vec <T, M>;
+	using output_type = vec <T, M>;
 	using input_type = vec <T, N>;
 };
 
@@ -85,8 +87,15 @@ concept matrix_arithmetic = is_matrix_base <typename T::arithmetic_type> ::value
 template <matrix_arithmetic T>
 auto operator*(const T &m, const typename T::arithmetic_type::input_type &v)
 {
-	using result = typename T::arithmetic_type::result_type;
+	using result = typename T::arithmetic_type::output_type;
 	return operation_from_args <result> (thunder::multiplication, m, v);
+}
+
+template <matrix_arithmetic T>
+auto operator*(const typename T::arithmetic_type::output_type &v, const T &m)
+{
+	using result = typename T::arithmetic_type::input_type;
+	return operation_from_args <result> (thunder::multiplication, v, m);
 }
 
 // Override type generation

@@ -41,6 +41,8 @@ enum PrimitiveType : int16_t {
 	mat2,
 	mat3,
 	mat4,
+	mat4x3,
+	mat3x4,
 
 	// Higher precision types
 	u64,

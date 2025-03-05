@@ -255,6 +255,16 @@ void Emitter::add_phantom_hint(Index idx)
 }
 
 // Printing the IR state
+void Emitter::display_assembly()
+{
+	JVL_ASSERT(scopes.size(), "no active scope in {}", __FUNCTION__);
+
+	auto &buf = buffer();
+	
+	fmt::println("__emitter.{}:", scopes.size());
+	buf.display_pretty();
+}
+
 void Emitter::display_pretty()
 {
 	JVL_ASSERT(scopes.size(), "no active scope in {}", __FUNCTION__);

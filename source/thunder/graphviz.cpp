@@ -166,7 +166,7 @@ std::string instruction_record(const Atom &atom)
 // TODO: option to configure fonts...
 void Buffer::graphviz(const std::filesystem::path &path) const
 {
-	JVL_INFO("generating graphviz to \"{}\"", path.string());
+	JVL_INFO("generating graphviz to \"{}\"", std::filesystem::weakly_canonical(path).string());
 	
 	std::string result = "digraph G {\n";
 

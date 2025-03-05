@@ -78,14 +78,14 @@ public:
 
 #define JVL_BUFFER_DUMP_ON_ASSERT(cond, ...)	\
 	do {					\
-		if (!cond)			\
-			display_pretty();	\
+		if (!(cond))			\
+			display_assembly();	\
 		JVL_ASSERT(cond, __VA_ARGS__);	\
 	} while (0)
 
 #define JVL_BUFFER_DUMP_AND_ABORT(...)		\
 	do {					\
-		display_pretty();		\
+		display_assembly();		\
 		JVL_ABORT(__VA_ARGS__);		\
 	} while(0)
 

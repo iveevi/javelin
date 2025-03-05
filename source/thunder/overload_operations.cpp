@@ -46,6 +46,9 @@ QualifiedType lookup_operation_overload(const OperationCode &key, const std::vec
 		overload::from(vec2, mat2, vec2),
 		overload::from(vec3, mat3, vec3),
 		overload::from(vec4, mat4, vec4),
+		
+		overload::from(vec3, mat4x3, vec4),
+		overload::from(vec4, vec3, mat4x3),
 	};
 
 	static const overload_list bitwise_operator_overloads {

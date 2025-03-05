@@ -77,14 +77,14 @@ Procedure <void> ray_generation = procedure <void> ("main") << []()
 		ray, 1e10,
 		0);
 
-	vec4 color = vec4(hit.color, 1.0);
-
 	// Shadow testing
-	$if(!hit.missed);
+	$if (!hit.missed);
 	{
+		hit.color = vec3(max(dot(hit.normal, constants.light), 0.0f));
+
 		shadow = true;
 		
-		vec3 offset = hit.position + 1e-2 * hit.normal;
+		vec3 offset = hit.position + 1e-3 * hit.normal;
 
 		traceRayEXT(tlas,
 			gl_RayFlagsOpaqueEXT
@@ -96,15 +96,14 @@ Procedure <void> ray_generation = procedure <void> ("main") << []()
 			constants.light, 1e10,
 			1);
 
-		hit.color = 0.5 + 0.5 * hit.normal;
-		hit.color *= 0.5 + 0.5 * (1.0f - f32(shadow));
+		hit.color *= 0.25 + 0.75 * f32(!shadow);
 	}
 	$end();
 
 	// TODO: more semantic traceRaysEXT...
 	// traceRayEXT(tlas, flags, mask, nullptr, ..., shadow_miss, ray..., shadow)
 	
-	imageStore(image, ivec2(gl_LaunchIDEXT.xy()), color);
+	imageStore(image, ivec2(gl_LaunchIDEXT.xy()), vec4(hit.color, 1.0));
 };
 
 struct Vertex {
@@ -149,11 +148,11 @@ Procedure <void> primary_closest_hit = procedure <void> ("main") << []()
 	p = (gl_ObjectToWorldEXT * vec4(p, 1)).xyz();
 
 	vec3 n = b.x * v0.normal + b.y * v1.normal + b.z * v2.normal;
-	n = normalize(n);
+	n = normalize((n * gl_ObjectToWorldEXT).xyz());
 
-	// $if(dot(n, gl_WorldRayDirectionEXT) > 0);
-	// 	n = -n;
-	// $end();
+	$if (dot(n, gl_WorldRayDirectionEXT) > 0);
+		n = -n;
+	$end();
 
 	hit.position = p;
 	hit.normal = n;
@@ -185,27 +184,46 @@ void shader_debug()
 	
 	std::filesystem::remove_all(local);
 	std::filesystem::create_directories(local);
-
-	ray_generation.graphviz(local / "ray_generation.dot");
-	primary_closest_hit.graphviz(local / "primary_closest_hit.dot");
-	primary_miss.graphviz(local / "primary_miss.dot");
-	shadow_miss.graphviz(local / "shadow_miss.dot");
-	quad.graphviz(local / "quad.dot");
-	blit.graphviz(local / "blit.dot");
 		
 	std::string rgen_shader = link(ray_generation).generate_glsl();
 	std::string rchit_shader = link(primary_closest_hit).generate_glsl();
 	std::string rmiss_shader = link(primary_miss).generate_glsl();
 	std::string smiss_shader = link(shadow_miss).generate_glsl();
-	// std::string quad_shader = link(quad).generate_glsl();
-	// std::string blit_shader = link(blit).generate_glsl();
+	std::string quad_shader = link(quad).generate_glsl();
+	std::string blit_shader = link(blit).generate_glsl();
 
 	dump_lines("RAY GENERATION", rgen_shader);
 	dump_lines("PRIMARY CLOSEST HIT", rchit_shader);
 	dump_lines("PRIMARY MISS", rmiss_shader);
 	dump_lines("SHADOW MISS", smiss_shader);
-	// dump_lines("QUAD", quad_shader);
-	// dump_lines("BLIT", blit_shader);
+	dump_lines("QUAD", quad_shader);
+	dump_lines("BLIT", blit_shader);
 
-	link(ray_generation, primary_closest_hit, primary_miss, shadow_miss).write_assembly(local / "shaders.jvl.asm");
+	ray_generation.graphviz(local / "ray-generation.dot");
+	primary_closest_hit.graphviz(local / "primary-closest-hit.dot");
+	primary_miss.graphviz(local / "primary-miss.dot");
+	shadow_miss.graphviz(local / "shadow-miss.dot");
+	quad.graphviz(local / "quad.dot");
+	blit.graphviz(local / "blit.dot");
+
+	thunder::optimize(ray_generation);
+	thunder::optimize(primary_closest_hit);
+	thunder::optimize(primary_miss);
+	thunder::optimize(shadow_miss);
+	thunder::optimize(quad);
+	thunder::optimize(blit);
+	
+	ray_generation.graphviz(local / "ray-generation-optimized.dot");
+	primary_closest_hit.graphviz(local / "primary-closest-hit-optimized.dot");
+	primary_miss.graphviz(local / "primary-miss-optimized.dot");
+	shadow_miss.graphviz(local / "shadow-miss-optimized.dot");
+	quad.graphviz(local / "quad-optimized.dot");
+	blit.graphviz(local / "blit-optimized.dot");
+
+	link(ray_generation,
+		primary_closest_hit,
+		primary_miss,
+		shadow_miss,
+		quad,
+		blit).write_assembly(local / "shaders.jvl.asm");
 }

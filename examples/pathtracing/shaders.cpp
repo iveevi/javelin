@@ -6,7 +6,7 @@
 // Target display shaders //
 ////////////////////////////
 
-Procedure <void> quad = procedure <void> ("main") << []()
+Procedure <void> quad = procedure("main") << []()
 {
 	array <vec4> locations = std::array <vec4, 6> {
 		vec4(-1, -1, 0, 0),
@@ -24,7 +24,7 @@ Procedure <void> quad = procedure <void> ("main") << []()
 	uv = v.zw();
 };
 
-Procedure <void> blit = procedure <void> ("main") << []()
+Procedure <void> blit = procedure("main") << []()
 {
 	layout_in <vec2> uv(0);
 
@@ -54,7 +54,7 @@ struct Hit {
 	}
 };
 
-Procedure B = procedure("pcg3d") << [](uvec3 v) -> uvec3
+Procedure pcg3d = procedure("pcg3d") << [](uvec3 v) -> uvec3
 {
 	v = v * 1664525u + 1013904223u;
 	v.x += v.y * v.z;
@@ -67,13 +67,13 @@ Procedure B = procedure("pcg3d") << [](uvec3 v) -> uvec3
 	return v;
 };
 
-Procedure A = procedure("random3") << [](inout <vec3> seed) -> vec3
+Procedure random3 = procedure("random3") << [](inout <vec3> seed) -> vec3
 {
-	seed = uintBitsToFloat((B(floatBitsToUint(seed)) & 0x007FFFFFu) | 0x3F800000u) - 1.0;
+	seed = uintBitsToFloat((pcg3d(floatBitsToUint(seed)) & 0x007FFFFFu) | 0x3F800000u) - 1.0;
 	return seed;
 };
 
-Procedure <void> ray_generation = procedure <void> ("main") << []()
+Procedure <void> ray_generation = procedure("main") << []()
 {
 	ray_payload <Hit> hit(0);
 	ray_payload <boolean> shadow(1);
@@ -89,43 +89,46 @@ Procedure <void> ray_generation = procedure <void> ("main") << []()
 	vec2 center = vec2(gl_LaunchIDEXT.xy()) + vec2(0.5);
 	vec2 uv = center / vec2(imageSize(image));
 	vec3 ray = constants.at(uv);
+	vec3 origin = vec3(constants.origin);
 
-	traceRayEXT(tlas,
-		gl_RayFlagsOpaqueEXT,
-		0xFF,
-		0, 0, 0,
-		constants.origin, 1e-3,
-		ray, 1e10,
-		0);
+	vec3 beta = vec3(1);
+	vec3 color = vec3(0);
 
-	vec4 color = vec4(hit.color, 1.0);
-
-	// Shadow testing
-	$if(!hit.missed);
+	// TODO: compile with fixed depth and samples per pixel per launch
+	$for (range <u32> (0, 5, 1));
 	{
-		shadow = true;
-		
-		vec3 offset = hit.position + 1e-2 * hit.normal;
-
 		traceRayEXT(tlas,
-			gl_RayFlagsOpaqueEXT
-			| gl_RayFlagsTerminateOnFirstHitEXT
-			| gl_RayFlagsSkipClosestHitShaderEXT,
+			gl_RayFlagsOpaqueEXT,
 			0xFF,
-			0, 0, 1,
-			offset, 1e-3,
-			constants.light, 1e10,
-			1);
+			0, 0, 0,
+			constants.origin, 1e-3,
+			ray, 1e10,
+			0);
 
-		hit.color = 0.5 + 0.5 * hit.normal;
-		hit.color *= 0.5 + 0.5 * (1.0f - f32(shadow));
+		$if (hit.missed);
+		{
+			// Missing hits the background light
+			color += beta;
+			$break();
+		}
+		$end();
+
+		beta *= max(dot(hit.normal, -ray), 0.0f);
+		// color += beta;
+
+		origin = hit.position + 1e-3 * hit.normal;
+		ray = reflect(ray, hit.normal);
+
+		// color = vec3(max(dot(-ray, hit.normal), 0.0f));
+		// color = 0.5 + 0.5 * hit.normal;
+		// $break();
 	}
 	$end();
 
 	// TODO: more semantic traceRaysEXT...
 	// traceRayEXT(tlas, flags, mask, nullptr, ..., shadow_miss, ray..., shadow)
 	
-	imageStore(image, ivec2(gl_LaunchIDEXT.xy()), color);
+	imageStore(image, ivec2(gl_LaunchIDEXT.xy()), vec4(color, 1.0));
 };
 
 struct Vertex {
@@ -139,7 +142,7 @@ struct Vertex {
 	}
 };
 
-Procedure <void> primary_closest_hit = procedure <void> ("main") << []()
+Procedure <void> primary_closest_hit = procedure("main") << []()
 {
 	using Triangles = scalar <buffer_reference <unsized_array <ivec3>>>;
 	using Vertices = scalar <buffer_reference <unsized_array <Vertex>>>;
@@ -170,9 +173,9 @@ Procedure <void> primary_closest_hit = procedure <void> ("main") << []()
 	p = (gl_ObjectToWorldEXT * vec4(p, 1)).xyz();
 
 	vec3 n = b.x * v0.normal + b.y * v1.normal + b.z * v2.normal;
-	n = normalize(n);
+	n = -normalize(n);
 
-	// $if(dot(n, gl_WorldRayDirectionEXT) > 0);
+	// $if (dot(n, gl_WorldRayDirectionEXT) > 0);
 	// 	n = -n;
 	// $end();
 
@@ -206,22 +209,13 @@ void shader_debug()
 	
 	std::filesystem::remove_all(local);
 	std::filesystem::create_directories(local);
-
-	ray_generation.graphviz(local / "ray_generation.dot");
-	primary_closest_hit.graphviz(local / "primary_closest_hit.dot");
-	primary_miss.graphviz(local / "primary_miss.dot");
-	shadow_miss.graphviz(local / "shadow_miss.dot");
-	B.graphviz(local / "pcg3d.dot");
-	A.graphviz(local / "random3.dot");
-	quad.graphviz(local / "quad.dot");
-	blit.graphviz(local / "blit.dot");
 		
 	std::string rgen_shader = link(ray_generation).generate_glsl();
 	std::string rchit_shader = link(primary_closest_hit).generate_glsl();
 	std::string rmiss_shader = link(primary_miss).generate_glsl();
 	std::string smiss_shader = link(shadow_miss).generate_glsl();
-	std::string pcg3d_shader = link(B).generate_glsl();
-	std::string random3_shader = link(A).generate_glsl();
+	std::string pcg3d_shader = link(pcg3d).generate_glsl();
+	std::string random3_shader = link(random3).generate_glsl();
 	std::string quad_shader = link(quad).generate_glsl();
 	std::string blit_shader = link(blit).generate_glsl();
 
@@ -234,10 +228,37 @@ void shader_debug()
 	dump_lines("QUAD", quad_shader);
 	dump_lines("BLIT", blit_shader);
 
+	ray_generation.graphviz(local / "ray-generation.dot");
+	primary_closest_hit.graphviz(local / "primary-closest-hit.dot");
+	primary_miss.graphviz(local / "primary-miss.dot");
+	shadow_miss.graphviz(local / "shadow-miss.dot");
+	pcg3d.graphviz(local / "pcg3d.dot");
+	random3.graphviz(local / "random3.dot");
+	quad.graphviz(local / "quad.dot");
+	blit.graphviz(local / "blit.dot");
+
+	thunder::optimize(ray_generation);
+	thunder::optimize(primary_closest_hit);
+	thunder::optimize(primary_miss);
+	thunder::optimize(shadow_miss);
+	thunder::optimize(pcg3d);
+	thunder::optimize(random3);
+	thunder::optimize(quad);
+	thunder::optimize(pcg3d);
+
+	ray_generation.graphviz(local / "ray-generation-optimized.dot");
+	primary_closest_hit.graphviz(local / "primary-closest-hit-optimized.dot");
+	primary_miss.graphviz(local / "primary-miss-optimized.dot");
+	shadow_miss.graphviz(local / "shadow-miss-optimized.dot");
+	pcg3d.graphviz(local / "pcg3d-optimized.dot");
+	random3.graphviz(local / "random3-optimized.dot");
+	quad.graphviz(local / "quad-optimized.dot");
+	blit.graphviz(local / "blit-optimized.dot");
+
 	link(ray_generation,
 		primary_closest_hit,
 		primary_miss,
 		shadow_miss,
-		B, A,
+		pcg3d, random3,
 		quad, blit).write_assembly(local / "shaders.jvl.asm");
 }

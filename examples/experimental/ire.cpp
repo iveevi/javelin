@@ -32,7 +32,7 @@ MODULE(ire);
 // TODO: get line numbers for each invocation if possible?
 // using source location if available
 
-Procedure B = procedure("pcg3d") << [](uvec3 v) -> uvec3
+Procedure pcg3d = procedure("pcg3d") << [](uvec3 v) -> uvec3
 {
 	v = v * 1664525u + 1013904223u;
 	v.x += v.y * v.z;
@@ -45,20 +45,22 @@ Procedure B = procedure("pcg3d") << [](uvec3 v) -> uvec3
 	return v;
 };
 
-Procedure A = procedure("random3") << [](inout <vec3> seed) -> vec3
+Procedure random3 = procedure("random3") << [](inout <vec3> seed) -> vec3
 {
-	seed = uintBitsToFloat((B(floatBitsToUint(seed)) & 0x007FFFFFu) | 0x3F800000u) - 1.0;
+	seed = uintBitsToFloat((pcg3d(floatBitsToUint(seed)) & 0x007FFFFFu) | 0x3F800000u) - 1.0;
 	return seed;
 };
 
+// TODO: promote atoms to synthesizable if used multiple times
+
 int main()
 {
-	std::string pcg3d_shader = link(B).generate_glsl();
-	std::string random3_shader = link(A).generate_glsl();
+	std::string pcg3d_shader = link(pcg3d).generate_glsl();
+	std::string random3_shader = link(random3).generate_glsl();
 
 	dump_lines("PCG3D", pcg3d_shader);
 	dump_lines("RANDOM3", random3_shader);
 	
-	link(B).generate_glsl();
-	link(A).generate_glsl();
+	link(pcg3d).generate_glsl();
+	link(random3).generate_glsl();
 }

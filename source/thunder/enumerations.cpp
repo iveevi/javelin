@@ -32,6 +32,8 @@ const char *tbl_primitive_types[] = {
 	"mat2",
 	"mat3",
 	"mat4",
+	"mat4x3",
+	"mat3x4",
 
 	"uint64_t",
 };

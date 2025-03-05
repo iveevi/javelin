@@ -49,6 +49,11 @@ struct Primitive : bestd::variant <Int, Float, Bool, String> {
 	using bestd::variant <Int, Float, Bool, String>::variant;
 };
 
+struct Storage {
+	Ref <Type> type;
+	Ref <Molecule> value;
+};
+
 struct Operation {
 	Ref <Molecule> a;
 	Ref <Molecule> b;

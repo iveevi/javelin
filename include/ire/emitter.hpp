@@ -99,6 +99,7 @@ public:
 	void add_phantom_hint(Index);
 	
 	// Printing the active buffer
+	void display_assembly();
 	void display_pretty();
 
 	// Per-thread singleton

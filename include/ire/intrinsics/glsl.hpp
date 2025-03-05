@@ -194,6 +194,9 @@ using __glsl_uvec3 = __glsl_intrinsic_variable_t <vec <uint32_t, 3>, code>;
 template <thunder::QualifierKind code>
 using __glsl_mat4 = __glsl_intrinsic_variable_t <mat <float, 4, 4>, code>;
 
+template <thunder::QualifierKind code>
+using __glsl_mat4x3 = __glsl_intrinsic_variable_t <mat <float, 4, 3>, code>;
+
 template <generic T, thunder::QualifierKind code>
 using __glsl_array = __glsl_intrinsic_variable_t <unsized_array <T>, code>;
 
@@ -213,12 +216,6 @@ using gl_LocalInvocationIndex_t	= __glsl_uint  <thunder::glsl_LocalInvocationInd
 using gl_WorkGroupID_t		= __glsl_uvec3 <thunder::glsl_WorkGroupID>;
 using gl_WorkGroupSize_t	= __glsl_uvec3 <thunder::glsl_WorkGroupSize>;
 using gl_SubgroupInvocationID_t	= __glsl_uint <thunder::glsl_SubgroupInvocationID>;
-using gl_LaunchIDEXT_t		= __glsl_uvec3 <thunder::glsl_LaunchIDEXT>;
-using gl_LaunchSizeEXT_t	= __glsl_uvec3 <thunder::glsl_LaunchSizeEXT>;
-using gl_InstanceCustomIndexEXT_t = __glsl_uint <thunder::glsl_InstanceCustomIndexEXT>;
-using gl_PrimitiveID_t		= __glsl_uint <thunder::glsl_PrimitiveID>;
-using gl_ObjectToWorldEXT_t		= __glsl_mat4 <thunder::glsl_ObjectToWorldEXT>;
-using gl_WorldRayDirection_t		= __glsl_vec3 <thunder::glsl_WorldRayDirectionEXT>;
 
 static const gl_FragCoord_t		gl_FragCoord;
 static const gl_FragDept_t		gl_FragDepth;
@@ -232,14 +229,6 @@ static const gl_LocalInvocationIndex_t	gl_LocalInvocationIndex;
 static const gl_WorkGroupID_t		gl_WorkGroupID;
 static const gl_WorkGroupSize_t		gl_WorkGroupSize;
 static const gl_SubgroupInvocationID_t	gl_SubgroupInvocationID;
-// TODO: move to mesh.hpp
-static const gl_LaunchIDEXT_t		gl_LaunchIDEXT;
-static const gl_LaunchSizeEXT_t		gl_LaunchSizeEXT;
-// TODO: move to raytrace.hpp
-static const gl_InstanceCustomIndexEXT_t gl_InstanceCustomIndexEXT;
-static const gl_PrimitiveID_t gl_PrimitiveID;
-static const gl_ObjectToWorldEXT_t gl_ObjectToWorldEXT;
-static const gl_WorldRayDirection_t gl_WorldRayDirectionEXT;
 
 // Mutable intrinsics
 using gl_Position_t = __glsl_vec4 <thunder::glsl_Position>;

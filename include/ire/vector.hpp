@@ -111,11 +111,13 @@ public:
 	explicit swizzle_base(T x_ = T(0)) : base(this) {
 		initial[0] = x_;
 		initial[1] = x_;
+		synthesize();
 	}
 
 	explicit swizzle_base(T x_, T y_) : base(this) {
 		initial[0] = x_;
 		initial[1] = y_;
+		synthesize();
 	}
 
 	explicit swizzle_base(const native_t <T> &x_, const native_t <T> y_) : base(this) {
@@ -131,8 +133,9 @@ public:
 		if (other.cached()) {
 			auto &em = Emitter::active;
 			auto args = em.emit_list(other.ref.id, -1);
-			// TODO: use assignment constructor (then pass the id only instead of the list args)
 			ref = em.emit_construct(type(), args, thunder::normal);
+		} else {
+			synthesize();
 		}
 	}
 
@@ -202,12 +205,14 @@ public:
 		initial[0] = v_;
 		initial[1] = v_;
 		initial[2] = v_;
+		synthesize();
 	}
 
 	swizzle_base(T x_ , T y_, T z_) : base(this) {
 		initial[0] = x_;
 		initial[1] = y_;
 		initial[2] = z_;
+		synthesize();
 	}
 
 	swizzle_base(const native_t <T> &x_) : swizzle_base() {
@@ -246,8 +251,9 @@ public:
 		if (other.cached()) {
 			auto &em = Emitter::active;
 			auto args = em.emit_list(other.ref.id, -1);
-			// TODO: use assignment constructor (then pass the id only instead of the list args)
 			ref = em.emit_construct(type(), args, thunder::normal);
+		} else {
+			synthesize();
 		}
 	}
 
@@ -313,6 +319,7 @@ public:
 		initial[1] = y_;
 		initial[2] = z_;
 		initial[3] = w_;
+		synthesize();
 	}
 
 	explicit swizzle_base(const native_t <T> &x_) : swizzle_base() {
@@ -354,8 +361,9 @@ public:
 		if (other.cached()) {
 			auto &em = Emitter::active;
 			auto args = em.emit_list(other.ref.id, -1);
-			// TODO: use assignment constructor (then pass the id only instead of the list args)
 			ref = em.emit_construct(type(), args, thunder::normal);
+		} else {
+			synthesize();
 		}
 	}
 

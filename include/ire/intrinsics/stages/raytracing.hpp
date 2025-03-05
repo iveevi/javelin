@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../aliases.hpp"
+#include "../glsl.hpp"
 
 namespace jvl::ire {
 
@@ -66,5 +67,16 @@ inline void traceRayEXT(const accelerationStructureEXT &as,
 		as, flags, mask, sbt_offset, sbt_stride, sbt_miss,
 		origin, tmin, ray, tmax, pidx);
 }
+
+// Intrinsic variables
+using gl_InstanceCustomIndexEXT_t = __glsl_uint <thunder::glsl_InstanceCustomIndexEXT>;
+using gl_PrimitiveID_t = __glsl_uint <thunder::glsl_PrimitiveID>;
+using gl_ObjectToWorldEXT_t = __glsl_mat4x3 <thunder::glsl_ObjectToWorldEXT>;
+using gl_WorldRayDirection_t = __glsl_vec3 <thunder::glsl_WorldRayDirectionEXT>;
+
+static const gl_InstanceCustomIndexEXT_t gl_InstanceCustomIndexEXT;
+static const gl_PrimitiveID_t gl_PrimitiveID;
+static const gl_ObjectToWorldEXT_t gl_ObjectToWorldEXT;
+static const gl_WorldRayDirection_t gl_WorldRayDirectionEXT;
 
 } // namespace jvl::ire

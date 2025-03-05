@@ -72,20 +72,22 @@ std::vector <uint32_t> LinkageUnit::generate_spirv_via_glsl(const vk::ShaderStag
 	// Enable SPIR-V and Vulkan rules when parsing GLSL
 	EShMessages messages = (EShMessages) (EShMsgDefault | EShMsgSpvRules | EShMsgVulkanRules | EShMsgDebugInfo);
 
-	if (!shader.parse(GetDefaultResources(), 450, false, messages)) {
+	if (!shader.parse(GetDefaultResources(), 460, false, messages)) {
 		std::string log = shader.getInfoLog();
-		JVL_ERROR("failed to compile to SPIRV\n{}", log);
+		JVL_ERROR("failed to compile to SPIRV:\n{}", log);
+		fmt::println("{}", glsl);
 		return {};
-	} else {
 	}
 
 	// Link the program
 	glslang::TProgram program;
+
 	program.addShader(&shader);
 
 	if (!program.link(messages)) {
 		std::string log = program.getInfoLog();
-		JVL_ERROR("failed to compile to SPIRV\n{}", log);
+		JVL_ERROR("failed to link SPIRV code:\n{}", log);
+		fmt::println("{}", glsl);
 		return {};
 	}
 

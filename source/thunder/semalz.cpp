@@ -256,12 +256,12 @@ QualifiedType Buffer::semalz(Index i)
 	{
 		auto &operation = atom.as <Operation> ();
 
-		JVL_ASSERT(operation.a >= 0 && (size_t) operation.a < pointer,
-			"invalid operand argument in operation: {} (@{})", atom, i);
+		JVL_BUFFER_DUMP_ON_ASSERT(operation.a >= 0 && (size_t) operation.a < pointer,
+			"invalid operand argument in operation (@{}):\n{}", i, atom);
 
 		if (operation.code != unary_negation && operation.code != bool_not) {
-			JVL_ASSERT(operation.b >= 0 && (size_t) operation.b < pointer,
-				"invalid operand argument in operation: {} (@{})", atom, i);
+			JVL_BUFFER_DUMP_ON_ASSERT(operation.b >= 0 && (size_t) operation.b < pointer,
+				"invalid operand argument in operation (@{}):\n{}", i, atom);
 		}
 
 		std::vector <QualifiedType> qts;
@@ -271,7 +271,9 @@ QualifiedType Buffer::semalz(Index i)
 
 		auto result = lookup_operation_overload(operation.code, qts);
 		
-		JVL_ASSERT(result, "failed to find overload for operation: {} (@{})", atom, i);
+		JVL_BUFFER_DUMP_ON_ASSERT(result,
+			"failed to find overload "
+			"for operation (@{}):\n{}", i, atom);
 
 		return result;
 	}
@@ -282,7 +284,9 @@ QualifiedType Buffer::semalz(Index i)
 		auto args = expand_list_types(intrinsic.args);
 		auto result = lookup_intrinsic_overload(intrinsic.opn, args);
 
-		JVL_BUFFER_DUMP_ON_ASSERT(result, "failed to find overload for intrinsic: {} (@{})", atom, i);
+		JVL_BUFFER_DUMP_ON_ASSERT(result,
+			"failed to find overload "
+			"for intrinsic (@{}):\n{}", i, atom);
 
 		return result;
 	}
