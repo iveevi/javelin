@@ -1,5 +1,7 @@
 #include <bestd/hash_table.hpp>
 
+#include "common/logging.hpp"
+
 #include "thunder/atom.hpp"
 #include "thunder/c_like_generator.hpp"
 #include "thunder/enumerations.hpp"
@@ -664,7 +666,7 @@ void c_like_generator_t::generate(Index i)
 std::string c_like_generator_t::generate()
 {
 	for (size_t i = 0; i < pointer; i++) {
-		if (synthesized.count(i)) {
+		if (marked.count(i)) {
 			// fmt::println("  generating: {}", atoms[i]);
 			generate(i);
 		}

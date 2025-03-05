@@ -9,6 +9,7 @@
 #include "thunder/enumerations.hpp"
 #include "thunder/linkage_unit.hpp"
 #include "thunder/properties.hpp"
+#include "thunder/optimization.hpp"
 
 namespace jvl::thunder {
 
@@ -74,6 +75,32 @@ static std::string sampler_string(QualifierKind kind)
         return fmt::format("<?>sampler{}D", dimensions);
 }
 
+// Promote atoms to synthesized if they are used multiple times
+void promote_marked(Buffer &result)
+{
+	// TODO: avoid recomputing this all the time..
+	auto graph = usage(result);
+
+	for (size_t i = 0; i < result.pointer; i++) {
+		if (result.marked.contains(i))
+			continue;
+
+		// Exceptions
+		auto &atom = result.atoms[i];
+		if (atom.is <List> () || atom.is <TypeInformation> ())
+			continue;
+
+		auto &qt = result.types[i];
+		if (qt.is <ArrayType> ())
+			continue;
+
+		if (graph[i].size() >= 2) {
+			JVL_INFO("    promoting @{}: {} ({})", i, atom.to_assembly_string(), qt);
+			result.marked.insert(i);
+		}
+	}
+}
+
 // Managing generators
 generator_list LinkageUnit::configure_generators() const
 {
@@ -87,7 +114,12 @@ generator_list LinkageUnit::configure_generators() const
 		for (auto &[k, v] : map)
 			structs[k] = aggregates[v].name;
 
-		generators.emplace_back(detail::auxiliary_block_t(function, structs));
+		auto aux = detail::auxiliary_block_t(function, structs);
+
+		JVL_INFO("checking promotions in function '{}'", function.name);
+		promote_marked(aux);
+
+		generators.emplace_back(aux);
 	}
 
 	return generators;

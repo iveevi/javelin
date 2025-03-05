@@ -1,5 +1,7 @@
 #include <fstream>
 
+#include "common/logging.hpp"
+
 #include "thunder/buffer.hpp"
 #include "thunder/tracked_buffer.hpp"
 
@@ -183,7 +185,7 @@ void Buffer::graphviz(const std::filesystem::path &path) const
 		uint32_t high = hash >> 32;
 		
 		std::string extra;
-		if (!synthesized.contains(i))
+		if (!marked.contains(i))
 			extra = ", style=\"filled, rounded, dashed\"";
 
 		result += fmt::format("\tI{} [label=\"{{ {} [{}] | {}{} | {:08x}{:08x} }}\", fillcolor=\"{}\"{}]\n",

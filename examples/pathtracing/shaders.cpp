@@ -1,4 +1,4 @@
-#include "common/util.hpp"
+#include <common/io.hpp>
 
 #include "shaders.hpp"
 
@@ -231,14 +231,14 @@ void shader_debug()
 	std::string quad_shader = link(quad).generate_glsl();
 	std::string blit_shader = link(blit).generate_glsl();
 
-	dump_lines("RAY GENERATION", rgen_shader);
-	dump_lines("PRIMARY CLOSEST HIT", rchit_shader);
-	dump_lines("PRIMARY MISS", rmiss_shader);
-	dump_lines("SHADOW MISS", smiss_shader);
-	dump_lines("PCG3D", pcg3d_shader);
-	dump_lines("RANDOM3", random3_shader);
-	dump_lines("QUAD", quad_shader);
-	dump_lines("BLIT", blit_shader);
+	io::display_lines("RAY GENERATION", rgen_shader);
+	io::display_lines("PRIMARY CLOSEST HIT", rchit_shader);
+	io::display_lines("PRIMARY MISS", rmiss_shader);
+	io::display_lines("SHADOW MISS", smiss_shader);
+	io::display_lines("PCG3D", pcg3d_shader);
+	io::display_lines("RANDOM3", random3_shader);
+	io::display_lines("QUAD", quad_shader);
+	io::display_lines("BLIT", blit_shader);
 
 	ray_generation.graphviz(local / "ray-generation.dot");
 	primary_closest_hit.graphviz(local / "primary-closest-hit.dot");

@@ -1,6 +1,6 @@
 #include <fstream>
 
-#include <core/logging.hpp>
+#include <common/logging.hpp>
 
 #include "ngf.hpp"
 

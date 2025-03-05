@@ -1,5 +1,6 @@
+#include <common/io.hpp>
+
 #include "common/cmaps.hpp"
-#include "common/util.hpp"
 #include "shaders.hpp"
 
 // Shader kernels for the sphere rendering
@@ -91,9 +92,9 @@ void shader_debug()
 	std::string fragment_shader = link(fs_callable).generate_glsl();
 	std::string compute_shader = link(cs_callable).generate_glsl();
 
-	dump_lines("VERTEX", vertex_shader);
-	dump_lines("FRAGMENT", fragment_shader);
-	dump_lines("COMPUTE", compute_shader);
+	io::display_lines("VERTEX", vertex_shader);
+	io::display_lines("FRAGMENT", fragment_shader);
+	io::display_lines("COMPUTE", compute_shader);
 
 	vs_callable.graphviz(local / "vertex.dot");
 	fs_callable.graphviz(local / "fragment.dot");

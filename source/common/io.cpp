@@ -2,7 +2,9 @@
 
 #include <fmt/printf.h>
 
-#include "util.hpp"
+#include "common/io.hpp"
+
+namespace jvl::io {
 
 std::string repeat(const std::string &a, size_t b)
 {
@@ -24,7 +26,7 @@ void header(const std::string &name, size_t size)
 	fmt::println("{}", s2);
 }
 
-void dump_lines(const std::string &name, const std::string &contents)
+void display_lines(const std::string &name, const std::string &contents)
 {
 	std::vector <std::string> lines;
 	lines.emplace_back("");
@@ -51,3 +53,5 @@ void dump_lines(const std::string &name, const std::string &contents)
 	for (size_t i = 0; i < lines.size(); i++)
 		fmt::println("{:4d}: {}", i + 1, lines[i]);
 }
+
+} // namespace jvl::io

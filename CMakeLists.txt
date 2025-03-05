@@ -42,6 +42,8 @@ endif()
 
 # Intermediate Representation Emitter
 add_library(javelin SHARED
+	source/common/io.cpp
+	source/common/logging.cpp
 	source/ire/emitter.cpp
 	source/ire/native.cpp
 	source/thunder/atom.cpp

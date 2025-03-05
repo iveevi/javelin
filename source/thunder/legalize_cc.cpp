@@ -1,4 +1,5 @@
-#include "core/logging.hpp"
+#include "common/logging.hpp"
+
 #include "ire/emitter.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"

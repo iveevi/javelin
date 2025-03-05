@@ -127,7 +127,7 @@ bool children_required(const Atom &atom)
 
 void Buffer::mark(Index i, bool forced)
 {
-	if (synthesized.contains(i))
+	if (marked.contains(i))
 		return;
 
 	// TODO: also track instruction usage..., .e.g avoid duplicates
@@ -137,7 +137,7 @@ void Buffer::mark(Index i, bool forced)
 	forced |= naturally_forced(atoms[i]);
 
 	if (forced) {
-		synthesized.insert(i);
+		marked.insert(i);
 		mark_children(i);
 	} else if (children_required(atoms[i])) {
 		// Cases in which children are still required

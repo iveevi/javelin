@@ -1,6 +1,7 @@
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
 #include "thunder/tracked_buffer.hpp"
+#include "common/logging.hpp"
 
 namespace jvl::thunder {
 
@@ -23,6 +24,16 @@ auto fmtidx(Index i)
                 return fmt::format("-");
 
         return fmt::format("@{}", i);
+}
+
+// Null addresses
+Index &Addresses::null()
+{
+        MODULE(atom-addresses);
+
+        static thread_local Index null = -1;
+        JVL_ASSERT(null == -1, "address null is invalid");
+        return null;
 }
 
 // Qualifier

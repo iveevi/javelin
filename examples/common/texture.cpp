@@ -8,7 +8,7 @@
 #define TINYEXR_IMPLEMENTATION
 #include <tinyexr/tinyexr.h>
 
-#include <core/logging.hpp>
+#include <common/logging.hpp>
 
 #include "texture.hpp"
 

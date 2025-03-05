@@ -1,3 +1,5 @@
+#include "common/logging.hpp"
+
 #include "ire/emitter.hpp"
 #include "thunder/ad.hpp"
 #include "thunder/atom.hpp"

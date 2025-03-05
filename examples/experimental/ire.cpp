@@ -7,14 +7,15 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
+#include <common/io.hpp>
+
 #include <ire.hpp>
+
 #include <thunder/optimization.hpp>
 #include <thunder/linkage_unit.hpp>
 
 #include <thunder/mir/memory.hpp>
 #include <thunder/mir/molecule.hpp>
-
-#include "common/util.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;
@@ -67,107 +68,10 @@ Procedure randomH2 = procedure("randomH2") << [](inout <vec3> seed) -> vec3
 
 namespace jvl::thunder {
 
-bool casting_intrinsic(const Intrinsic &intr)
-{
-	switch (intr.opn) {
-	case cast_to_float:
-		return true;
-	default:
-		break;
-	}
-
-	return false;
-}
-
-// TODO: optimizer class...
-bool optimize_casting_elision(Buffer &result)
-{
-	bool changed = false;
-
-	usage_graph graph = usage(result);
-	
-	reindex <Index> relocation;
-	for (size_t i = 0; i < result.pointer; i++)
-		relocation[i] = i;
-
-	for (Index i = 0; i < result.pointer; i++) {
-		auto &atom = result.atoms[i];
-
-		if (atom.is <Construct> ()) {
-			// Constructors with one argument of the same type
-			auto &ctor = atom.as <Construct> ();
-			if (ctor.mode != normal)
-				continue;
-
-			auto oqt = result.types[i];
-			auto aqt = QualifiedType();
-			
-			auto &args = result.atoms[ctor.args];
-			JVL_ASSERT(args.is <List> (), "constructor arguments should be a list chain");
-
-			auto &list = args.as <List> ();
-
-			// Only handle singletons
-			if (list.next != -1)
-				continue;
-
-			aqt = result.types[list.item];
-			if (oqt == aqt) {
-				relocation[i] = list.item;
-				result.synthesized.erase(i);
-			}
-		} else if (atom.is <Intrinsic> ()) {
-			auto &intr = atom.as <Intrinsic> ();
-			if (!casting_intrinsic(intr))
-				continue;
-
-			// Casting intrinsics with the same type
-			fmt::println("potentially optimizable: {}", intr.to_assembly_string());
-			
-			// TODO: this is the same code as for the constructor at the end...
-			auto oqt = result.types[i];
-			auto aqt = QualifiedType();
-			
-			auto &args = result.atoms[intr.args];
-			JVL_ASSERT(args.is <List> (), "constructor arguments should be a list chain");
-
-			auto &list = args.as <List> ();
-
-			// Only handle singletons
-			if (list.next != -1)
-				continue;
-
-			aqt = result.types[list.item];
-			if (oqt == aqt) {
-				relocation[i] = list.item;
-				result.synthesized.erase(i);
-			}
-		}
-	}
-
-	// TODO: refine relocation
-	for (auto &[k, v] : relocation) {
-		auto pv = v;
-
-		do {
-			pv = v;
-			relocation(v);
-		} while (pv != v);
-	}
- 
-	fmt::println("relocation:");
-	for (auto [k, v] : relocation)
-		fmt::println("\t{} -> {}", k, v);
-	
-	for (size_t i = 0; i < result.pointer; i++)
-		result.atoms[i].reindex(relocation);
-
-	return changed;
-}
-
 } // namespace jvl::thunder
 
-// TODO: promote atoms to synthesizable if used multiple times
+// TODO: optimizer class...
+
 int main()
 {
 	thunder::optimize(pcg3d);
@@ -175,15 +79,15 @@ int main()
 	thunder::optimize(spherical);
 	thunder::optimize(randomH2);
 
-	thunder::optimize_casting_elision(randomH2);
-	thunder::optimize_dead_code_elimination(randomH2);
+	// thunder::optimize_casting_elision(randomH2);
+	// thunder::optimize_dead_code_elimination(randomH2);
 	randomH2.graphviz("randomH2.dot");
 	
 	spherical.graphviz("spherical.dot");
 
 	auto unit = link(randomH2);
 
-	dump_lines("RANDOM H2", unit.generate_glsl());
+	io::display_lines("RANDOM H2", unit.generate_glsl());
 
 	unit.write_assembly("ire.jvl.asm");
 

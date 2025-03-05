@@ -2,6 +2,8 @@
 
 #include <map>
 
+#include "../common/logging.hpp"
+
 #include "atom.hpp"
 #include "qualified_type.hpp"
 #include "buffer.hpp"

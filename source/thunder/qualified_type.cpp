@@ -1,3 +1,5 @@
+#include "common/logging.hpp"
+
 #include "thunder/qualified_type.hpp"
 #include "thunder/enumerations.hpp"
 

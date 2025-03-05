@@ -1,8 +1,10 @@
 #pragma once
 
-#include "../core/logging.hpp"
+#include "../common/logging.hpp"
+
 #include "../thunder/atom.hpp"
 #include "../thunder/enumerations.hpp"
+
 #include "native.hpp"
 #include "tagged.hpp"
 #include "layout.hpp"

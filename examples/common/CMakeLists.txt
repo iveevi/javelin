@@ -25,7 +25,6 @@ add_library(common STATIC
 	texture.cpp
 	texture_bank.cpp
 	triangle_mesh.cpp
-	util.cpp
 	vulkan_resources.cpp
 	vulkan_triangle_mesh.cpp)
 

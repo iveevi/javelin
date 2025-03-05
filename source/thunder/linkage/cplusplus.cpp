@@ -1,3 +1,5 @@
+#include "common/logging.hpp"
+
 #include "thunder/enumerations.hpp"
 #include "thunder/linkage_unit.hpp"
 

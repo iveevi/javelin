@@ -1,4 +1,4 @@
-#include "common/util.hpp"
+#include <common/io.hpp>
 
 #include "shaders.hpp"
 
@@ -243,10 +243,10 @@ void shader_debug()
 	std::string eval_shader = link(eval).generate_glsl();
 	std::string fragment_shader = link(fragment).generate_glsl();
 
-	dump_lines("TASK", task_shader);
-	dump_lines("MESH", mesh_shader);
-	dump_lines("EVAL", eval_shader);
-	dump_lines("FRAGMENT", fragment_shader);
+	io::display_lines("TASK", task_shader);
+	io::display_lines("MESH", mesh_shader);
+	io::display_lines("EVAL", eval_shader);
+	io::display_lines("FRAGMENT", fragment_shader);
 
 	task.graphviz(local / "task.dot");
 	mesh.graphviz(local / "mesh.dot");

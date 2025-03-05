@@ -1,6 +1,10 @@
 #pragma once
 
+#include <vector>
+
 #include <bestd/hash_table.hpp>
+
+#include "../common/logging.hpp"
 
 #include "qualified_type.hpp"
 

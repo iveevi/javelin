@@ -1,3 +1,5 @@
+#include "common/logging.hpp"
+
 #include "thunder/optimization.hpp"
 
 namespace jvl::thunder {

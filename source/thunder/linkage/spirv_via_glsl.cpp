@@ -3,11 +3,15 @@
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
 
+#include "common/logging.hpp"
+#include "common/io.hpp"
+
 #include "thunder/linkage_unit.hpp"
 
 namespace jvl::thunder {
 
 MODULE(linkage-unit);
+
 
 ////////////////////////////////////////////////
 // Generation: SPIRV compilation with glslang //
@@ -75,7 +79,7 @@ std::vector <uint32_t> LinkageUnit::generate_spirv_via_glsl(const vk::ShaderStag
 	if (!shader.parse(GetDefaultResources(), 460, false, messages)) {
 		std::string log = shader.getInfoLog();
 		JVL_ERROR("failed to compile to SPIRV:\n{}", log);
-		fmt::println("{}", glsl);
+		io::display_lines("SOURCE", glsl);
 		return {};
 	}
 
@@ -87,7 +91,7 @@ std::vector <uint32_t> LinkageUnit::generate_spirv_via_glsl(const vk::ShaderStag
 	if (!program.link(messages)) {
 		std::string log = program.getInfoLog();
 		JVL_ERROR("failed to link SPIRV code:\n{}", log);
-		fmt::println("{}", glsl);
+		io::display_lines("SOURCE", glsl);
 		return {};
 	}
 

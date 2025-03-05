@@ -1,6 +1,6 @@
 #include <map>
 
-#include <core/logging.hpp>
+#include <common/logging.hpp>
 
 #include "formats.hpp"
 

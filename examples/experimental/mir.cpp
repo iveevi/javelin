@@ -14,7 +14,7 @@
 #include <thunder/mir/memory.hpp>
 #include <thunder/mir/molecule.hpp>
 
-#include "common/util.hpp"
+#include "common/io.hpp"
 
 using namespace jvl;
 using namespace jvl::ire;

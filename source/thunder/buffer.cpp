@@ -1,4 +1,4 @@
-#include "core/logging.hpp"
+#include "common/logging.hpp"
 
 #include "thunder/atom.hpp"
 #include "thunder/buffer.hpp"
@@ -45,10 +45,10 @@ void Buffer::clear()
 // Debugging utilities
 void Buffer::write(std::ofstream &file) const
 {
-	size_t synthesized_count = synthesized.size();
+	size_t synthesized_count = marked.size();
 	file.write(reinterpret_cast <const char *> (&synthesized_count), sizeof(size_t));
 
-	std::vector <Index> synthesized_vector(synthesized.begin(), synthesized.end());
+	std::vector <Index> synthesized_vector(marked.begin(), marked.end());
 	file.write(reinterpret_cast <const char *> (synthesized_vector.data()), synthesized_count * sizeof(Index));
 
 	file.write(reinterpret_cast <const char *> (&pointer), sizeof(size_t));
@@ -80,7 +80,7 @@ std::string Buffer::to_string_pretty() const
 			"\n          :: decorations: ({}{}{})\n",
 			i, atoms[i],
 			fmt::format(fmt::emphasis::underline, "{}", types[i]),
-			synthesized.contains(i) ? 's' : '-',
+			marked.contains(i) ? 's' : '-',
 			decorations.used.contains(i) ? 't' : '-',
 			decorations.phantom.contains(i) ? 'p' : '-');
 	}
@@ -115,7 +115,7 @@ void Buffer::display_pretty() const
 			"\n          :: decorations: ({}{}{})",
 			i, atoms[i],
 			fmt::format(fmt::emphasis::underline, "{}", types[i]),
-			synthesized.contains(i) ? 's' : '-',
+			marked.contains(i) ? 's' : '-',
 			decorations.used.contains(i) ? 't' : '-',
 			decorations.phantom.contains(i) ? 'p' : '-');
 	}

@@ -5,13 +5,10 @@
 
 #include <bestd/variant.hpp>
 
-#include "../core/reindex.hpp"
-#include "../core/logging.hpp"
+#include "../common/reindex.hpp"
 #include "enumerations.hpp"
 
 namespace jvl::thunder {
-
-// TODO: docs generator for atoms
 
 // Index type, small to create compact IR
 using Index = int16_t;
@@ -22,13 +19,7 @@ struct Addresses {
 	Index &a0;
 	Index &a1;
 
-	static Index &null() {
-		MODULE(atom-addresses);
-
-		static thread_local Index null = -1;
-		JVL_ASSERT(null == -1, "address null is invalid");
-		return null;
-	}
+	static Index &null();
 };
 
 // Qualifier for an underlying type

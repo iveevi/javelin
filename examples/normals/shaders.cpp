@@ -1,4 +1,4 @@
-#include "common/util.hpp"
+#include <common/io.hpp>
 
 #include "shaders.hpp"
 
@@ -48,8 +48,8 @@ void shader_debug()
 	std::string vertex_shader = link(vertex).generate_glsl();
 	std::string fragment_shader = link(fragment).generate_glsl();
 
-	dump_lines("VERTEX", vertex_shader);
-	dump_lines("FRAGMENT", fragment_shader);
+	io::display_lines("VERTEX", vertex_shader);
+	io::display_lines("FRAGMENT", fragment_shader);
 
 	vertex.graphviz(local / "vertex.dot");
 	fragment.graphviz(local / "fragment.dot");

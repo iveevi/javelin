@@ -1,4 +1,4 @@
-#include "thunder/optimization.hpp"
+#include "thunder/usage.hpp"
 
 namespace jvl::thunder {
 

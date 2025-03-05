@@ -4,7 +4,8 @@
 
 #include <libgccjit.h>
 
-#include "core/logging.hpp"
+#include "common/logging.hpp"
+
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
 #include "thunder/qualified_type.hpp"
@@ -642,7 +643,7 @@ auto gcc_jit_function_generator_t::work_list()
 	auto used = std::set <Index> ();
 
 	std::queue <Index> work;
-	for (auto i : synthesized)
+	for (auto i : marked)
 		work.push(i);
 
 	while (work.size()) {
@@ -653,7 +654,7 @@ auto gcc_jit_function_generator_t::work_list()
 			continue;
 
 		auto &atom = atoms[next];	
-		if (atom.is <TypeInformation> () && !synthesized.contains(next)) {
+		if (atom.is <TypeInformation> () && !marked.contains(next)) {
 			// Unless explicitly requires from the
 			// synthesized list of atoms, we
 			// should not be generating more types
@@ -679,7 +680,7 @@ void gcc_jit_function_generator_t::begin_function()
 	gcc_jit_type *return_type = nullptr;
 
 	for (size_t i = 0; i < pointer; i++) {
-		if (!synthesized.count(i))
+		if (!marked.count(i))
 			continue;
 
 		auto &atom = atoms[i];

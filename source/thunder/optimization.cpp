@@ -1,8 +1,9 @@
 #include <queue>
 #include <unordered_set>
 
-#include "core/reindex.hpp"
-#include "core/logging.hpp"
+#include "common/reindex.hpp"
+#include "common/logging.hpp"
+
 #include "thunder/optimization.hpp"
 
 namespace jvl::thunder {
@@ -36,7 +37,7 @@ bool optimize_dead_code_elimination_iteration(Buffer &result)
 			Index i = check_list.front();
 			check_list.pop();
 			
-			if (graph[i].empty() && !result.synthesized.contains(i)) {
+			if (graph[i].empty() && !result.marked.contains(i)) {
 				include[i] = false;
 				erasure.insert(i);
 			}
@@ -142,7 +143,7 @@ bool optimize_deduplicate_iteration(Buffer &result)
 		if (it != existing.end()) {
 			if (i != it->second) {
 				changed = true;
-				result.synthesized.erase(i);
+				result.marked.erase(i);
 			}
 
 			return it->second;
@@ -180,6 +181,88 @@ bool optimize_deduplicate(Buffer &result)
 	return (counter > 1);
 }
 
+bool casting_intrinsic(const Intrinsic &intr)
+{
+	switch (intr.opn) {
+	case cast_to_float:
+		return true;
+	default:
+		break;
+	}
+
+	return false;
+}
+
+bool optimize_casting_elision(Buffer &result)
+{
+	bool changed = false;
+
+	auto graph = usage(result);
+	
+	reindex <Index> relocation;
+	// TODO: some way to skip this..
+	for (size_t i = 0; i < result.pointer; i++)
+		relocation[i] = i;
+
+	for (size_t i = 0; i < result.pointer; i++) {
+		auto &atom = result.atoms[i];
+		auto &oqt = result.types[i];
+
+		auto list = List();
+
+		if (atom.is <Construct> ()) {
+			// Constructors with one argument of the same type
+			auto &ctor = atom.as <Construct> ();
+			if (ctor.mode != normal)
+				continue;
+
+			auto &args = result.atoms[ctor.args];
+			JVL_ASSERT(args.is <List> (), "constructor arguments should be a list chain");
+			list = args.as <List> ();
+		} else if (atom.is <Intrinsic> ()) {
+			auto &intr = atom.as <Intrinsic> ();
+			if (!casting_intrinsic(intr))
+				continue;
+
+			// Casting intrinsics with the same type
+			fmt::println("potentially optimizable: {}", intr.to_assembly_string());
+			
+			// TODO: this is the same code as for the constructor at the end...
+			auto &args = result.atoms[intr.args];
+			JVL_ASSERT(args.is <List> (), "intrinsic arguments should be a list chain");
+			list = args.as <List> ();
+		} else {
+			continue;
+		}
+
+		// Only handle singletons
+		if (list.next != -1)
+			continue;
+		
+		auto &aqt = result.types[list.item];
+		if (oqt == aqt) {
+			relocation[i] = list.item;
+			result.marked.erase(i);
+		}
+	}
+
+	// Refine relocation
+	// TODO: also apply in the deduplication pass...
+	for (auto &[k, v] : relocation) {
+		auto pv = v;
+
+		do {
+			pv = v;
+			relocation(v);
+		} while (pv != v);
+	}
+	
+	for (size_t i = 0; i < result.pointer; i++)
+		result.atoms[i].reindex(relocation);
+
+	return changed;
+}
+
 void optimize(Buffer &result)
 {
 	uint32_t counter = 0;
@@ -189,10 +272,19 @@ void optimize(Buffer &result)
 	do {
 		changed = optimize_dead_code_elimination(result);
 		changed |= optimize_deduplicate(result);
+		changed |= optimize_casting_elision(result);
 		counter++;
 	} while (changed);
 
 	JVL_INFO("ran full optimization pass {} times", counter);
+}
+
+void optimize(TrackedBuffer &result)
+{
+	optimize(static_cast <Buffer &> (result));
+
+	// Update the cache entry
+	TrackedBuffer::cache_insert(&result);
 }
 
 } // namespace jvl::thunder

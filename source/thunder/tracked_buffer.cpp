@@ -1,3 +1,6 @@
+#include "common/logging.hpp"
+#include "common/io.hpp"
+
 #include "thunder/tracked_buffer.hpp"
 
 namespace jvl::thunder {
@@ -117,9 +120,7 @@ void TrackedBuffer::display_assembly() const
 
 void TrackedBuffer::display_pretty() const
 {
-	fmt::println("------------------------------");
-	fmt::println("TRACKED BUFFER ${} ({}/{})", name, pointer, atoms.size());
-	fmt::println("------------------------------");
+	jvl::io::header(fmt::format("TRACKED BUFFER ${} ({}/{})", name, pointer, atoms.size()), 50);
 	Buffer::display_pretty();
 }
 

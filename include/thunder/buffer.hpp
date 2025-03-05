@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <set>
+#include <vector>
 
 #include "atom.hpp"
 #include "qualified_type.hpp"
@@ -35,7 +36,7 @@ public:
 	};
 
 	size_t pointer;
-	std::set <Index> synthesized;
+	std::set <Index> marked;
 	std::vector <Atom> atoms;
 	std::vector <QualifiedType> types;
 	

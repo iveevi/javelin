@@ -8,7 +8,6 @@
 #include "common/imgui.hpp"
 #include "common/imported_asset.hpp"
 #include "common/sbt.hpp"
-#include "common/util.hpp"
 #include "common/vulkan_resources.hpp"
 #include "common/vulkan_triangle_mesh.hpp"
 

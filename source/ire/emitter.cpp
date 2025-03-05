@@ -4,7 +4,9 @@
 
 #include <fmt/core.h>
 
-#include "core/logging.hpp"
+#include "common/logging.hpp"
+#include "common/io.hpp"
+
 #include "ire/emitter.hpp"
 #include "thunder/atom.hpp"
 #include "thunder/enumerations.hpp"
@@ -270,10 +272,8 @@ void Emitter::display_pretty()
 	JVL_ASSERT(scopes.size(), "no active scope in {}", __FUNCTION__);
 
 	auto &buf = buffer();
-	// TODO: box :)
-	fmt::println("------------------------------");
-	fmt::println("BUFFER IN PROGRESS ({}/{})", buf.pointer, buf.atoms.size());
-	fmt::println("------------------------------");
+	
+	jvl::io::header(fmt::format("BUFFER IN PROGRESS ({}/{})", buf.pointer, buf.atoms.size()), 50);
 	buf.display_pretty();
 }
 

@@ -2,6 +2,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "common/logging.hpp"
+
 #include "thunder/enumerations.hpp"
 #include "thunder/linkage_unit.hpp"
 #include "thunder/properties.hpp"
@@ -376,7 +378,7 @@ LinkageUnit::function_result_t LinkageUnit::process_function(const Function &ftn
 	auto &function = functions.back();
 	auto &map = types.back();
 
-	for (Index bidx : function.synthesized) {
+	for (Index bidx : function.marked) {
 		// Sanity check
 		JVL_ASSERT(bidx >= 0, "bad index @{} in synthesized list for function", bidx);
 

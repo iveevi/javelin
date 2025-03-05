@@ -4,6 +4,8 @@
 
 #include <bestd/hash_table.hpp>
 
+#include "../common/logging.hpp"
+
 #include "buffer.hpp"
 
 namespace jvl::thunder::detail {

@@ -7,7 +7,7 @@
 
 #include <littlevk/littlevk.hpp>
 
-#include <core/logging.hpp>
+#include <common/logging.hpp>
 
 enum class VertexFlags : uint64_t {
 	eNone		= 0b0,
