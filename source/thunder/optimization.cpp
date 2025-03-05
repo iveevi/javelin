@@ -112,6 +112,20 @@ bool optimize_deduplicate_iteration(Buffer &result)
 	
 	bool changed = false;
 
+	// Find which instructions to lock based on l-value requirements and etc.
+	std::set <Index> locked;
+
+	for (size_t i = 0; i < result.pointer; i++) {
+		auto &atom = result.atoms[i];
+
+		// TODO: what about intrinsics and calls?
+		if (atom.is <Store> ()) {
+			Index dst = atom.as <Store> ().dst;
+			Index real = result.reference_of(dst);
+			locked.insert(real);
+		}
+	}
+
 	// Each atom converted to a 64-bit integer
 	std::map <uint64_t, Index> existing;
 
@@ -119,7 +133,7 @@ bool optimize_deduplicate_iteration(Buffer &result)
 		auto &atom = result.atoms[i];
 
 		// Handle exceptions
-		if (atom.is <Store> () || atom.is <Call> ())
+		if (atom.is <Store> () || atom.is <Call> () || locked.contains(i))
 			return i;
 
 		auto &hash = reinterpret_cast <uint64_t &> (atom);

@@ -23,67 +23,36 @@ using Bool = bool;
 // TODO: override ptr char to fit packed
 using String = std::string;
 
+// Top level molecule
 struct Molecule;
 
+// Aliases for memory management
 template <typename T>
 using Ref = Ptr <T, Molecule>;
 
 template <typename T>
 using Seq = List <T, Molecule>;
 
+// Type information
 struct Type;
+
 struct Field : bestd::variant <Ref <Type>, thunder::PrimitiveType> {
 	using bestd::variant <Ref <Type>, thunder::PrimitiveType>::variant;
 
 	std::string to_string() const;
 };
 
-// TODO: use an arena allocator for this
 struct Type {
 	Seq <Field> fields;
 	Seq <thunder::QualifierKind> qualifiers;
 
-	std::string to_string() const {
-		std::string result;
-
-		for (auto &field : fields)
-			result += fmt::format("{} ", field.to_string());
-
-		if (qualifiers.count > 0)
-			result += ": ";
-
-		for (auto &qualifier : qualifiers)
-			result += fmt::format("{} ", thunder::tbl_qualifier_kind[qualifier]);
-
-		return result;
-	}
+	std::string to_string() const;
 };
-
-std::string Field::to_string() const
-{
-	if (auto type = this->get <Ref <Type>> ())
-		return type.value()->to_string();
-	else
-		return thunder::tbl_primitive_types[this->as <thunder::PrimitiveType> ()];
-}
 
 struct Primitive : bestd::variant <Int, Float, Bool, String> {
 	using bestd::variant <Int, Float, Bool, String>::variant;
 
-	std::string to_string() const {
-		switch (this->index()) {
-		variant_case(Primitive, Int):
-			return fmt::format("i32 {}", this->as <Int> ());
-		variant_case(Primitive, Float):
-			return fmt::format("f32 {}", this->as <Float> ());
-		variant_case(Primitive, Bool):
-			return fmt::format("bool {}", this->as <Bool> ());
-		variant_case(Primitive, String):
-			return fmt::format("string \"{}\"", this->as <String> ());
-		}
-
-		return "not implemented";
-	}
+	std::string to_string() const;
 };
 
 struct Operation {
@@ -91,18 +60,7 @@ struct Operation {
 	Ref <Molecule> b;
 	thunder::OperationCode code;
 
-	std::string to_string() const {
-		if (b) {
-			return fmt::format("{} {} {}",
-				thunder::tbl_operation_code[code],
-				a.index.value,
-				b.index.value);
-		} else {
-			return fmt::format("{} {}",
-				thunder::tbl_operation_code[code],
-				a.index.value);
-		}
-	}
+	std::string to_string() const;
 };
 
 // TODO: use something else for intrinsic...
@@ -110,16 +68,7 @@ struct Intrinsic {
 	Seq <Ref <Molecule>> args;
 	thunder::IntrinsicOperation opn;
 
-	std::string to_string() const {
-		std::string result;
-
-		result += fmt::format("{} ", thunder::tbl_intrinsic_operation[opn]);
-
-		for (auto &arg : args)
-			result += fmt::format("{} ", arg.index.value);
-
-		return result;
-	}
+	std::string to_string() const;
 };
 
 struct Construct {
@@ -127,17 +76,7 @@ struct Construct {
 	Seq <Ref <Molecule>> args;
 	thunder::ConstructorMode mode;
 
-	std::string to_string() const {
-		std::string result;
-
-		result += fmt::format("{} new ", type.index.value);
-		for (auto &arg : args)
-			result += fmt::format("{} ", arg.index.value);
-
-		result += fmt::format(": {}", thunder::tbl_constructor_mode[mode]);
-
-		return result;
-	}
+	std::string to_string() const;
 };
 
 struct Call {
@@ -149,27 +88,21 @@ struct Store {
 	Ref <Molecule> dst;
 	Ref <Molecule> src;
 
-	std::string to_string() const {
-		return fmt::format("store {} {}", dst.index.value, src.index.value);
-	}
+	std::string to_string() const;
 };
 
 struct Load {
 	Ref <Molecule> src;
 	Int idx;
 
-	std::string to_string() const {
-		return fmt::format("load {} {}", src.index.value, idx);
-	}
+	std::string to_string() const;
 };
 
 struct Indexing {
 	Ref <Molecule> src;
 	Ref <Molecule> idx;
 
-	std::string to_string() const {
-		return fmt::format("index {} {}", src.index.value, idx.index.value);
-	}
+	std::string to_string() const;
 };
 
 struct Block {
@@ -193,9 +126,7 @@ struct Phi {
 struct Return {
 	Ref <Molecule> value;
 
-	std::string to_string() const {
-		return fmt::format("return {}", value.index.value);
-	}
+	std::string to_string() const;
 };
 
 using molecule_base = bestd::variant <

@@ -35,6 +35,100 @@ MODULE(ire);
 // Higher level intermediate representation
 namespace jvl::thunder::mir {
 
+std::string Field::to_string() const
+{
+	if (auto type = this->get <Ref <Type>> ())
+		return type.value()->to_string();
+	else
+		return thunder::tbl_primitive_types[this->as <thunder::PrimitiveType> ()];
+}
+
+std::string Type::to_string() const
+{
+	std::string result;
+
+	for (auto &field : fields)
+		result += fmt::format("{} ", field.to_string());
+
+	if (qualifiers.count > 0)
+		result += ": ";
+
+	for (auto &qualifier : qualifiers)
+		result += fmt::format("{} ", thunder::tbl_qualifier_kind[qualifier]);
+
+	return result;
+}
+
+std::string Primitive::to_string() const
+{
+	switch (this->index()) {
+	variant_case(Primitive, Int):
+		return fmt::format("i32 {}", this->as <Int> ());
+	variant_case(Primitive, Float):
+		return fmt::format("f32 {}", this->as <Float> ());
+	variant_case(Primitive, Bool):
+		return fmt::format("bool {}", this->as <Bool> ());
+	variant_case(Primitive, String):
+		return fmt::format("string \"{}\"", this->as <String> ());
+	}
+
+	return "not implemented";
+}
+
+std::string Operation::to_string() const
+{
+	if (b) {
+		return fmt::format("{} {} {}",
+			thunder::tbl_operation_code[code],
+			a.index.value,
+			b.index.value);
+	} else {
+		return fmt::format("{} {}",
+			thunder::tbl_operation_code[code],
+			a.index.value);
+	}
+}
+	
+std::string Intrinsic::to_string() const
+{
+	std::string result;
+
+	result += fmt::format("{} ", thunder::tbl_intrinsic_operation[opn]);
+
+	for (auto &arg : args)
+		result += fmt::format("{} ", arg.index.value);
+
+	return result;
+}
+
+std::string Construct::to_string() const
+{
+	std::string result;
+
+	result += fmt::format("{} new ", type.index.value);
+	for (auto &arg : args)
+		result += fmt::format("{} ", arg.index.value);
+
+	result += fmt::format(": {}", thunder::tbl_constructor_mode[mode]);
+
+	return result;
+}
+	
+std::string Store::to_string() const
+{
+	return fmt::format("store {} {}", dst.index.value, src.index.value);
+}
+
+std::string Load::to_string() const
+{
+	return fmt::format("load {} {}", src.index.value, idx);
+}
+
+std::string Indexing::to_string() const
+{
+	return fmt::format("index {} {}", src.index.value, idx.index.value);
+}
+
 bool value_molecule(const Molecule &molecule)
 {
 	switch (molecule.index()) {
@@ -66,6 +160,12 @@ std::string Block::to_string() const
 	return result;
 }
 
+std::string Return::to_string() const
+{
+	return fmt::format("return {}", value.index.value);
+}
+
+// General formatting only for blocks
 std::string format_as(const Block &block)
 {
 	return block.to_string();
@@ -308,6 +408,7 @@ auto ftn = procedure("area") << [](vec2 x, vec2 y)
 int main()
 {
 	ftn.display_assembly();
+	link(ftn).write_assembly("ire.jvl.asm");
 
 	// thunder::optimize_dead_code_elimination(ftn);
 	thunder::optimize_deduplicate(ftn);

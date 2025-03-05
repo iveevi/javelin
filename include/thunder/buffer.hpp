@@ -51,6 +51,9 @@ public:
 	Index emit(const Atom &, bool = true);
 
 	void clear();
+
+	// Analysis methods
+	Index reference_of(Index);
 	
 	// Debugging and visualization utilities
 	void write(std::ofstream &) const;

@@ -3,17 +3,17 @@
 
 namespace jvl::thunder {
 
-Index reference_of(const std::vector <Atom> &atoms, Index i)
+Index Buffer::reference_of(Index i)
 {
 	auto &atom = atoms[i];
 
 	switch (atom.index()) {
 	variant_case(Atom, Swizzle):
-		return reference_of(atoms, atom.as <Swizzle> ().src);
+		return reference_of(atom.as <Swizzle> ().src);
 	variant_case(Atom, Load):
-		return reference_of(atoms, atom.as <Load> ().src);
+		return reference_of(atom.as <Load> ().src);
 	variant_case(Atom, ArrayAccess):
-		return reference_of(atoms, atom.as <ArrayAccess> ().src);
+		return reference_of(atom.as <ArrayAccess> ().src);
 	default:
 		return i;
 	}
@@ -29,7 +29,7 @@ void Buffer::mark_children(Index i)
 	variant_case(Atom, Store):
 	{
 		auto &dst = atom.as <Store> ().dst;
-		return mark(reference_of(atoms, dst), true);
+		return mark(reference_of(dst), true);
 	}
 	
 	// Qualifier's underlying type is required
@@ -66,7 +66,7 @@ void Buffer::mark_children(Index i)
 	variant_case(Atom, ArrayAccess):
 	{
 		auto src = atom.as <ArrayAccess> ().src;
-		return mark(reference_of(atoms, src), true);
+		return mark(reference_of(src), true);
 	}
 
 	default:
