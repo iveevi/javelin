@@ -38,45 +38,33 @@ struct Type;
 
 struct Field : bestd::variant <Ref <Type>, thunder::PrimitiveType> {
 	using bestd::variant <Ref <Type>, thunder::PrimitiveType>::variant;
-
-	std::string to_string() const;
 };
 
 struct Type {
 	Seq <Field> fields;
 	Seq <thunder::QualifierKind> qualifiers;
-
-	std::string to_string() const;
 };
 
 struct Primitive : bestd::variant <Int, Float, Bool, String> {
 	using bestd::variant <Int, Float, Bool, String>::variant;
-
-	std::string to_string() const;
 };
 
 struct Operation {
 	Ref <Molecule> a;
 	Ref <Molecule> b;
 	thunder::OperationCode code;
-
-	std::string to_string() const;
 };
 
 // TODO: use something else for intrinsic...
 struct Intrinsic {
 	Seq <Ref <Molecule>> args;
 	thunder::IntrinsicOperation opn;
-
-	std::string to_string() const;
 };
 
 struct Construct {
 	Ref <Type> type;
 	Seq <Ref <Molecule>> args;
 	thunder::ConstructorMode mode;
-
-	std::string to_string() const;
 };
 
 struct Call {
@@ -87,30 +75,24 @@ struct Call {
 struct Store {
 	Ref <Molecule> dst;
 	Ref <Molecule> src;
-
-	std::string to_string() const;
 };
 
 struct Load {
 	Ref <Molecule> src;
 	Int idx;
-
-	std::string to_string() const;
 };
 
 struct Indexing {
 	Ref <Molecule> src;
 	Ref <Molecule> idx;
-
-	std::string to_string() const;
 };
 
 struct Block {
 	Ref <Block> parent;
 	Seq <Ref <Molecule>> body;
-
-	std::string to_string() const;
 };
+
+std::string format_as(const Block &);
 
 struct Branch {
 	Ref <Molecule> condition;
@@ -125,8 +107,6 @@ struct Phi {
 
 struct Return {
 	Ref <Molecule> value;
-
-	std::string to_string() const;
 };
 
 using molecule_base = bestd::variant <
@@ -151,24 +131,8 @@ using molecule_base = bestd::variant <
 	thunder::QualifierKind
 >;
 
-template <typename T>
-concept stringable = requires(T t) {
-	{ t.to_string() } -> std::convertible_to <std::string>;
-};
-
 struct Molecule : molecule_base {
 	using molecule_base::molecule_base;
-
-	std::string to_string() const {
-		auto ftn = [](auto &self) -> std::string {
-			if constexpr (stringable <decltype(self)>)
-				return self.to_string();
-			else
-				return "not implemented";
-		};
-
-		return std::visit(ftn, *this);
-	}
 };
 
 } // namespace jvl::thunder::mir

@@ -12,12 +12,12 @@ namespace jvl::thunder::mir {
 
 // Index wrapper for type checking
 struct Index {
-	uint32_t value;
+	int32_t value;
 
 	Index() = default;
-	Index(uint32_t value) : value(value) {}
+	Index(int32_t value) : value(value) {}
 
-	operator uint32_t() const {
+	operator int32_t() const {
 		return value;
 	}
 
@@ -110,6 +110,11 @@ struct Ptr {
 
 	const T *operator->() const {
 		return TAllocator::active.template get <T> (index);
+	}
+
+	// Promote to base type
+	Ptr <Base, Base> promote() const {
+		return index;
 	}
 
 	// Status
