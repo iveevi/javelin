@@ -499,22 +499,22 @@ std::string Branch::to_pretty_string() const
 }
 
 // Returns
-bool Returns::operator==(const Returns &other) const
+bool Return::operator==(const Return &other) const
 {
         return value == other.value;
 }
 
-Addresses Returns::addresses()
+Addresses Return::addresses()
 {
         return { value, Addresses::null() };
 }
 
-std::string Returns::to_assembly_string() const
+std::string Return::to_assembly_string() const
 {
         return fmt::format("return {}", fmtaddr(value));
 }
 
-std::string Returns::to_pretty_string() const
+std::string Return::to_pretty_string() const
 {
         return header("RETURN", fmt::color::black)
                 + fmt::format("\n          :: value: %{}", value);

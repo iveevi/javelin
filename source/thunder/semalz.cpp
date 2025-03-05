@@ -314,9 +314,9 @@ QualifiedType Buffer::semalz(Index i)
 	case Atom::type_index <ArrayAccess> ():
 		return semalz_access(atom.as <ArrayAccess> (), i);
 
-	case Atom::type_index <Returns> ():
+	case Atom::type_index <Return> ():
 	{
-		auto &returns = atom.as <Returns> ();
+		auto &returns = atom.as <Return> ();
 		return types[returns.value];
 	}
 

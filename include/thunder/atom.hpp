@@ -265,10 +265,10 @@ struct Branch {
 // Returning values from subroutines and kernels
 //
 //   value: reference to the value to be returned
-struct Returns {
+struct Return {
 	Index value = -1;
 
-	bool operator==(const Returns &) const;
+	bool operator==(const Return &) const;
 
 	Addresses addresses();
 	
@@ -291,7 +291,7 @@ using atom_base = bestd::variant <
 	Load,
 	ArrayAccess,
 	Branch,
-	Returns
+	Return
 >;
 
 struct alignas(4) Atom : atom_base {
@@ -321,7 +321,7 @@ static_assert(sizeof(Call)		== 6);
 static_assert(sizeof(Store)		== 4);
 static_assert(sizeof(Load)		== 4);
 static_assert(sizeof(Branch)		== 6);
-static_assert(sizeof(Returns)		== 2);
+static_assert(sizeof(Return)		== 2);
 static_assert(sizeof(Atom)		== 8);
 
 } // namespace jvl::thunder

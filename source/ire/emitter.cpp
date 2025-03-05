@@ -210,7 +210,7 @@ Emitter::Index Emitter::emit(const thunder::Branch &branch, const precondition &
 // Returns
 Emitter::Index Emitter::emit_return(Index value)
 {
-	return emit(thunder::Returns(value));
+	return emit(thunder::Return(value));
 }
 
 // List chain construction

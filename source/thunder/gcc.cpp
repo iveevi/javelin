@@ -628,7 +628,7 @@ gcc_jit_object *gcc_jit_function_generator_t::generate(const List &, Index)
 }
 
 template <>
-gcc_jit_object *gcc_jit_function_generator_t::generate(const Returns &returns, Index index)
+gcc_jit_object *gcc_jit_function_generator_t::generate(const Return &returns, Index index)
 {
 	auto v = values.at(returns.value);
 	auto rv = reinterpret_cast <gcc_jit_rvalue *> (v);
@@ -699,7 +699,7 @@ void gcc_jit_function_generator_t::begin_function()
 			}
 		}
 
-		if (auto returns = atom.get <Returns> ())
+		if (auto returns = atom.get <Return> ())
 			return_type = jitify_type(types[i]).real;
 	}
 

@@ -383,7 +383,7 @@ std::set <Index> LinkageUnit::process_function(const Function &ftn)
 		auto &atom = function[bidx];
 
 		// Get the return type of the function
-		if (atom.is <Returns> ())
+		if (atom.is <Return> ())
 			function.returns = function.types[bidx];
 
 		// Parameters and global variables

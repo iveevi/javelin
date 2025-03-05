@@ -173,9 +173,9 @@ void ad_fwd_transform_instruction(ad_fwd_iteration_context_t &context,
 		mapped.track(0);
 	} break;
 
-	case Atom::type_index <Returns> ():
+	case Atom::type_index <Return> ():
 	{
-		auto returns = atom.template as <Returns> ();
+		auto returns = atom.template as <Return> ();
 
 		// Dependencies; must have come from
 		// args, so no need to revisit it

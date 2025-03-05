@@ -645,7 +645,7 @@ void c_like_generator_t::generate(const Branch &branch, Index)
 }
 
 template <>
-void c_like_generator_t::generate(const Returns &returns, Index)
+void c_like_generator_t::generate(const Return &returns, Index)
 {
 	if (returns.value >= 0)
 		finish("return " + inlined(returns.value));

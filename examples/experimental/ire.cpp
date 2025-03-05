@@ -11,6 +11,9 @@
 #include <thunder/optimization.hpp>
 #include <thunder/linkage_unit.hpp>
 
+#include <thunder/mir/memory.hpp>
+#include <thunder/mir/molecule.hpp>
+
 #include "common/util.hpp"
 
 using namespace jvl;
@@ -30,252 +33,35 @@ MODULE(ire);
 // using source location if available
 
 // Higher level intermediate representation
-namespace jvl::mir {
+namespace jvl::thunder::mir {
 
-// TODO: should use some arena allocator for this
-// TODO: use uint32_t index and then a global array for the actual data
-template <typename T>
-struct Ptr : std::shared_ptr <T> {
-	Ptr() = default;
-	Ptr(const T &t) : std::shared_ptr <T> (std::make_shared <T> (t)) {}
-
-	std::string to_string() const {
-		return fmt::format("%{}", (void *) this->get());
-	}
-};
-
-using Int = int;
-using Float = float;
-using Bool = bool;
-using String = std::string;
-
-struct Molecule;
-
-struct Type;
-struct Field : bestd::variant <Ptr <Type>, thunder::PrimitiveType> {
-	using bestd::variant <Ptr <Type>, thunder::PrimitiveType>::variant;
-
-	std::string to_string() const;
-};
-
-// TODO: use an arena allocator for this
-struct Type {
-	std::vector <Field> fields;
-	std::vector <thunder::QualifierKind> qualifiers;
-
-	std::string to_string() const {
-		std::string result;
-
-		for (auto &field : fields)
-			result += fmt::format("{} ", field.to_string());
-
-		if (qualifiers.size() > 0)
-			result += ": ";
-
-		for (auto &qualifier : qualifiers)
-			result += fmt::format("{} ", thunder::tbl_qualifier_kind[qualifier]);
-
-		return result;
-	}
-};
-
-std::string Field::to_string() const
+bool value_molecule(const Molecule &molecule)
 {
-	if (auto type = this->get <Ptr <Type>> ())
-		return type.value()->to_string();
-	else
-		return thunder::tbl_primitive_types[this->as <thunder::PrimitiveType> ()];
+	switch (molecule.index()) {
+	variant_case(Molecule, Return):
+		return false;
+	default:
+		break;
+	}
+
+	return true;
 }
-
-struct Primitive : bestd::variant <Int, Float, Bool, String> {
-	using bestd::variant <Int, Float, Bool, String>::variant;
-
-	std::string to_string() const {
-		switch (this->index()) {
-		variant_case(Primitive, Int):
-			return fmt::format("i32({})", this->as <Int> ());
-		variant_case(Primitive, Float):
-			return fmt::format("f32({})", this->as <Float> ());
-		variant_case(Primitive, Bool):
-			return fmt::format("bool({})", this->as <Bool> ());
-		variant_case(Primitive, String):
-			return fmt::format("string(\"{}\")", this->as <String> ());
-		}
-
-		return "not implemented";
-	}
-};
-
-struct Operation {
-	Ptr <Molecule> a;
-	Ptr <Molecule> b;
-	thunder::OperationCode code;
-
-	std::string to_string() const {
-		if (b) {
-			return fmt::format("{} {} {}",
-				thunder::tbl_operation_code[code],
-				a.to_string(),
-				b.to_string());
-		} else {
-			return fmt::format("{} {}",
-				thunder::tbl_operation_code[code],
-				a.to_string());
-		}
-	}
-};
-
-// TODO: use something else for intrinsic...
-struct Intrinsic {
-	std::vector <Ptr <Molecule>> args;
-	thunder::IntrinsicOperation opn;
-
-	std::string to_string() const {
-		std::string result;
-
-		result += fmt::format("{} ", thunder::tbl_intrinsic_operation[opn]);
-
-		for (auto &arg : args)
-			result += fmt::format("{} ", arg.to_string());
-
-		return result;
-	}
-};
-
-struct Construct {
-	Ptr <Type> type;
-	std::vector <Ptr <Molecule>> args;
-	thunder::ConstructorMode mode;
-
-	std::string to_string() const {
-		std::string result;
-
-		result += fmt::format("{} new ", type.to_string());
-		for (auto &arg : args)
-			result += fmt::format("{} ", arg.to_string());
-
-		result += fmt::format("{}", thunder::tbl_constructor_mode[mode]);
-
-		return result;
-	}
-};
-
-struct Call {
-	Int callee;
-	std::vector <Ptr <Molecule>> args;
-	Ptr <Type> type;
-
-	std::string to_string() const {
-		return "not implemented";
-	}
-};
-
-struct Store {
-	Ptr <Molecule> dst;
-	Ptr <Molecule> src;
-
-	std::string to_string() const {
-		return fmt::format("store {} {}", dst.to_string(), src.to_string());
-	}
-};
-
-struct Load {
-	Ptr <Molecule> src;
-	Int idx;
-
-	std::string to_string() const {
-		return fmt::format("load {} {}", src.to_string(), idx);
-	}
-};
-
-struct Index {
-	Ptr <Molecule> src;
-	Ptr <Molecule> idx;
-
-	std::string to_string() const {
-		return "not implemented";
-	}
-};
-
-struct Block {
-	std::vector <Ptr <Molecule>> parameters;
-	std::vector <Ptr <Molecule>> body;
-
-	std::string to_string() const;
-};
-
-struct Branch {
-	Ptr <Molecule> condition;
-	Ptr <Block> then;
-	Ptr <Block> otherwise;
-
-	std::string to_string() const {
-		return "not implemented";
-	}
-};
-
-struct Phi {
-	std::vector <Ptr <Molecule>> values;
-	std::vector <Ptr <Block>> blocks;
-
-	std::string to_string() const {
-		return "not implemented";
-	}
-};
-
-struct Return {
-	Ptr <Molecule> value;
-
-	std::string to_string() const {
-		return fmt::format("return {}", value.to_string());
-	}
-};
-
-using molecule_base = bestd::variant <
-	Type,
-	Primitive,
-	Operation,
-	Intrinsic,
-	Construct,
-	Call,
-	Store,
-	Load,
-	Index,
-	Block,
-	Branch,
-	Phi,
-	Return
->;
-
-struct Molecule : molecule_base {
-	using molecule_base::molecule_base;
-
-	std::string to_string() const {
-		auto ftn = [](auto &self) -> std::string {
-			return self.to_string();
-		};
-
-		return std::visit(ftn, *this);
-	}
-};
 
 std::string Block::to_string() const
 {
 	std::string result;
 
-	result += "parameters:\n";
-	for (auto &parameter : parameters) {
-		result += fmt::format("    {} = {}\n",
-			parameter.to_string(),
-			parameter->to_string());
-	}
-
-	result += "body:\n";
+	result += "{\n";
 	for (auto &molecule : body) {
-		result += fmt::format("    {} = {}\n",
-			molecule.to_string(),
-			molecule->to_string());
+		if (value_molecule(*molecule)) {
+			result += fmt::format("    {} = {}\n",
+				molecule.index.value,
+				molecule->to_string());
+		} else {
+			result += fmt::format("    {}\n", molecule->to_string());
+		}
 	}
+	result += "}";
 
 	return result;
 }
@@ -285,19 +71,20 @@ std::string format_as(const Block &block)
 	return block.to_string();
 }
 
-} // namespace jvl::mir
+} // namespace jvl::thunder::mir
 
 namespace jvl::thunder {
 
 mir::Block convert(const Buffer &buffer)
 {
 	// Cumulative mapping
-	std::map <Index, mir::Ptr <mir::Molecule>> mapping;
+	std::map <Index, mir::Ref <mir::Molecule>> mapping;
+	std::map <Index, Index> circuit;
 
 	mir::Block block;
 
-	auto list_walk = [&](Index i) {
-		std::vector <mir::Ptr <mir::Molecule>> result;
+	auto list_walk = [&](Index i) -> mir::Seq <mir::Ref <mir::Molecule>> {
+		std::vector <mir::Ref <mir::Molecule>> result;
 
 		while (i != -1) {
 			auto &atom = buffer.atoms[i];
@@ -326,21 +113,25 @@ mir::Block convert(const Buffer &buffer)
 			auto &qualifier = atom.as <Qualifier> ();
 			JVL_ASSERT(mapping.contains(qualifier.underlying), "expected type");
 
-			auto &ptr = mapping[qualifier.underlying];
+			auto ptr = mapping[qualifier.underlying];
 			JVL_ASSERT(ptr->is <mir::Type> (), "expected type");
 
-			auto &type = ptr->as <mir::Type> ();
-			type.qualifiers.push_back(qualifier.kind);
+			auto type = ptr->as <mir::Type> ();
+			type.qualifiers.add(qualifier.kind);
 
-			if (qualifier.kind == thunder::parameter) {
-				Index which = qualifier.numerical;
-				if (which >= block.parameters.size())
-					block.parameters.resize(which + 1);
+			ptr = mir::Ref <mir::Molecule> (type);
 
-				block.parameters[which] = ptr;
-			}
+			// TODO: hosting to higher scopes...
+			// if (qualifier.kind == thunder::parameter) {
+			// 	Index which = qualifier.numerical;
+			// 	if (which >= block.parameters.size())
+			// 		block.parameters.resize(which + 1);
+
+			// 	block.parameters[which] = ptr;
+			// }
 
 			mapping[i] = ptr;
+			block.body.add(ptr);
 		} break;
 
 		variant_case(Atom, TypeInformation):
@@ -351,11 +142,11 @@ mir::Block convert(const Buffer &buffer)
 				auto field = mir::Field(ti.item);
 
 				auto type = mir::Type();
-				type.fields.push_back(field);
+				type.fields.add(field);
 
-				auto ptr = mir::Ptr <mir::Molecule> (type);
+				auto ptr = mir::Ref <mir::Molecule> (type);
 				mapping[i] = ptr;
-				block.body.push_back(ptr);
+				block.body.add(ptr);
 			} else {
 				JVL_ABORT("not implemented");
 			}
@@ -384,9 +175,9 @@ mir::Block convert(const Buffer &buffer)
 				JVL_ABORT("not implemented");
 			}
 
-			auto ptr = mir::Ptr <mir::Molecule> (p);
+			auto ptr = mir::Ref <mir::Molecule> (p);
 			mapping[i] = ptr;
-			block.body.push_back(ptr);
+			block.body.add(ptr);
 		} break;
 
 		variant_case(Atom, Swizzle):
@@ -400,9 +191,9 @@ mir::Block convert(const Buffer &buffer)
 			p.a = opda;
 			p.code = OperationCode(int(swizzle.code) + int(thunder::swz_x));
 
-			auto ptr = mir::Ptr <mir::Molecule> (p);
+			auto ptr = mir::Ref <mir::Molecule> (p);
 			mapping[i] = ptr;
-			block.body.push_back(ptr);
+			block.body.add(ptr);
 		} break;
 
 		variant_case(Atom, Operation):
@@ -422,9 +213,9 @@ mir::Block convert(const Buffer &buffer)
 
 			p.code = operation.code;
 
-			auto ptr = mir::Ptr <mir::Molecule> (p);
+			auto ptr = mir::Ref <mir::Molecule> (p);
 			mapping[i] = ptr;
-			block.body.push_back(ptr);
+			block.body.add(ptr);
 		} break;
 
 		variant_case(Atom, Intrinsic):
@@ -437,9 +228,9 @@ mir::Block convert(const Buffer &buffer)
 			p.args = args;
 			p.opn = intrinsic.opn;
 
-			auto ptr = mir::Ptr <mir::Molecule> (p);
+			auto ptr = mir::Ref <mir::Molecule> (p);
 			mapping[i] = ptr;
-			block.body.push_back(ptr);
+			block.body.add(ptr);
 		} break;
 
 		variant_case(Atom, List):
@@ -457,13 +248,13 @@ mir::Block convert(const Buffer &buffer)
 			auto args = list_walk(construct.args);
 
 			auto ctor = mir::Construct();
-			ctor.type = type->as <mir::Type> ();
+			ctor.type = type.index;
 			ctor.args = args;
 			ctor.mode = construct.mode;
 
-			auto ptr = mir::Ptr <mir::Molecule> (ctor);
+			auto ptr = mir::Ref <mir::Molecule> (ctor);
 			mapping[i] = ptr;
-			block.body.push_back(ptr);
+			block.body.add(ptr);
 		} break;
 
 		variant_case(Atom, Store):
@@ -479,14 +270,14 @@ mir::Block convert(const Buffer &buffer)
 			p.src = src;
 			p.dst = dst;
 
-			auto ptr = mir::Ptr <mir::Molecule> (p);
+			auto ptr = mir::Ref <mir::Molecule> (p);
 			mapping[i] = ptr;
-			block.body.push_back(ptr);
+			block.body.add(ptr);
 		} break;
 
-		variant_case(Atom, Returns):
+		variant_case(Atom, Return):
 		{
-			auto &returns = atom.as <Returns> ();
+			auto &returns = atom.as <Return> ();
 			JVL_ASSERT(mapping.contains(returns.value), "expected type");
 
 			auto value = mapping[returns.value];
@@ -494,9 +285,9 @@ mir::Block convert(const Buffer &buffer)
 			auto p = mir::Return();
 			p.value = value;
 
-			auto ptr = mir::Ptr <mir::Molecule> (p);
+			auto ptr = mir::Ref <mir::Molecule> (p);
 			mapping[i] = ptr;
-			block.body.push_back(ptr);
+			block.body.add(ptr);
 		} break;
 
 		default:
@@ -516,7 +307,10 @@ auto ftn = procedure("area") << [](vec2 x, vec2 y)
 
 int main()
 {
-	thunder::optimize(ftn);
+	ftn.display_assembly();
+
+	// thunder::optimize_dead_code_elimination(ftn);
+	thunder::optimize_deduplicate(ftn);
 	ftn.display_assembly();
 
 	auto mir = convert(ftn);
