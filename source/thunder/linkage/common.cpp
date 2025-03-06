@@ -3,10 +3,14 @@
 
 namespace jvl::thunder {
 
+MODULE(generate);
+
 void LinkageUnit::generate_function(std::string &result,
 				    detail::c_like_generator_t &generator,
 				    const Function &function)
 {
+	JVL_INFO("generating function '{}.{}'", function.name, function.cid);
+
 	auto ts = generator.type_to_string(function.returns);
 
 	std::string args;

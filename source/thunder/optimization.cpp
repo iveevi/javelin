@@ -1,7 +1,6 @@
 #include <queue>
 #include <unordered_set>
 
-#include "common/reindex.hpp"
 #include "common/logging.hpp"
 
 #include "thunder/optimization.hpp"
@@ -9,6 +8,24 @@
 namespace jvl::thunder {
 
 MODULE(optimization);
+
+void refine_relocation(reindex <Index> &relocation)
+{
+	for (auto &[k, v] : relocation) {
+		auto pv = v;
+
+		do {
+			pv = v;
+			relocation(v);
+		} while (pv != v);
+	}
+}
+
+void buffer_relocation(Buffer &result, const reindex<Index> &relocation)
+{
+	for (size_t i = 0; i < result.pointer; i++)
+		result.atoms[i].reindex(relocation);
+}
 
 bool optimize_dead_code_elimination_iteration(Buffer &result)
 {
@@ -92,8 +109,6 @@ bool optimize_dead_code_elimination(Buffer &result)
 	uint32_t counter = 0;
 	uint32_t size_begin = result.pointer;
 
-	JVL_STAGE();
-
 	bool changed;
 	do {
 		changed = optimize_dead_code_elimination_iteration(result);
@@ -102,7 +117,7 @@ bool optimize_dead_code_elimination(Buffer &result)
 
 	uint32_t size_end = result.pointer;
 	
-	JVL_INFO("ran dead code elimination pass {} times, reduced size from {} to {}", counter, size_begin, size_end);
+	JVL_INFO("ran dead code elimination pass {} times ({} to {})", counter, size_begin, size_end);
 
 	return size_begin != size_end;
 }
@@ -130,6 +145,7 @@ bool optimize_deduplicate_iteration(Buffer &result)
 	// Each atom converted to a 64-bit integer
 	std::map <uint64_t, Index> existing;
 
+	// TODO: move outside...
 	auto unique = [&](Index i) -> Index {
 		auto &atom = result.atoms[i];
 
@@ -142,7 +158,7 @@ bool optimize_deduplicate_iteration(Buffer &result)
 		auto it = existing.find(hash);
 		if (it != existing.end()) {
 			if (i != it->second) {
-				changed = true;
+				changed |= true;
 				result.marked.erase(i);
 			}
 
@@ -176,6 +192,7 @@ bool optimize_deduplicate(Buffer &result)
 		counter++;
 	} while (changed);
 
+	// TODO: more detailed stats...
 	JVL_INFO("ran deduplication pass {} times", counter);
 
 	return (counter > 1);
@@ -212,10 +229,6 @@ bool optimize_casting_elision(Buffer &result)
 	auto graph = usage(result);
 	
 	reindex <Index> relocation;
-	// TODO: some way to skip this..
-	for (size_t i = 0; i < result.pointer; i++)
-		relocation[i] = i;
-
 	for (size_t i = 0; i < result.pointer; i++) {
 		auto &atom = result.atoms[i];
 		auto &oqt = result.types[i];
@@ -256,36 +269,100 @@ bool optimize_casting_elision(Buffer &result)
 		if (oqt == aqt) {
 			relocation[i] = list.item;
 			result.marked.erase(i);
+			changed |= true;
 		}
 	}
 
-	// Refine relocation
-	// TODO: also apply in the deduplication pass...
-	for (auto &[k, v] : relocation) {
-		auto pv = v;
+	refine_relocation(relocation);
+	buffer_relocation(result, relocation);
 
-		do {
-			pv = v;
-			relocation(v);
-		} while (pv != v);
-	}
+	return changed;
+}
+
+// Trimming unnecessary store instructions
+bool optimize_store_elision(Buffer &result)
+{
+	bool changed = false;
 	
-	for (size_t i = 0; i < result.pointer; i++)
-		result.atoms[i].reindex(relocation);
+	auto graph = usage(result);
+	
+	reindex <Index> relocation;
+	for (size_t i = 0; i < result.pointer; i++) {
+		auto &atom = result.atoms[i];
+		if (!atom.is <Store> ())
+			continue;
 
+		auto &store = atom.as <Store> ();
+		
+		// Writing directly to mutable references
+		auto &dst = result.atoms[store.dst];
+
+		if (auto ctor = dst.get <Construct> ()) {
+			if (ctor->mode == global)
+				continue;
+		}
+
+		// Collect all extended uses...
+		bool single = true;
+
+		std::queue <Index> check;
+		check.push(store.dst);
+
+		std::set <Index> addresses;
+		while (!check.empty()) {
+			auto j = check.front();
+			check.pop();
+
+			addresses.insert(j);
+
+			auto &atom = result.atoms[j];
+
+			if (atom.is <Store> ()) {
+				if (j != Index(i)) {
+					single = false;
+					break;
+				}
+			}
+
+			for (auto jj : graph[j]) {
+				if (addresses.contains(jj))
+					continue;
+
+				check.push(jj);
+			}
+		}
+
+		if (single) {
+			JVL_INFO("single store will be skipped: {}", store.to_assembly_string());
+
+			relocation[store.dst] = store.src;
+
+			result.marked.erase(i);
+			result.marked.erase(store.dst);
+			changed |= true;
+		}
+	}
+
+	refine_relocation(relocation);
+	buffer_relocation(result, relocation);
+	
 	return changed;
 }
 
 void optimize(Buffer &result)
 {
+	JVL_STAGE();
+	
 	uint32_t counter = 0;
 
 	bool changed;
 
 	do {
+		// TODO: flags to toggle stages...
 		changed = optimize_dead_code_elimination(result);
 		changed |= optimize_deduplicate(result);
 		changed |= optimize_casting_elision(result);
+		changed |= optimize_store_elision(result);
 		counter++;
 	} while (changed);
 

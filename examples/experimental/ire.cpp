@@ -4,6 +4,8 @@
 // TODO: atomics
 // TODO: fix optimization...
 
+#include <queue>
+
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
@@ -68,12 +70,12 @@ Procedure randomH2 = procedure("randomH2") << [](inout <vec3> seed) -> vec3
 
 namespace jvl::thunder {
 
-// TODO: store elision
 // TODO: swizzle elision
 
 } // namespace jvl::thunder
 
-// TODO: optimizer class...
+// TODO: optimizer class...?
+// TODO: promote atoms to marked...
 
 int main()
 {
@@ -82,11 +84,8 @@ int main()
 	thunder::optimize(spherical);
 	thunder::optimize(randomH2);
 
-	// thunder::optimize_casting_elision(randomH2);
-	// thunder::optimize_dead_code_elimination(randomH2);
-	randomH2.graphviz("randomH2.dot");
-	
-	spherical.graphviz("spherical.dot");
+	pcg3d.graphviz("pcg3d-before.dot");
+	pcg3d.graphviz("pcg3d-after.dot");
 
 	auto unit = link(randomH2);
 

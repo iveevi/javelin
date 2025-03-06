@@ -1,4 +1,3 @@
-#include <queue>
 #include <deque>
 
 // Glslang and SPIRV-Tools
@@ -10,7 +9,6 @@
 #include "thunder/enumerations.hpp"
 #include "thunder/linkage_unit.hpp"
 #include "thunder/properties.hpp"
-#include "thunder/optimization.hpp"
 
 namespace jvl::thunder {
 
@@ -76,86 +74,6 @@ static std::string sampler_string(QualifierKind kind)
         return fmt::format("<?>sampler{}D", dimensions);
 }
 
-// L-value assessment
-bool assess_lvalue(Buffer &result, const usage_graph &graph, Index i)
-{
-	std::queue <Index> check;
-	check.push(i);
-
-	std::set <Index> addresses;
-	while (!check.empty()) {
-		auto j = check.front();
-		check.pop();
-
-		addresses.insert(j);
-
-		auto &atom = result.atoms[j];
-
-		if (auto store = atom.get <Store> ()) {
-			if (addresses.contains(store->dst))
-				return true;
-		}
-
-		for (auto jj : graph[j]) {
-			if (addresses.contains(jj))
-				continue;
-
-			check.push(jj);
-		}
-	}
-
-	return false;
-}
-
-// // Promote atoms to synthesized if they are used multiple times
-// // TODO: this needs a more detailed analysis, preferrably through the MIR
-// void promote_marked(Buffer &result)
-// {
-// 	// TODO: avoid recomputing this all the time..
-// 	auto graph = usage(result);
-
-// 	// result.display_pretty();
-
-// 	// TODO: do semantic analysis through the MIR
-// 	for (size_t i = 0; i < result.pointer; i++) {
-// 		if (result.marked.contains(i))
-// 			continue;
-
-// 		// Exceptions
-// 		auto &atom = result.atoms[i];
-// 		if (atom.is <List> () || atom.is <TypeInformation> ())
-// 			continue;
-
-// 		if (auto ctor = atom.get <Construct> ()) {
-// 			// TODO: check if its a mutable global...
-// 			if (ctor->mode == global)
-// 				continue;
-// 		}
-
-// 		if (assess_lvalue(result, graph, i))
-// 			continue;
-	
-// 		auto qt = result.types[i];
-// 		while (true) {
-// 			if (qt.is_concrete()) {
-// 				auto pd = qt.as <PlainDataType> ();
-// 				auto idx = pd.as <Index> ();
-// 				qt = result.types[idx];
-// 			} else {
-// 				break;
-// 			}
-// 		}
-
-// 		if (qt.is <ArrayType> ())
-// 			continue;
-
-// 		if (graph[i].size() >= 2) {
-// 			JVL_INFO("    promoting @{}: {} ({})", i, atom.to_assembly_string(), qt);
-// 			result.marked.insert(i);
-// 		}
-// 	}
-// }
-
 // Managing generators
 generator_list LinkageUnit::configure_generators() const
 {
@@ -170,12 +88,6 @@ generator_list LinkageUnit::configure_generators() const
 			structs[k] = aggregates[v].name;
 
 		auto aux = detail::auxiliary_block_t(function, structs);
-
-		// // Promote atoms used multiple times
-		// JVL_INFO("checking promotions in function '{}.{}'",
-		// 	function.name, function.cid);
-
-		// promote_marked(aux);
 
 		generators.emplace_back(aux);
 	}

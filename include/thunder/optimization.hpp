@@ -6,6 +6,10 @@
 
 namespace jvl::thunder {
 
+// Utility
+void refine_relocation(reindex <Index> &);
+void buffer_relocation(Buffer &, const reindex <Index> &);
+
 // Optimization transformation passes
 bool optimize_dead_code_elimination_iteration(Buffer &);
 bool optimize_dead_code_elimination(Buffer &);
@@ -14,6 +18,8 @@ bool optimize_deduplicate_iteration(Buffer &);
 bool optimize_deduplicate(Buffer &);
 
 bool optimize_casting_elision(Buffer &);
+
+bool optimize_store_elision(Buffer &);
 
 // Full optimization pass
 void optimize(Buffer &);

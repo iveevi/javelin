@@ -5,7 +5,7 @@
 
 #include <bestd/variant.hpp>
 
-#include "../common/reindex.hpp"
+#include "reindex.hpp"
 #include "enumerations.hpp"
 
 namespace jvl::thunder {

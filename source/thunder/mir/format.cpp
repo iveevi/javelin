@@ -24,7 +24,7 @@ struct NameGenerator {
 	std::string name(const T &, Index i) {
 		static constexpr const char *prefixes[] = {
 			"typ",
-			"cst",
+			"val",
 			"opt",
 			"inr",
 			"ctr",
@@ -143,7 +143,7 @@ std::string stringify(NameGenerator &namer, const Molecule &molecule)
 
 		result += fmt::format("{} new ", namer(ctor.type.promote()));
 		for (auto &arg : ctor.args)
-			result += fmt::format("{} ", arg.index.value);
+			result += fmt::format("{} ", namer(arg));
 
 		result += fmt::format(": {}", thunder::tbl_constructor_mode[ctor.mode]);
 

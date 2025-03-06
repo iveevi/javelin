@@ -538,7 +538,7 @@ Addresses Atom::addresses()
         return std::visit(ftn, *this);
 }
 
-void Atom::reindex(const jvl::reindex <Index> &reindexer)
+void Atom::reindex(const thunder::reindex <Index> &reindexer)
 {
         auto &&addrs = addresses();
         if (addrs.a0 != -1) reindexer(addrs.a0);

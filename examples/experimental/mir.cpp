@@ -248,6 +248,8 @@ mir::Block convert(const Buffer &buffer)
 
 } // namespace jvl::thunder
 
+// TODO: dot generator...
+
 auto ftn = procedure("area") << [](vec2 x, vec2 y)
 {
 	return abs(cross(x, y));
