@@ -122,11 +122,11 @@ bool optimize_dead_code_elimination(Buffer &result)
 	return size_begin != size_end;
 }
 
-bool optimize_deduplicate_iteration(Buffer &result)
+uint32_t optimize_deduplicate_iteration(Buffer &result)
 {
 	static_assert(sizeof(Atom) == sizeof(uint64_t));
 	
-	bool changed = false;
+	uint32_t counter = 0;
 
 	// Find which instructions to lock based on l-value requirements and etc.
 	std::set <Index> locked;
@@ -158,7 +158,7 @@ bool optimize_deduplicate_iteration(Buffer &result)
 		auto it = existing.find(hash);
 		if (it != existing.end()) {
 			if (i != it->second) {
-				changed |= true;
+				counter++;
 				result.marked.erase(i);
 			}
 
@@ -178,22 +178,24 @@ bool optimize_deduplicate_iteration(Buffer &result)
 			addresses.a1 = unique(addresses.a1);
 	}
 
-	return changed;
+	return counter;
 }
 
 bool optimize_deduplicate(Buffer &result)
 {
 	uint32_t counter = 0;
+	uint32_t unlinked = 0;
 
 	bool changed;
 
 	do {
-		changed = optimize_deduplicate_iteration(result);
+		auto c = optimize_deduplicate_iteration(result);
+		unlinked += c;
+		changed = (c > 0);
 		counter++;
 	} while (changed);
 
-	// TODO: more detailed stats...
-	JVL_INFO("ran deduplication pass {} times", counter);
+	JVL_INFO("ran deduplication pass {} times (unlinked {})", counter, unlinked);
 
 	return (counter > 1);
 }
@@ -224,7 +226,7 @@ bool casting_intrinsic(const Intrinsic &intr)
 
 bool optimize_casting_elision(Buffer &result)
 {
-	bool changed = false;
+	uint32_t counter = 0;
 
 	auto graph = usage(result);
 	
@@ -269,20 +271,22 @@ bool optimize_casting_elision(Buffer &result)
 		if (oqt == aqt) {
 			relocation[i] = list.item;
 			result.marked.erase(i);
-			changed |= true;
+			counter++;
 		}
 	}
 
 	refine_relocation(relocation);
 	buffer_relocation(result, relocation);
 
-	return changed;
+	JVL_INFO("disolved {} casting instructions", counter);
+
+	return (counter > 0);
 }
 
 // Trimming unnecessary store instructions
 bool optimize_store_elision(Buffer &result)
 {
-	bool changed = false;
+	uint32_t counter = 0;
 	
 	auto graph = usage(result);
 	
@@ -313,16 +317,26 @@ bool optimize_store_elision(Buffer &result)
 			auto j = check.front();
 			check.pop();
 
-			addresses.insert(j);
-
 			auto &atom = result.atoms[j];
 
+			// Quick check if its another store instruction
 			if (atom.is <Store> ()) {
 				if (j != Index(i)) {
 					single = false;
 					break;
 				}
 			}
+
+			// Only pass through address generators
+			bool addressable = false
+				|| atom.is <Swizzle> ()
+				|| atom.is <Load> ()
+				|| atom.is <ArrayAccess> ();
+
+			if (j != store.dst && !addressable)
+				continue;
+
+			addresses.insert(j);
 
 			for (auto jj : graph[j]) {
 				if (addresses.contains(jj))
@@ -333,45 +347,107 @@ bool optimize_store_elision(Buffer &result)
 		}
 
 		if (single) {
-			JVL_INFO("single store will be skipped: {}", store.to_assembly_string());
+			// JVL_INFO("single store will be skipped: {}", store.to_assembly_string());
 
 			relocation[store.dst] = store.src;
 
 			result.marked.erase(i);
 			result.marked.erase(store.dst);
-			changed |= true;
+			counter++;
 		}
 	}
 
 	refine_relocation(relocation);
 	buffer_relocation(result, relocation);
+
+	JVL_INFO("disolved {} single store instructions", counter);
 	
-	return changed;
+	return (counter > 0);
 }
 
-void optimize(Buffer &result)
+// Display different stages
+static constexpr size_t NATOMS = Atom::type_index <Return> () + 1;
+
+std::array <uint32_t, NATOMS> composition(const Buffer &buffer)
 {
-	JVL_STAGE();
-	
+	std::array <uint32_t, NATOMS> result;
+
+	result.fill(0);
+	for (size_t i = 0; i < buffer.pointer; i++) {
+		auto &atom = buffer.atoms[i];
+		result[atom.index()]++;
+	}
+
+	return result;
+}
+
+void optimize_impl(Buffer &result, const OptimizationFlags flags)
+{
 	uint32_t counter = 0;
 
 	bool changed;
 
+	auto composition_before = composition(result);
+
 	do {
-		// TODO: flags to toggle stages...
-		changed = optimize_dead_code_elimination(result);
-		changed |= optimize_deduplicate(result);
-		changed |= optimize_casting_elision(result);
-		changed |= optimize_store_elision(result);
+		changed = false;
+
+		if (has(flags, OptimizationFlags::eDeadCodeElimination))
+			changed |= optimize_dead_code_elimination(result);
+
+		if (has(flags, OptimizationFlags::eDeduplication))
+			changed |= optimize_deduplicate(result);
+
+		if (has(flags, OptimizationFlags::eCastingElision))
+			changed |= optimize_casting_elision(result);
+
+		if (has(flags, OptimizationFlags::eStoreElision))
+			changed |= optimize_store_elision(result);
+
 		counter++;
 	} while (changed);
+	
+	auto composition_after = composition(result);
 
 	JVL_INFO("ran full optimization pass {} times", counter);
+	JVL_INFO("summary of changes:");
+	
+	// Summary of changes
+	constexpr std::array <const char *const, NATOMS> strings {
+		"Qualifier",
+		"TypeInformation",
+		"Primitive",
+		"Swizzle",
+		"Operation",
+		"Intrinsic",
+		"List",
+		"Construct",
+		"Call",
+		"Store",
+		"Load",
+		"ArrayAccess",
+		"Branch",
+		"Returns",
+	};
+
+	for (size_t i = 0; i < NATOMS; i++) {
+		JVL_INFO("\t{:>15}: {:4d} -> {:4d}",
+			strings[i],
+			composition_before[i],
+			composition_after[i]);
+	}
 }
 
-void optimize(TrackedBuffer &result)
+void optimize(Buffer &result, const OptimizationFlags flags)
 {
-	optimize(static_cast <Buffer &> (result));
+	JVL_STAGE();
+	optimize_impl(result, flags);
+}
+
+void optimize(TrackedBuffer &result, const OptimizationFlags flags)
+{
+	JVL_STAGE_NAMED(fmt::format("optimization of '{}.{}'", result.name, result.cid));
+	optimize_impl(result, flags);
 
 	// Update the cache entry
 	TrackedBuffer::cache_insert(&result);

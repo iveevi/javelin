@@ -59,6 +59,7 @@ struct stage_bracket {
 
 #define JVL_STAGE()		jvl::io::stage_bracket __stage(__module__)
 #define JVL_STAGE_SECTION(s)	jvl::io::stage_bracket __stage(#s)
+#define JVL_STAGE_NAMED(s)	jvl::io::stage_bracket __stage(s)
 
 #else
 
@@ -74,5 +75,6 @@ struct stage_bracket {
 
 #define JVL_STAGE()
 #define JVL_STAGE_SECTION(s)
+#define JVL_STAGE_NAMED(s)
 
 #endif

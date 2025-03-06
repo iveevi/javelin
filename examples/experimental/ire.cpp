@@ -61,7 +61,6 @@ Procedure spherical = procedure("spherical") << [](f32 theta, f32 phi) -> vec3
 
 Procedure randomH2 = procedure("randomH2") << [](inout <vec3> seed) -> vec3
 {
-	// TODO: fix
 	vec3 eta = random3(seed);
 	f32 theta = acos(eta.x);
 	f32 phi = float(2 * M_PI) * eta.y;
@@ -84,14 +83,9 @@ int main()
 	thunder::optimize(spherical);
 	thunder::optimize(randomH2);
 
-	pcg3d.graphviz("pcg3d-before.dot");
-	pcg3d.graphviz("pcg3d-after.dot");
-
 	auto unit = link(randomH2);
 
 	io::display_lines("RANDOM H2", unit.generate_glsl());
 
 	unit.write_assembly("ire.jvl.asm");
-
-	// unit.generate_spirv_via_glsl(vk::ShaderStageFlagBits::eCompute);
 }

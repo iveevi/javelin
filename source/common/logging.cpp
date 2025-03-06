@@ -151,7 +151,7 @@ stage_bracket::~stage_bracket()
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gold), "close: ");
 	fmt::print(fmt::emphasis::underline | fmt::emphasis::bold | fmt::fg(fmt::color::gray), "{}", module);
-	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), " ({} ms)\n", ms);
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), " ({} ms)\n\n", ms);
 	std::fflush(stdout);
 }
 
