@@ -8,6 +8,8 @@
 #include "atom.hpp"
 #include "qualified_type.hpp"
 
+#include "mir/molecule.hpp"
+
 namespace jvl::thunder {
 
 // Forward declarations
@@ -55,6 +57,9 @@ public:
 
 	// Analysis methods
 	Index reference_of(Index);
+
+	// Convert to Molecule IR
+	mir::Block lower_to_mir() const;
 	
 	// Debugging and visualization utilities
 	void write(std::ofstream &) const;

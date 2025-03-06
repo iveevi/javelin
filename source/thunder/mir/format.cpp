@@ -47,11 +47,13 @@ struct NameGenerator {
 	}
 
 	std::string operator()(const Ref <Molecule> &ref) {
-		auto ftn = [&](auto &self) -> std::string {
-			return fmt::format("%{}", name(self, ref.index));
-		};
+		// auto ftn = [&](auto &self) -> std::string {
+		// 	return fmt::format("%{}", name(self, ref.index));
+		// };
 
-		return std::visit(ftn, *ref);
+		// return std::visit(ftn, *ref);
+
+		return fmt::format("%{}", ref.index.value);
 	}
 };
 
@@ -160,7 +162,7 @@ std::string stringify(NameGenerator &namer, const Molecule &molecule)
 		result += "{\n";
 		for (auto &molecule : block.body) {
 			if (value_molecule(*molecule)) {
-				result += fmt::format("    {:>5} = {}\n",
+				result += fmt::format("    {} = {}\n",
 					namer(molecule),
 					stringify(namer, *molecule));
 			} else {

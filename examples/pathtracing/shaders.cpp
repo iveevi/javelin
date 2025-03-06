@@ -100,7 +100,9 @@ Procedure <void> ray_generation = procedure("main") << []()
 
 	push_constant <Constants> constants;
 
-	vec3 seed = vec3(f32(gl_LaunchIDEXT.x), f32(gl_LaunchIDEXT.y), constants.time);
+	// TODO: fix
+	vec3 seed;
+	seed = vec3(f32(gl_LaunchIDEXT.x), f32(gl_LaunchIDEXT.y), constants.time);
 	
 	vec2 center = vec2(gl_LaunchIDEXT.xy()) + vec2(0.5);
 	vec2 uv = center / vec2(imageSize(image));

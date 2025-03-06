@@ -42,8 +42,8 @@ bool optimize_casting_elision(Buffer &);
 bool optimize_store_elision(Buffer &);
 
 // Full optimization pass
-void optimize(Buffer &, const OptimizationFlags = OptimizationFlags::eAll);
-void optimize(TrackedBuffer &, const OptimizationFlags = OptimizationFlags::eAll);
+void optimize(Buffer &, const OptimizationFlags = OptimizationFlags::eStable);
+void optimize(TrackedBuffer &, const OptimizationFlags = OptimizationFlags::eStable);
 
 // Legalizing instructions for C-family compiled targets
 void legalize_for_cc(Buffer &);

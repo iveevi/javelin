@@ -60,6 +60,7 @@ add_library(javelin SHARED
 	source/thunder/linkage/glsl.cpp
 	source/thunder/linkage/jit_gcc.cpp
 	source/thunder/linkage/spirv_via_glsl.cpp
+	source/thunder/lower.cpp
 	source/thunder/mark.cpp
 	source/thunder/mir/format.cpp
 	source/thunder/optimization.cpp

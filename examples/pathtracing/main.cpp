@@ -108,6 +108,8 @@ struct Application : CameraApplication {
 	}
 
 	void compile_rtx_pipeline() {
+		thunder::optimize(ray_generation);
+
 		auto rgen_spv = link(ray_generation).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eRaygenKHR);
 		auto rgen_info = vk::ShaderModuleCreateInfo().setCode(rgen_spv);
 		auto rgen_module = resources.device.createShaderModule(rgen_info);
