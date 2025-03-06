@@ -86,7 +86,7 @@ TEST(callable, conditional_returns)
 {
 	auto ftn = [](f32 x, f32 y, f32 z) {
 		f32 a = x + y * z;
-		$if(a < 0);
+		$if (a < 0);
 		{
 			f32 b = a / (x - y) * z * z;
 			$return(a / b);

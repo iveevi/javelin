@@ -184,7 +184,7 @@ void shader_debug()
 	
 	std::filesystem::remove_all(local);
 	std::filesystem::create_directories(local);
-		
+	
 	std::string rgen_shader = link(ray_generation).generate_glsl();
 	std::string rchit_shader = link(primary_closest_hit).generate_glsl();
 	std::string rmiss_shader = link(primary_miss).generate_glsl();
@@ -192,7 +192,7 @@ void shader_debug()
 	std::string quad_shader = link(quad).generate_glsl();
 	std::string blit_shader = link(blit).generate_glsl();
 
-	io::display_lines("RAY GENERATION", rgen_shader);
+	io::display_lines(fmt::format("RAY GENERATION ({}.{})", ray_generation.name, ray_generation.cid), rgen_shader);
 	io::display_lines("PRIMARY CLOSEST HIT", rchit_shader);
 	io::display_lines("PRIMARY MISS", rmiss_shader);
 	io::display_lines("SHADOW MISS", smiss_shader);

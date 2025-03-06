@@ -68,6 +68,9 @@ Procedure randomH2 = procedure("randomH2") << [](inout <vec3> seed) -> vec3
 
 namespace jvl::thunder {
 
+// TODO: store elision
+// TODO: swizzle elision
+
 } // namespace jvl::thunder
 
 // TODO: optimizer class...

@@ -199,6 +199,11 @@ std::string generate_operation(OperationCode code, const std::string &a, const s
 c_like_generator_t::c_like_generator_t(const auxiliary_block_t &body)
 	: auxiliary_block_t(body), indentation(1) {}
 
+void c_like_generator_t::comment(const std::string &s)
+{
+	// source += std::string(indentation << 2, ' ') + "// " + s + "\n";
+}
+
 void c_like_generator_t::finish(const std::string &s, bool semicolon)
 {
 	source += std::string(indentation << 2, ' ') + s + (semicolon ? ";" : "") + "\n";
@@ -586,12 +591,14 @@ void c_like_generator_t::generate(const Call &call, Index index)
 template <>
 void c_like_generator_t::generate(const Store &store, Index)
 {
+	comment(store.to_assembly_string());
 	assign(store.dst, inlined(store.src));
 }
 
 template <>
 void c_like_generator_t::generate(const Load &load, Index index)
 {
+	comment(load.to_assembly_string());
 	define(index, inlined(index));
 }
 
@@ -649,6 +656,8 @@ void c_like_generator_t::generate(const Branch &branch, Index)
 template <>
 void c_like_generator_t::generate(const Return &returns, Index)
 {
+	comment(returns.to_assembly_string());
+
 	if (returns.value >= 0)
 		finish("return " + inlined(returns.value));
 	else
@@ -667,6 +676,8 @@ std::string c_like_generator_t::generate()
 {
 	for (size_t i = 0; i < pointer; i++) {
 		if (marked.count(i)) {
+			// TODO: comment
+			// TODO: option for debug info...
 			// fmt::println("  generating: {}", atoms[i]);
 			generate(i);
 		}

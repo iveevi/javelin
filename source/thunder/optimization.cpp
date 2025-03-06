@@ -184,7 +184,19 @@ bool optimize_deduplicate(Buffer &result)
 bool casting_intrinsic(const Intrinsic &intr)
 {
 	switch (intr.opn) {
+	case cast_to_int:
+	case cast_to_ivec2:
+	case cast_to_ivec3:
+	case cast_to_ivec4:
+	case cast_to_uint:
+	case cast_to_uvec2:
+	case cast_to_uvec3:
+	case cast_to_uvec4:
 	case cast_to_float:
+	case cast_to_vec2:
+	case cast_to_vec3:
+	case cast_to_vec4:
+	case cast_to_uint64:
 		return true;
 	default:
 		break;
@@ -213,11 +225,13 @@ bool optimize_casting_elision(Buffer &result)
 		if (atom.is <Construct> ()) {
 			// Constructors with one argument of the same type
 			auto &ctor = atom.as <Construct> ();
-			if (ctor.mode != normal)
+			if (ctor.mode != normal || ctor.args == -1)
 				continue;
 
 			auto &args = result.atoms[ctor.args];
-			JVL_ASSERT(args.is <List> (), "constructor arguments should be a list chain");
+			JVL_ASSERT(args.is <List> (), "constructor arguments ({}) should be a list chain:\n{}",
+				ctor.to_assembly_string(), args);
+
 			list = args.as <List> ();
 		} else if (atom.is <Intrinsic> ()) {
 			auto &intr = atom.as <Intrinsic> ();
@@ -225,11 +239,10 @@ bool optimize_casting_elision(Buffer &result)
 				continue;
 
 			// Casting intrinsics with the same type
-			fmt::println("potentially optimizable: {}", intr.to_assembly_string());
-			
-			// TODO: this is the same code as for the constructor at the end...
 			auto &args = result.atoms[intr.args];
-			JVL_ASSERT(args.is <List> (), "intrinsic arguments should be a list chain");
+			JVL_ASSERT(args.is <List> (), "intrinsic arguments ({}) should be a list chain:\n{}",
+				intr.to_assembly_string(), args);
+
 			list = args.as <List> ();
 		} else {
 			continue;

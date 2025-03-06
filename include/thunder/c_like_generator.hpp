@@ -24,6 +24,7 @@ struct c_like_generator_t : auxiliary_block_t {
 
 	c_like_generator_t(const auxiliary_block_t &);
 
+	void comment(const std::string &);
 	void finish(const std::string &, bool = true);
 
 	void declare(Index);
