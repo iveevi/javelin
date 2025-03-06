@@ -160,7 +160,7 @@ Procedure <vec3, vec2> eval = procedure("eval") << [](const vec2 &uv)
 	vec4 b4 = texelFetch(biases, 3 << 6, 0);
 	vec3 bias = vec3(b4.x, b4.y, b4.z);
 
-	return vertex;
+	return vertex + bias;
 };
 
 // TODO: problems with arrays of one-element structs...
@@ -256,6 +256,7 @@ void shader_debug()
 	thunder::optimize(task);
 	thunder::optimize(mesh);
 	thunder::optimize(eval);
+
 	thunder::optimize(fragment);
 
 	task.graphviz(local / "task-optimize.dot");

@@ -307,10 +307,13 @@ bool optimize_store_elision(Buffer &result)
 		}
 
 		// Collect all extended uses...
-		bool single = true;
+		bool write_before_use = false;
 
 		std::queue <Index> check;
 		check.push(store.dst);
+
+		// TODO: flag for verbose... (in optimizer class)
+		fmt::println("considering store: {}", store.to_assembly_string());
 
 		std::set <Index> addresses;
 		while (!check.empty()) {
@@ -319,35 +322,38 @@ bool optimize_store_elision(Buffer &result)
 
 			auto &atom = result.atoms[j];
 
-			// Quick check if its another store instruction
-			if (atom.is <Store> ()) {
-				if (j != Index(i)) {
-					single = false;
-					break;
-				}
-			}
-
-			// Only pass through address generators
+			// Loading references does not count towards use
 			bool addressable = false
 				|| atom.is <Swizzle> ()
 				|| atom.is <Load> ()
 				|| atom.is <ArrayAccess> ();
 
-			if (j != store.dst && !addressable)
-				continue;
+			if (j == store.dst || addressable) {
+				// Load the uses of the addresses
+				fmt::println("\tadding addressable instruction: {}", atom.to_assembly_string());
+				for (auto jj : graph[j]) {
+					if (addresses.contains(jj))
+						continue;
 
-			addresses.insert(j);
-
-			for (auto jj : graph[j]) {
-				if (addresses.contains(jj))
-					continue;
-
-				check.push(jj);
+					check.push(jj);
+				}
+			} else {
+				// Check for earlier uses
+				fmt::println("\tnon-address instruction: {}", atom.to_assembly_string());
+				if (j != store.dst && j < Index(i)) {
+					fmt::println("\tearler use found:");
+					fmt::println("\t\t{}", result.atoms[j].to_assembly_string());
+					write_before_use = true;
+					break;
+				}
 			}
 		}
 
-		if (single) {
-			// JVL_INFO("single store will be skipped: {}", store.to_assembly_string());
+		if (!write_before_use) {
+			auto &src = result.atoms[store.src];
+			fmt::println("\tsingle store will be skipped:");
+			fmt::println("\t\tdst: {}", dst.to_assembly_string());
+			fmt::println("\t\tsrc: {}", src.to_assembly_string());
 
 			relocation[store.dst] = store.src;
 
@@ -359,8 +365,6 @@ bool optimize_store_elision(Buffer &result)
 
 	refine_relocation(relocation);
 	buffer_relocation(result, relocation);
-
-	JVL_INFO("disolved {} single store instructions", counter);
 	
 	return (counter > 0);
 }
