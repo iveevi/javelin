@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <filesystem>
 
 #include <bestd/variant.hpp>
 
@@ -36,13 +37,13 @@ using Seq = List <T, Molecule>;
 // Type information
 struct Type;
 
-struct Field : bestd::variant <Ref <Type>, thunder::PrimitiveType> {
-	using bestd::variant <Ref <Type>, thunder::PrimitiveType>::variant;
+struct Field : bestd::variant <Ref <Type>, PrimitiveType> {
+	using bestd::variant <Ref <Type>, PrimitiveType>::variant;
 };
 
 struct Type {
 	Seq <Field> fields;
-	Seq <thunder::QualifierKind> qualifiers;
+	Seq <QualifierKind> qualifiers;
 };
 
 struct Primitive : bestd::variant <Int, Float, Bool, String> {
@@ -63,7 +64,7 @@ struct Operation {
 // TODO: use something else for intrinsic...
 struct Intrinsic {
 	Seq <Ref <Molecule>> args;
-	thunder::IntrinsicOperation opn;
+	thunder::IntrinsicOperation code;
 };
 
 struct Construct {
@@ -95,6 +96,8 @@ struct Indexing {
 struct Block {
 	Ref <Block> parent;
 	Seq <Ref <Molecule>> body;
+
+	void graphviz(const std::filesystem::path &) const;
 };
 
 std::string format_as(const Block &);
@@ -133,7 +136,7 @@ using molecule_base = bestd::variant <
 	// Misecellaneous; for memory arena
 	Ref <Molecule>,
 	Field,
-	thunder::QualifierKind
+	QualifierKind
 >;
 
 struct Molecule : molecule_base {

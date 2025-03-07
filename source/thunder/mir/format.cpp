@@ -129,7 +129,7 @@ std::string stringify(NameGenerator &namer, const Molecule &molecule)
 
 		std::string result;
 
-		result += fmt::format("{} ", thunder::tbl_intrinsic_operation[intr.opn]);
+		result += fmt::format("{} ", thunder::tbl_intrinsic_operation[intr.code]);
 
 		for (auto &arg : intr.args)
 			result += fmt::format("{} ", namer(arg.index));

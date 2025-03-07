@@ -157,7 +157,7 @@ mir::Block Buffer::lower_to_mir() const
 
 			auto p = mir::Intrinsic();
 			p.args = args;
-			p.opn = intrinsic.opn;
+			p.code = intrinsic.opn;
 
 			auto ptr = mir::Ref <mir::Molecule> (p);
 			mapping[i] = ptr;
