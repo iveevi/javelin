@@ -37,12 +37,15 @@ using Seq = List <T, Molecule>;
 // Type information
 struct Type;
 
-struct Field : bestd::variant <Ref <Type>, PrimitiveType> {
-	using bestd::variant <Ref <Type>, PrimitiveType>::variant;
+struct Aggregate {
+	Seq <Ref <Molecule>> fields;
 };
 
-struct Type {
-	Seq <Field> fields;
+using type_base = bestd::variant <Aggregate, PrimitiveType>;
+
+struct Type : type_base {
+	using type_base::type_base;
+	
 	Seq <QualifierKind> qualifiers;
 };
 
@@ -94,7 +97,6 @@ struct Indexing {
 };
 
 struct Block {
-	Ref <Block> parent;
 	Seq <Ref <Molecule>> body;
 
 	void graphviz(const std::filesystem::path &) const;
@@ -135,7 +137,6 @@ using molecule_base = bestd::variant <
 	
 	// Misecellaneous; for memory arena
 	Ref <Molecule>,
-	Field,
 	QualifierKind
 >;
 

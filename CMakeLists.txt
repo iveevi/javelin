@@ -63,6 +63,7 @@ add_library(javelin SHARED
 	source/thunder/lower.cpp
 	source/thunder/mark.cpp
 	source/thunder/mir/format.cpp
+	source/thunder/mir/graphviz.cpp
 	source/thunder/optimization.cpp
 	source/thunder/overload_intrinsics.cpp
 	source/thunder/overload_operations.cpp

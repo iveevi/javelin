@@ -76,18 +76,25 @@ std::string stringify(NameGenerator &namer, const Molecule &molecule)
 	variant_case(Molecule, Type):
 	{
 		auto &type = molecule.as <Type> ();
-		std::string result;
 
-		for (auto &field : type.fields)
-			result += fmt::format("{} ", stringify(namer, field));
+		if (auto prim = type.get <PrimitiveType> ()) {
+			return tbl_primitive_types[*prim];
+		} else {
+			auto &aggr = type.as <Aggregate> ();
 
-		if (type.qualifiers.count > 0)
-			result += ": ";
+			std::string result;
 
-		for (auto &qualifier : type.qualifiers)
-			result += fmt::format("{} ", thunder::tbl_qualifier_kind[qualifier]);
+			for (auto &field : aggr.fields)
+				result += fmt::format("{} ", stringify(namer, *field));
 
-		return result;
+			if (type.qualifiers.count > 0)
+				result += ": ";
+
+			for (auto &qualifier : type.qualifiers)
+				result += fmt::format("{} ", thunder::tbl_qualifier_kind[qualifier]);
+
+			return result;
+		}
 	} break;
 
 	variant_case(Molecule, Primitive):
@@ -198,17 +205,6 @@ std::string stringify(NameGenerator &namer, const Molecule &molecule)
 		return fmt::format("return {}", namer(returns.value));
 	} break;
 	
-	variant_case(Molecule, Field):
-	{
-		auto &field = molecule.as <Field> ();
-		if (auto type = field.get <Ref <Type>> ()) {
-			return stringify(namer, *type.value());
-		} else {
-			auto pt = field.as <thunder::PrimitiveType> ();
-			return thunder::tbl_primitive_types[pt];
-		}
-	} break;
-
 	default:
 		break;
 	}

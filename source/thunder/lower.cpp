@@ -70,11 +70,7 @@ mir::Block Buffer::lower_to_mir() const
 			auto &ti = atom.as <TypeInformation> ();
 
 			if (ti.next == -1 && ti.down == -1) {
-				auto field = mir::Field(ti.item);
-
-				auto type = mir::Type();
-				type.fields.add(field);
-
+				auto type = mir::Type(ti.item);
 				auto ptr = mir::Ref <mir::Molecule> (type);
 				mapping[i] = ptr;
 				block.body.add(ptr);
