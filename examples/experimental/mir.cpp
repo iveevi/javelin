@@ -27,6 +27,10 @@ namespace jvl::thunder::mir {
 
 using Set = std::set <Index>;
 
+/////////////////////
+// Usage addresses //
+/////////////////////
+
 template <typename T>
 requires bestd::is_variant_component <molecule_base, T>
 Set addresses(const T &)
@@ -87,6 +91,29 @@ Set addresses(const Return &returns)
 	return { returns.value.index };
 }
 
+/////////////////////////
+// Replacing addresses //
+/////////////////////////
+
+template <typename T>
+requires bestd::is_variant_component <molecule_base, T>
+void readdress(T &, Index a, Index b) {}
+
+void readdress(Operation &opn, Index a, Index b)
+{
+	if (opn.a.index == a)
+		opn.a = b;
+	if (opn.b.index == a)
+		opn.b = b;
+}
+
+void readdress(Molecule &mole, Index a, Index b)
+{
+	auto ftn = [&](auto &x) { return readdress(x, a, b); };
+	return std::visit(ftn, mole);
+}
+
+// Usage and users graphs
 bestd::tree <Index, Set> mole_usage(const Block &block)
 {
 	bestd::tree <Index, Set> graph;
@@ -163,12 +190,11 @@ Block legalize_storage(const Block &block)
 			auto storage = Ref <Storage> (Storage(type));
 			instructions.push_back(storage.promote());
 
-			fmt::println("users of store destination @{}: {}", store.dst.idx(), *store.dst);
 			auto set = users[store.dst.idx()];
 			for (auto v : set) {
+				auto &mole = *(Ref <Molecule> (v));
 				// TODO: ref_load(...)
-				fmt::println("\t%{}: {}", v.value, *(Ref <Molecule> (v)));
-				// v.get() = storage.idx();
+				readdress(mole, store.dst.index, storage.index);
 			}
 
 			auto new_store = store;
@@ -212,26 +238,6 @@ int main()
 	fmt::println("{}", mir);
 
 	mir.graphviz("mir.dot");
-
-	auto users = thunder::mir::mole_users(mir);
-	
-	fmt::println("users graph:");
-	for (auto &[k, v] : users) {
-		fmt::print("\t{} -> ", k.value);
-		for (auto &vv : v)
-			fmt::print("{} ", vv.value);
-		fmt::print("\n");
-	}
-
-	auto usage = thunder::mir::mole_usage(mir);
-
-	fmt::println("usage graph:");
-	for (auto &[k, v] : usage) {
-		fmt::print("\t@{} ({}) -> ", k.value, *(thunder::mir::Ref <thunder::mir::Molecule> (k)));
-		for (auto &vv : v)
-			fmt::print("{} ", vv.value);
-		fmt::print("\n");
-	}
 
 	mir = thunder::mir::legalize_storage(mir);
 
