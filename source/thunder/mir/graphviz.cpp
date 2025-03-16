@@ -23,6 +23,7 @@ std::string mole_name(const Molecule &mole)
 		"Intrinsic",
 		"Construct",
 		"Call",
+		"Storage",
 		"Store",
 		"Load",
 		"Indexing",
@@ -32,7 +33,8 @@ std::string mole_name(const Molecule &mole)
 		"Return",
 
 		// Misecellaneous; for memory arena
-		"Reference",
+		"Ref (Type)",
+		"Ref (Molecule)",
 		"QualifierKind",
 	};
 
@@ -41,6 +43,7 @@ std::string mole_name(const Molecule &mole)
 
 std::string mole_color(const Molecule &mole)
 {
+	// TODO: constexpr generate...
 	static std::array <std::string, NMOLES> colors = {
 		"#FFB3BA",  // Pastel Pink
 		"#FFDFBA",  // Peach
@@ -136,6 +139,13 @@ auto addresses(const Molecule &mole)
 		}
 	} break;
 
+	variant_case(Molecule, Storage):
+	{
+		auto &storage = mole.as <Storage> ();
+
+		result.insert(std::make_pair("Type", storage.type.idx()));
+	} break;
+
 	variant_case(Molecule, Construct):
 	{
 		auto &ctor = mole.as <Construct> ();
@@ -205,6 +215,8 @@ void Block::graphviz(const std::filesystem::path &path) const
 	result += "\tnode [shape=record, style=\"filled, rounded\", fontname=\"IosevkaTerm Nerd Font Mono\"];\n";
 	result += "\tedge [fontname=\"IosevkaTerm Nerd Font Mono\"];\n";
 
+	size_t order = 0;
+
 	for (auto mole : body) {
 		auto propset = properties(*mole);
 
@@ -215,7 +227,7 @@ void Block::graphviz(const std::filesystem::path &path) const
 		result += fmt::format("\tI{} [label=\"{{ {} [{}] {} }}\", fillcolor=\"{}\"]\n",
 			mole.idx(),
 			mole_name(*mole),
-			mole.idx(),
+			order++,
 			propstr,
 			mole_color(*mole));
 	}

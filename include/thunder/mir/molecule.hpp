@@ -38,7 +38,7 @@ using Seq = List <T, Molecule>;
 struct Type;
 
 struct Aggregate {
-	Seq <Ref <Molecule>> fields;
+	Seq <Ref <Type>> fields;
 };
 
 using type_base = bestd::variant <Aggregate, PrimitiveType>;
@@ -55,7 +55,6 @@ struct Primitive : bestd::variant <Int, Float, Bool, String> {
 
 struct Storage {
 	Ref <Type> type;
-	Ref <Molecule> value;
 };
 
 struct Operation {
@@ -102,8 +101,6 @@ struct Block {
 	void graphviz(const std::filesystem::path &) const;
 };
 
-std::string format_as(const Block &);
-
 struct Branch {
 	Ref <Molecule> condition;
 	Ref <Block> then;
@@ -127,6 +124,7 @@ using molecule_base = bestd::variant <
 	Intrinsic,
 	Construct,
 	Call,
+	Storage,
 	Store,
 	Load,
 	Indexing,
@@ -136,6 +134,7 @@ using molecule_base = bestd::variant <
 	Return,
 	
 	// Misecellaneous; for memory arena
+	Ref <Type>,
 	Ref <Molecule>,
 	QualifierKind
 >;
@@ -143,5 +142,7 @@ using molecule_base = bestd::variant <
 struct Molecule : molecule_base {
 	using molecule_base::molecule_base;
 };
+
+std::string format_as(const Molecule &);
 
 } // namespace jvl::thunder::mir
