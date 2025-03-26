@@ -15,6 +15,7 @@
 
 #include <thunder/mir/memory.hpp>
 #include <thunder/mir/molecule.hpp>
+#include <thunder/mir/transformations.hpp>
 
 #include "common/io.hpp"
 
@@ -24,72 +25,6 @@ using namespace jvl::ire;
 MODULE(mir);
 
 namespace jvl::thunder::mir {
-
-using Set = std::set <Index>;
-
-/////////////////////
-// Usage addresses //
-/////////////////////
-
-template <typename T>
-requires bestd::is_variant_component <molecule_base, T>
-Set addresses(const T &)
-{
-	return {};
-}
-
-Set addresses(const Type &type)
-{
-	Set result;
-
-	if (type.is <Aggregate> ()) {
-		auto &aggr = type.as <Aggregate> ();
-
-		size_t i = 0;
-		for (auto &field : aggr.fields)
-			result.insert(field.index);
-	}
-
-	return result;
-}
-
-Set addresses(const Construct &ctor)
-{
-	Set result;
-
-	result.insert(ctor.type.index);
-
-	size_t i = 0;
-	for (auto &arg : ctor.args)
-		result.insert(arg.index);
-
-	return result;
-}
-
-Set addresses(const Operation &opn)
-{
-	Set result;
-	if (opn.a)
-		result.insert(opn.a.index);
-	if (opn.b)
-		result.insert(opn.b.index);
-
-	return result;
-}
-
-Set addresses(const Intrinsic &intr)
-{
-	Set result;
-	for (auto &p : intr.args)
-		result.insert(p.index);
-
-	return result;
-}
-
-Set addresses(const Return &returns)
-{
-	return { returns.value.index };
-}
 
 /////////////////////////
 // Replacing addresses //
@@ -211,12 +146,64 @@ Block legalize_storage(const Block &block)
 	return Block(instructions);
 }
 
-// TODO: type deduplication...
+Block legalize_calls(const Block &block)
+{
+
+}
+
+Block legalize(const Block &block)
+{
+
+}
+
+struct OptimizationPassResult {
+	Block block;
+	bool changed;
+};
+
+OptimizationPassResult optimize_dead_code_elimination_iteration(const Block &block)
+{
+	Linear instructions;
+
+	auto users = mole_users(block);
+
+	for (auto &r : block.body) {
+		bool exempt = false;
+		exempt |= r->is <Store> ();
+		exempt |= r->is <Return> ();
+
+		bool empty = !users.contains(r.idx()) || users.at(r.idx()).empty();
+		
+		if (exempt || !empty)
+			instructions.emplace_back(r);
+	}
+
+	return OptimizationPassResult {
+		.block = Block(instructions),
+		.changed = block.body.count != instructions.size()
+	};
+}
+
+Block optimize_dead_code_elimination(const Block &block)
+{
+	OptimizationPassResult pass;
+	pass.block = block;
+
+	do {
+		pass = optimize_dead_code_elimination_iteration(pass.block);
+		fmt::println("DEC pass... (to {} moles)", pass.block.body.count);
+	} while (pass.changed);
+
+	return pass.block;
+}
+
+// TODO: lvalue classification...
+// TODO: inout legalization...
+// TODO: deduplication...
 // TODO: then casting elision...
 
 } // namespace jvl::thunder::mir
 
-// TODO: dot generator...
 // TODO: glsl function body generator...
 
 auto ftn = procedure("area") << [](vec2 x, vec2 y)
@@ -234,14 +221,14 @@ int main()
 	ftn.display_assembly();
 
 	auto mir = ftn.lower_to_mir();
-
 	fmt::println("{}", mir);
-
 	mir.graphviz("mir.dot");
 
 	mir = thunder::mir::legalize_storage(mir);
-
 	fmt::println("{}", mir);
-
 	mir.graphviz("mir-legalized.dot");
+	
+	mir = thunder::mir::optimize_dead_code_elimination(mir);
+	fmt::println("{}", mir);
+	mir.graphviz("mir-dec.dot");
 }
