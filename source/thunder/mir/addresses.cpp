@@ -2,6 +2,7 @@
 
 namespace jvl::thunder::mir {
 
+// Address retrieval
 Set addresses(const Type &type)
 {
 	Set result;
@@ -61,6 +62,21 @@ Set addresses(const Storage &storage)
 Set addresses(const Return &returns)
 {
 	return { returns.value.index };
+}
+
+// Address replacement
+void readdress(Operation &opn, Index a, Index b)
+{
+	if (opn.a.index == a)
+		opn.a = b;
+	if (opn.b.index == a)
+		opn.b = b;
+}
+
+void readdress(Molecule &mole, Index a, Index b)
+{
+	auto ftn = [&](auto &x) { return readdress(x, a, b); };
+	return std::visit(ftn, mole);
 }
 
 } // namespace jvl::thunder::mir

@@ -20,7 +20,7 @@ Procedure <void> quad = procedure("main") << []()
 	layout_out <vec2> uv(0);
 
 	vec4 v = locations[gl_VertexIndex % 6];
-	gl_Position = vec4(v.xy(), 1 - 0.0001f, 1);	
+	gl_Position = vec4(v.xy(), 1 - 0.0001f, 1);
 	uv = v.zw();
 };
 
@@ -80,13 +80,27 @@ Procedure spherical = procedure("spherical") << [](f32 theta, f32 phi) -> vec3
 
 Procedure randomH2 = procedure("randomH2") << [](inout <vec3> seed) -> vec3
 {
-	// TODO: fix
-	vec3 s;
-	s = seed;
-	random3(s);
-	f32 theta = acos(s.x);
-	f32 phi = float(2 * M_PI) * s.y;
+	vec3 eta = random3(seed);
+	f32 theta = acos(eta.x);
+	f32 phi = float(2 * M_PI) * eta.y;
 	return spherical(theta, phi);
+};
+
+Procedure rotate = procedure("rotate") << [](vec3 s, vec3 n) -> vec3
+{
+	static constexpr float epsilon = 1e-4;
+
+        vec3 w = n;
+
+        // TODO: select
+        vec3 u = vec3(0.0, -w.z, w.y);
+        $if (abs(w.z) < (1 - epsilon));
+        	u = vec3(-w.y, w.x, 0.0);
+        $end();
+
+        vec3 v = cross(w, u);
+
+        return u * s.x + v * s.y + w * s.z;
 };
 
 Procedure <void> ray_generation = procedure("main") << []()
@@ -97,17 +111,35 @@ Procedure <void> ray_generation = procedure("main") << []()
 	accelerationStructureEXT tlas(0);
 
 	writeonly <image2D> image(1);
+	// readonly <writeonly <image2D>> image(1);
 
 	push_constant <Constants> constants;
+
+	auto shadowed = [&](vec3 position, vec3 direction) -> boolean {
+		shadow = true;
+
+		traceRayEXT(tlas,
+			gl_RayFlagsOpaqueEXT
+			| gl_RayFlagsTerminateOnFirstHitEXT
+			| gl_RayFlagsSkipClosestHitShaderEXT,
+			0xFF,
+			0, 0, 1,
+			position, 1e-3,
+			direction, 1e10,
+			1);
+
+		return shadow;
+	};
 
 	// TODO: fix
 	vec3 seed;
 	seed = vec3(f32(gl_LaunchIDEXT.x), f32(gl_LaunchIDEXT.y), constants.time);
-	
+
 	vec2 center = vec2(gl_LaunchIDEXT.xy()) + vec2(0.5);
 	vec2 uv = center / vec2(imageSize(image));
 	vec3 ray = constants.at(uv);
-	vec3 origin = vec3(constants.origin);
+	// TODO: should construct automatically...
+	vec3 origin = constants.origin.xyz();
 
 	vec3 beta = vec3(1);
 	vec3 color = vec3(0);
@@ -119,7 +151,7 @@ Procedure <void> ray_generation = procedure("main") << []()
 			gl_RayFlagsOpaqueEXT,
 			0xFF,
 			0, 0, 0,
-			constants.origin, 1e-3,
+			origin, 1e-3,
 			ray, 1e10,
 			0);
 
@@ -129,19 +161,23 @@ Procedure <void> ray_generation = procedure("main") << []()
 			color += beta;
 			$break();
 		}
+		$else();
+		{
+			origin = hit.position + 1e-3 * hit.normal;
+
+			vec3 s = randomH2(seed);
+			s = rotate(s, hit.normal);
+			ray = s;
+
+			beta *= vec3(1.0) * max(dot(hit.normal, s), 0.0f);
+		}
 		$end();
-
-		vec3 r = randomH2(seed);
-
-		color += 0.5 + 0.5 * r;
-		// color = 0.5 + 0.5 * hit.normal;
-		$break();
 	}
 	$end();
 
-	// TODO: more semantic traceRaysEXT...
-	// traceRayEXT(tlas, flags, mask, nullptr, ..., shadow_miss, ray..., shadow)
-	
+	// TODO: sample count..
+	// vec4 c = imageLoad(image, ivec2(gl_LaunchIDEXT.xy()));
+	// imageStore(image, ivec2(gl_LaunchIDEXT.xy()), (c + vec4(color, 1.0)) * 0.5);
 	imageStore(image, ivec2(gl_LaunchIDEXT.xy()), vec4(color, 1.0));
 };
 
@@ -182,7 +218,7 @@ Procedure <void> primary_closest_hit = procedure("main") << []()
 	Vertex v2 = vertices[tri.z];
 
 	vec3 b = vec3(1.0f - bary.x - bary.y, bary.x, bary.y);
-	
+
 	vec3 p = b.x * v0.position + b.y * v1.position + b.z * v2.position;
 	p = (gl_ObjectToWorldEXT * vec4(p, 1)).xyz();
 
@@ -220,10 +256,10 @@ void shader_debug()
 {
 	static const std::filesystem::path root = std::filesystem::path(__FILE__).parent_path() / ".." / "..";
 	static const std::filesystem::path local = root / "output" / "pathtracing";
-	
+
 	std::filesystem::remove_all(local);
 	std::filesystem::create_directories(local);
-		
+
 	std::string rgen_shader = link(ray_generation).generate_glsl();
 	std::string rchit_shader = link(primary_closest_hit).generate_glsl();
 	std::string rmiss_shader = link(primary_miss).generate_glsl();
@@ -258,6 +294,7 @@ void shader_debug()
 	thunder::optimize(pcg3d);
 	thunder::optimize(random3);
 	thunder::optimize(quad);
+	thunder::optimize(randomH2);
 	thunder::optimize(pcg3d);
 
 	ray_generation.graphviz(local / "ray-generation-optimized.dot");

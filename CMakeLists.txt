@@ -62,9 +62,12 @@ add_library(javelin SHARED
 	source/thunder/linkage/spirv_via_glsl.cpp
 	source/thunder/lower.cpp
 	source/thunder/mark.cpp
+	source/thunder/mir/addresses.cpp
+	source/thunder/mir/dead_code_elimination.cpp
 	source/thunder/mir/format.cpp
 	source/thunder/mir/graphviz.cpp
-	source/thunder/mir/addresses.cpp
+	source/thunder/mir/legalize.cpp
+	source/thunder/mir/usage.cpp
 	source/thunder/optimization.cpp
 	source/thunder/overload_intrinsics.cpp
 	source/thunder/overload_operations.cpp

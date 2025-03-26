@@ -65,14 +65,14 @@ struct Application : CameraApplication {
 				.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
 				.depth_attachment(1, vk::ImageLayout::eDepthStencilAttachmentOptimal)
 				.done();
-			
+
 		framebuffers.resize(resources, render_pass);
 
 		configure_imgui(resources, render_pass);
-	
+
+		shader_debug();
 		compile_rtx_pipeline();
 		compile_blit_pipeline();
-		shader_debug();
 	}
 
 	static void features_include(VulkanFeatureChain &features) {
@@ -108,36 +108,34 @@ struct Application : CameraApplication {
 	}
 
 	void compile_rtx_pipeline() {
-		thunder::optimize(ray_generation);
-
 		auto rgen_spv = link(ray_generation).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eRaygenKHR);
 		auto rgen_info = vk::ShaderModuleCreateInfo().setCode(rgen_spv);
 		auto rgen_module = resources.device.createShaderModule(rgen_info);
-		
+
 		auto rchit_spv = link(primary_closest_hit).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eClosestHitKHR);
 		auto rchit_info = vk::ShaderModuleCreateInfo().setCode(rchit_spv);
 		auto rchit_module = resources.device.createShaderModule(rchit_info);
-		
+
 		auto rmiss_spv = link(primary_miss).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eMissKHR);
 		auto rmiss_info = vk::ShaderModuleCreateInfo().setCode(rmiss_spv);
 		auto rmiss_module = resources.device.createShaderModule(rmiss_info);
-		
+
 		auto smiss_spv = link(shadow_miss).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eMissKHR);
 		auto smiss_info = vk::ShaderModuleCreateInfo().setCode(smiss_spv);
 		auto smiss_module = resources.device.createShaderModule(smiss_info);
-		
+
 		auto constants = vk::PushConstantRange()
 			.setOffset(0)
 			.setSize(sizeof(solid_t <Constants>))
 			.setStageFlags(vk::ShaderStageFlagBits::eRaygenKHR);
-			
+
 		std::tie(rtx_pipeline, sbt) = raytracing_pipeline(resources,
 			rgen_module,
 			{ rmiss_module, smiss_module },
 			{ rchit_module },
 			bindings,
 			{ constants });
-		
+
 		rtx_descriptor = littlevk::bind(resources.device, resources.descriptor_pool)
 			.allocate_descriptor_sets(*rtx_pipeline.dsl)
 			.front();
@@ -161,21 +159,21 @@ struct Application : CameraApplication {
 			.allocate_descriptor_sets(*blit_pipeline.dsl)
 			.front();
 	}
-	
+
 	void configure(argparse::ArgumentParser &program) override {
 		program.add_argument("mesh")
 			.help("input mesh");
-		
+
 		program.add_argument("--smooth")
 			.help("smooth mesh normals")
 			.default_value(false)
 			.flag();
 	}
-	
+
 	void preload(const argparse::ArgumentParser &program) override {
 		// Load the asset and scene
 		std::filesystem::path path = program.get("mesh");
-	
+
 		auto asset = ImportedAsset::from(path).value();
 
 		std::vector <VulkanTriangleMesh> vk_meshes;
@@ -189,7 +187,7 @@ struct Application : CameraApplication {
 
 		min = glm::vec3(1e10);
 		max = -min;
-		
+
 		bool smooth = (program["--smooth"] == true);
 
 		for (auto &g : asset.geometries) {
@@ -197,7 +195,7 @@ struct Application : CameraApplication {
 				g.deduplicate_vertices().recompute_normals();
 
 			auto tm = TriangleMesh::from(g).value();
-			
+
 			auto vkm = VulkanTriangleMesh::from(resources.allocator(), tm,
 				VertexFlags::ePosition
 				| VertexFlags::eNormal,
@@ -209,7 +207,7 @@ struct Application : CameraApplication {
 			auto taddr = resources.device.getBufferAddress(vkm.triangles.buffer);
 			auto vaddr = resources.device.getBufferAddress(vkm.vertices.buffer);
 			references.emplace_back(vaddr, taddr);
-			
+
 			auto [bmin, bmax] = tm.scale();
 			min = glm::min(min, bmin);
 			max = glm::max(max, bmax);
@@ -218,7 +216,7 @@ struct Application : CameraApplication {
 		std::vector <VulkanAccelerationStructure> blases;
 		std::vector <vk::TransformMatrixKHR> transforms;
 		std::vector <InstanceInfo> instances;
-		
+
 		littlevk::submit_now(resources.device, resources.command_pool, resources.graphics_queue,
 			[&](const vk::CommandBuffer &cmd) {
 				for (size_t i = 0; i < vk_meshes.size(); i++) {
@@ -229,15 +227,15 @@ struct Application : CameraApplication {
 					instances.emplace_back(i, 0xff);
 				}
 			});
-		
+
 		littlevk::submit_now(resources.device, resources.command_pool, resources.graphics_queue,
 			[&](const vk::CommandBuffer &cmd) {
 				tlas = VulkanAccelerationStructure::tlas(resources, cmd, blases, transforms, instances);
 			});
 
 		littlevk::ImageCreateInfo image_info {
-			1000,
-			1000,
+			resources.window.extent.width,
+			resources.window.extent.height,
 			vk::Format::eR32G32B32A32Sfloat,
 			vk::ImageUsageFlagBits::eStorage
 			| vk::ImageUsageFlagBits::eSampled,
@@ -248,7 +246,7 @@ struct Application : CameraApplication {
 		};
 
 		target = resources.allocator().image(image_info);
-		
+
 		littlevk::Buffer vk_refs = resources.allocator()
 			.buffer(references, vk::BufferUsageFlagBits::eStorageBuffer);
 
@@ -260,7 +258,7 @@ struct Application : CameraApplication {
 		auto tlas_write = vk::WriteDescriptorSetAccelerationStructureKHR()
 			.setAccelerationStructureCount(1)
 			.setAccelerationStructures(tlas.handle);
-		
+
 		auto target_sampler = littlevk::SamplerAssembler(resources.device, resources.dal);
 
 		std::vector <vk::WriteDescriptorSet> writes;
@@ -271,24 +269,24 @@ struct Application : CameraApplication {
 			.setDstBinding(0)
 			.setDstSet(rtx_descriptor)
 			.setPNext(&tlas_write));
-		
+
 		auto target_descriptor1 = vk::DescriptorImageInfo()
 			.setImageView(target.view)
 			.setImageLayout(vk::ImageLayout::eGeneral)
 			.setSampler(target_sampler);
-		
+
 		writes.emplace_back(vk::WriteDescriptorSet()
 			.setDescriptorCount(1)
 			.setDescriptorType(vk::DescriptorType::eStorageImage)
 			.setDstBinding(1)
 			.setDstSet(rtx_descriptor)
 			.setImageInfo(target_descriptor1));
-		
+
 		auto target_descriptor2 = vk::DescriptorImageInfo()
 			.setImageView(target.view)
 			.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
 			.setSampler(target_sampler);
-		
+
 		writes.emplace_back(vk::WriteDescriptorSet()
 			.setDescriptorCount(1)
 			.setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
@@ -300,7 +298,7 @@ struct Application : CameraApplication {
 			.setBuffer(vk_refs.buffer)
 			.setOffset(0)
 			.setRange(vk_refs.device_size());
-		
+
 		writes.emplace_back(vk::WriteDescriptorSet()
 			.setDescriptorCount(1)
 			.setDescriptorType(vk::DescriptorType::eStorageBuffer)
@@ -338,9 +336,9 @@ struct Application : CameraApplication {
 			.setBaseMipLevel(0)
 			.setLayerCount(1)
 			.setLevelCount(1);
-		
+
 		solid_t <Constants> frame;
-		
+
 		auto &extent = resources.window.extent;
 		camera.aperature.aspect = float(extent.width) / float(extent.height);
 
@@ -353,7 +351,8 @@ struct Application : CameraApplication {
 		frame.get <5> () = glfwGetTime();
 
 		{
-			float time = glfwGetTime();
+			// float time = glfwGetTime();
+			float time = 0.0f;
 
 			glm::vec3 direction = glm::vec3 {
 				0.1 * glm::cos(time),
@@ -363,7 +362,7 @@ struct Application : CameraApplication {
 
 			frame.get <4> () = glm::normalize(direction);
 		}
-		
+
 		{
 			auto memory_barrier = vk::ImageMemoryBarrier()
 				.setImage(target.image)
@@ -419,12 +418,12 @@ struct Application : CameraApplication {
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, blit_pipeline.handle);
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, blit_pipeline.layout, 0, blit_descriptor, { });
 		cmd.draw(6, 1, 0, 0);
-		
+
 		imgui(cmd);
-		
+
 		cmd.endRenderPass();
 	}
-	
+
 	void imgui(const vk::CommandBuffer &cmd) {
 		ImGuiRenderContext context(cmd);
 

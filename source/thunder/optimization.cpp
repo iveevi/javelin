@@ -150,7 +150,13 @@ uint32_t optimize_deduplicate_iteration(Buffer &result)
 		auto &atom = result.atoms[i];
 
 		// Handle exceptions
-		if (atom.is <Store> () || atom.is <Call> () || locked.contains(i))
+		bool exempt = false;
+		exempt |= atom.is <Store> ();
+		exempt |= atom.is <Call> ();
+		exempt |= atom.is <Branch> ();
+		exempt |= locked.contains(i);
+
+		if (exempt)
 			return i;
 
 		auto &hash = reinterpret_cast <uint64_t &> (atom);
