@@ -36,7 +36,7 @@ bool CameraController::handle_delta(glm::vec2 delta)
 {
 	float dx = delta.x;
 	float dy = delta.y;
-	
+
 	if (settings.invert_y)
 		dy = -dy;
 
@@ -52,8 +52,10 @@ bool CameraController::handle_delta(glm::vec2 delta)
 	return std::abs(dx) > 0 or std::abs(dy) > 0;
 }
 
-void CameraController::handle_movement(const InteractiveWindow &window)
+bool CameraController::handle_movement(const InteractiveWindow &window)
 {
+	uint32_t unchanged = 0;
+
 	float delta = settings.speed * float(glfwGetTime() - last_t);
 	last_t = glfwGetTime();
 
@@ -62,16 +64,24 @@ void CameraController::handle_movement(const InteractiveWindow &window)
 		velocity.z -= delta;
 	else if (window.key_pressed(settings.forward))
 		velocity.z += delta;
+	else
+		unchanged++;
 
 	if (window.key_pressed(settings.right))
 		velocity.x -= delta;
 	else if (window.key_pressed(settings.left))
 		velocity.x += delta;
+	else
+		unchanged++;
 
 	if (window.key_pressed(settings.down))
 		velocity.y -= delta;
 	else if (window.key_pressed(settings.up))
 		velocity.y += delta;
-	
+	else
+		unchanged++;
+
 	transform.translate += transform.rotation * velocity;
+
+	return (unchanged < 3);
 }

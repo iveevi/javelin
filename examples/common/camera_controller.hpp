@@ -14,7 +14,7 @@ struct CameraControllerSettings {
 	int down = GLFW_KEY_E;
 
 	bool invert_y = false;
-	
+
 	float speed = 500.0f;
 	float sensitivity = 2.5f;
 };
@@ -38,5 +38,5 @@ struct CameraController {
 
 	bool handle_cursor(glm::vec2);
 	bool handle_delta(glm::vec2);
-	void handle_movement(const InteractiveWindow &);
+	bool handle_movement(const InteractiveWindow &);
 };

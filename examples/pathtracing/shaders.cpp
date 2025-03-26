@@ -110,8 +110,6 @@ Procedure <void> ray_generation = procedure("main") << []()
 
 	accelerationStructureEXT tlas(0);
 
-	// writeonly <image2D> raw(1);
-	// writeonly <image2D> image(1);
 	format <image2D, rgba32f> image(1);
 
 	push_constant <Constants> constants;
@@ -159,7 +157,7 @@ Procedure <void> ray_generation = procedure("main") << []()
 		$if (hit.missed);
 		{
 			// Missing hits the background light
-			color += beta;
+			color += beta * vec3(2, 2, 1.8);
 			$break();
 		}
 		$else();
@@ -178,9 +176,10 @@ Procedure <void> ray_generation = procedure("main") << []()
 
 	// TODO: tone mapping
 	// TODO: sample count..
-	// vec4 c = imageLoad(image, ivec2(gl_LaunchIDEXT.xy()));
-	// imageStore(image, ivec2(gl_LaunchIDEXT.xy()), (c + vec4(color, 1.0)) * 0.5);
-	imageStore(image, ivec2(gl_LaunchIDEXT.xy()), vec4(color, 1.0));
+	ivec2 idx = ivec2(gl_LaunchIDEXT.xy());
+	vec4 old = imageLoad(image, idx);
+	vec4 add = (f32(constants.frame) * old + vec4(color, 1.0)) / f32(constants.frame + 1);
+	imageStore(image, idx, add);
 };
 
 struct Vertex {

@@ -28,6 +28,7 @@ struct Application : CameraApplication {
 	ShaderBindingTable sbt;
 	VulkanAccelerationStructure tlas;
 
+	uint32_t counter;
 	glm::vec3 min;
 	glm::vec3 max;
 	bool automatic;
@@ -309,6 +310,8 @@ struct Application : CameraApplication {
 		resources.device.updateDescriptorSets(writes, { });
 
 		automatic = (program["--auto"] == true);
+
+		counter = 0;
 	}
 
 	void render(const vk::CommandBuffer &cmd, uint32_t index, uint32_t total) override {
@@ -327,8 +330,12 @@ struct Application : CameraApplication {
 
 			xform.rotation = glm::angleAxis(-a, glm::vec3(0, 1, 0));
 		} else {
-			camera.controller.handle_movement(resources.window);
+			if (camera.controller.handle_movement(resources.window))
+				counter = 0;
 		}
+
+		if (camera.controller.dragging)
+			counter = 0;
 
 		auto subresource_range = vk::ImageSubresourceRange()
 			.setAspectMask(vk::ImageAspectFlagBits::eColor)
@@ -349,6 +356,7 @@ struct Application : CameraApplication {
 		frame.get <2> () = rayframe.horizontal;
 		frame.get <3> () = rayframe.vertical;
 		frame.get <5> () = glfwGetTime();
+		frame.get <6> () = counter++;
 
 		{
 			// float time = glfwGetTime();
@@ -427,9 +435,9 @@ struct Application : CameraApplication {
 	void imgui(const vk::CommandBuffer &cmd) {
 		ImGuiRenderContext context(cmd);
 
-		ImGui::Begin("Ray Tracing: Options");
+		ImGui::Begin("Path Tracing: Options");
 		{
-			// TODO: rendering modes...
+			// TODO: rendering modes... (AO, plus tonemapping configurations)
 		}
 		ImGui::End();
 	}

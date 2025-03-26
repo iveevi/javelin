@@ -12,6 +12,7 @@ struct Constants {
 	vec3 vertical;
 	vec3 light;
 	f32 time;
+	i32 frame;
 
 	vec3 at(vec2 uv) {
 		return normalize(lower_left + uv.x * horizontal + uv.y * vertical - origin);
@@ -24,7 +25,8 @@ struct Constants {
 			verbatim_field(horizontal),
 			verbatim_field(vertical),
 			verbatim_field(light),
-			verbatim_field(time));
+			verbatim_field(time),
+			verbatim_field(frame));
 	}
 };
 
