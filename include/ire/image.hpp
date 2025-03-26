@@ -54,12 +54,12 @@ struct image {
 	image(size_t binding_ = 0) : binding(binding_) {}
 
 	cache_index_t synthesize() const {
-		auto &em = Emitter::active;
-		// TODO: why do we need this?
-		auto type = vec <T, 4> ::type();
-		auto image = em.emit_qualifier(type, binding, image_qualifiers <T> ::table[D]);
-		auto value = em.emit_construct(image, -1, thunder::global);
+		auto value = Emitter::active.emit_construct(qualifier(), -1, thunder::global);
 		return cache_index_t::from(value);
+	}
+
+	thunder::Index qualifier() const {
+		return Emitter::active.emit_qualifier(-1, binding, image_qualifiers <T> ::table[D]);
 	}
 };
 
@@ -97,40 +97,80 @@ void imageStore(const Image &handle,
 		(thunder::glsl_image_store, handle, idx, data);
 }
 
-// Implementing qualifiers
-template <native T, size_t D>
-struct readonly <image <T, D>> : image <T, D> {
+// Implementing access qualifiers
+template <image_like I>
+struct readonly <I> : I {
 	template <typename ... Args>
-	readonly(const Args &... args) : image <T, D> (args...) {}
+	readonly(const Args &... args) : I(args...) {}
 
 	cache_index_t synthesize() const {
-		auto &em = Emitter::active;
-		thunder::Index nested = em.emit_qualifier(-1, this->binding, image_qualifiers <T> ::table[D]);
-		thunder::Index qualifier = em.emit_qualifier(nested, -1, thunder::readonly);
-		thunder::Index value = em.emit_construct(qualifier, -1, thunder::global);
+		thunder::Index value = Emitter::active.emit_construct(qualifier(), -1, thunder::global);
 		return cache_index_t::from(value);
+	}
+
+	thunder::Index qualifier() const {
+		return Emitter::active.emit_qualifier(I::qualifier(), -1, thunder::readonly);
 	}
 };
 
-template <native T, size_t D>
-struct is_image_like <readonly <image <T, D>>> : std::true_type {};
+template <image_like I>
+struct is_image_like <readonly <I>> : std::true_type {};
 
-template <native T, size_t D>
-struct writeonly <image <T, D>> : image <T, D> {
+template <image_like I>
+struct writeonly <I> : I {
 	template <typename ... Args>
-	writeonly(const Args &... args) : image <T, D> (args...) {}
+	writeonly(const Args &... args) : I(args...) {}
 
 	cache_index_t synthesize() const {
-		auto &em = Emitter::active;
-		thunder::Index nested = em.emit_qualifier(-1, this->binding, image_qualifiers <T> ::table[D]);
-		thunder::Index qualifier = em.emit_qualifier(nested, -1, thunder::writeonly);
-		thunder::Index value = em.emit_construct(qualifier, -1, thunder::global);
+		thunder::Index value = Emitter::active.emit_construct(qualifier(), -1, thunder::global);
 		return cache_index_t::from(value);
+	}
+
+	thunder::Index qualifier() const {
+		return Emitter::active.emit_qualifier(I::qualifier(), -1, thunder::writeonly);
 	}
 };
 
-template <native T, size_t D>
-struct is_image_like <writeonly <image <T, D>>> : std::true_type {};
+template <image_like I>
+struct is_image_like <writeonly <I>> : std::true_type {};
+
+// Implementing format qualifiers
+enum Format {
+	rgba32f,
+	rgba16f,
+};
+
+constexpr thunder::QualifierKind format_to_qualifier(const Format &fmt)
+{
+	switch (fmt) {
+	case rgba32f:
+		return thunder::QualifierKind::format_rgba32f;
+	case rgba16f:
+		return thunder::QualifierKind::format_rgba16f;
+	default:
+		break;
+	}
+
+	return thunder::QualifierKind::format_rgba32f;
+}
+
+template <image_like I, Format F>
+struct format : I {
+	template <typename ... Args>
+	format(const Args &... args) : I(args...) {}
+
+	cache_index_t synthesize() const {
+		thunder::Index value = Emitter::active.emit_construct(qualifier(), -1, thunder::global);
+		return cache_index_t::from(value);
+	}
+
+	thunder::Index qualifier() const {
+		return Emitter::active.emit_qualifier(I::qualifier(), -1, format_to_qualifier(F));
+	}
+};
+
+template <image_like I, Format F>
+struct is_image_like <format <I, F>> : std::true_type {};
 
 // Override type generation
 template <native T, size_t D>

@@ -8,7 +8,7 @@ namespace jvl::thunder {
 
 const char *tbl_primitive_types[] = {
 	"none",
-	
+
 	"nil",
 	"void",
 
@@ -98,6 +98,9 @@ const char *tbl_qualifier_kind[] = {
 	"image1D",
 	"image2D",
 	"image3D",
+
+	"rgba32f",
+	"rgba16f",
 
 	"task payload",
 
@@ -206,7 +209,7 @@ const char *tbl_intrinsic_operation[] = {
 	"ivec2",
 	"ivec3",
 	"ivec4",
-	
+
 	"uint",
 	"uvec2",
 	"uvec3",

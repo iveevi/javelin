@@ -11,7 +11,7 @@ namespace jvl::thunder {
 
 enum PrimitiveType : int16_t {
 	bad,
-	
+
 	// end of structure
 	nil,
 
@@ -56,7 +56,7 @@ extern const char *tbl_primitive_types[__pt_end];
 // Global qualifier //
 //////////////////////
 
-enum QualifierKind : int8_t {
+enum QualifierKind : int16_t {
 	basic,
 
 	parameter,
@@ -115,6 +115,10 @@ enum QualifierKind : int8_t {
 	image_1d,
 	image_2d,
 	image_3d,
+
+	// Formats
+	format_rgba32f,
+	format_rgba16f,
 
 	// Mesh shaders
 	task_payload,
@@ -212,7 +216,7 @@ enum OperationCode : uint16_t {
 	cmp_geq,
 	cmp_le,
 	cmp_leq,
-	
+
 	swz_x,
 	swz_y,
 	swz_z,
@@ -238,7 +242,7 @@ enum IntrinsicOperation : uint16_t {
 	set_mesh_outputs,
 
 	// Casting operations
-	cast_to_int,	
+	cast_to_int,
 	cast_to_ivec2,
 	cast_to_ivec3,
 	cast_to_ivec4,

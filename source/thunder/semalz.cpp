@@ -10,7 +10,7 @@
 namespace jvl::thunder {
 
 MODULE(classify-atoms);
-	
+
 void Buffer::transfer_decorations(Index dst, Index src)
 {
 	auto &used = decorations.used;
@@ -25,7 +25,7 @@ QualifiedType Buffer::semalz_qualifier(const Qualifier &qualifier, Index i)
 		return QualifiedType::image(image_result(qualifier.kind),
 						image_dimension(qualifier.kind));
 	}
-	
+
 	if (sampler_kind(qualifier.kind)) {
 		return QualifiedType::sampler(sampler_result(qualifier.kind),
 						sampler_dimension(qualifier.kind));
@@ -45,7 +45,8 @@ QualifiedType Buffer::semalz_qualifier(const Qualifier &qualifier, Index i)
 	// Extended qualifiers
 	if (qualifier.kind == writeonly
 		|| qualifier.kind == readonly
-		|| qualifier.kind == scalar) {
+		|| qualifier.kind == scalar
+		|| format_kind(qualifier.kind)) {
 		// TODO: quick sanity check; only images and buffers allowed
 		// JVL_ASSERT(image_kind())
 		return decl;
@@ -271,7 +272,7 @@ QualifiedType Buffer::semalz(Index i)
 			qts.push_back(types[operation.b]);
 
 		auto result = lookup_operation_overload(operation.code, qts);
-		
+
 		JVL_BUFFER_DUMP_ON_ASSERT(result,
 			"failed to find overload "
 			"for operation (@{}):\n{}", i, atom);
@@ -295,7 +296,7 @@ QualifiedType Buffer::semalz(Index i)
 	case Atom::type_index <Swizzle> ():
 	{
 		auto &swz = atom.as <Swizzle> ();
-		
+
 		QualifiedType decl = semalz(swz.src);
 		QualifiedType plain = decl.remove_qualifiers();
 

@@ -19,7 +19,7 @@ bool Aggregate::operator==(const Aggregate &other) const
 	// TODO: check if either is a default name?
 	if (name != other.name)
 		return false;
-	
+
 	if (phantom != other.phantom)
 		return false;
 
@@ -155,6 +155,9 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 	case writeonly:
 	case readonly:
 	case scalar:
+
+	case format_rgba32f:
+	case format_rgba16f:
 	{
 		// TODO: method...
 		// Manage the extensions
@@ -169,7 +172,10 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 			auto &qt = lower.as <Qualifier> ();
 
 			// Acceptable chained qualifiers
-			if (qt.kind == writeonly || qt.kind == readonly || qt.kind == scalar)
+			if (format_kind(qt.kind)
+					|| qt.kind == writeonly
+					|| qt.kind == readonly
+					|| qt.kind == scalar)
 				lower = function.atoms[qt.underlying];
 			else
 				break;
@@ -182,7 +188,7 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 		};
 
 		if (auto decl = lower.get <Qualifier> ()) {
-			if (image_compatible.contains(kind) && image_kind(decl->kind)) {
+			if (image_kind(decl->kind) && (image_compatible.contains(kind) || format_kind(kind))) {
 				globals.images[decl->numerical].extra.insert(kind);
 				break;
 			} else if (decl->kind == storage_buffer) {
@@ -206,14 +212,14 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 		globals.special[hit_attribute][-1] = special_type(fidx, bidx);
 		extensions.insert("GL_EXT_ray_tracing");
 		break;
-	
+
 	case acceleration_structure:
 	case ray_tracing_payload:
 	case ray_tracing_payload_in:
 		globals.special[qualifier.kind][qualifier.numerical] = special_type(fidx, bidx);
 		extensions.insert("GL_EXT_ray_tracing");
 		break;
-	
+
 	case glsl_LaunchIDEXT:
 	case glsl_LaunchSizeEXT:
 		extensions.insert("GL_EXT_ray_tracing");
@@ -229,7 +235,7 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 	case qualifier_out:
 	case qualifier_inout:
 		break;
-		
+
 	case arrays:
 		break;
 
@@ -319,7 +325,7 @@ void LinkageUnit::process_function_intrinsic(Function &function, size_t index, I
 	case thunder::cast_to_uint64:
 		extensions.insert("GL_EXT_shader_explicit_arithmetic_types_int64");
 		break;
-	
+
 	default:
 		break;
 	}
@@ -350,7 +356,7 @@ void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &funct
 
 	// Check for type hints
 	auto &decorations = function.decorations;
-	
+
 	std::string name = fmt::format("s{}_t", aggregates.size());
 	if (decorations.used.contains(bidx)) {
 		auto &id = decorations.used.at(bidx);
@@ -495,7 +501,7 @@ vk::ShaderStageFlagBits to_vulkan(Stage stage)
 	default:
 		break;
 	}
-	
+
 	JVL_ABORT("unsupported stage {}", tbl_stage[(int) stage]);
 }
 
@@ -545,7 +551,7 @@ void LinkageUnit::write(const std::filesystem::path &path) const
 
 	size_t count = functions.size();
 	file.write(reinterpret_cast <const char *> (&count), sizeof(size_t));
-	
+
 	for (auto &ftn : functions) {
 		write_string(ftn.name);
 		ftn.write(file);

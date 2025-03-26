@@ -103,7 +103,7 @@ auto underlying_aggregate(const std::vector <Function> &functions,
 {
 	auto &map = types[llt.function];
 	auto &function = functions[llt.function];
-		
+
 	auto &atom = function.atoms[llt.index];
 	JVL_ASSERT(atom.is <Qualifier> (), "expected buffer atom to be a qualifier:\n{}", atom);
 
@@ -126,7 +126,7 @@ void generate_aggregates(std::string &result,
 	for (auto &aggregate : aggregates) {
 		if (aggregate.phantom)
 			continue;
-		
+
 		JVL_ASSERT(aggregate.function >= 0 && aggregate.function < generators.size(),
 			"aggregate function is out of bounds "
 			" ({} when there are only {} generators)",
@@ -214,14 +214,14 @@ void generate_push_constant(std::string &result,
 
 	result += "layout (push_constant) uniform PushConstant\n";
 	result += "{\n";
-	
+
 	auto aggregate = underlying_aggregate(functions, types, aggregates, pc);
 
 	// Replace with fields
 	for (size_t i = 0; i < aggregate.fields.size(); i++) {
 		auto &field = aggregate.fields[i];
 		auto ts = generator.type_to_string(field);
-	
+
 		if (i == 0 && pc.offset != 0)
 			result += fmt::format("    layout (offset = {}) {} {}{};\n", pc.offset, ts.pre, field.name, ts.post);
 		else
@@ -274,7 +274,7 @@ void generate_buffers(std::string &result,
 			modifier, binding);
 
 		result += "{\n";
-		
+
 		auto aggregate = underlying_aggregate(functions, types, aggregates, buffer);
 
 		// Replace with fields
@@ -283,7 +283,7 @@ void generate_buffers(std::string &result,
 			auto ts = generator.type_to_string(field);
 			result += fmt::format("    {} {}{};\n", ts.pre, field.name, ts.post);
 		}
-		
+
 		result += fmt::format("}} _buffer{};\n\n", binding);
 	}
 }
@@ -306,19 +306,42 @@ void generate_shared(std::string &result,
 		result += "\n";
 }
 
+std::string format_kind_string(QualifierKind kind)
+{
+	switch (kind) {
+	case format_rgba32f:
+		return "rgba32f";
+	case format_rgba16f:
+		return "rgba16f";
+	default:
+		break;
+	}
+
+	JVL_ABORT("qualifier {} is not a format", tbl_qualifier_kind[kind]);
+}
+
 void generate_images(std::string &result, const auto &images)
 {
 	for (const auto &[binding, llt] : images) {
 		std::string modifier = " ";
+		std::string inner = "";
 		for (auto &k : llt.extra) {
 			if (k == writeonly)
 				modifier += "writeonly ";
-			if (k == readonly)
+			else if (k == readonly)
 				modifier += "readonly ";
+			else if (format_kind(k))
+				inner = format_kind_string(k);
+			else
+				JVL_WARNING("unhandled image qualifier {}", tbl_qualifier_kind[k]);
 		}
 
-		result += fmt::format("layout (binding = {}) uniform{}{} _image{};\n",
+		if (!inner.empty())
+			inner = ", " + inner;
+
+		result += fmt::format("layout (binding = {}{}) uniform{}{} _image{};\n",
 			binding,
+			inner,
 			modifier,
 			image_string(llt.kind),
 			binding);
@@ -347,7 +370,7 @@ void generate_special(std::string &result,
 	for (const auto &[kind, maps] : special) {
 		// TODO: method
 		switch (kind) {
-		
+
 		case task_payload:
 		{
 			auto &st = maps.at(-1);
@@ -356,7 +379,7 @@ void generate_special(std::string &result,
 			auto ts = generator.type_to_string(types[st.index]);
 			result += fmt::format("taskPayloadSharedEXT {} _task_payload;\n\n", ts.pre + ts.post);
 		} break;
-		
+
 		case hit_attribute:
 		{
 			auto &st = maps.at(-1);
@@ -459,7 +482,7 @@ std::string LinkageUnit::generate_glsl() const
 			local_size->y,
 			local_size->z);
 	}
-	
+
 	if (mesh_shader_size) {
 		result += fmt::format("layout ("
 			"triangles, "

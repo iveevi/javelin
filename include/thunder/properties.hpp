@@ -191,6 +191,19 @@ constexpr int32_t sampler_dimension(QualifierKind kind)
 	}
 }
 
+constexpr bool format_kind(QualifierKind kind)
+{
+	switch (kind) {
+	case format_rgba32f:
+	case format_rgba16f:
+		return true;
+	default:
+		break;
+	}
+
+	return false;
+}
+
 constexpr bool side_effects(IntrinsicOperation opn)
 {
 	switch (opn) {

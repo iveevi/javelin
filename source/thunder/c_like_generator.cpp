@@ -47,6 +47,9 @@ static std::optional <std::string> generate_global_reference(const std::vector <
 	case writeonly:
 	case readonly:
 	case scalar:
+
+	case format_rgba32f:
+	case format_rgba16f:
 		return generate_global_reference(atoms, qualifier.underlying);
 
 	// GLSL images and samplers
@@ -164,7 +167,7 @@ std::string generate_operation(OperationCode code, const std::string &a, const s
 
 		{ bit_shift_left,	"<<" },
 		{ bit_shift_right,	">>" },
-		
+
 		{ bool_and,		"&&" },
 		{ bool_or,		"||" },
 
@@ -273,7 +276,7 @@ std::string c_like_generator_t::reference(Index index) const
 			return ref;
 
 		std::string accessor = fmt::format(".f{}", load.idx);
-		
+
 		// Check for name hints for the field
 		if (decorations.used.contains(load.src)) {
 			auto id = decorations.used.at(load.src);
@@ -552,7 +555,7 @@ void c_like_generator_t::generate(const Intrinsic &intrinsic, Index index)
 			voided |= (p == none);
 		}
 	}
-	
+
 	if (voided) {
 		// Void return type, so no assignment
 		auto args = arguments(intrinsic.args);
