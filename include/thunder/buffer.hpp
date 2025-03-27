@@ -8,8 +8,6 @@
 #include "atom.hpp"
 #include "qualified_type.hpp"
 
-#include "mir/molecule.hpp"
-
 namespace jvl::thunder {
 
 // Forward declarations
@@ -28,7 +26,7 @@ class Buffer {
 
 	// Populate the synthesized set
 	bool naturally_forced(const Atom &);
-	
+
 	void mark_children(Index);
 	void mark(Index, bool = false);
 public:
@@ -41,7 +39,7 @@ public:
 	std::set <Index> marked;
 	std::vector <Atom> atoms;
 	std::vector <QualifiedType> types;
-	
+
 	struct {
 		std::map <uint64_t, type_hint> all;
 		std::map <Index, uint64_t> used;
@@ -58,9 +56,6 @@ public:
 	// Analysis methods
 	Index reference_of(Index);
 
-	// Convert to Molecule IR
-	mir::Block lower_to_mir() const;
-	
 	// Debugging and visualization utilities
 	void write(std::ofstream &) const;
 

@@ -16,9 +16,6 @@
 #include <thunder/optimization.hpp>
 #include <thunder/linkage_unit.hpp>
 
-#include <thunder/mir/memory.hpp>
-#include <thunder/mir/molecule.hpp>
-
 using namespace jvl;
 using namespace jvl::ire;
 
