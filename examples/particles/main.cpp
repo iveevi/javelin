@@ -16,7 +16,7 @@ struct Application : CameraApplication {
 	littlevk::Pipeline raster;
 	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
-	
+
 	Transform model_transform;
 
 	// TODO: argument for number of particles
@@ -57,9 +57,10 @@ struct Application : CameraApplication {
 		configure_imgui(resources, render_pass);
 
 		configure_pipeline(jet);
+		shader_debug();
 
 		// Prepare the sphere geometry
-		sphere = TriangleMesh::uv_sphere(25, 0.025f);
+		sphere = TriangleMesh::uv_sphere(12, 0.025f);
 
 		std::tie(vb, ib) = resources.allocator()
 			.buffer(sphere.positions,
@@ -68,6 +69,10 @@ struct Application : CameraApplication {
 			.buffer(sphere.triangles,
 				vk::BufferUsageFlagBits::eIndexBuffer
 				| vk::BufferUsageFlagBits::eTransferDst);
+	}
+
+	~Application() {
+		shutdown_imgui();
 	}
 
 	// Function to generate random points and use them as positions for spheres
@@ -95,7 +100,7 @@ struct Application : CameraApplication {
 
 		static glm::vec3 O1 = { -5, 0, 0 };
 		static glm::vec3 V1 = { -1, -2, 2 };
-		
+
 		static glm::vec3 O2 = { 5, 0, 0 };
 		static glm::vec3 V2 = { 1, 2, -2 };
 
@@ -108,31 +113,18 @@ struct Application : CameraApplication {
 			aligned_vec3 &p = particles[i];
 
 			{
-				glm::vec3 d = (p - O1);	
+				glm::vec3 d = (p - O1);
 				float l = fmax(1, length(d));
 				v = v - dt * M * d / powf(l, 3.0f);
 			}
-			
+
 			{
-				glm::vec3 d = (p - O2);	
+				glm::vec3 d = (p - O2);
 				float l = fmax(1, length(d));
 				v = v - dt * M * d / powf(l, 3.0f);
 			}
 
 			p += dt * v;
-
-			// Bounding
-			if (length(p - mid) > R) {
-				float theta = glm::linearRand(-1.0, 1.0) * 2.0f * M_PI;
-				float phi = std::acos(glm::linearRand(-1.0, 1.0));
-
-				float x = std::sin(phi) * std::cos(theta);
-				float y = std::sin(phi) * std::sin(theta);
-				float z = std::cos(phi);
-				float r = R * std::sqrt(glm::linearRand(0.0, 1.0));
-
-				p = r * glm::vec3(x, y, z) + mid;
-			}
 		}
 
 		glm::vec3 D = (O1 - O2);
@@ -161,8 +153,6 @@ struct Application : CameraApplication {
 			.code(vs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eVertex)
 			.code(fs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eFragment);
 
-		shader_debug();
-
 		raster = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
 			(resources.device, resources.window, resources.dal)
 			.with_render_pass(render_pass, 0)
@@ -187,7 +177,7 @@ struct Application : CameraApplication {
 			float x = std::sin(phi) * std::cos(theta);
 			float y = std::sin(phi) * std::sin(theta);
 			float z = std::cos(phi);
-			
+
 			velocities.emplace_back(x, y, z);
 		}
 
@@ -207,7 +197,7 @@ struct Application : CameraApplication {
 			.setBuffer(tb.buffer)
 			.setOffset(0)
 			.setRange(sizeof(glm::vec4) * points.size());
-		
+
 		auto sb_info = vk::DescriptorBufferInfo()
 			.setBuffer(sb.buffer)
 			.setOffset(0)
@@ -221,7 +211,7 @@ struct Application : CameraApplication {
 			.setDstBinding(0)
 			.setDescriptorType(vk::DescriptorType::eStorageBuffer)
 			.setBufferInfo(tb_info);
-		
+
 		writes[1] = vk::WriteDescriptorSet()
 			.setDstSet(raster_dset)
 			.setDescriptorCount(1)
@@ -230,10 +220,10 @@ struct Application : CameraApplication {
 			.setBufferInfo(sb_info);
 
 		resources.device.updateDescriptorSets(writes, {}, {});
-		
+
 		automatic = (program["auto"] == true);
 	}
-	
+
 	void render(const vk::CommandBuffer &cmd, uint32_t index, uint32_t) override {
 		if (automatic) {
 			glm::vec3 min = glm::vec3(1e10);
@@ -261,7 +251,7 @@ struct Application : CameraApplication {
 		} else {
 			camera.controller.handle_movement(resources.window);
 		}
-		
+
 		// Configure the rendering extent
 		vk::Extent2D extent = resources.window.extent;
 
@@ -304,15 +294,15 @@ struct Application : CameraApplication {
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
 			raster.layout,
 			0, raster_dset, {});
-		
+
 		cmd.pushConstants <solid_t <MVP>> (raster.layout,
 			vk::ShaderStageFlagBits::eVertex,
 			0, view_info);
-		
+
 		cmd.bindVertexBuffers(0, vb.buffer, { 0 });
 		cmd.bindIndexBuffer(ib.buffer, 0, vk::IndexType::eUint32);
 		cmd.drawIndexed(3 * sphere.triangles.size(), N, 0, 0, 0);
-		
+
 		render_imgui(cmd);
 
 		cmd.endRenderPass();
@@ -358,7 +348,7 @@ struct Application : CameraApplication {
 		}
 		ImGui::End();
 	}
-	
+
 	void resize() override {
 		framebuffers.resize(resources, render_pass);
 	}

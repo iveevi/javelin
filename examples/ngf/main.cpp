@@ -108,7 +108,7 @@ struct Application : CameraApplication {
 	littlevk::Pipeline traditional;
 	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
-	
+
 	Transform model_transform;
 
 	ImportedNGF ingf;
@@ -139,9 +139,13 @@ struct Application : CameraApplication {
 
 		// Configure ImGui
 		configure_imgui(resources, render_pass);
-		
+
 		// Framebuffer manager
 		framebuffers.resize(resources, render_pass);
+	}
+
+	~Application() {
+		shutdown_imgui();
 	}
 
 	// Feature configuration
@@ -252,7 +256,7 @@ struct Application : CameraApplication {
 		vk::Sampler integer_sampler = littlevk::SamplerAssembler(resources.device, resources.dal)
 			.filtering(vk::Filter::eNearest)
 			.mipping(vk::SamplerMipmapMode::eNearest);
-		
+
 		vk::Sampler floating_sampler = littlevk::SamplerAssembler(resources.device, resources.dal);
 
 		auto layout = vk::ImageLayout::eShaderReadOnlyOptimal;
@@ -267,7 +271,7 @@ struct Application : CameraApplication {
 			.queue_update(6, 0, floating_sampler, W2_texture.view, layout)
 			.queue_update(7, 0, floating_sampler, W3_texture.view, layout)
 			.finalize();
-			
+
 		// Configure scene bounds
 		min = glm::vec3(1e10);
 		max = -min;
@@ -299,7 +303,7 @@ struct Application : CameraApplication {
 		} else {
 			camera.controller.handle_movement(resources.window);
 		}
-		
+
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(resources.window.extent));
 
@@ -310,12 +314,12 @@ struct Application : CameraApplication {
 			.clear_color(0, std::array <float, 4> { 1, 1, 1, 1 })
 			.clear_depth(1, 1)
 			.begin(cmd);
-		
+
 		// MVP structure used for push constants
 		auto &extent = resources.window.extent;
-		
+
 		camera.aperature.aspect = float(extent.width)/float(extent.height);
-		
+
 		solid_t <ViewInfo> view_info;
 
 		view_info.get <0> () = model_transform.matrix();
@@ -334,7 +338,7 @@ struct Application : CameraApplication {
 		cmd.drawMeshTasksEXT(ingf.patch_count, 1, 1);
 
 		imgui(cmd);
-		
+
 		cmd.endRenderPass();
 	}
 

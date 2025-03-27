@@ -14,9 +14,9 @@ struct Application : CameraApplication {
 	littlevk::Pipeline raster;
 	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
-	
+
 	Transform model_transform;
-	
+
 	glm::vec3 min;
 	glm::vec3 max;
 	bool automatic;
@@ -39,9 +39,13 @@ struct Application : CameraApplication {
 		// Configure pipeline
 		compile_pipeline();
 		shader_debug();
-		
+
 		// Framebuffer manager
 		framebuffers.resize(resources, render_pass);
+	}
+
+	~Application() {
+		shutdown_imgui();
 	}
 
 	void compile_pipeline() {
@@ -74,7 +78,7 @@ struct Application : CameraApplication {
 	void preload(const argparse::ArgumentParser &program) override {
 		// Load the asset and scene
 		std::filesystem::path path = program.get("mesh");
-	
+
 		auto asset = ImportedAsset::from(path).value();
 
 		min = glm::vec3(1e10);
@@ -93,7 +97,7 @@ struct Application : CameraApplication {
 
 		automatic = (program["auto"] == true);
 	}
-	
+
 	void render(const vk::CommandBuffer &cmd, uint32_t index, uint32_t total) override {
 		if (automatic) {
 			auto &xform = camera.transform;
@@ -112,7 +116,7 @@ struct Application : CameraApplication {
 		} else {
 			camera.controller.handle_movement(resources.window);
 		}
-		
+
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(resources.window.extent));
 
@@ -123,20 +127,20 @@ struct Application : CameraApplication {
 			.clear_color(0, std::array <float, 4> { 1, 1, 1, 1 })
 			.clear_depth(1, 1)
 			.begin(cmd);
-	
+
 		// MVP structure used for push constants
 		solid_t <MVP> mvp;
 
 		mvp.get <0> () = model_transform.matrix();
-		
+
 		auto &extent = resources.window.extent;
 		camera.aperature.aspect = float(extent.width)/float(extent.height);
 
 		mvp.get <1> () = camera.transform.view_matrix();
 		mvp.get <2> () = camera.aperature.perspective();
-		
+
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, raster.handle);
-	
+
 		for (auto &mesh : meshes) {
 			cmd.pushConstants <solid_t <MVP>> (raster.layout,
 				vk::ShaderStageFlagBits::eVertex,
@@ -146,7 +150,7 @@ struct Application : CameraApplication {
 			cmd.bindIndexBuffer(mesh.triangles.buffer, 0, vk::IndexType::eUint32);
 			cmd.drawIndexed(3 * mesh.triangle_count, 1, 0, 0, 0);
 		}
-		
+
 		cmd.endRenderPass();
 	}
 

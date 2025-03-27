@@ -20,6 +20,8 @@ struct VulkanAccelerationStructure {
 	vk::DeviceMemory memory;
 	vk::DeviceSize size;
 
+	void destroy(const vk::Device &);
+
 	static VulkanAccelerationStructure blas(VulkanResources &,
 		const vk::CommandBuffer &,
 		const VulkanTriangleMesh &,

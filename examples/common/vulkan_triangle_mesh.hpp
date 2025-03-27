@@ -8,12 +8,12 @@
 struct VulkanTriangleMesh {
 	littlevk::Buffer vertices;
 	littlevk::Buffer triangles;
-	
+
 	size_t vertex_count;
 	size_t triangle_count;
-	
+
 	VertexFlags flags;
-	
+
 	std::set <int> material_usage;
 
 	VulkanTriangleMesh() = default;

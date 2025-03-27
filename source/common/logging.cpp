@@ -92,7 +92,7 @@ void error(const std::string &module, const std::string &msg)
 void warning(const std::string &msg)
 {
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
-	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::magenta), "warning: ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::hot_pink), "warning: ");
 	fmt::println("{}", msg);
 	std::fflush(stdout);
 }
@@ -101,7 +101,7 @@ void warning(const std::string &module, const std::string &msg)
 {
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin ");
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "({}): ", module);
-	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::magenta), "warning: ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::hot_pink), "warning: ");
 	fmt::println("{}", msg);
 	std::fflush(stdout);
 }
@@ -134,7 +134,7 @@ void note(const std::string &msg)
 stage_bracket::stage_bracket(const std::string &module_) : module(module_)
 {
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
-	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gold), "begin: ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::golden_rod), "begin: ");
 	fmt::print(fmt::emphasis::underline | fmt::emphasis::bold | fmt::fg(fmt::color::gray), "{}\n", module);
 	std::fflush(stdout);
 
@@ -149,7 +149,7 @@ stage_bracket::~stage_bracket()
 	auto ms = us/1000.0;
 
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), "javelin: ");
-	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gold), "close: ");
+	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::golden_rod), "close: ");
 	fmt::print(fmt::emphasis::underline | fmt::emphasis::bold | fmt::fg(fmt::color::gray), "{}", module);
 	fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::gray), " ({} ms)\n\n", ms);
 	std::fflush(stdout);

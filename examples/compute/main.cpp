@@ -18,7 +18,7 @@ struct Application : CameraApplication {
 
 	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
-	
+
 	Transform model_transform;
 
 	// TODO: argument for number of particles
@@ -66,7 +66,7 @@ struct Application : CameraApplication {
 		configure_imgui(resources, render_pass);
 
 		// Prepare the sphere geometry
-		sphere = TriangleMesh::uv_sphere(25, 0.025f);
+		sphere = TriangleMesh::uv_sphere(12, 0.025f);
 
 		std::tie(vb, ib) = resources.allocator()
 			.buffer(sphere.positions,
@@ -75,6 +75,10 @@ struct Application : CameraApplication {
 			.buffer(sphere.triangles,
 				vk::BufferUsageFlagBits::eIndexBuffer
 				| vk::BufferUsageFlagBits::eTransferDst);
+	}
+
+	~Application() {
+		shutdown_imgui();
 	}
 
 	// Pipeline configuration for rendering spheres
@@ -131,7 +135,7 @@ struct Application : CameraApplication {
 			float x = std::sin(phi) * std::cos(theta);
 			float y = std::sin(phi) * std::sin(theta);
 			float z = std::cos(phi);
-			
+
 			velocities.emplace_back(x, y, z);
 		}
 
@@ -152,7 +156,7 @@ struct Application : CameraApplication {
 			.setBuffer(tb.buffer)
 			.setOffset(0)
 			.setRange(sizeof(glm::vec4) * points.size());
-		
+
 		auto sb_info = vk::DescriptorBufferInfo()
 			.setBuffer(sb.buffer)
 			.setOffset(0)
@@ -166,7 +170,7 @@ struct Application : CameraApplication {
 			.setDstBinding(0)
 			.setDescriptorType(vk::DescriptorType::eStorageBuffer)
 			.setBufferInfo(tb_info);
-		
+
 		writes[1] = vk::WriteDescriptorSet()
 			.setDstSet(raster_dset)
 			.setDescriptorCount(1)
@@ -175,20 +179,20 @@ struct Application : CameraApplication {
 			.setBufferInfo(sb_info);
 
 		resources.device.updateDescriptorSets(writes, {}, {});
-		
+
 		// Bind for compute
 		compute_dset = littlevk::bind(resources.device, resources.descriptor_pool)
 			.allocate_descriptor_sets(compute.dsl.value())
 			.front();
-	
+
 		writes[0].setDstSet(compute_dset);
 		writes[1].setDstSet(compute_dset);
-		
+
 		resources.device.updateDescriptorSets(writes, {}, {});
 
 		automatic = (program["auto"] == true);
 	}
-	
+
 	void render(const vk::CommandBuffer &cmd, uint32_t index, uint32_t) override {
 		if (automatic) {
 			static std::vector <glm::vec4> buffer;
@@ -205,7 +209,7 @@ struct Application : CameraApplication {
 				min = glm::min(min, p);
 				max = glm::max(max, p);
 			}
-			
+
 			auto &xform = camera.transform;
 
 			float angle = 0;
@@ -222,7 +226,7 @@ struct Application : CameraApplication {
 		} else {
 			camera.controller.handle_movement(resources.window);
 		}
-		
+
 		// Configure the rendering extent
 		vk::Extent2D extent = resources.window.extent;
 
@@ -246,7 +250,7 @@ struct Application : CameraApplication {
 
 		view_info.get <0> () = view;
 		view_info.get <1> () = proj;
-		
+
 		float smin = 1e10f;
 		float smax = 0;
 
@@ -265,25 +269,25 @@ struct Application : CameraApplication {
 
 		view_info.get <2> () = smin;
 		view_info.get <3> () = smax;
-	
+
 		// Gravity points
 		static glm::vec3 O1 = glm::vec3 { -5, 0, 0 };
 		static glm::vec3 V1 = glm::vec3 { -1, -2, 2 };
-		
+
 		static glm::vec3 O2 = glm::vec3 { 5, 0, 0 };
 		static glm::vec3 V2 = glm::vec3 { 1, 2, -2 };
-		
+
 		// Render each point as a sphere
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, raster.handle);
 
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
 			raster.layout,
 			0, raster_dset, {});
-		
+
 		cmd.pushConstants <solid_t <MVP>> (raster.layout,
 			vk::ShaderStageFlagBits::eVertex,
 			0, view_info);
-		
+
 		cmd.bindVertexBuffers(0, vb.buffer, { 0 });
 		cmd.bindIndexBuffer(ib.buffer, 0, vk::IndexType::eUint32);
 		cmd.drawIndexed(3 * sphere.triangles.size(), N, 0, 0, 0);
@@ -366,7 +370,7 @@ struct Application : CameraApplication {
 		}
 		ImGui::End();
 	}
-	
+
 	void resize() override {
 		framebuffers.resize(resources, render_pass);
 	}

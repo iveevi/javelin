@@ -15,3 +15,5 @@ void configure_imgui(VulkanResources &, const vk::RenderPass &);
 
 // Generate a ImGui descriptor set for an image
 vk::DescriptorSet imgui_texture_descriptor(const vk::Sampler &, const vk::ImageView &, const vk::ImageLayout &);
+
+void shutdown_imgui();

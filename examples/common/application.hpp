@@ -9,6 +9,7 @@
 #include <argparse/argparse.hpp>
 
 #include <common/io.hpp>
+#include <common/logging.hpp>
 
 #include "aperature.hpp"
 #include "camera_controller.hpp"
@@ -18,6 +19,8 @@
 #include "timer.hpp"
 
 struct BaseApplication {
+	MODULE(base application);
+
 	std::string name;
 
 	VulkanResources resources;
@@ -27,6 +30,14 @@ struct BaseApplication {
 			void (*features_include)(VulkanFeatureChain &) = nullptr,
 			void (*features_activate)(VulkanFeatureChain &) = nullptr) : name(name_)
 	{
+		// littlevk configuration
+		{
+			auto &config = littlevk::config();
+			config.enable_logging = false;
+			config.enable_validation_layers = true;
+			config.abort_on_validation_error = true;
+		}
+
 		// Find a suitable physical device
 		auto predicate = [&](vk::PhysicalDevice phdev) {
 			return littlevk::physical_device_able(phdev, extensions);
@@ -48,18 +59,21 @@ struct BaseApplication {
 		// Initializethe resources
 		resources = VulkanResources::from(phdev, name, vk::Extent2D(1920, 1080), extensions, features.top);
 
-		// littlevk configuration
-		{
-			auto &config = littlevk::config();
-			config.enable_logging = false;
-			config.enable_validation_layers = false;
-			config.abort_on_validation_error = true;
-		}
-
 		auto handle = resources.window.handle;
 		glfwSetWindowUserPointer(handle, this);
 		glfwSetMouseButtonCallback(handle, glfw_button_callback);
 		glfwSetCursorPosCallback(handle, glfw_cursor_callback);
+	}
+
+	virtual ~BaseApplication() {
+		JVL_INFO("destroying applications resources...");
+
+		littlevk::destroy_swapchain(resources.device, resources.swapchain);
+
+		resources.dal.drop();
+		resources.device.destroy();
+
+		JVL_INFO("done.");
 	}
 
 	// Rendering statistics
@@ -71,7 +85,7 @@ struct BaseApplication {
 		double average_host_frame_time() const {
 			return sum_ms / total;
 		}
-		
+
 		double average_host_frames_per_second() const {
 			return 1e3 / average_host_frame_time();
 		}
@@ -84,9 +98,9 @@ struct BaseApplication {
 		auto &swapchain = resources.swapchain;
 		auto &command_pool = resources.command_pool;
 		auto &deallocator = resources.dal;
-		
+
 		uint32_t count = swapchain.images.size();
-	
+
 		auto sync = littlevk::present_syncronization(device, count).unwrap(deallocator);
 
 		auto command_buffers = device.allocateCommandBuffers({
@@ -114,7 +128,7 @@ struct BaseApplication {
 				resize();
 				continue;
 			}
-			
+
 			// Record the command buffer
 			const auto &cmd = command_buffers[frame];
 
@@ -145,13 +159,17 @@ struct BaseApplication {
 			statistics.total++;
 		}
 
+		JVL_INFO("waiting to clear device operations...");
 		device.waitIdle();
+
+		JVL_INFO("releasing Vulkan resources...");
+		device.freeCommandBuffers(command_pool, command_buffers);
 	}
 
 	// Launch from arguments
 	int run(int argc, char *argv[]) {
 		argparse::ArgumentParser program(name);
-		
+
 		// Shared arguments
 		program.add_argument("--frames")
 			.help("number of frames to run the program for")
@@ -258,11 +276,11 @@ struct CameraApplication : BaseApplication {
 		camera.controller.voided = true;
 		camera.controller.dragging = false;
 	}
-	
+
 	void mouse_left_press() override {
 		camera.controller.dragging = true;
 	}
-	
+
 	void mouse_left_release() override {
 		camera.controller.voided = true;
 		camera.controller.dragging = false;

@@ -38,7 +38,7 @@ struct Application : CameraApplication {
 				.color_attachment(0, vk::ImageLayout::eColorAttachmentOptimal)
 				.depth_attachment(1, vk::ImageLayout::eDepthStencilAttachmentOptimal)
 				.done();
-		
+
 		// Framebuffer manager
 		framebuffers.resize(resources, render_pass);
 
@@ -52,6 +52,10 @@ struct Application : CameraApplication {
 		shader_debug();
 	}
 
+	~Application() {
+		shutdown_imgui();
+	}
+
 	void compile_pipeline(const glm::vec3 &color) {
 		auto vs_callable = procedure("main") << vertex;
 		auto fs_callable = procedure("main") << std::make_tuple(color) << fragment;
@@ -63,7 +67,7 @@ struct Application : CameraApplication {
 		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
 			.code(vs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eVertex)
 			.code(fs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eFragment);
-		
+
 		auto [binding, attributes] = binding_and_attributes(VertexFlags::ePosition);
 
 		raster = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
@@ -85,9 +89,9 @@ struct Application : CameraApplication {
 	void preload(const argparse::ArgumentParser &program) override {
 		// Load the asset and scene
 		std::filesystem::path path = program.get("mesh");
-	
+
 		auto asset = ImportedAsset::from(path).value();
-		
+
 		min = glm::vec3(1e10);
 		max = -min;
 
@@ -124,7 +128,7 @@ struct Application : CameraApplication {
 		} else {
 			camera.controller.handle_movement(resources.window);
 		}
-		
+
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(resources.window.extent));
 
@@ -135,20 +139,20 @@ struct Application : CameraApplication {
 			.clear_color(0, std::array <float, 4> { 1, 1, 1, 1 })
 			.clear_depth(1, 1)
 			.begin(cmd);
-	
+
 		// MVP structure used for push constants
 		solid_t <MVP> mvp;
 
 		mvp.get <0> () = model_transform.matrix();
-	
+
 		auto &extent = resources.window.extent;
 		camera.aperature.aspect = float(extent.width)/float(extent.height);
 
 		mvp.get <1> () = camera.transform.view_matrix();
 		mvp.get <2> () = camera.aperature.perspective();
-		
+
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, raster.handle);
-	
+
 		for (auto &mesh : meshes) {
 			cmd.pushConstants <solid_t <MVP>> (raster.layout,
 				vk::ShaderStageFlagBits::eVertex,
@@ -159,12 +163,12 @@ struct Application : CameraApplication {
 			cmd.drawIndexed(3 * mesh.triangle_count, 1, 0, 0, 0);
 		}
 
-		// ImGui window to configure the palette 
+		// ImGui window to configure the palette
 		{
 			ImGuiRenderContext context(cmd);
 
 			ImGui::Begin("Configure Pipeline");
-			
+
 			ImGui::ColorEdit3("color", reinterpret_cast <float *> (&color));
 			if (ImGui::Button("Confirm"))
 				compile_pipeline(color);

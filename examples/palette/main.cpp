@@ -14,13 +14,13 @@ struct Application : CameraApplication {
 	littlevk::Pipeline traditional;
 	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
-	
+
 	Transform model_transform;
 
 	float saturation = 0.5f;
 	float lightness = 1.0f;
 	int splits = 16;
-	
+
 	glm::vec3 min;
 	glm::vec3 max;
 	bool automatic;
@@ -39,9 +39,13 @@ struct Application : CameraApplication {
 
 		// Configure ImGui
 		configure_imgui(resources, render_pass);
-		
+
 		// Framebuffer manager
 		framebuffers.resize(resources, render_pass);
+	}
+
+	~Application() {
+		shutdown_imgui();
 	}
 
 	void compile_pipeline(VertexFlags flags, float saturation, float lightness, int splits) {
@@ -83,7 +87,7 @@ struct Application : CameraApplication {
 	void preload(const argparse::ArgumentParser &program) override {
 		// Load the asset and scene
 		std::filesystem::path path = program.get("mesh");
-	
+
 		auto asset = ImportedAsset::from(path).value();
 
 		min = glm::vec3(1e10);
@@ -104,7 +108,7 @@ struct Application : CameraApplication {
 
 		compile_pipeline(meshes[0].flags, saturation, lightness, splits);
 	}
-	
+
 	void render(const vk::CommandBuffer &cmd, uint32_t index, uint32_t total) override {
 		if (automatic) {
 			auto &xform = camera.transform;
@@ -123,7 +127,7 @@ struct Application : CameraApplication {
 		} else {
 			camera.controller.handle_movement(resources.window);
 		}
-		
+
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(resources.window.extent));
 
@@ -134,20 +138,20 @@ struct Application : CameraApplication {
 			.clear_color(0, std::array <float, 4> { 1, 1, 1, 1 })
 			.clear_depth(1, 1)
 			.begin(cmd);
-	
+
 		// MVP structure used for push constants
 		solid_t <MVP> mvp;
 
 		mvp.get <0> () = model_transform.matrix();
-		
+
 		auto &extent = resources.window.extent;
 		camera.aperature.aspect = float(extent.width)/float(extent.height);
 
 		mvp.get <1> () = camera.transform.view_matrix();
 		mvp.get <2> () = camera.aperature.perspective();
-		
+
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, traditional.handle);
-	
+
 		for (auto &mesh : meshes) {
 			cmd.pushConstants <solid_t <MVP>> (traditional.layout,
 				vk::ShaderStageFlagBits::eVertex,
@@ -173,7 +177,7 @@ struct Application : CameraApplication {
 
 			ImGui::End();
 		}
-		
+
 		cmd.endRenderPass();
 	}
 

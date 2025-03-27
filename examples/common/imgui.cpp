@@ -63,7 +63,7 @@ void configure_imgui(VulkanResources &drc, const vk::RenderPass &render_pass)
 
 	// Styling ImGui; generated using ImThemes
 	ImGuiStyle& style = ImGui::GetStyle();
-	
+
 	style.Alpha = 1.0f;
 	style.DisabledAlpha = 0.6000000238418579f;
 	style.WindowPadding = ImVec2(5.0f, 8.0f);
@@ -94,7 +94,7 @@ void configure_imgui(VulkanResources &drc, const vk::RenderPass &render_pass)
 	style.ColorButtonPosition = ImGuiDir_Right;
 	style.ButtonTextAlign = ImVec2(0.5f, 0.5f);
 	style.SelectableTextAlign = ImVec2(0.0f, 0.0f);
-	
+
 	style.Colors[ImGuiCol_Text] = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 	style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.5921568870544434f, 0.5921568870544434f, 0.5921568870544434f, 1.0f);
 	style.Colors[ImGuiCol_WindowBg] = ImVec4(0.1450980454683304f, 0.1450980454683304f, 0.1490196138620377f, 1.0f);
@@ -155,4 +155,11 @@ vk::DescriptorSet imgui_texture_descriptor(const vk::Sampler &sampler, const vk:
 	return ImGui_ImplVulkan_AddTexture(static_cast <VkSampler> (sampler),
 			                   static_cast <VkImageView> (view),
 					   static_cast <VkImageLayout> (layout));
+}
+
+void shutdown_imgui()
+{
+	ImGui_ImplVulkan_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 }

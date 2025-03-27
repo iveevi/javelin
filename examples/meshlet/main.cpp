@@ -21,7 +21,7 @@ struct Application : CameraApplication {
 
 	vk::RenderPass render_pass;
 	DefaultFramebufferSet framebuffers;
-	
+
 	Transform model_transform;
 
 	littlevk::Buffer meshlet_triangles;
@@ -30,7 +30,7 @@ struct Application : CameraApplication {
 	uint32_t meshlet_count;
 
 	vk::DescriptorSet rtx_descriptor;
-	
+
 	glm::vec3 min;
 	glm::vec3 max;
 	bool automatic;
@@ -68,13 +68,17 @@ struct Application : CameraApplication {
 
 		// Configure ImGui
 		configure_imgui(resources, render_pass);
-		
+
 		// Framebuffer manager
 		framebuffers.resize(resources, render_pass);
 
 		// Compile the pipeline
 		compile_meshlet_pipeline();
 		shader_debug();
+	}
+
+	~Application() {
+		shutdown_imgui();
 	}
 
 	static void features_include(VulkanFeatureChain &features) {
@@ -134,7 +138,7 @@ struct Application : CameraApplication {
 	void preload(const argparse::ArgumentParser &program) override {
 		// Load the asset and scene
 		std::filesystem::path path = program.get("mesh");
-	
+
 		auto asset = ImportedAsset::from(path).value();
 
 		// TODO: connected meshlets
@@ -155,7 +159,7 @@ struct Application : CameraApplication {
 			vertices.emplace_back(tm.positions[tri.x], 0);
 			vertices.emplace_back(tm.positions[tri.y], 0);
 			vertices.emplace_back(tm.positions[tri.z], 0);
-			
+
 			triangles.emplace_back(offset, offset + 1, offset + 2, 0);
 			sizes.back()++;
 
@@ -211,7 +215,7 @@ struct Application : CameraApplication {
 		} else {
 			camera.controller.handle_movement(resources.window);
 		}
-		
+
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(resources.window.extent));
 
@@ -222,12 +226,12 @@ struct Application : CameraApplication {
 			.clear_color(0, std::array <float, 4> { 1, 1, 1, 1 })
 			.clear_depth(1, 1)
 			.begin(cmd);
-		
+
 		// MVP structure used for push constants
 		auto &extent = resources.window.extent;
-		
+
 		camera.aperature.aspect = float(extent.width)/float(extent.height);
-		
+
 		solid_t <ViewInfo> view_info;
 
 		view_info.get <0> () = model_transform.matrix();
@@ -240,7 +244,7 @@ struct Application : CameraApplication {
 		// TODO: slider for the number of meshlets to draw...
 		// TODO: also for the meshlet size...
 		cmd.drawMeshTasksEXT(meshlet_count, 1, 1);
-		
+
 		cmd.endRenderPass();
 	}
 

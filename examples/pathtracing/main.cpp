@@ -76,6 +76,12 @@ struct Application : CameraApplication {
 		compile_blit_pipeline();
 	}
 
+	~Application() {
+		tlas.destroy(resources.device);
+
+		shutdown_imgui();
+	}
+
 	static void features_include(VulkanFeatureChain &features) {
 		features.add <vk::PhysicalDeviceRayTracingPipelineFeaturesKHR> ();
 		features.add <vk::PhysicalDeviceAccelerationStructureFeaturesKHR> ();
@@ -112,18 +118,22 @@ struct Application : CameraApplication {
 		auto rgen_spv = link(ray_generation).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eRaygenKHR);
 		auto rgen_info = vk::ShaderModuleCreateInfo().setCode(rgen_spv);
 		auto rgen_module = resources.device.createShaderModule(rgen_info);
+		littlevk::shader::ShaderModuleReturnProxy(rgen_module).unwrap(resources.dal);
 
 		auto rchit_spv = link(primary_closest_hit).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eClosestHitKHR);
 		auto rchit_info = vk::ShaderModuleCreateInfo().setCode(rchit_spv);
 		auto rchit_module = resources.device.createShaderModule(rchit_info);
+		littlevk::shader::ShaderModuleReturnProxy(rchit_module).unwrap(resources.dal);
 
 		auto rmiss_spv = link(primary_miss).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eMissKHR);
 		auto rmiss_info = vk::ShaderModuleCreateInfo().setCode(rmiss_spv);
 		auto rmiss_module = resources.device.createShaderModule(rmiss_info);
+		littlevk::shader::ShaderModuleReturnProxy(rmiss_module).unwrap(resources.dal);
 
 		auto smiss_spv = link(shadow_miss).generate_spirv_via_glsl(vk::ShaderStageFlagBits::eMissKHR);
 		auto smiss_info = vk::ShaderModuleCreateInfo().setCode(smiss_spv);
 		auto smiss_module = resources.device.createShaderModule(smiss_info);
+		littlevk::shader::ShaderModuleReturnProxy(smiss_module).unwrap(resources.dal);
 
 		auto constants = vk::PushConstantRange()
 			.setOffset(0)
@@ -234,6 +244,9 @@ struct Application : CameraApplication {
 				tlas = VulkanAccelerationStructure::tlas(resources, cmd, blases, transforms, instances);
 			});
 
+		for (auto &blas : blases)
+			blas.destroy(resources.device);
+
 		littlevk::ImageCreateInfo image_info {
 			resources.window.extent.width,
 			resources.window.extent.height,
@@ -329,6 +342,8 @@ struct Application : CameraApplication {
 			};
 
 			xform.rotation = glm::angleAxis(-a, glm::vec3(0, 1, 0));
+
+			counter = 0;
 		} else {
 			if (camera.controller.handle_movement(resources.window))
 				counter = 0;

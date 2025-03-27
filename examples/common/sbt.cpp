@@ -23,7 +23,7 @@ raytracing_pipeline(VulkanResources &resources,
 			.setPName("main")
 			.setModule(rgen)
 	};
-		
+
 	std::vector <vk::RayTracingShaderGroupCreateInfoKHR> groups {
 		vk::RayTracingShaderGroupCreateInfoKHR()
 			.setType(vk::RayTracingShaderGroupTypeKHR::eGeneral)
@@ -36,7 +36,7 @@ raytracing_pipeline(VulkanResources &resources,
 			.setStage(vk::ShaderStageFlagBits::eMissKHR)
 			.setModule(m)
 			.setPName("main");
-		
+
 		auto group = vk::RayTracingShaderGroupCreateInfoKHR()
 			.setType(vk::RayTracingShaderGroupTypeKHR::eGeneral)
 			.setGeneralShader(stages.size());
@@ -44,14 +44,14 @@ raytracing_pipeline(VulkanResources &resources,
 		stages.emplace_back(stage);
 		groups.emplace_back(group);
 	}
-	
+
 	// Ray closest hit
 	for (auto &m : hits) {
 		auto stage = vk::PipelineShaderStageCreateInfo()
 			.setStage(vk::ShaderStageFlagBits::eClosestHitKHR)
 			.setModule(m)
 			.setPName("main");
-		
+
 		auto group = vk::RayTracingShaderGroupCreateInfoKHR()
 			.setType(vk::RayTracingShaderGroupTypeKHR::eTrianglesHitGroup)
 			.setClosestHitShader(stages.size());
@@ -65,15 +65,15 @@ raytracing_pipeline(VulkanResources &resources,
 
 	{
 		auto info = vk::DescriptorSetLayoutCreateInfo().setBindings(bindings);
-		pipeline.dsl = resources.device.createDescriptorSetLayout(info);
+		pipeline.dsl = littlevk::descriptor_set_layout(resources.device, info).unwrap(resources.dal);
 	}
 
 	{
 		auto info = vk::PipelineLayoutCreateInfo()
 			.setSetLayouts(pipeline.dsl.value())
 			.setPushConstantRanges(ranges);
-			
-		pipeline.layout = resources.device.createPipelineLayout(info);
+
+		pipeline.layout = littlevk::pipeline_layout(resources.device, info).unwrap(resources.dal);
 	}
 
 	{
@@ -84,8 +84,9 @@ raytracing_pipeline(VulkanResources &resources,
 			.setLayout(pipeline.layout);
 
 		pipeline.handle = resources.device.createRayTracingPipelinesKHR(nullptr, {}, info).value.front();
+		littlevk::pipeline::PipelineReturnProxy(pipeline.handle).unwrap(resources.dal);
 	}
-	
+
 	// Get handle sizes and alignment information
 	auto pr_raytracing = vk::PhysicalDeviceRayTracingPipelinePropertiesKHR();
 	auto properties = vk::PhysicalDeviceProperties2KHR();
@@ -107,11 +108,11 @@ raytracing_pipeline(VulkanResources &resources,
 	sbt.misses = vk::StridedDeviceAddressRegionKHR()
 		.setSize(align_up(2 * handle_size_aligned, base_alignment))
 		.setStride(handle_size_aligned);
-	
+
 	sbt.closest_hits = vk::StridedDeviceAddressRegionKHR()
 		.setSize(align_up(handle_size_aligned, base_alignment))
 		.setStride(handle_size_aligned);
-	
+
 	sbt.callables = vk::StridedDeviceAddressRegionKHR();
 
 	// Get handle data
@@ -128,7 +129,7 @@ raytracing_pipeline(VulkanResources &resources,
 		+ sbt.closest_hits.size;
 
 	std::vector <uint8_t> sbt_data(sbt_size);
-		
+
 	// Ray generation
 	std::memcpy(sbt_data.data(), handles.data(), handle_size);
 

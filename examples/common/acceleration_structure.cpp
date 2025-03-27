@@ -1,5 +1,10 @@
 #include "acceleration_structure.hpp"
 
+void VulkanAccelerationStructure::destroy(const vk::Device &device)
+{
+	device.destroyAccelerationStructureKHR(handle);
+}
+
 vk::TransformMatrixKHR vk_transform(const glm::mat4 &m)
 {
 	return vk::TransformMatrixKHR()
@@ -52,7 +57,7 @@ VulkanAccelerationStructure VulkanAccelerationStructure::blas(VulkanResources &r
 		.setSize(blas_build_sizes.accelerationStructureSize);
 
 	auto blas = device.createAccelerationStructureKHR(blas_info);
-	
+
 	littlevk::Buffer blas_scratch_buffer = resources.allocator()
 		.buffer(blas_build_sizes.buildScratchSize,
 			vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR
@@ -106,16 +111,16 @@ VulkanAccelerationStructure VulkanAccelerationStructure::tlas(VulkanResources &r
 	}
 
 	JVL_ASSERT(instances.size() > 0, "zero instances provided to tlas constructor");
-	
+
 	littlevk::Buffer instance_buffer = resources.allocator()
 		.buffer(instances,
 			vk::BufferUsageFlagBits::eStorageBuffer
 			| vk::BufferUsageFlagBits::eShaderDeviceAddress
 			| vk::BufferUsageFlagBits::eAccelerationStructureBuildInputReadOnlyKHR);
-	
+
 	auto instance_data = vk::AccelerationStructureGeometryInstancesDataKHR()
 		.setData(device.getBufferAddress(instance_buffer.buffer));
-		
+
 	auto tlas_geometry_data = vk::AccelerationStructureGeometryDataKHR()
 		.setInstances(instance_data);
 
@@ -127,9 +132,9 @@ VulkanAccelerationStructure VulkanAccelerationStructure::tlas(VulkanResources &r
 		.setMode(vk::BuildAccelerationStructureModeKHR::eBuild)
 		.setType(vk::AccelerationStructureTypeKHR::eTopLevel)
 		.setGeometries(tlas_geometry);
-	
+
 	auto tlas_build_sizes = device.getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, tlas_build_info, instances.size());
-	
+
 	littlevk::Buffer tlas_buffer = resources.allocator()
 		.buffer(tlas_build_sizes.accelerationStructureSize,
 			vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR
@@ -141,7 +146,7 @@ VulkanAccelerationStructure VulkanAccelerationStructure::tlas(VulkanResources &r
 		.setSize(tlas_build_sizes.accelerationStructureSize);
 
 	auto tlas = device.createAccelerationStructureKHR(tlas_info);
-	
+
 	littlevk::Buffer tlas_scratch_buffer = resources.allocator()
 		.buffer(tlas_build_sizes.buildScratchSize,
 			vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR
