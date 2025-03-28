@@ -191,12 +191,12 @@ void fragment(int32_t samples)
 		count += inside(uv + vec2(0.25, -0.75) / resolution);
 		count += inside(uv + vec2(-0.75, -0.25) / resolution);
 	} else {
+		// TODO: loop unrolling...
 		auto it = range <i32> (0, samples, 1);
-		// TODO: if it is the same, why are i and j the same...
+
 		auto i = $for(it);
 		{
-			auto it2 = range <i32> (0, samples, 1);
-			auto j = $for(it2);
+			auto j = $for(it);
 			{
 				f32 u = f32(i) / f32(samples - 1) - 0.5;
 				f32 v = f32(j) / f32(samples - 1) - 0.5;

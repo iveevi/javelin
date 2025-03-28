@@ -32,77 +32,68 @@ MODULE(ire);
 // TODO: get line numbers for each invocation if possible?
 // using source location if available
 
-Procedure pcg3d = procedure("pcg3d") << [](uvec3 v) -> uvec3
+// // Type safe options: shaders as functors...
+// struct Vertex {
+// 	gl_Position_t gl_Position;
+
+// 	void $return() {
+
+// 	}
+
+// 	virtual void operator()() = 0;
+// };
+
+// template <generic_or_void R>
+// struct Method {
+// 	// Restrict certain operations for type checking reasons...
+// 	void $return(const R &) {
+
+// 	}
+// };
+
+// struct Shader : Vertex {
+// 	void operator()() override {
+
+// 	}
+// };
+
+// TODO: macro for this...
+#define func(name) Procedure name = procedure(#name) << []
+
+func(ftn)(vec2 uv, i32 samples, vec2 resolution)
 {
-	v = v * 1664525u + 1013904223u;
-	v.x += v.y * v.z;
-	v.y += v.z * v.x;
-	v.z += v.x * v.y;
-	v ^= v >> 16u;
-	v.x += v.y * v.z;
-	v.y += v.z * v.x;
-	v.z += v.x * v.y;
-	return v;
-};
+	i32 count;
 
-Procedure random3 = procedure("random3") << [](inout <vec3> seed) -> vec3
-{
-	seed = uintBitsToFloat((pcg3d(floatBitsToUint(seed)) & 0x007FFFFFu) | 0x3F800000u) - 1.0;
-	return seed;
-};
-
-Procedure spherical = procedure("spherical") << [](f32 theta, f32 phi) -> vec3
-{
-	return vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
-};
-
-Procedure randomH2 = procedure("randomH2") << [](inout <vec3> seed) -> vec3
-{
-	vec3 eta = random3(seed);
-	f32 theta = acos(eta.x);
-	f32 phi = float(2 * M_PI) * eta.y;
-	return spherical(theta, phi);
-};
-
-// Type safe options: shaders as functors...
-struct Vertex {
-	gl_Position_t gl_Position;
-
-	void $return() {
-
+	auto it = range <i32> (0, samples, 1);
+	
+	auto i = $for(it);
+	{
+		auto j = $for(it);
+		{
+			count += i32(i != j);
+		}
+		$end();
 	}
+	$end();
 
-	virtual void operator()() = 0;
+	$return(count);
 };
 
-template <generic_or_void R>
-struct Method {
-	// Restrict certain operations for type checking reasons...
-	void $return(const R &) {
-
-	}
-};
-
-struct Shader : Vertex {
-	void operator()() override {
-
-	}
-};
+// TODO: legalize stores through a storage atom...
 
 int main()
 {
-	Shader x;
+	auto glsl = link(ftn).generate_glsl();
+	io::display_lines("FTN", glsl);
+	// ftn.display_assembly();
+	ftn.graphviz("ire.dot");
 
-	thunder::optimize(pcg3d);
-	thunder::optimize(random3);
-	thunder::optimize(spherical);
-	thunder::optimize(randomH2);
+	// TODO: fix deduplication by doing l-value propogation...
+	// TODO: fix optimization around blocks...
+	thunder::optimize(ftn, thunder::OptimizationFlags::eDeadCodeElimination);
 
-	auto unit = link(randomH2);
-
-	io::display_lines("RANDOM H2", unit.generate_glsl());
-
-	unit.write_assembly("ire.jvl.asm");
-
-	random3.graphviz("random3.dot");
+	auto glsl_opt = link(ftn).generate_glsl();
+	io::display_lines("FTN OPT", glsl_opt);
+	// ftn.display_assembly();
+	ftn.graphviz("ire-optimized.dot");
 }

@@ -61,7 +61,8 @@ inline T $for(const range <T> &range)
 {
 	auto &em = Emitter::active;
 
-	T i = range.start;
+	T i = clone(range.start);
+
 	boolean cond = i < range.end;
 
 	auto pre = [i, range]() {

@@ -162,4 +162,21 @@ inline void platform_intrinsic_keyword(thunder::IntrinsicOperation opn)
 	em.emit(intr);
 }
 
+// Forced clone through construction
+template <builtin T>
+inline T clone(const T &x)
+{
+	auto &em = Emitter::active;
+
+	auto type = type_info_generator <T> (x)
+		.synthesize()
+		.concrete();
+
+	auto org = x.synthesize().id;
+	auto list = em.emit_list(org, -1);
+	auto ctor = em.emit_construct(type, list, thunder::normal);
+
+	return cache_index_t::from(ctor);
+}
+
 } // namespace jvl::ire
