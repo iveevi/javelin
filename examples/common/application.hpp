@@ -228,6 +228,12 @@ struct BaseApplication {
 	virtual void mouse_left_release() {}
 	virtual void mouse_cursor(const glm::vec2 &) {}
 
+	// File paths
+	const std::filesystem::path &root() const {
+		static const std::filesystem::path root = std::filesystem::weakly_canonical(std::filesystem::path(__FILE__).parent_path() / ".." / "..");
+		return root;
+	}
+
 	// Default GLFW callbacks
 	static void glfw_button_callback(GLFWwindow *window, int button, int action, int mods) {
 		BaseApplication *user = reinterpret_cast <BaseApplication *> (glfwGetWindowUserPointer(window));

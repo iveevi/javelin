@@ -1,4 +1,4 @@
-add_executable(font main.cpp)
+add_executable(font main.cpp shaders.cpp)
 
 target_link_libraries(font javelin common freetype)
 

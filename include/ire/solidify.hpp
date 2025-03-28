@@ -7,6 +7,9 @@
 
 namespace jvl::ire {
 
+// TODO: improved system for solidification
+// TODO: soft_t correspondance as well...
+
 // Forcing fields to be aligned
 struct alignas(16) aligned_vec3 : glm::vec3 {
 	using glm::vec3::vec3;
@@ -138,6 +141,26 @@ struct solid_builder <Offset, f32, Args...> {
 	static constexpr size_t pad = 0;
 	using rest = solid_builder <Offset + 4, Args...>;
 	using elem = std::conditional_t <rest::pad == 0, float, aligned_float <16>>;
+	using type = aggregate_insert <elem, typename rest::type> ::type;
+};
+
+template <size_t Offset, typename ... Args>
+struct solid_builder <Offset, vec2, Args...> {
+	static constexpr size_t rounded = ((Offset + 8 - 1) / 8) * 8;
+	static constexpr size_t pad = (Offset % 8 == 0) ? 0 : (rounded - Offset);
+	using rest = solid_builder <rounded + 8, Args...>;
+	static_assert(pad == 0);
+	using elem = std::conditional_t <rest::pad == 0, glm::vec2, void>;
+	using type = aggregate_insert <elem, typename rest::type> ::type;
+};
+
+template <size_t Offset, typename ... Args>
+struct solid_builder <Offset, ivec2, Args...> {
+	static constexpr size_t rounded = ((Offset + 8 - 1) / 8) * 8;
+	static constexpr size_t pad = (Offset % 8 == 0) ? 0 : (rounded - Offset);
+	using rest = solid_builder <rounded + 8, Args...>;
+	static_assert(pad == 0);
+	using elem = std::conditional_t <rest::pad == 0, glm::ivec2, void>;
 	using type = aggregate_insert <elem, typename rest::type> ::type;
 };
 

@@ -53,7 +53,7 @@ void configure_imgui(VulkanResources &drc, const vk::RenderPass &render_pass)
 	ImGuiIO &io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-	static constexpr const char location[] = "resources/fonts/IosevkaTermNerdFont-Regular.ttf";
+	static constexpr const char location[] = "resources/fonts/Arial.ttf";
 
 	// Load a different font
 	io.Fonts->AddFontFromFileTTF(location, 24.0f, nullptr, io.Fonts->GetGlyphRangesDefault());

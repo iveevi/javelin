@@ -15,6 +15,7 @@ add_library(common STATIC
 	${IMGUI_SOURCES}
 	acceleration_structure.cpp
 	camera_controller.cpp
+	font.cpp
 	formats.cpp
 	imgui.cpp
 	imported_asset.cpp
