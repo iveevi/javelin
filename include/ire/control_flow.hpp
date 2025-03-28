@@ -6,6 +6,9 @@
 
 namespace jvl::ire {
 
+// Any function beginning with $ is a control-flow related
+// operation specific to the Javelin IRE system
+
 inline void $if(const boolean &b)
 {
 	auto &em = Emitter::active;
@@ -26,7 +29,6 @@ inline void $elif(const boolean &b)
 
 inline void $else()
 {
-	// Treated as an else
 	auto &em = Emitter::active;
 	thunder::Branch branch;
 	branch.kind = thunder::conditional_else;
@@ -34,7 +36,7 @@ inline void $else()
 	em.emit(branch);
 }
 
-inline void loop(const boolean &b)
+inline void $while(const boolean &b)
 {
 	auto &em = Emitter::active;
 	thunder::Branch branch;
@@ -61,8 +63,8 @@ inline T $for(const range <T> &range)
 
 	T i = range.start;
 	boolean cond = i < range.end;
-	
-	auto pre = [i, range](){
+
+	auto pre = [i, range]() {
 		T l = i;
 		l += range.step;
 	};
@@ -90,6 +92,24 @@ inline void $end()
 	Emitter::active.emit_branch(-1, -1, thunder::control_flow_end);
 }
 
+template <builtin T>
+inline T $select(const boolean &b, const T &vt, const T &vf)
+{
+	T v = vf;
+	$if (b);
+		v = vt;
+	$end();
+	return v;
+}
+
+template <native T>
+inline native_t <T> $select(const boolean &b, const T &vt, const T &vf)
+{
+	auto nvt = native_t <T> (vt);
+	auto nvf = native_t <T> (vf);
+	return $select(b, nvt, nvf);
+}
+
 // TODO: match/match_case statements
 inline void $return()
 {
@@ -99,7 +119,8 @@ inline void $return()
 template <native T>
 inline void $return(const T &value)
 {
-	Emitter::active.emit_return(native_t <T> (value).synthesize().id);
+	auto nvalue = native_t <T> (value);
+	Emitter::active.emit_return(nvalue.synthesize().id);
 }
 
 template <builtin T>

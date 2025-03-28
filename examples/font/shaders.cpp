@@ -88,12 +88,14 @@ Procedure winding_contribution_solve = procedure <i32> ("winding_contribution_so
 		f32 xt = (1.0 - t) * (1.0 - t) * x0 + 2.0 * (1.0 - t) * t * x1 + t * t * x2;
 
 		// return (xt >= x) ? 1 : 0; // Check if the intersection is to the right of the test point
-		// TODO: select operation...
-		$if (xt >= x);
-			$return(1);
-		$else();
-			$return(0);
-		$end();
+		// // TODO: select operation...
+		// $if (xt >= x);
+		// 	$return(1);
+		// $else();
+		// 	$return(0);
+		// $end();
+
+		$return($select(xt >= x, 1, 0));
 	}
 	$end();
 
