@@ -184,6 +184,8 @@ Emitter::Index Emitter::emit(const thunder::Branch &branch, const precondition &
 
 	case thunder::control_flow_end:
 	{
+		JVL_ASSERT(control_flow_ends.size(), "called end without any previous control flow");
+
 		auto await = control_flow_ends.top();
 		control_flow_ends.pop();
 
@@ -208,7 +210,7 @@ Emitter::Index Emitter::emit(const thunder::Branch &branch, const precondition &
 
 	JVL_ABORT("unhandled case of control_flow_callback: {}", branch);
 }
-	
+
 // Returns
 Emitter::Index Emitter::emit_return(Index value)
 {
@@ -262,7 +264,7 @@ void Emitter::display_assembly()
 	JVL_ASSERT(scopes.size(), "no active scope in {}", __FUNCTION__);
 
 	auto &buf = buffer();
-	
+
 	fmt::println("__emitter.{}:", scopes.size());
 	buf.display_pretty();
 }
@@ -272,7 +274,7 @@ void Emitter::display_pretty()
 	JVL_ASSERT(scopes.size(), "no active scope in {}", __FUNCTION__);
 
 	auto &buf = buffer();
-	
+
 	jvl::io::header(fmt::format("BUFFER IN PROGRESS ({}/{})", buf.pointer, buf.atoms.size()), 50);
 	buf.display_pretty();
 }

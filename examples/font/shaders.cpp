@@ -110,7 +110,7 @@ Procedure winding_contribution_solve = procedure <i32> ("winding_contribution_so
 	f32 t1 = (-b + sqrt_d) / (2.0 * a);
 
 	// Check the range of the roots and their contributions
-	int contribution = 0;
+	i32 contribution = 0;
 
 	$if (t0 >= 0.0 && t0 <= 1.0);
 	{
@@ -171,34 +171,30 @@ Procedure inside = procedure <i32> ("inside") << [](vec2 uv) -> i32
 	return i32(winding_number % 2 == 1);
 };
 
-Procedure <void> fragment = procedure("main") << []()
+void fragment(int32_t samples)
 {
 	layout_in  <vec2>       uv          (0);
 	layout_in  <vec2>       resolution  (2);
 	layout_out <vec4>       fragment    (0);
 
+	// TODO: pass sample count... recompile with imgui...
 	i32 count = 0;
-	i32 samples = 5;
 
-	$if (samples == 1);
-	{
+	if(samples == 1) {
 		count += inside(uv);
-	}
-	$elif (samples == 2);
-	{
+	} else if (samples == 2) {
 		// Four rook sampling
 		count += inside(uv + vec2(-0.25, 0.75) / resolution);
 		count += inside(uv + vec2(0.75, 0.25) / resolution);
 		count += inside(uv + vec2(0.25, -0.75) / resolution);
 		count += inside(uv + vec2(-0.75, -0.25) / resolution);
-	}
-	$else();
-	{
+	} else {
 		auto it = range <i32> (0, samples, 1);
-
+		// TODO: if it is the same, why are i and j the same...
 		auto i = $for(it);
 		{
-			auto j = $for(it);
+			auto it2 = range <i32> (0, samples, 1);
+			auto j = $for(it2);
 			{
 				f32 u = f32(i) / f32(samples - 1) - 0.5;
 				f32 v = f32(j) / f32(samples - 1) - 0.5;
@@ -208,20 +204,23 @@ Procedure <void> fragment = procedure("main") << []()
 		}
 		$end();
 	}
-	$end();
 
-	fragment = vec4(f32(count) / f32(samples * samples));
+	f32 proportion = f32(count) / f32(samples * samples);
+
+	fragment = vec4(proportion);
 };
 
 // Debugging
 void shader_debug()
 {
+	auto fs = procedure("main") << std::make_tuple(1) << fragment;
+
 	std::string vertex_shader = link(vertex).generate_glsl();
 	std::string winding_shader = link(winding_contribution_solve).generate_glsl();
 	std::string inside_shader = link(inside).generate_glsl();
-	std::string fragment_shader = link(fragment).generate_glsl();
+	std::string fragment_shader = link(fs).generate_glsl();
 
-	io::display_lines("VERTEx", vertex_shader);
+	io::display_lines("VERTEX", vertex_shader);
 	io::display_lines("WINDING", winding_shader);
 	io::display_lines("INSIDE", inside_shader);
 	io::display_lines("FRAGMENT", fragment_shader);

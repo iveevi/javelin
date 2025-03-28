@@ -64,8 +64,35 @@ Procedure randomH2 = procedure("randomH2") << [](inout <vec3> seed) -> vec3
 	return spherical(theta, phi);
 };
 
+// Type safe options: shaders as functors...
+struct Vertex {
+	gl_Position_t gl_Position;
+
+	void $return() {
+
+	}
+
+	virtual void operator()() = 0;
+};
+
+template <generic_or_void R>
+struct Method {
+	// Restrict certain operations for type checking reasons...
+	void $return(const R &) {
+
+	}
+};
+
+struct Shader : Vertex {
+	void operator()() override {
+
+	}
+};
+
 int main()
 {
+	Shader x;
+
 	thunder::optimize(pcg3d);
 	thunder::optimize(random3);
 	thunder::optimize(spherical);

@@ -68,11 +68,16 @@ struct Application : CameraApplication {
 			.code(vs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eVertex)
 			.code(fs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eFragment);
 
+		auto [binding, attributes] = binding_and_attributes(VertexFlags::ePosition);
+
 		raster = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
 			(resources.device, resources.window, resources.dal)
 			.with_render_pass(render_pass, 0)
+			.with_vertex_binding(binding)
+			.with_vertex_attributes(attributes)
 			.with_shader_bundle(bundle)
-			.with_push_constant <solid_t <vec2>> (vk::ShaderStageFlagBits::eVertex, 0)
+			.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
+			.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t <MVP>))
 			.cull_mode(vk::CullModeFlagBits::eNone);
 	}
 

@@ -14,6 +14,7 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P)/.."
 ./build/examples/ngf/ngf resources/meshes/armadillo-ngf.bin --frames 300 --auto
 ./build/examples/particles/particles --frames 300 --auto
 ./build/examples/compute/compute --frames 300 --auto
+./build/examples/font/font --frames 300 --auto
 
 # Generate PDF outputs for all .dot files in the output directory
 find output -name '*.dot' | while read -r dotfile; do

@@ -33,7 +33,9 @@ struct Application : BaseApplication {
 	vk::RenderPass render_pass;
 	std::vector <vk::Framebuffer> framebuffers;
 
+	littlevk::Buffer vk_glyphs;
 	std::vector <VulkanGlyph> glyphs;
+	vk::DescriptorSet descriptor;
 
 	Font font;
 
@@ -78,13 +80,36 @@ struct Application : BaseApplication {
 
 		glyphs = font.layout(lorem,
 			glm::vec2(extent.width, extent.height),
-			glm::vec2(0, 0),
-			13.0f);
+			glm::vec2(0, 1040.0f),
+			30.0f);
+
+		vk_glyphs = resources.allocator()
+			.buffer(glyphs, vk::BufferUsageFlagBits::eStorageBuffer);
 
 		// Compile the rendering pipelines
-		compile_pipeline();
+		compile_pipeline(1);
 
 		shader_debug();
+
+		// Bind resources to descsriptor set
+		auto alloc_info = vk::DescriptorSetAllocateInfo()
+			.setDescriptorPool(resources.descriptor_pool)
+			.setSetLayouts(raster.dsl.value())
+			.setDescriptorSetCount(1);
+
+		descriptor = resources.device.allocateDescriptorSets(alloc_info).front();
+
+		auto vk_glyphs_descriptor = vk_glyphs.descriptor();
+
+		auto write = vk::WriteDescriptorSet()
+			.setBufferInfo(vk_glyphs_descriptor)
+			.setDescriptorCount(1)
+			.setDescriptorType(vk::DescriptorType::eStorageBuffer)
+			.setDstArrayElement(0)
+			.setDstBinding(0)
+			.setDstSet(descriptor);
+
+		resources.device.updateDescriptorSets(write, { });
 	}
 
 	~Application() {
@@ -107,7 +132,7 @@ struct Application : BaseApplication {
 		}
 	}
 
-	void compile_pipeline() {
+	void compile_pipeline(int32_t samples) {
 		static std::vector <vk::DescriptorSetLayoutBinding> bindings {
 			vk::DescriptorSetLayoutBinding()
 				.setBinding(0)
@@ -116,8 +141,10 @@ struct Application : BaseApplication {
 				.setStageFlags(vk::ShaderStageFlagBits::eVertex),
 		};
 
+		auto fs = procedure("main") << std::make_tuple(samples) << fragment;
+
 		auto vs_spv = link(vertex).generate(Target::spirv_binary_via_glsl, Stage::vertex);
-		auto fs_spv = link(fragment).generate(Target::spirv_binary_via_glsl, Stage::fragment);
+		auto fs_spv = link(fs).generate(Target::spirv_binary_via_glsl, Stage::fragment);
 
 		// TODO: automatic generation by observing used layouts
 		auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
@@ -134,18 +161,58 @@ struct Application : BaseApplication {
 	}
 
 	void render(const vk::CommandBuffer &cmd, uint32_t index, uint32_t) override {
+		auto &extent = resources.window.extent;
+
 		// Configure the rendering extent
 		littlevk::viewport_and_scissor(cmd, littlevk::RenderArea(resources.window.extent));
 
-		littlevk::RenderPassBeginInfo(2)
+		littlevk::RenderPassBeginInfo(1)
 			.with_render_pass(render_pass)
 			.with_framebuffer(framebuffers[index])
-			.with_extent(resources.window.extent)
-			.clear_color(0, std::array <float, 4> { 1, 1, 1, 1 })
-			.clear_depth(1, 1)
+			.with_extent(extent)
+			.clear_color(0, std::array <float, 4> { 0, 0, 0, 1 })
 			.begin(cmd);
 
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, raster.handle);
+
+		cmd.pushConstants <glm::ivec2> (raster.layout,
+			vk::ShaderStageFlagBits::eVertex,
+			0, glm::ivec2(extent.width, extent.height));
+
+		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, raster.layout, 0, { descriptor }, { });
+		cmd.draw(6, glyphs.size(), 0, 0);
+
+		imgui(cmd);
+
 		cmd.endRenderPass();
+	}
+
+	void imgui(const vk::CommandBuffer &cmd) {
+		ImGuiRenderContext context(cmd);
+
+		ImGui::Begin("Font Rendering Options");
+		{
+			static int32_t samples = 1;
+			static const std::map <int32_t, std::string> strings {
+				{ 1, "No AA"},
+				{ 2, "Four Rooks" },
+				{ 4, "4x4" },
+				{ 8, "8x8" },
+			};
+
+			auto &label = strings.at(samples);
+			if (ImGui::BeginCombo("Anti-Aliasing", label.c_str())) {
+				for (auto &[k, m] : strings) {
+					if (ImGui::Selectable(m.c_str(), k == samples)) {
+						compile_pipeline(k);
+						samples = k;
+					}
+				}
+
+				ImGui::EndCombo();
+			}
+		}
+		ImGui::End();
 	}
 
 	void resize() override {

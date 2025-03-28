@@ -7,6 +7,6 @@ using namespace jvl::ire;
 
 // Actual shader programs
 extern Procedure <void> vertex;
-extern Procedure <void> fragment;
+extern void fragment(int32_t);
 
 extern void shader_debug();

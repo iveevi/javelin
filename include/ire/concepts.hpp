@@ -11,6 +11,6 @@ template <typename T>
 concept generic = builtin <T> || aggregate <T>;
 
 template <typename T>
-concept generic_and_void = generic <T> || std::same_as <T, void>;
+concept generic_or_void = generic <T> || std::same_as <T, void>;
 
 } // namespace jvl::ire
