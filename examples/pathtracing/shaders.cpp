@@ -6,7 +6,7 @@
 // Target display shaders //
 ////////////////////////////
 
-Procedure <void> quad = procedure("main") << []()
+entry(quad)()
 {
 	array <vec4> locations = std::array <vec4, 6> {
 		vec4(-1, -1, 0, 0),
@@ -24,7 +24,7 @@ Procedure <void> quad = procedure("main") << []()
 	uv = v.zw();
 };
 
-Procedure <void> blit = procedure("main") << []()
+entry(blit)()
 {
 	layout_in <vec2> uv(0);
 

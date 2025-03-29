@@ -9,9 +9,9 @@ inline bool uses(Atom atom, Index i)
 	return (i != -1) && ((addresses.a0 == i) || (addresses.a1 == i));
 }
 
-usage_set usage(const std::vector <Atom> &pool, Index index)
+UsageSet usage(const std::vector <Atom> &pool, Index index)
 {
-	usage_set indices;
+	UsageSet indices;
 	for (size_t i = index + 1; i < pool.size(); i++) {
 		if (uses(pool[i], index))
 			indices.insert(i);
@@ -20,9 +20,9 @@ usage_set usage(const std::vector <Atom> &pool, Index index)
 	return indices;
 }
 
-usage_set usage(const Buffer &scratch, Index index)
+UsageSet usage(const Buffer &scratch, Index index)
 {
-	usage_set indices;
+	UsageSet indices;
 	for (size_t i = index + 1; i < scratch.pointer; i++) {
 		if (uses(scratch.atoms[i], index))
 			indices.insert(i);
@@ -31,9 +31,9 @@ usage_set usage(const Buffer &scratch, Index index)
 	return indices;
 }
 
-usage_graph usage(const Buffer &scratch)
+UsageGraph usage(const Buffer &scratch)
 {
-	usage_graph graph(scratch.pointer);
+	UsageGraph graph(scratch.pointer);
 	for (size_t i = 0; i < graph.size(); i++)
 		graph[i] = usage(scratch, i);
 

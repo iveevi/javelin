@@ -6,8 +6,8 @@
 namespace jvl::thunder {
 
 // Usage graph
-using usage_set = std::set <Index>;
-using usage_graph = std::vector <usage_set>;
+using UsageSet = std::set <Index>;
+using UsageGraph = std::vector <UsageSet>;
 
 // Structure for recording instruction transformations
 struct ref_index_t {
@@ -24,8 +24,8 @@ struct mapped_instruction_t : Buffer {
 };
 
 // Atom usage dependency retrieval
-usage_set usage(const std::vector <Atom> &, Index);
-usage_set usage(const Buffer &, Index);
-usage_graph usage(const Buffer &);
+UsageSet usage(const std::vector <Atom> &, Index);
+UsageSet usage(const Buffer &, Index);
+UsageGraph usage(const Buffer &);
 
 } // namespace jvl::thunder

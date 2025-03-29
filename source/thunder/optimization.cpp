@@ -29,11 +29,11 @@ void buffer_relocation(Buffer &result, const reindex<Index> &relocation)
 
 bool optimize_dead_code_elimination_iteration(Buffer &result)
 {
-	usage_graph graph = usage(result);
+	UsageGraph graph = usage(result);
 
 	// Reversed usage graph
 	// TODO: at most 3 refs per atom, so use an array?
-	usage_graph reversed(graph.size());
+	UsageGraph reversed(graph.size());
 	for (size_t i = 0; i < graph.size(); i++) {
 		for (Index j : graph[i])
 			reversed[j].insert(i);
@@ -433,6 +433,7 @@ void optimize_impl(Buffer &result, const OptimizationFlags flags)
 		"List",
 		"Construct",
 		"Call",
+		"Storage",
 		"Store",
 		"Load",
 		"ArrayAccess",

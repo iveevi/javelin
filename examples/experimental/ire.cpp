@@ -59,6 +59,14 @@ MODULE(ire);
 
 namespace jvl::thunder {
 
+// Since AIR is linear we only need a range to specify any scope
+struct Scope {
+	Index begin;
+	Index end;
+};
+
+struct Block : Scope {};
+
 // Retrieve or construct type of corresponding atom
 //     if new atoms are created then the
 //     mask will be 0b10, otherwise 0b00
@@ -96,12 +104,25 @@ std::pair <Index, uint8_t> type_of(const Buffer &buffer, Index i)
 
 struct Relocation : std::map <Index, Index> {
 	void apply(Index &addr) const {
-		if (addr != -1)
-			addr = at(addr);
+		auto it = find(addr);
+		if (addr != -1 && it != end())
+			addr = it->second;
+	}
+
+	void apply(Atom &atom) const {
+		auto addrs = atom.addresses();
+
+		apply(addrs.a0);
+		apply(addrs.a1);
+	}
+
+	void apply(Buffer &buffer) const {
+		for (size_t i = 0; i < buffer.pointer; i++)
+			apply(buffer.atoms[i]);
 	}
 };
 
-struct Block : Buffer {
+struct Expansion : Buffer {
 	Index value;
 
 	// local index -> mask of local addresses
@@ -119,7 +140,7 @@ struct Block : Buffer {
 	}
 };
 
-struct Mapped : std::map <Index, Block> {
+struct Mapped : std::map <Index, Expansion> {
 	Buffer &base;
 
 	Mapped(Buffer &base_) : base(base_) {}
@@ -230,11 +251,21 @@ struct Mapped : std::map <Index, Block> {
 
 		JVL_ASSERT(branches.empty(), "failed to fully resolve branches ({} left)", branches.size());
 
+		// TODO: transfer decorations...
+
 		return result;
 	}
 };
 
-void legalize_storage(Buffer &buffer)
+
+struct Legalizer {
+	// TODO: flags...
+
+	void storage(Buffer &);
+};
+
+// TODO: Legalize structure...
+void Legalizer::storage(Buffer &buffer)
 {
 	auto &em = Emitter::active;
 
@@ -248,7 +279,7 @@ void legalize_storage(Buffer &buffer)
 
 		auto &store = atom.as <Store> ();
 
-		Block block;
+		Expansion block;
 
 		em.push(block, false);
 		{
@@ -273,9 +304,251 @@ void legalize_storage(Buffer &buffer)
 	buffer = mapped.stitch();
 }
 
+bool casting_intrinsic(const Intrinsic &intr)
+{
+	switch (intr.opn) {
+	case cast_to_int:
+	case cast_to_ivec2:
+	case cast_to_ivec3:
+	case cast_to_ivec4:
+	case cast_to_uint:
+	case cast_to_uvec2:
+	case cast_to_uvec3:
+	case cast_to_uvec4:
+	case cast_to_float:
+	case cast_to_vec2:
+	case cast_to_vec3:
+	case cast_to_vec4:
+	case cast_to_uint64:
+		return true;
+	default:
+		break;
+	}
+
+	return false;
+}
+
+struct Optimizer {
+	using HashMap = std::map <uint64_t, Index>;
+
+	OptimizationFlags flags;
+
+	// Instruction distillation (deduplication)
+	uint32_t distill_types(Buffer &) const;
+
+	void distill(Buffer &buffer) const {
+
+	}
+
+	// Instruction disolving (removal and elision)
+	void disolve_casting(Relocation &relocation, const Buffer &buffer, const Intrinsic &intr) const {
+		fmt::println("casting instruction: {}", intr.to_assembly_string());
+
+		auto list = buffer.atoms[intr.args].as <List> ();
+		auto qt = buffer.types[list.item];
+
+		fmt::println("\ttype is {}", qt);
+	}
+
+	void disolve_constructor(Relocation &relocation, const Buffer &buffer, const Construct &ctor, Index i) const {
+		fmt::println("constructor instruction: {}", ctor.to_assembly_string());
+		if (ctor.args == -1)
+			return;
+		
+		auto list = buffer.atoms[ctor.args].as <List> ();
+		if (list.next == -1) {
+			auto type_this = buffer.types[i];
+			auto type_arg = buffer.types[list.item];
+
+			if (type_this == type_arg) {
+				fmt::println("\tvacous construction!");
+				relocation.emplace(i, list.item);
+			}
+		}
+
+		// TODO: elision through element-wise forwarding
+	}
+
+	void disolve(Buffer &buffer) const {
+		Relocation relocation;
+
+		// Collection phase
+		for (size_t i = 0; i < buffer.pointer; i++) {
+			auto &atom = buffer.atoms[i];
+
+			switch (atom.index()) {
+			
+			variant_case(Atom, Construct):
+			{
+				auto &ctor = atom.as <Construct> ();
+				disolve_constructor(relocation, buffer, ctor, i);
+			} break;
+
+			variant_case(Atom, Intrinsic):
+			{
+				auto &intr = atom.as <Intrinsic> ();
+				if (casting_intrinsic(intr))
+					disolve_casting(relocation, buffer, intr);
+			} break;
+
+			default:
+				break;
+			}
+		}
+
+		// Replacement phase
+		relocation.apply(buffer);
+	}
+
+	// Dead code elimination
+	bool strip_buffer(Buffer &buffer, const std::vector <bool> &include) const {
+		Index pointer = 0;
+
+		Relocation relocation;
+		for (size_t i = 0; i < buffer.pointer; i++) {
+			if (include[i])
+				relocation[i] = pointer++;
+		}
+
+		Buffer doubled;
+		for (size_t i = 0; i < buffer.pointer; i++) {
+			if (relocation.contains(i)) {
+				relocation.apply(buffer.atoms[i]);
+				doubled.emit(buffer.atoms[i]);
+			}
+		}
+
+		// Transfer decorations
+		doubled.decorations.all = buffer.decorations.all;
+
+		for (auto &[i, j] : buffer.decorations.used) {
+			auto k = relocation[i];
+			doubled.decorations.used[k] = j;
+		}
+		
+		for (auto &i : buffer.decorations.phantom) {
+			auto k = relocation[i];
+			doubled.decorations.phantom.insert(k);
+		}
+
+		std::swap(buffer, doubled);
+
+		// Change happened only if there is a difference in size
+		return (buffer.pointer != doubled.pointer);
+	}
+
+	bool strip_once(Buffer &buffer) const {
+		UsageGraph graph = usage(buffer);
+
+		// Reversed usage graph
+		// TODO: users graph...
+		UsageGraph reversed(graph.size());
+		for (size_t i = 0; i < graph.size(); i++) {
+			for (Index j : graph[i])
+				reversed[j].insert(i);
+		}
+
+		// Configure checking queue and inclusion mask
+		std::vector <bool> include(buffer.pointer, true);
+		
+		std::queue <Index> check_list;
+		for (size_t i = 0; i < buffer.pointer; i++)
+			check_list.push(i);
+
+		// Keep checking as long as something got erased
+		while (check_list.size()) {
+			std::set <Index> erasure;
+
+			while (check_list.size()) {
+				Index i = check_list.front();
+				check_list.pop();
+				
+				if (graph[i].empty() && !buffer.marked.contains(i)) {
+					include[i] = false;
+					erasure.insert(i);
+				}
+			}
+
+			for (auto i : erasure) {
+				for (auto j : reversed[i]) {
+					graph[j].erase(i);
+					check_list.push(j);
+				}
+			}
+		}
+
+		// Reconstruct with the reduced set
+		return strip_buffer(buffer, include);
+	}
+
+	bool strip(Buffer &buffer) const {
+		uint32_t counter = 0;
+		uint32_t size_begin = buffer.pointer;
+
+		bool changed;
+		do {
+			changed = strip_once(buffer);
+			counter++;
+		} while (changed);
+
+		uint32_t size_end = buffer.pointer;
+		
+		JVL_INFO("ran dead code elimination pass {} times ({} to {})", counter, size_begin, size_end);
+
+		return (size_begin != size_end);
+	}
+};
+
+uint32_t Optimizer::distill_types(Buffer &buffer) const
+{
+	static_assert(sizeof(Atom) == sizeof(uint64_t));
+	
+	uint32_t counter = 0;
+
+	// Each atom converted to a 64-bit integer
+	HashMap existing;
+
+	// TODO: move outside...
+	auto unique = [&](Index i) -> Index {
+		auto &atom = buffer.atoms[i];
+		auto &hash = reinterpret_cast <uint64_t &> (atom);
+		
+		if (!atom.is <TypeInformation> ())
+			return i;
+
+		auto it = existing.find(hash);
+		if (it != existing.end()) {
+			if (i != it->second) {
+				counter++;
+				buffer.marked.erase(i);
+			}
+
+			fmt::println("distilling types: %{} ==> %{}", i, it->second);
+
+			return it->second;
+		}
+
+		existing[hash] = i;
+
+		return i;
+	};
+
+	for (size_t i = 0; i < buffer.pointer; i++) {
+		auto &atom = buffer.atoms[i];
+
+		auto addrs = atom.addresses();
+		if (addrs.a0 != -1)
+			addrs.a0 = unique(addrs.a0);
+		if (addrs.a1 != -1)
+			addrs.a1 = unique(addrs.a1);
+	}
+
+	return counter;
+}
+
 } // namespace jvl::thunder
 
-func(ftn, i32)(vec2 uv, i32 samples, vec2 resolution)
+func(ftn, i32)(i32 samples)
 {
 	i32 count;
 
@@ -306,9 +579,21 @@ int main()
 	// TODO: fix optimization around blocks...
 	// thunder::optimize(ftn, thunder::OptimizationFlags::eDeadCodeElimination);
 
-	thunder::legalize_storage(ftn);
+	thunder::Legalizer().storage(ftn);
 
+	auto glsl_leg = link(ftn).generate_glsl();
+	io::display_lines("FTN LEGALIZED", glsl_leg);
+	ftn.graphviz("ire-legalized.dot");
+
+	auto optimizer = thunder::Optimizer();
+	optimizer.distill_types(ftn);
+	optimizer.strip(ftn);
+	optimizer.distill_types(ftn);
+	optimizer.strip(ftn);
+	optimizer.disolve(ftn);
+	optimizer.strip(ftn);
+	
 	auto glsl_opt = link(ftn).generate_glsl();
-	io::display_lines("FTN OPT", glsl_opt);
+	io::display_lines("FTN OPTIMIZED", glsl_opt);
 	ftn.graphviz("ire-optimized.dot");
 }
