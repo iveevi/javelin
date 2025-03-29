@@ -41,23 +41,10 @@ struct mat_base : tagged {
 
 		auto &em = Emitter::active;
 
-		// TODO: manual assignment, except for mat2x2
-		// TODO: instantiate all primitive types at header
-		thunder::TypeInformation tf;
-		tf.item = thunder::mat4;
-
-		thunder::Primitive p;
-		p.type = thunder::i32;
-		p.idata = 1;
-
-		thunder::List l;
-		l.item = em.emit(p);
-
-		thunder::Construct ctor;
-		ctor.type = em.emit(tf);
-		ctor.args = em.emit(l);
-
-		this->ref = em.emit(ctor);
+		auto type = em.emit_type_information(-1, -1, primitive());
+		auto elem = em.emit_primitive(1);
+		auto args = em.emit_list(elem, -1);
+		this->ref = em.emit_construct(type, args, thunder::normal);
 
 		return this->ref;
 	}

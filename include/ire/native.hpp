@@ -16,7 +16,7 @@ thunder::Index translate_primitive(uint32_t);
 thunder::Index translate_primitive(uint64_t);
 thunder::Index translate_primitive(float);
 
-// Type class for natives
+// Concepts for natives
 template <typename T>
 concept native = requires(const T &t) {
 	{
@@ -30,14 +30,14 @@ concept integral_native = native <T> && std::is_integral_v <T>;
 template <typename T>
 concept floating_native = native <T> && std::is_floating_point_v <T>;
 
+// TODO: establish semantics for builtin types...
+// unless assigning by cache_index_t, every copy/creation is concrete
 template <native T>
 struct native_t : tagged {
 	using tagged::tagged;
 
 	using native_type = T;
 	using arithmetic_type = native_t;
-
-	T value = T();
 
 	static constexpr thunder::PrimitiveType primitive() {
 		if constexpr (std::same_as <T, bool>)
@@ -69,23 +69,19 @@ struct native_t : tagged {
 		return em.emit_type_information(-1, -1, primitive());
 	}
 
-	native_t(T v = T()) : value(v) {
-		synthesize();
+	native_t(T v = T()) {
+		this->ref = translate_primitive(v);
 	}
 
 	// Explicit conversion operations (and copy constructor)
 	template <native U>
 	requires std::is_convertible_v <U, T>
 	explicit native_t(const native_t <U> &other) {
+		// Always copy to avoid soft links
 		auto &em = Emitter::active;
-		if constexpr (std::same_as <T, U>) {
-			this->ref = other.ref;
-		} else {
-			synthesize();
-			thunder::Index args = em.emit_list(other.synthesize().id);
-			thunder::Index cast = em.emit_intrinsic(args, caster());
-			em.emit_store(this->ref.id, cast);
-		}
+		thunder::Index args = em.emit_list(other.synthesize().id);
+		thunder::Index cast = em.emit_intrinsic(args, caster());
+		em.emit_store(synthesize().id, cast);
 	}
 
 	// Two-step conversion: U -> native_t <X> -> X
@@ -93,10 +89,9 @@ struct native_t : tagged {
 	requires std::is_convertible_v <typename U::arithmetic_type::native_type, T>
 	explicit native_t(const U &other) {
 		auto &em = Emitter::active;
-		synthesize();
 		thunder::Index args = em.emit_list(other.synthesize().id);
 		thunder::Index cast = em.emit_intrinsic(args, caster());
-		em.emit_store(this->ref.id, cast);
+		em.emit_store(synthesize().id, cast);
 	}
 
 	native_t &operator=(const T &v) {
@@ -121,11 +116,11 @@ struct native_t : tagged {
 
 	cache_index_t synthesize() const {
 		if (cached())
-			return ref;
+			return this->ref;
 
-		ref = translate_primitive(value);
+		this->ref = translate_primitive(T());
 
-		return ref;
+		return this->ref;
 	}
 
 	///////////////////////////////////
