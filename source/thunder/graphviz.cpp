@@ -11,7 +11,7 @@ MODULE(graphviz);
 
 std::string instruction_string(const Atom &atom)
 {
-	static std::array <std::string, 14> labels {
+	static std::array <std::string, 15> labels {
 		"Qualifier",
 		"TypeInformation",
 		"Primitive",
@@ -21,6 +21,7 @@ std::string instruction_string(const Atom &atom)
 		"List",
 		"Construct",
 		"Call",
+		"Storage",
 		"Store",
 		"Load",
 		"ArrayAccess",
@@ -33,7 +34,7 @@ std::string instruction_string(const Atom &atom)
 
 std::string instruction_color(const Atom &atom)
 {
-	static std::array <std::string, 14> colors = {
+	static std::array <std::string, 15> colors = {
 		"#FFB3BA",  // Pastel Pink
 		"#FFDFBA",  // Peach
 		"#FFFFBA",  // Pastel Yellow
@@ -47,7 +48,8 @@ std::string instruction_color(const Atom &atom)
 		"#C8E6B9",  // Pale Green
 		"#FFEDB2",  // Light Peach
 		"#B2E1FF",  // Baby Blue
-		"#A7C6ED"   // Powder Blue
+		"#A7C6ED",  // Powder Blue
+		"#F7C6C7"   // Blush Pink
 	};
 
 	return colors[atom.index()];
@@ -55,7 +57,7 @@ std::string instruction_color(const Atom &atom)
 
 std::string instruction_arg0(const Atom &atom)
 {
-	static std::array <std::string, 14> colors = {
+	static std::array <std::string, 15> names = {
 		"Underlying",
 		"Down",
 		"?",
@@ -65,6 +67,7 @@ std::string instruction_arg0(const Atom &atom)
 		"Item",
 		"Type",
 		"Arguments",
+		"Type",
 		"Destination",
 		"Source",
 		"Source",
@@ -72,12 +75,12 @@ std::string instruction_arg0(const Atom &atom)
 		"Value",
 	};
 
-	return colors[atom.index()];
+	return names[atom.index()];
 }
 
 std::string instruction_arg1(const Atom &atom)
 {
-	static std::array <std::string, 14> colors = {
+	static std::array <std::string, 15> names = {
 		"?",
 		"Next",
 		"?",
@@ -87,6 +90,7 @@ std::string instruction_arg1(const Atom &atom)
 		"Next",
 		"Arguments",
 		"Type",
+		"?",
 		"Source",
 		"?",
 		"Location",
@@ -94,7 +98,7 @@ std::string instruction_arg1(const Atom &atom)
 		"?",
 	};
 
-	return colors[atom.index()];
+	return names[atom.index()];
 }
 
 std::string instruction_record(const Atom &atom)
