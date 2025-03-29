@@ -20,7 +20,6 @@ enum class OptimizationFlags : uint8_t {
 	eCastingElision = 0b100,
 	eStoreElision = 0b1000,
 	eStable = eDeadCodeElimination
-		| eDeduplication
 		| eCastingElision,
 	eAll = eDeadCodeElimination
 		| eDeduplication
