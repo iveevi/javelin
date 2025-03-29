@@ -352,6 +352,13 @@ public:
 		ref = em.emit_construct(type(), args, thunder::normal);
 	}
 
+	swizzle_base(const swizzle_base <T, 2> &u, const swizzle_base <T, 2> &v)
+			: swizzle_base() {
+		auto &em = Emitter::active;
+		auto args = list_from_args(u, v);
+		ref = em.emit_construct(type(), args, thunder::normal);
+	}
+
 	swizzle_base(const swizzle_base &other) : swizzle_base() {
 		initial[0] = other.initial[0];
 		initial[1] = other.initial[1];

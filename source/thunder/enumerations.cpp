@@ -251,6 +251,7 @@ const char *tbl_intrinsic_operation[] = {
 
 	"mod",
 	"mix",
+	"smoothstep",
 
 	"traceRayEXT",
 

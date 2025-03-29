@@ -6,6 +6,12 @@ namespace jvl::ire {
 
 // Preventing unwanted overloads
 template <typename T, typename U>
+concept equivalent = true
+	&& arithmetic <T>
+	&& arithmetic <U>
+	&& std::same_as <arithmetic_base <T>, arithmetic_base <U>>;
+
+template <typename T, typename U>
 concept overload_compatible = true
 	&& arithmetic <T>
 	&& arithmetic <U>

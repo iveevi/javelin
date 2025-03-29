@@ -48,19 +48,16 @@ native_t <T> sqrt(const swizzle_element <T, Up, swz> &x)
 }
 
 // Clamp
-template <native T, typename U, typename V>
-requires (std::is_convertible_v <U, native_t <T>>) && (std::is_convertible_v <V, native_t <T>>)
-native_t <T> clamp(const native_t <T> &x, const U &min, const V &max)
+template <arithmetic A, arithmetic B, arithmetic C>
+requires equivalent <B, C>
+auto clamp(const A &x, const B &min, const C &max)
 {
-	auto pmin = native_t <T> (min);
-	auto pmax = native_t <T> (max);
-	return platform_intrinsic_from_args <native_t <T>> (thunder::clamp, x, pmin, pmax);
-}
-
-template <native T, size_t N>
-vec <T, N> clamp(const vec <T, N> &x, const native_t <T> &min, const native_t <T> &max)
-{
-	return platform_intrinsic_from_args <vec <T, N>> (thunder::clamp, x, min, max);
+	// TODO: check the underlying native types as well...
+	using result = decltype(underlying(x));
+	return platform_intrinsic_from_args <result> (thunder::clamp,
+		underlying(x),
+		underlying(min),
+		underlying(max));
 }
 
 // Floor
@@ -217,9 +214,21 @@ auto mix(const T &x, const U &y, const V &a)
 }
 
 template <floating_native T, size_t N, floating_arithmetic U>
-vec <T, N> mix(const vec <T, N> &x, const vec <T, N> &y, const U &a)
+auto mix(const vec <T, N> &x, const vec <T, N> &y, const U &a)
 {
 	return platform_intrinsic_from_args <vec <T, N>> (thunder::mix, x, y, underlying(a));
+}
+
+// Smoothstep
+template <floating_arithmetic T, floating_arithmetic U, floating_arithmetic V>
+requires equivalent <T, U>
+auto smoothstep(const T &A, const U &B, const V &eta)
+{
+	using result = decltype(underlying(A));
+	return platform_intrinsic_from_args <result> (thunder::smoothstep,
+		underlying(A),
+		underlying(B),
+		underlying(eta));
 }
 
 // Discard

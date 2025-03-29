@@ -294,6 +294,7 @@ enum IntrinsicOperation : uint16_t {
 	// Miscellaneous operations
 	mod,
 	mix,
+	smoothstep,
 
 	// Raytracing
 	trace_ray,

@@ -8,11 +8,31 @@
 namespace jvl::ire {
 
 // Matrix types
-template <typename T, size_t N, size_t M>
+template <native T, size_t N, size_t M>
 struct mat_base : tagged {
-	T data[N][M];
-
 	using tagged::tagged;
+
+	mat_base() {
+		synthesize();
+	}
+
+	// Scalar initializer
+	template <typename ... Args>
+	requires (std::is_convertible_v <Args, T> && ...) && (sizeof...(Args) == N * M)
+	mat_base(const Args & ... args) {
+		auto &em = Emitter::active;
+
+		std::array <T, N * M> values { T(args)... };
+
+		thunder::Index list = -1;
+		for (size_t i = 0; i < N * M; i++) {
+			auto v = native_t <T> (values[i]);
+			list = em.emit_list(v.synthesize().id, list);
+		}
+
+		auto type = em.emit_type_information(-1, -1, primitive());
+		this->ref = em.emit_construct(type, list, thunder::normal);
+	}
 
 	// TODO: operator[]
 	cache_index_t synthesize() const {

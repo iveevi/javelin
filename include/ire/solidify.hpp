@@ -63,8 +63,8 @@ struct aligned_uint32_t : std::array <uint32_t, A / sizeof(uint32_t)> {
 };
 
 template <size_t A>
-struct aligned_float : std::array <uint32_t, A / sizeof(float)> {
-	aligned_float(uint32_t x = 0) {
+struct aligned_float : std::array <float, A / sizeof(float)> {
+	aligned_float(float x = 0) {
 		this->operator[](0) = x;
 	}
 

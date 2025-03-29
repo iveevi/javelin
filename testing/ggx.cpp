@@ -72,7 +72,7 @@ auto rotate = procedure("rotate") << [](vec3 s, vec3 n)
 };
 
 // GGX microfacet distribution function
-auto ggx_ndf = procedure("ggx_ndf") << [](Material mat, vec3 n, vec3 h)
+func(ggx_ndf, f32)(Material mat, vec3 n, vec3 h)
 {
 	f32 alpha = mat.roughness;
 	f32 theta = acos(clamp(dot(n, h), 0.0f, 0.999f));
@@ -83,14 +83,14 @@ auto ggx_ndf = procedure("ggx_ndf") << [](Material mat, vec3 n, vec3 h)
 };
 
 // Smith shadow-masking function (single)
-auto G1 = procedure <f32> ("G1") << [](Material mat, vec3 n, vec3 v)
+func(G1, f32)(Material mat, vec3 n, vec3 v)
 {
 	$if(dot(v, n) <= 0.0f);
 		$return(0.0f);
 	$end();
 
 	f32 alpha = mat.roughness;
-	f32 theta = acos(clamp(dot(n, v), 0, 0.999f));
+	f32 theta = acos(clamp(dot(n, v), 0.0f, 0.999f));
 
 	f32 tan_theta = tan(theta);
 
@@ -99,20 +99,20 @@ auto G1 = procedure <f32> ("G1") << [](Material mat, vec3 n, vec3 v)
 };
 
 // Smith shadow-masking function (double)
-auto G = procedure("G") << [](Material mat, vec3 n, vec3 wi, vec3 wo)
+func(G, f32)(Material mat, vec3 n, vec3 wi, vec3 wo)
 {
 	return G1(mat, n, wo) * G1(mat, n, wi);
 };
 
 // Shlicks approximation to the Fresnel reflectance
-auto ggx_fresnel = procedure("ggx_fresnel") << [](Material mat, vec3 wi, vec3 h)
+func(ggx_fresnel, f32)(Material mat, vec3 wi, vec3 h)
 {
 	f32 k = pow(1.0f - dot(wi, h), 5);
 	return mat.specular + (1 - mat.specular) * k;
 };
 
 // GGX specular brdf
-auto ggx_brdf = procedure <vec3> ("ggx_brdf") << [](Material mat, vec3 n, vec3 wi, vec3 wo)
+func(ggx_brdf, vec3)(Material mat, vec3 n, vec3 wi, vec3 wo)
 {
 	$if(dot(wi, n) <= 0.0f || dot(wo, n) <= 0.0f);
 		$return(vec3(0.0f));
@@ -131,7 +131,7 @@ auto ggx_brdf = procedure <vec3> ("ggx_brdf") << [](Material mat, vec3 n, vec3 w
 };
 
 // GGX PDF
-auto ggx_pdf = procedure <f32> ("ggx_pdf") << [](Material mat, vec3 n, vec3 wi, vec3 wo)
+func(ggx_pdf, f32)(Material mat, vec3 n, vec3 wi, vec3 wo)
 {
 	$if(dot(wi, n) <= 0.0f || dot(wo, n) < 0.0f);
 		$return(0.0f);
@@ -153,8 +153,7 @@ auto ggx_pdf = procedure <f32> ("ggx_pdf") << [](Material mat, vec3 n, vec3 wi, 
 	$return((1.0f - t) * term1 + t * term2);
 };
 
-// TODO: qualifiers
-auto ggx_sample = procedure <f32> ("ggx_sample") << [](Material mat, vec3 n, vec3 wo, /* inout */ vec3 seed)
+func(ggx_samples, f32)(Material mat, vec3 n, vec3 wo, inout <vec3> seed)
 {
 	f32 avg_Kd = (mat.diffuse.x + mat.diffuse.y + mat.diffuse.z) / 3.0f;
 	f32 avg_Ks = (mat.specular.x + mat.specular.y + mat.specular.z) / 3.0f;

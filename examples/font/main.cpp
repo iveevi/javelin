@@ -1,5 +1,3 @@
-#include <ire.hpp>
-
 #include "common/font.hpp"
 #include "common/application.hpp"
 #include "common/imgui.hpp"

@@ -273,7 +273,7 @@ QualifiedType Buffer::semalz(Index i)
 
 		auto result = lookup_operation_overload(operation.code, qts);
 
-		JVL_BUFFER_DUMP_ON_ASSERT(result,
+		JVL_ASSERT(result,
 			"failed to find overload "
 			"for operation (@{}):\n{}", i, atom);
 
@@ -286,7 +286,7 @@ QualifiedType Buffer::semalz(Index i)
 		auto args = expand_list_types(intrinsic.args);
 		auto result = lookup_intrinsic_overload(intrinsic.opn, args);
 
-		JVL_BUFFER_DUMP_ON_ASSERT(result,
+		JVL_ASSERT(result,
 			"failed to find overload "
 			"for intrinsic (@{}):\n{}", i, atom);
 

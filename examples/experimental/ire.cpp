@@ -58,9 +58,7 @@ MODULE(ire);
 // };
 
 // TODO: macro for this...
-#define func(name) Procedure name = procedure(#name) << []
-
-func(ftn)(vec2 uv, i32 samples, vec2 resolution)
+func(ftn, i32)(vec2 uv, i32 samples, vec2 resolution)
 {
 	i32 count;
 

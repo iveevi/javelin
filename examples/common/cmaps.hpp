@@ -24,7 +24,7 @@ inline vec3 viridis(f32 t)
 		vec3(0.983868, 0.983868, 0.106764),
 	};
 
-	t = clamp(t, 0.0, 1.0);
+	t = clamp(t, 0.0f, 1.0f);
 	f32 x = t * (colors.length - 2);
 	i32 idx = i32(x);
 	f32 f = fract(x);
@@ -49,7 +49,7 @@ inline vec3 plasma(f32 t)
 		vec3(0.986893, 0.998364, 0.644924),
 	};
 
-	t = clamp(t, 0.0, 1.0);
+	t = clamp(t, 0.0f, 1.0f);
 	f32 x = t * (colors.length - 2);
 	i32 idx = i32(x);
 	f32 f = fract(x);
@@ -68,7 +68,7 @@ inline vec3 magma(f32 t)
 		vec3(0.987053, 0.998364, 0.644924),
 	};
 
-	t = clamp(t, 0.0, 1.0);
+	t = clamp(t, 0.0f, 1.0f);
 	f32 x = t * (colors.length - 2);
 	i32 idx = i32(x);
 	f32 f = fract(x);
@@ -87,7 +87,7 @@ inline vec3 inferno(f32 t)
 		vec3(0.988362, 0.998364, 0.644924),
 	};
 
-	t = clamp(t, 0.0, 1.0);
+	t = clamp(t, 0.0f, 1.0f);
 	f32 x = t * (colors.length - 2);
 	i32 idx = i32(x);
 	f32 f = fract(x);
@@ -106,7 +106,7 @@ inline vec3 cividis(f32 t)
 		vec3(0.9932, 0.9786, 0.2165),
 	};
 
-	t = clamp(t, 0.0, 1.0);
+	t = clamp(t, 0.0f, 1.0f);
 	f32 x = t * (colors.length - 2);
 	i32 idx = i32(x);
 	f32 f = f32(x);
@@ -128,7 +128,7 @@ inline vec3 turbo(f32 t)
 		vec3(0.97689, 0.98392, 0.08051),
 	};
 
-	t = clamp(t, 0.0, 1.0);
+	t = clamp(t, 0.0f, 1.0f);
 	f32 x = t * (colors.length - 2);
 	i32 idx = i32(x);
 	f32 f = f32(x);
@@ -146,7 +146,7 @@ inline vec3 jet(f32 t)
 		vec3(0.5, 0.0, 0.0)
 	};
 
-	t = clamp(t, 0.0, 1.0);
+	t = clamp(t, 0.0f, 1.0f);
 	f32 x = t * (colors.length - 2);
 	i32 idx = i32(x);
 	f32 f = f32(x);
@@ -168,7 +168,7 @@ inline vec3 parula(f32 t)
 		vec3(0.97689, 0.98392, 0.08051),
 	};
 
-	t = clamp(t, 0.0, 1.0);
+	t = clamp(t, 0.0f, 1.0f);
 	f32 x = t * (colors.length - 2);
 	i32 idx = i32(x);
 	f32 f = f32(x);
@@ -192,7 +192,7 @@ inline vec3 spectral(f32 t)
 		vec3(0.6196, 0.0039, 0.2588),
 	};
 
-	t = clamp(t, 0.0, 1.0);
+	t = clamp(t, 0.0f, 1.0f);
 	f32 x = t * (colors.length - 2);
 	i32 idx = i32(x);
 	f32 f = f32(x);

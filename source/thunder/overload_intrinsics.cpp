@@ -157,7 +157,10 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 		} },
 
                 { clamp, {
-                        overload::from(f32, f32, f32, f32)
+                        overload::from(f32, f32, f32, f32),
+                        overload::from(vec2, vec2, f32, f32),
+                        overload::from(vec3, vec3, f32, f32),
+                        overload::from(vec3, vec4, f32, f32),
                 } },
 
 		{ min, {
@@ -243,6 +246,13 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 		} },
 
 		{ mix, {
+			overload::from(f32, f32, f32, f32),
+			overload::from(vec2, vec2, vec2, f32),
+			overload::from(vec3, vec3, vec3, f32),
+			overload::from(vec4, vec4, vec4, f32),
+		} },
+		
+		{ smoothstep, {
 			overload::from(f32, f32, f32, f32),
 			overload::from(vec2, vec2, vec2, f32),
 			overload::from(vec3, vec3, vec3, f32),
