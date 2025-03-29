@@ -384,6 +384,27 @@ std::string Call::to_pretty_string() const
 }
 
 // Store
+bool Storage::operator==(const Storage &other) const
+{
+        return (type == other.type);
+}
+
+Addresses Storage::addresses()
+{
+        return { type, Addresses::null() };
+}
+
+std::string Storage::to_assembly_string() const
+{
+        return fmt::format("storage {}", fmtaddr(type));
+}
+        
+std::string Storage::to_pretty_string() const
+{
+        return header("STORAGE", fmt::color::blue) + fmt::format("\n          :: type: %{}", type);
+}
+
+// Store
 bool Store::operator==(const Store &other) const
 {
         return (dst == other.dst)

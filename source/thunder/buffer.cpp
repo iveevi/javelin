@@ -10,6 +10,7 @@ MODULE(buffer);
 
 static constexpr size_t BUFFER_STARTUP_SIZE = 64;
 
+// TODO: provide parameters to control startup size...
 Buffer::Buffer()
 	: pointer(0),
 	atoms(BUFFER_STARTUP_SIZE),

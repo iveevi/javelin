@@ -68,6 +68,9 @@ public:
 
 	// Invocations
 	Index emit_call(Index, Index, Index);
+	
+	// Storafges
+	Index emit_storage(Index);
 
 	// Stores
 	Index emit_store(Index, Index);

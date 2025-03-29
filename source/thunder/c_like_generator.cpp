@@ -592,6 +592,13 @@ void c_like_generator_t::generate(const Call &call, Index index)
 }
 
 template <>
+void c_like_generator_t::generate(const Storage &storage, Index index)
+{
+	comment(storage.to_assembly_string());
+	declare(index);
+}
+
+template <>
 void c_like_generator_t::generate(const Store &store, Index)
 {
 	comment(store.to_assembly_string());

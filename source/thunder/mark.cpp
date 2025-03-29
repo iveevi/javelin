@@ -100,6 +100,7 @@ bool Buffer::naturally_forced(const Atom &atom)
 			return true;
 	} break;
 
+	variant_case(Atom, Storage):
 	variant_case(Atom, Store):
 	variant_case(Atom, Return):
 	variant_case(Atom, Branch):

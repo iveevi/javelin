@@ -188,6 +188,18 @@ struct Call {
 	std::string to_pretty_string() const;
 };
 
+// Storage holder instruction
+struct Storage {
+	Index type = -1;
+	
+	bool operator==(const Storage &) const;
+
+	Addresses addresses();
+	
+	std::string to_assembly_string() const;
+	std::string to_pretty_string() const;
+};
+
 // Store instruction
 //
 //   dst: reference to store into
@@ -278,6 +290,7 @@ using atom_base = bestd::variant <
 	List,
 	Construct,
 	Call,
+	Storage,
 	Store,
 	Load,
 	ArrayAccess,
@@ -299,20 +312,7 @@ struct alignas(4) Atom : atom_base {
 // Support for direct printing through fmt
 std::string format_as(const Atom &atom);
 
-// Atom size checks
-static_assert(sizeof(Qualifier)		== 6);
-static_assert(sizeof(TypeInformation)	== 6);
-static_assert(sizeof(Primitive)		== 6);
-static_assert(sizeof(Swizzle)		== 4);
-static_assert(sizeof(Operation)		== 6);
-static_assert(sizeof(Intrinsic)		== 4);
-static_assert(sizeof(List)		== 4);
-static_assert(sizeof(Construct)		== 6);
-static_assert(sizeof(Call)		== 6);
-static_assert(sizeof(Store)		== 4);
-static_assert(sizeof(Load)		== 4);
-static_assert(sizeof(Branch)		== 6);
-static_assert(sizeof(Return)		== 2);
-static_assert(sizeof(Atom)		== 8);
+// We want the Atom Intermediate Represenation (AIR) to be lightweight
+static_assert(sizeof(Atom) == 8);
 
 } // namespace jvl::thunder

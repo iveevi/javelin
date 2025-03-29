@@ -67,8 +67,6 @@ void stitch_mapped_instructions(Buffer &result, std::vector <mapped_instruction_
 		auto &m = mapped[i];
 		auto &g = mapped[i].refs;
 
-
-
 		for (auto &r : g) {
 			auto &&addrs = m[r.index].addresses();
 			if (addrs.a0 != -1 && (r.mask & 0b01) == 0b01)

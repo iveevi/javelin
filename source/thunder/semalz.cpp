@@ -211,7 +211,7 @@ QualifiedType Buffer::semalz(Index i)
 
 	switch (atom.index()) {
 
-	case Atom::type_index <TypeInformation> ():
+	variant_case(Atom, TypeInformation):
 	{
 		auto &type_field = atom.as <TypeInformation> ();
 
@@ -235,16 +235,16 @@ QualifiedType Buffer::semalz(Index i)
 		return NilType();
 	}
 
-	case Atom::type_index <Primitive> ():
-		return QualifiedType::primitive(atom.as <Primitive> ().type);
+	variant_case(Atom, Primitive):
+		return PlainDataType(atom.as <Primitive> ().type);
 
-	case Atom::type_index <Qualifier> ():
+	variant_case(Atom, Qualifier):
 		return semalz_qualifier(atom.as <Qualifier> (), i);
 
-	case Atom::type_index <Construct> ():
+	variant_case(Atom, Construct):
 		return semalz_construct(atom.as <Construct> (), i);
 
-	case Atom::type_index <Call> ():
+	variant_case(Atom, Call):
 	{
 		auto &call = atom.as <Call> ();
 		auto &qt = types[call.type];
@@ -254,7 +254,7 @@ QualifiedType Buffer::semalz(Index i)
 		return QualifiedType::concrete(call.type);
 	}
 
-	case Atom::type_index <Operation> ():
+	variant_case(Atom, Operation):
 	{
 		auto &operation = atom.as <Operation> ();
 
@@ -280,7 +280,7 @@ QualifiedType Buffer::semalz(Index i)
 		return result;
 	}
 
-	case Atom::type_index <Intrinsic> ():
+	variant_case(Atom, Intrinsic):
 	{
 		auto &intrinsic = atom.as <Intrinsic> ();
 		auto args = expand_list_types(intrinsic.args);
@@ -293,7 +293,7 @@ QualifiedType Buffer::semalz(Index i)
 		return result;
 	}
 
-	case Atom::type_index <Swizzle> ():
+	variant_case(Atom, Swizzle):
 	{
 		auto &swz = atom.as <Swizzle> ();
 
@@ -314,21 +314,27 @@ QualifiedType Buffer::semalz(Index i)
 		return PlainDataType(swizzled);
 	}
 
-	case Atom::type_index <Load> ():
+	variant_case(Atom, Load):
 		return semalz_load(atom.as <Load> (), i);
 
-	case Atom::type_index <ArrayAccess> ():
+	variant_case(Atom, ArrayAccess):
 		return semalz_access(atom.as <ArrayAccess> (), i);
 
-	case Atom::type_index <Return> ():
+	variant_case(Atom, Return):
 	{
 		auto &returns = atom.as <Return> ();
 		return types[returns.value];
 	}
+	
+	variant_case(Atom, Storage):
+	{
+		auto &storage = atom.as <Storage> ();
+		return types[storage.type];
+	}
 
-	case Atom::type_index <List> ():
-	case Atom::type_index <Store> ():
-	case Atom::type_index <Branch> ():
+	variant_case(Atom, List):
+	variant_case(Atom, Store):
+	variant_case(Atom, Branch):
 		return NilType();
 
 	default:

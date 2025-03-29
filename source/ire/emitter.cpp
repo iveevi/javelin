@@ -124,6 +124,12 @@ Emitter::Index Emitter::emit_call(Index cid, Index args, Index type)
 	return emit(thunder::Call(cid, args, type));
 }
 
+// Storages
+Emitter::Index Emitter::emit_storage(Index type)
+{
+	return emit(thunder::Storage(type));
+}
+
 // Stores
 Emitter::Index Emitter::emit_store(Index dst, Index src)
 {
