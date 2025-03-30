@@ -12,7 +12,6 @@
 #include "ire/linking.hpp"
 #include "ire/matrix.hpp"
 #include "ire/memory.hpp"
-#include "ire/procedure.hpp"
 #include "ire/push_constant.hpp"
 #include "ire/qualified_wrapper.hpp"
 #include "ire/sampler.hpp"
@@ -22,6 +21,10 @@
 #include "ire/std.hpp"
 #include "ire/vector.hpp"
 
+#include "ire/procedure/core.hpp"
+#include "ire/procedure/partial.hpp"
+#include "ire/procedure/builder.hpp"
+
 #include "ire/intrinsics/common.hpp"
 #include "ire/intrinsics/glsl.hpp"
 #include "ire/intrinsics/stages/mesh.hpp"
@@ -30,3 +33,5 @@
 // TODO: organize into different targets, i.e. core/glsl.hpp, core/spirv.hpp, etc.
 // TODO: debug only
 #include "ire/guarantees.hpp"
+
+#include "thunder/optimization.hpp"

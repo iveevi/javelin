@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../thunder/linkage_unit.hpp"
-#include "procedure.hpp"
+#include "procedure/core.hpp"
 #include "solidify.hpp"
 
 namespace jvl::ire {

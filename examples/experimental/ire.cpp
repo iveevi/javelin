@@ -567,13 +567,41 @@ func(i32, ftn)(i32 samples)
 	$return(count);
 };
 
+// TODO: entry -> $entrypoint
+// TODO: func -> $shader
+// TODO: hybrid -> $partial_entrypoint, $partial_shader
+// TODO: also hybrid entrypoints...
+
+// Usage...
+auto partial_ftn = PartialProcedureBuilder <vec3> ("ftn") << [](int32_t stride, i32 samples)
+{
+	i32 count;
+
+	auto it = range <i32> (0, samples, stride);
+	
+	auto i = $for(it);
+	{
+		auto j = $for(it);
+		{
+			count += i32(i != j);
+		}
+		$end();
+	}
+	$end();
+
+	$return(count);
+};
+
+// TODO: revised control flow macros...
+
 // TODO: legalize stores through a storage atom...
 
-// TODO: partial specialization of arguments
 // TODO: refactor to func(R, name, compile-time args...)
 
 int main()
 {
+	auto ftn = partial_ftn(2);
+
 	auto glsl = link(ftn).generate_glsl();
 	io::display_lines("FTN", glsl);
 	ftn.graphviz("ire.dot");
@@ -595,8 +623,12 @@ int main()
 	optimizer.strip(ftn);
 	optimizer.disolve(ftn);
 	optimizer.strip(ftn);
+	optimizer.disolve(ftn);
+	optimizer.strip(ftn);
 	
 	auto glsl_opt = link(ftn).generate_glsl();
 	io::display_lines("FTN OPTIMIZED", glsl_opt);
 	ftn.graphviz("ire-optimized.dot");
+
+	ftn.display_assembly();
 }
