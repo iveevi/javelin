@@ -25,7 +25,7 @@ template <generic T>
 using Buffer = writeonly <buffer <unsized_array <T>>>;
 
 template <generic T, void (*f)(Buffer <T>)>
-Procedure <void> kernel = procedure <void> ("main") << []()
+Procedure <void> kernel = ProcedureBuilder <void> ("main") << []()
 {
 	local_size(1);
 

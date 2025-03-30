@@ -40,7 +40,7 @@ void simple_layouts()
 		lout = lin;
 	};
 
-	auto F = procedure("main") << shader;
+	auto F = ProcedureBuilder("main") << shader;
 	auto glsl = link(F).generate_glsl();
 
 	check_glsl_source(glsl, GL_VERTEX_SHADER);
@@ -58,7 +58,7 @@ void simple_layouts()
 		lout = lin;
 	};
 
-	auto F = procedure("main") << shader;
+	auto F = ProcedureBuilder("main") << shader;
 	auto glsl = link(F).generate_glsl();
 
 	check_glsl_source(glsl, GL_VERTEX_SHADER);

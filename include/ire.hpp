@@ -7,7 +7,6 @@
 #include "ire/control_flow.hpp"
 #include "ire/emitter.hpp"
 #include "ire/image.hpp"
-#include "ire/jit.hpp"
 #include "ire/layout_io.hpp"
 #include "ire/linking.hpp"
 #include "ire/matrix.hpp"
@@ -21,9 +20,8 @@
 #include "ire/std.hpp"
 #include "ire/vector.hpp"
 
-#include "ire/procedure/core.hpp"
+#include "ire/procedure/ordinary.hpp"
 #include "ire/procedure/partial.hpp"
-#include "ire/procedure/builder.hpp"
 
 #include "ire/intrinsics/common.hpp"
 #include "ire/intrinsics/glsl.hpp"

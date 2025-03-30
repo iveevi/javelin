@@ -4,11 +4,15 @@
 #include <tuple>
 
 #include "../concepts.hpp"
-#include "core.hpp"
 
-namespace jvl::ire::detail {
+namespace jvl::ire {
 
-// TODO: find another base than std function
+// Forward declarations
+template <generic_or_void R, typename ... Args>
+struct Procedure;
+	
+namespace detail {
+
 template <typename F>
 concept acceptable_callable = std::is_function_v <F> || requires(const F &ftn) {
 	{ std::function(ftn) };
@@ -70,4 +74,6 @@ struct signature <R (Args...)> {
 	using manual_procedure = Procedure <RR, std::decay_t <Args>...>;
 };
 
-} // namespace jvl::ire::detail
+} // namespace detail
+
+} // namespace jvl::ire

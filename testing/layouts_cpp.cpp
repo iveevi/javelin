@@ -34,7 +34,7 @@ void simple_parameters()
 		return x * y - y;
 	};
 	
-	auto F = procedure("shader") << shader;
+	auto F = ProcedureBuilder("shader") << shader;
 	auto cpp = link(F).generate_cpp();
 
 	check_cpluslpus_source(cpp);
@@ -57,7 +57,7 @@ void simple_vector_parameters()
 		return x * y - x + y;
 	};
 
-	auto F = procedure("shader") << shader;
+	auto F = ProcedureBuilder("shader") << shader;
 	thunder::legalize_for_cc(F);
 	auto cpp = link(F).generate_cpp();
 
