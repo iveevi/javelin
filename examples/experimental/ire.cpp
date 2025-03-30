@@ -548,7 +548,7 @@ uint32_t Optimizer::distill_types(Buffer &buffer) const
 
 } // namespace jvl::thunder
 
-$callable(i32, ftn)(i32 samples)
+$subroutine(i32, ftn)(i32 samples)
 {
 	i32 count;
 
@@ -573,7 +573,7 @@ $callable(i32, ftn)(i32 samples)
 // TODO: also hybrid entrypoints...
 
 // Usage...
-auto partial_ftn = PartialProcedureBuilder <vec3> ("ftn") << [](int32_t stride, i32 samples)
+$partial_subroutine(i32, partial_ftn)(int32_t stride, i32 samples)
 {
 	i32 count;
 

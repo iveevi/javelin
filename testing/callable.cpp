@@ -2,6 +2,8 @@
 
 #include <ire.hpp>
 
+#include <common/io.hpp>
+
 using namespace jvl;
 using namespace jvl::ire;
 
@@ -16,15 +18,14 @@ int sum(int _arg0, int _arg1)
 
 TEST(callable, sum)
 {
-	auto ftn = [](i32 x, i32 y) {
+	$subroutine(i32, sum)(i32 x, i32 y) {
 		return x + y;
 	};
 
-	auto F = procedure("sum") << ftn;
-	auto glsl = link(F).generate_glsl();
-
-	// fmt::println("{}", glsl);
-
+	auto glsl = link(sum).generate_glsl();
+	
+	io::display_lines("SUM", glsl);
+	
 	check_shader_sources(expected_sum_glsl, glsl);
 }
 
@@ -39,32 +40,30 @@ float arithmetic(float _arg0, float _arg1, float _arg2)
 
 TEST(callable, arithmetic)
 {
-	auto ftn = [](f32 x, f32 y, f32 z) {
+	$subroutine(f32, arithmetic)(f32 x, f32 y, f32 z) {
 		f32 a = x + y * z;
 		f32 b = a / (x - y) * z * z;
 		return a / b;
 	};
 
-	auto F = procedure("arithmetic") << ftn;
-	auto glsl = link(F).generate_glsl();
+	auto glsl = link(arithmetic).generate_glsl();
 	
-	// fmt::println("{}", glsl);
+	io::display_lines("ARITHMETIC", glsl);
 
 	check_shader_sources(expected_arithmetic_glsl, glsl);
 }
 
 TEST(callable, returns)
 {
-	auto ftn = [](f32 x, f32 y, f32 z) {
+	$subroutine(f32, arithmetic)(f32 x, f32 y, f32 z) {
 		f32 a = x + y * z;
 		f32 b = a / (x - y) * z * z;
 		$return(a / b);
 	};
 
-	auto F = procedure <f32> ("arithmetic") << ftn;
-	auto glsl = link(F).generate_glsl();
+	auto glsl = link(arithmetic).generate_glsl();
 	
-	// fmt::println("{}", glsl);
+	io::display_lines("RETURNS", glsl);
 
 	check_shader_sources(expected_arithmetic_glsl, glsl);
 }
@@ -84,7 +83,7 @@ float conditional(float _arg0, float _arg1, float _arg2)
 
 TEST(callable, conditional_returns)
 {
-	auto ftn = [](f32 x, f32 y, f32 z) {
+	$subroutine(f32, conditional)(f32 x, f32 y, f32 z) {
 		f32 a = x + y * z;
 		$if (a < 0);
 		{
@@ -96,8 +95,9 @@ TEST(callable, conditional_returns)
 		return a;
 	};
 
-	auto cbl = procedure("conditional") << ftn;
-	auto glsl = link(cbl).generate_glsl();
+	auto glsl = link(conditional).generate_glsl();
+	
+	io::display_lines("CONDITIONAL RETURNS", glsl);
 
 	check_shader_sources(expected_conditional_returns_glsl, glsl);
 }
@@ -136,7 +136,7 @@ TEST(callable, struct_parameter)
 		}
 	};
 
-	auto ftn = [](const MVP &mvp, const vec3 &v) {
+	$subroutine(vec4, project)(const MVP &mvp, const vec3 &v) {
 		vec4 vh = vec4(v, 1);
 		vh = mvp.model * vh;
 		vh = mvp.view * vh;
@@ -144,10 +144,9 @@ TEST(callable, struct_parameter)
 		return vh;
 	};
 
-	auto F = procedure("project") << ftn;
-	auto glsl = link(F).generate_glsl();
+	auto glsl = link(project).generate_glsl();
 
-	// fmt::println("{}", glsl);
+	io::display_lines("STRUCT PARAMETER", glsl);
 
 	check_shader_sources(expected_struct_parameter_glsl, glsl);
 }
@@ -179,16 +178,15 @@ TEST(callable, struct_return)
 		}
 	};
 
-	auto ftn = [](Seed seed) {
+	$subroutine(Seed, shift_seed)(Seed seed) {
 		u32 a = seed.root << seed.shifted;
 		u32 b = seed.shifted | seed.root;
 		return Seed(a & b, b);
 	};
 
-	auto F = procedure("shift_seed") << ftn;
-	auto glsl = link(F).generate_glsl();
+	auto glsl = link(shift_seed).generate_glsl();
 	
-	// fmt::println("{}", glsl);
+	io::display_lines("STRUCT RETURN", glsl);
 
 	check_shader_sources(expected_struct_return_glsl, glsl);
 }

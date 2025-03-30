@@ -21,7 +21,7 @@ auto leaky_relu(const T &v)
 	return max(v, 0.01 * v);
 }
 
-$callable(vec3, eval)(const vec2 &uv)
+$subroutine(vec3, eval)(const vec2 &uv)
 {
 	task_payload <Payload> payload;
 

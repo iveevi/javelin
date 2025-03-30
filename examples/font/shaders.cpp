@@ -46,7 +46,7 @@ $entrypoint(vertex)()
 	size = extent * vec2(resolution);
 };
 
-$callable(i32, winding_contribution_solve)(vec2 p0, vec2 p1, vec2 p2, vec2 position)
+$subroutine(i32, winding_contribution_solve)(vec2 p0, vec2 p1, vec2 p2, vec2 position)
 {
 	f32 x = position.x;
 	f32 x0 = p0.x;
@@ -136,7 +136,7 @@ struct Curves {
 	}
 };
 
-$callable(i32, inside)(vec2 uv) -> i32
+$subroutine(i32, inside)(vec2 uv) -> i32
 {
 	layout_in <u64, flat> address(1);
 

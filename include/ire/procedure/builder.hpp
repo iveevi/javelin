@@ -105,7 +105,7 @@ auto operator<<(const procedure <R> &C, F ftn)
 }
 
 // Short-hand macro for writing shader functions
-#define $callable(R, name)	jvl::ire::Procedure name = jvl::ire::procedure <R> (#name) << []
+#define $subroutine(R, name)	jvl::ire::Procedure name = jvl::ire::procedure <R> (#name) << []
 
 #define $entrypoint(name)	jvl::ire::Procedure <void> name = jvl::ire::procedure("main") << []
  

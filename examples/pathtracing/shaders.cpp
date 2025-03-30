@@ -54,7 +54,7 @@ struct Hit {
 	}
 };
 
-$callable(uvec3, pcg3d)(uvec3 v)
+$subroutine(uvec3, pcg3d)(uvec3 v)
 {
 	v = v * 1664525u + 1013904223u;
 	v.x += v.y * v.z;
@@ -67,18 +67,18 @@ $callable(uvec3, pcg3d)(uvec3 v)
 	return v;
 };
 
-$callable(vec3, random3)(inout <vec3> seed) -> vec3
+$subroutine(vec3, random3)(inout <vec3> seed) -> vec3
 {
 	seed = uintBitsToFloat((pcg3d(floatBitsToUint(seed)) & 0x007FFFFFu) | 0x3F800000u) - 1.0;
 	return seed;
 };
 
-$callable(vec3, spherical)(f32 theta, f32 phi)
+$subroutine(vec3, spherical)(f32 theta, f32 phi)
 {
 	return vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
 };
 
-$callable(vec3, randomH2)(inout <vec3> seed)
+$subroutine(vec3, randomH2)(inout <vec3> seed)
 {
 	vec3 eta = random3(seed);
 	f32 theta = acos(eta.x);
@@ -86,7 +86,7 @@ $callable(vec3, randomH2)(inout <vec3> seed)
 	return spherical(theta, phi);
 };
 
-$callable(vec3, rotate)(vec3 s, vec3 n)
+$subroutine(vec3, rotate)(vec3 s, vec3 n)
 {
         vec3 w = n;
 	vec3 ut = vec3(-w.y, w.x, 0.0);
