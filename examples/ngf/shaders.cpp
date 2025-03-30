@@ -4,7 +4,7 @@
 
 const uint32_t WORK_GROUP_SIZE = 8;
 
-Procedure <void> task = procedure <void> ("main") << []()
+entry(task)()
 {
 	push_constant <ViewInfo> pc;
 
@@ -21,7 +21,7 @@ auto leaky_relu(const T &v)
 	return max(v, 0.01 * v);
 }
 
-Procedure <vec3, vec2> eval = procedure("eval") << [](const vec2 &uv)
+func(vec3, eval)(const vec2 &uv)
 {
 	task_payload <Payload> payload;
 
@@ -165,7 +165,7 @@ Procedure <vec3, vec2> eval = procedure("eval") << [](const vec2 &uv)
 
 // TODO: problems with arrays of one-element structs...
 
-Procedure <void> mesh = procedure <void> ("main") << []()
+entry(mesh)()
 {
 	local_size(WORK_GROUP_SIZE, WORK_GROUP_SIZE);
 
@@ -210,7 +210,7 @@ Procedure <void> mesh = procedure <void> ("main") << []()
 	$end();
 };
 
-Procedure <void> fragment = procedure <void> ("main") << []()
+entry(fragment)()
 {
 	layout_in <vec3> position(0);
 	layout_in <vec2> uv(1);

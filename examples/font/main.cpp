@@ -36,6 +36,7 @@ struct Application : BaseApplication {
 	vk::DescriptorSet descriptor;
 
 	Font font;
+	bool automatic;
 
 	Application() : BaseApplication("Font Rendering", {
 				VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -158,6 +159,10 @@ struct Application : BaseApplication {
 			.cull_mode(vk::CullModeFlagBits::eNone);
 	}
 
+	void preload(const argparse::ArgumentParser &program) override {
+		automatic = (program["auto"] == true);
+	}
+
 	void render(const vk::CommandBuffer &cmd, uint32_t index, uint32_t) override {
 		auto &extent = resources.window.extent;
 
@@ -192,7 +197,7 @@ struct Application : BaseApplication {
 		{
 			static int32_t samples = 1;
 			static const std::map <int32_t, std::string> strings {
-				{ 1, "No AA"},
+				{ 1, "No AA" },
 				{ 2, "Four Rooks" },
 				{ 4, "4x4" },
 				{ 8, "8x8" },
@@ -208,6 +213,20 @@ struct Application : BaseApplication {
 				}
 
 				ImGui::EndCombo();
+			} else {
+				float t = std::fmod(glfwGetTime(), strings.size());
+				int32_t i = 0;
+				int32_t p = samples;
+
+				for (auto &[k, m] : strings) {
+					if (automatic && (t > i))
+						samples = k;
+
+					i++;
+				}
+				
+				if (p != samples)
+					compile_pipeline(samples);
 			}
 		}
 		ImGui::End();

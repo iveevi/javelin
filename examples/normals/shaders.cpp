@@ -3,7 +3,7 @@
 #include "shaders.hpp"
 
 // Shader kernels
-Procedure <void> vertex = procedure("main") << []()
+entry(vertex)()
 {
 	// Vertex inputs
 	layout_in <vec3> position(0);
@@ -21,7 +21,7 @@ Procedure <void> vertex = procedure("main") << []()
 	out_position = position;
 };
 
-Procedure <void> fragment = procedure("main") << []()
+entry(fragment)()
 {
 	layout_in <vec3> position(0);
 	

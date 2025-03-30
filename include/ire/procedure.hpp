@@ -341,8 +341,8 @@ auto operator<<(const procedure <R> &C, F ftn)
 }
 
 // Short-hand macro for writing shader functions
-#define func(name, R)	jvl::ire::Procedure name = jvl::ire::procedure <R> (#name) << []
+#define func(R, name)	jvl::ire::Procedure name = jvl::ire::procedure <R> (#name) << []
 
-#define entry(name)	jvl::ire::Procedure name = jvl::ire::procedure("main") << []
+#define entry(name)	jvl::ire::Procedure <void> name = jvl::ire::procedure("main") << []
 
 } // namespace jvl::ire

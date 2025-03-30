@@ -13,7 +13,7 @@ struct Glyph {
 	}
 };
 
-Procedure <void> vertex = procedure("main") << []()
+entry(vertex)()
 {
 	layout_out <vec2>       uv          (0);
 	layout_out <u64, flat>  address     (1);
@@ -45,8 +45,7 @@ Procedure <void> vertex = procedure("main") << []()
 	size = extent * vec2(resolution);
 };
 
-Procedure winding_contribution_solve = procedure <i32> ("winding_contribution_solve")
-	<< [](vec2 p0, vec2 p1, vec2 p2, vec2 position)
+func(i32, winding_contribution_solve)(vec2 p0, vec2 p1, vec2 p2, vec2 position)
 {
 	f32 x = position.x;
 	f32 x0 = p0.x;
@@ -87,14 +86,6 @@ Procedure winding_contribution_solve = procedure <i32> ("winding_contribution_so
 
 		f32 xt = (1.0 - t) * (1.0 - t) * x0 + 2.0 * (1.0 - t) * t * x1 + t * t * x2;
 
-		// return (xt >= x) ? 1 : 0; // Check if the intersection is to the right of the test point
-		// // TODO: select operation...
-		// $if (xt >= x);
-		// 	$return(1);
-		// $else();
-		// 	$return(0);
-		// $end();
-
 		$return($select(xt >= x, 1, 0));
 	}
 	$end();
@@ -118,10 +109,7 @@ Procedure winding_contribution_solve = procedure <i32> ("winding_contribution_so
 	{
 		f32 tt0 = 1.0 - t0;
 		f32 xt0 = tt0 * tt0 * x0 + 2.0 * tt0 * t0 * x1 + t0 * t0 * x2;
-
-		$if (xt0 >= x);
-			contribution += 1;
-		$end();
+		contribution += i32(xt0 >= x);
 	}
 	$end();
 
@@ -129,10 +117,7 @@ Procedure winding_contribution_solve = procedure <i32> ("winding_contribution_so
 	{
 		f32 tt1 = 1.0 - t1;
 		f32 xt1 = tt1 * tt1 * x0 + 2.0 * tt1 * t1 * x1 + t1 * t1 * x2;
-
-		$if (xt1 >= x);
-			contribution += 1;
-		$end();
+		contribution += i32(xt1 >= x);
 	}
 	$end();
 
@@ -150,7 +135,7 @@ struct Curves {
 	}
 };
 
-Procedure inside = procedure <i32> ("inside") << [](vec2 uv) -> i32
+func(i32, inside)(vec2 uv) -> i32
 {
 	layout_in <u64, flat> address(1);
 
@@ -179,7 +164,6 @@ void fragment(int32_t samples)
 	layout_in  <vec2>       resolution  (2);
 	layout_out <vec4>       fragment    (0);
 
-	// TODO: pass sample count... recompile with imgui...
 	i32 count = 0;
 
 	if(samples == 1) {

@@ -4,7 +4,7 @@
 
 #include "shaders.hpp"
 
-Procedure <void> task = procedure <void> ("main") << []()
+entry(task)()
 {
 	task_payload <Payload> payload;
 
@@ -20,7 +20,7 @@ Procedure <void> task = procedure <void> ("main") << []()
 	EmitMeshTasksEXT(1, 1, 1);
 };
 
-Procedure <void> mesh = procedure <void> ("main") << []()
+entry(mesh)()
 {
 	static constexpr uint32_t GROUP_SIZE = 32;
 
@@ -80,7 +80,7 @@ array <vec3> hsl_palette(float saturation, float lightness, int N)
 	return palette;
 }
 
-Procedure <void> fragment = procedure <void> ("main") << []()
+entry(fragment)()
 {
 	layout_in <vec3> position(0);
 	layout_in <u32, flat> pid(1);

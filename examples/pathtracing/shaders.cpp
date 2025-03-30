@@ -54,7 +54,7 @@ struct Hit {
 	}
 };
 
-Procedure pcg3d = procedure("pcg3d") << [](uvec3 v) -> uvec3
+func(uvec3, pcg3d)(uvec3 v)
 {
 	v = v * 1664525u + 1013904223u;
 	v.x += v.y * v.z;
@@ -67,18 +67,18 @@ Procedure pcg3d = procedure("pcg3d") << [](uvec3 v) -> uvec3
 	return v;
 };
 
-Procedure random3 = procedure("random3") << [](inout <vec3> seed) -> vec3
+func(vec3, random3)(inout <vec3> seed) -> vec3
 {
 	seed = uintBitsToFloat((pcg3d(floatBitsToUint(seed)) & 0x007FFFFFu) | 0x3F800000u) - 1.0;
 	return seed;
 };
 
-Procedure spherical = procedure("spherical") << [](f32 theta, f32 phi) -> vec3
+func(vec3, spherical)(f32 theta, f32 phi)
 {
 	return vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
 };
 
-Procedure randomH2 = procedure("randomH2") << [](inout <vec3> seed) -> vec3
+func(vec3, randomH2)(inout <vec3> seed)
 {
 	vec3 eta = random3(seed);
 	f32 theta = acos(eta.x);
@@ -86,24 +86,17 @@ Procedure randomH2 = procedure("randomH2") << [](inout <vec3> seed) -> vec3
 	return spherical(theta, phi);
 };
 
-Procedure rotate = procedure("rotate") << [](vec3 s, vec3 n) -> vec3
+func(vec3, rotate)(vec3 s, vec3 n)
 {
-	static constexpr float epsilon = 1e-4;
-
         vec3 w = n;
-
-        // TODO: select
-        vec3 u = vec3(0.0, -w.z, w.y);
-        $if (abs(w.z) < (1 - epsilon));
-        	u = vec3(-w.y, w.x, 0.0);
-        $end();
-
+	vec3 ut = vec3(-w.y, w.x, 0.0);
+	vec3 uf = vec3(0.0, -w.z, w.y);
+	vec3 u = $select(abs(w.z) < 0.999f, ut, uf);
         vec3 v = cross(w, u);
-
         return u * s.x + v * s.y + w * s.z;
 };
 
-Procedure <void> ray_generation = procedure("main") << []()
+entry(ray_generation)()
 {
 	ray_payload <Hit> hit(0);
 	ray_payload <boolean> shadow(1);
@@ -193,7 +186,7 @@ struct Vertex {
 	}
 };
 
-Procedure <void> primary_closest_hit = procedure("main") << []()
+entry(primary_closest_hit)()
 {
 	using Triangles = scalar <buffer_reference <unsized_array <ivec3>>>;
 	using Vertices = scalar <buffer_reference <unsized_array <Vertex>>>;
@@ -236,7 +229,7 @@ Procedure <void> primary_closest_hit = procedure("main") << []()
 	hit.missed = false;
 };
 
-Procedure <void> primary_miss = procedure <void> ("main") << []()
+entry(primary_miss)()
 {
 	ray_payload_in <Hit> hit(0);
 
@@ -245,7 +238,7 @@ Procedure <void> primary_miss = procedure <void> ("main") << []()
 	hit.missed = true;
 };
 
-Procedure <void> shadow_miss = procedure <void> ("main") << []()
+entry(shadow_miss)()
 {
 	ray_payload_in <boolean> shadow(1);
 

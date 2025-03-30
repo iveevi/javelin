@@ -11,7 +11,7 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P)/.."
 ./build/examples/palette/palette resources/meshes/nefertiti.obj --frames 300 --auto
 ./build/examples/meshlet/meshlet resources/meshes/nefertiti.obj --frames 300 --auto
 ./build/examples/raytracing/raytracing resources/meshes/nefertiti.obj --frames 300 --auto
-# ./build/examples/pathtracing/pathtracing resources/meshes/nefertiti.obj --frames 300 --auto
+./build/examples/pathtracing/pathtracing resources/meshes/nefertiti.obj --frames 300 --auto
 ./build/examples/ngf/ngf resources/meshes/armadillo-ngf.bin --frames 300 --auto
 ./build/examples/particles/particles --frames 300 --auto
 ./build/examples/compute/compute --frames 300 --auto

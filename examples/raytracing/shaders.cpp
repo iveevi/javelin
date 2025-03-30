@@ -6,7 +6,7 @@
 // Target display shaders //
 ////////////////////////////
 
-Procedure <void> quad = procedure <void> ("main") << []()
+entry(quad)()
 {
 	array <vec4> locations = std::array <vec4, 6> {
 		vec4(-1, -1, 0, 0),
@@ -24,7 +24,7 @@ Procedure <void> quad = procedure <void> ("main") << []()
 	uv = v.zw();
 };
 
-Procedure <void> blit = procedure <void> ("main") << []()
+entry(blit)()
 {
 	layout_in <vec2> uv(0);
 
@@ -54,7 +54,7 @@ struct Hit {
 	}
 };
 
-Procedure <void> ray_generation = procedure <void> ("main") << []()
+entry(ray_generation)()
 {
 	ray_payload <Hit> hit(0);
 	ray_payload <boolean> shadow(1);
@@ -117,7 +117,7 @@ struct Vertex {
 	}
 };
 
-Procedure <void> primary_closest_hit = procedure <void> ("main") << []()
+entry(primary_closest_hit)()
 {
 	using Triangles = scalar <buffer_reference <unsized_array <ivec3>>>;
 	using Vertices = scalar <buffer_reference <unsized_array <Vertex>>>;
@@ -160,7 +160,7 @@ Procedure <void> primary_closest_hit = procedure <void> ("main") << []()
 	hit.missed = false;
 };
 
-Procedure <void> primary_miss = procedure <void> ("main") << []()
+entry(primary_miss)()
 {
 	ray_payload_in <Hit> hit(0);
 
@@ -169,7 +169,7 @@ Procedure <void> primary_miss = procedure <void> ("main") << []()
 	hit.missed = true;
 };
 
-Procedure <void> shadow_miss = procedure <void> ("main") << []()
+entry(shadow_miss)()
 {
 	ray_payload_in <boolean> shadow(1);
 

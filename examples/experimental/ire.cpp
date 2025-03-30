@@ -548,7 +548,7 @@ uint32_t Optimizer::distill_types(Buffer &buffer) const
 
 } // namespace jvl::thunder
 
-func(ftn, i32)(i32 samples)
+func(i32, ftn)(i32 samples)
 {
 	i32 count;
 
@@ -568,6 +568,9 @@ func(ftn, i32)(i32 samples)
 };
 
 // TODO: legalize stores through a storage atom...
+
+// TODO: partial specialization of arguments
+// TODO: refactor to func(R, name, compile-time args...)
 
 int main()
 {
