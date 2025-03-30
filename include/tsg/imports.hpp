@@ -30,7 +30,7 @@ using ire::mat4;
 
 using ire::$end;
 using ire::$if;
-using ire::$for;
+using ire::_for;
 
 using ire::solid_t;
 using ire::solid_size;

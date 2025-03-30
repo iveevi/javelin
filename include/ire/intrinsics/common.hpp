@@ -237,4 +237,13 @@ inline void discard()
 	platform_intrinsic_keyword(thunder::discard);
 }
 
+// Special control-flow related global states
+struct local_size {
+	local_size(uint32_t x = 1, uint32_t y = 1, uint32_t z = 1) {
+		using T = native_t <uint32_t>;
+
+		ire::void_platform_intrinsic_from_args(thunder::layout_local_size, T(x), T(y), T(z));
+	}
+};
+
 } // namespace jvl::ire

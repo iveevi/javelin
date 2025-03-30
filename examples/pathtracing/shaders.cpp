@@ -137,8 +137,9 @@ $entrypoint(ray_generation)
 	vec3 color = vec3(0);
 
 	// TODO: compile with fixed depth and samples per pixel per launch
-	$for (range <u32> (0, 5, 1));
-	{
+	auto it = _range <u32> (0, 5, 1);
+
+	$for(_, it) {
 		traceRayEXT(tlas,
 			gl_RayFlagsOpaqueEXT,
 			0xFF,
@@ -164,8 +165,7 @@ $entrypoint(ray_generation)
 			beta *= vec3(1.0) * max(dot(hit.normal, s), 0.0f);
 		}
 		$end();
-	}
-	$end();
+	};
 
 	// TODO: tone mapping
 	// TODO: sample count..

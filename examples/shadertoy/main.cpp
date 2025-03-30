@@ -57,10 +57,7 @@ struct Creation : Shadertoy {
 		f32 l = clone(t);
 		f32 z = clone(t);
 
-		auto it = range <i32> (0, 3, 1);
-
-		auto i = $for(it);
-		{
+		$for (i, range(0, 3)) {
 			vec2 uv;
 			vec2 p = fragCoord.xy() / r;
 			uv = p;
@@ -78,8 +75,7 @@ struct Creation : Shadertoy {
 			$else();
 				c.z = val;
 			$end();
-		}
-		$end();
+		};
 
 		fragColor = vec4(c / l, 1);
 

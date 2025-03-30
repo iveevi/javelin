@@ -34,4 +34,12 @@ static const gl_LaunchSizeEXT_t gl_LaunchSizeEXT;
 static const gl_MeshPerVertexEXT_t gl_MeshVerticesEXT;
 static const gl_PrimitiveTriangleIndicesEXT_t gl_PrimitiveTriangleIndicesEXT;
 
+struct mesh_shader_size {
+	// TODO: primitive enum
+	mesh_shader_size(uint32_t max_vertices = 1, uint32_t max_primitives = 1) {
+		ire::void_platform_intrinsic_from_args(thunder::layout_mesh_shader_sizes,
+			u32(max_vertices), u32(max_primitives));
+	}
+};
+
 } // namespace jvl::ire

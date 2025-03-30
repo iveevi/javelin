@@ -47,17 +47,28 @@ inline void $while(const boolean &b)
 
 // Python-like range loops
 template <builtin T>
-struct range {
+struct _range {
 	T start;
 	T end;
 	T step;
-
-	range(const T &start_, const T &end_, const T &step_ = T(1))
-		: start(start_), end(end_), step(step_) {}
 };
 
+// Smoother conversion from native types and the like
+template <integral_arithmetic T, integral_arithmetic U, integral_arithmetic V = T>
+auto range(const T &start, const U &end, const V &step = V(1))
+{
+	using result = decltype(underlying(start));
+
+	return _range <result> {
+		underlying(start),
+		underlying(end),
+		underlying(step)
+	};
+}
+
+// Imperative-style for loops... see the bottom for syntactic sugar
 template <builtin T>
-inline T $for(const range <T> &range)
+inline T _for(const _range <T> &range)
 {
 	auto &em = Emitter::active;
 
@@ -141,20 +152,18 @@ inline void $return(T &value)
 	em.emit_return(rv);
 }
 
-// Special control-flow related global states
-struct local_size {
-	local_size(uint32_t x = 1, uint32_t y = 1, uint32_t z = 1) {
-		ire::void_platform_intrinsic_from_args(thunder::layout_local_size,
-			u32(x), u32(y), u32(z));
+// Macros for syntactic sugar
+template <builtin T>
+struct _for_igniter {
+	_range <T> it;
+
+	void operator<<(const std::function <void (T)> &hold) {
+		auto i = _for(it);
+			hold(i);
+		$end();
 	}
 };
 
-struct mesh_shader_size {
-	// TODO: primitive enum
-	mesh_shader_size(uint32_t max_vertices = 1, uint32_t max_primitives = 1) {
-		ire::void_platform_intrinsic_from_args(thunder::layout_mesh_shader_sizes,
-			u32(max_vertices), u32(max_primitives));
-	}
-};
+#define $for(id, it) _for_igniter(it) << [&](auto id) -> void
 
 } // namespace jvl::ire

@@ -22,13 +22,11 @@ using namespace jvl::ire;
 MODULE(ire);
 
 // TODO: type check for soft/concrete types... layout_from only for concrete types
-// TODO: unsized buffers in aggregates... only for buffers
 // TODO: generic is anything,
 // 	but solid_t aggregates must take only concrete_generics
 //      and soft_t aggregates can take anything, defaults to solid_t is all concrete
 
 // TODO: l-value propagation
-// TODO: shadertoy and fonts example
 // TODO: get line numbers for each invocation if possible?
 // using source location if available
 
@@ -552,51 +550,29 @@ $subroutine(i32, ftn)(i32 samples)
 {
 	i32 count;
 
-	auto it = range <i32> (0, samples, 1);
-	
-	auto i = $for(it);
-	{
-		auto j = $for(it);
-		{
+	$for (i, range(0, samples)) {
+		$for (j, range(0, samples)) {
 			count += i32(i != j);
-		}
-		$end();
-	}
-	$end();
+		};
+	};
 
 	$return(count);
 };
 
-// TODO: entry -> $entrypoint
-// TODO: func -> $shader
-// TODO: hybrid -> $partial_entrypoint, $partial_shader
-// TODO: also hybrid entrypoints...
-
-// Usage...
 $partial_subroutine(i32, partial_ftn)(int32_t stride, i32 samples)
 {
 	i32 count;
 
-	auto it = range <i32> (0, samples, stride);
+	auto it = range(0, samples, stride);
 	
-	auto i = $for(it);
-	{
-		auto j = $for(it);
-		{
+	$for (i, it) {
+		$for (j, it) {
 			count += i32(i != j);
-		}
-		$end();
-	}
-	$end();
+		};
+	};
 
 	$return(count);
 };
-
-// TODO: revised control flow macros...
-
-// TODO: legalize stores through a storage atom...
-
-// TODO: refactor to func(R, name, compile-time args...)
 
 int main()
 {

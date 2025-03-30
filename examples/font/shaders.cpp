@@ -144,17 +144,13 @@ $subroutine(i32, inside)(vec2 uv) -> i32
 
 	i32 winding_number = 0;
 
-	auto it = range <i32> (0, curves.size, 1);
-
-	auto i = $for(it);
-	{
+	$for (i, range(0, curves.size)) {
 		vec2 p0 = curves.beziers[3 * i + 0];
 		vec2 p1 = curves.beziers[3 * i + 1];
 		vec2 p2 = curves.beziers[3 * i + 2];
 
 		winding_number += winding_contribution_solve(p0, p1, p2, uv);
-	}
-	$end();
+	};
 
 	return i32(winding_number % 2 == 1);
 };
@@ -167,7 +163,7 @@ $partial_entrypoint(fragment)(int32_t samples)
 
 	i32 count = 0;
 
-	if(samples == 1) {
+	if (samples == 1) {
 		count += inside(uv);
 	} else if (samples == 2) {
 		// Four rook sampling
@@ -176,20 +172,14 @@ $partial_entrypoint(fragment)(int32_t samples)
 		count += inside(uv + vec2(0.25, -0.75) / resolution);
 		count += inside(uv + vec2(-0.75, -0.25) / resolution);
 	} else {
-		// TODO: loop unrolling...
-		auto it = range <i32> (0, samples, 1);
-
-		auto i = $for(it);
-		{
-			auto j = $for(it);
-			{
+		// TODO: loop unrolling?
+		$for (i, range(0, samples)) {
+			$for (j, range(0, samples)) {
 				f32 u = f32(i) / f32(samples - 1) - 0.5;
 				f32 v = f32(j) / f32(samples - 1) - 0.5;
 				count += inside(uv + vec2(u, v) / resolution);
-			}
-			$end();
-		}
-		$end();
+			};
+		};
 	}
 
 	f32 proportion = f32(count) / f32(samples * samples);
