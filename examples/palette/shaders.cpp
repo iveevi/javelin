@@ -2,7 +2,7 @@
 
 #include "common/color.hpp"
 
-#include "shaders.hpp"
+#include "app.hpp"
 
 // Palette generation from SL values
 array <vec3> hsl_palette(float saturation, float lightness, int N)
@@ -20,7 +20,7 @@ array <vec3> hsl_palette(float saturation, float lightness, int N)
 }
 
 // Shader kernels
-void vertex()
+$entrypoint(vertex)
 {
 	// Vertex inputs
 	layout_in <vec3> position(0);
@@ -37,9 +37,9 @@ void vertex()
 
 	out_position = position;
 	out_id = u32(gl_VertexIndex / 3);
-}
+};
 
-void fragment(float saturation, float lightness, int splits)
+$partial_entrypoint(fragment)(float saturation, float lightness, int splits)
 {
 	layout_in <vec3> position(0);
 	layout_in <u32, flat> id(1);
@@ -60,10 +60,39 @@ void fragment(float saturation, float lightness, int splits)
 	vec3 color = lighting * palette[id % u32(palette.length)];
 
 	fragment = vec4(color, 1);
+};
+
+// Compiling pipelines
+void Application::compile_pipeline(VertexFlags flags, float saturation, float lightness, int splits)
+{
+	auto vs = vertex;
+	auto fs = fragment(saturation, lightness, splits);
+
+	auto vs_spv = link(vs).generate(Target::spirv_binary_via_glsl, Stage::vertex);
+	auto fs_spv = link(fs).generate(Target::spirv_binary_via_glsl, Stage::fragment);
+
+	// TODO: automatic generation by observing used layouts
+	auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
+		.code(vs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eVertex)
+		.code(fs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eFragment);
+
+	shader_debug();
+
+	auto [binding, attributes] = binding_and_attributes(flags);
+
+	traditional = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
+		(resources.device, resources.window, resources.dal)
+		.with_render_pass(render_pass, 0)
+		.with_vertex_binding(binding)
+		.with_vertex_attributes(attributes)
+		.with_shader_bundle(bundle)
+		.with_push_constant <solid_t <MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
+		.with_push_constant <solid_t <u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t <MVP>))
+		.cull_mode(vk::CullModeFlagBits::eNone);
 }
 
 // Debugging
-void shader_debug()
+void Application::shader_debug()
 {
 	static const std::filesystem::path root = std::filesystem::path(__FILE__).parent_path() / ".." / "..";
 	static const std::filesystem::path local = root / "output" / "palette";
@@ -71,27 +100,23 @@ void shader_debug()
 	std::filesystem::remove_all(local);
 	std::filesystem::create_directories(local);
 
-	auto vs_callable = procedure("main")
-		<< vertex;
+	auto vs = vertex;
+	auto fs = fragment(0.5f, 0.5f, 16);
 
-	auto fs_callable = procedure("main")
-		<< std::make_tuple(0.5f, 0.5f, 16)
-		<< fragment;
-
-	std::string vertex_shader = link(vs_callable).generate_glsl();
-	std::string fragment_shader = link(fs_callable).generate_glsl();
+	std::string vertex_shader = link(vs).generate_glsl();
+	std::string fragment_shader = link(fs).generate_glsl();
 
 	io::display_lines("VERTEX", vertex_shader);
 	io::display_lines("FRAGMENT", fragment_shader);
 
-	vs_callable.graphviz(local / "vertex.dot");
-	fs_callable.graphviz(local / "fragment.dot");
+	vs.graphviz(local / "vertex.dot");
+	fs.graphviz(local / "fragment.dot");
 
-	thunder::optimize(vs_callable);
-	thunder::optimize(fs_callable);
+	thunder::optimize(vs);
+	thunder::optimize(fs);
 
-	vs_callable.graphviz(local / "vertex-optimized.dot");
-	fs_callable.graphviz(local / "fragment-optimized.dot");
+	vs.graphviz(local / "vertex-optimized.dot");
+	fs.graphviz(local / "fragment-optimized.dot");
 
-	link(vs_callable, fs_callable).write_assembly(local / "shaders.jvl.asm");
+	link(vs, fs).write_assembly(local / "shaders.jvl.asm");
 }

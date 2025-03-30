@@ -548,7 +548,7 @@ uint32_t Optimizer::distill_types(Buffer &buffer) const
 
 } // namespace jvl::thunder
 
-func(i32, ftn)(i32 samples)
+$callable(i32, ftn)(i32 samples)
 {
 	i32 count;
 

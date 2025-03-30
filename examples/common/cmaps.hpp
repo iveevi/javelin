@@ -1,6 +1,10 @@
+#pragma once
+
 #include <ire.hpp>
 
 using namespace jvl::ire;
+
+using ColorMap = vec3 (*)(f32);
 
 inline vec3 viridis(f32 t)
 {

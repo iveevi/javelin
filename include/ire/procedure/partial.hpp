@@ -12,9 +12,6 @@ namespace jvl::ire {
 // Type checking partial specialization //
 //////////////////////////////////////////
 
-template <typename ... Args>
-struct type_packet {};
-
 template <typename Provided, typename Required>
 struct is_type_slice : std::false_type {
 	static constexpr bool generics = false;
@@ -31,8 +28,9 @@ struct is_type_slice <std::tuple <T, As...>, std::tuple <U, Bs...>> : std::false
 };
 
 // Matching frontal types (first type only)
-template <typename T, typename ... As, typename ... Bs>
-struct is_type_slice <std::tuple <T, As...>, std::tuple <T, Bs...>> {
+template <typename T, typename U, typename ... As, typename ... Bs>
+requires std::same_as <std::decay_t <T>, std::decay_t <U>>
+struct is_type_slice <std::tuple <T, As...>, std::tuple <U, Bs...>> {
 	using as_t = std::tuple <As...>;
 	using bs_t = std::tuple <Bs...>;
 
@@ -113,22 +111,11 @@ struct PartialProcedure {
 
 template <generic_or_void R, generic_or_void RF, typename ... Args>
 auto build_partial_procedure(const std::string &name,
-			     const type_packet <Args...> &,
+			     const detail::type_packet <Args...> &,
 			     const std::function <RF (Args...)> &passed)
 {
 	return PartialProcedure <R, RF, Args...> (name, passed);
 }
-
-// TODO: use type_packet for signatures...
-template <typename T>
-struct convert_to_packet {
-	using type = void;
-};
-
-template <typename ... Args>
-struct convert_to_packet <std::tuple <Args...>> {
-	using type = type_packet <Args...>;
-};
 
 template <generic_or_void R>
 struct PartialProcedureBuilder {
@@ -137,11 +124,16 @@ struct PartialProcedureBuilder {
 	template <detail::acceptable_callable F>
 	auto operator<<(const F &passed) const {
 		using S = detail::signature <F>;
-		using packet = convert_to_packet <typename S::args_t> ::type;
+		using packet = typename S::packet;
 
 		return build_partial_procedure <R, typename S::return_t>
 			(name, packet(), std::function(passed));
 	}
 };
+
+// Short-hand macro for writing specializable shader functions
+#define $partial_callable(R, name)	auto name = jvl::ire::PartialProcedureBuilder <R> (#name) << []
+
+#define $partial_entrypoint(name)	auto name = jvl::ire::PartialProcedureBuilder <void> ("main") << []
 
 } // namespace jvl::ire

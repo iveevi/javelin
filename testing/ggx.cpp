@@ -32,7 +32,7 @@ struct Material {
 };
 
 // Random number generation
-func(uvec3, pcg3d)(uvec3 v)
+$callable(uvec3, pcg3d)(uvec3 v)
 {
 	v = v * 1664525u + 1013904223u;
 	v.x += v.y * v.z;
@@ -45,7 +45,7 @@ func(uvec3, pcg3d)(uvec3 v)
 	return v;
 };
 
-func(vec3, random3)(inout <vec3> seed) -> vec3
+$callable(vec3, random3)(inout <vec3> seed) -> vec3
 {
 	seed = uintBitsToFloat(
 		(pcg3d(floatBitsToUint(seed)) & 0x007FFFFFu)
@@ -56,7 +56,7 @@ func(vec3, random3)(inout <vec3> seed) -> vec3
 };
 
 // Rotate a vector to orient it along a given direction
-func(vec3, rotate)(vec3 s, vec3 n)
+$callable(vec3, rotate)(vec3 s, vec3 n)
 {
 	vec3 w = n;
 	vec3 a = vec3(0.0f, 1.0f, 0.0f);
@@ -71,8 +71,8 @@ func(vec3, rotate)(vec3 s, vec3 n)
 	return u * s.x + v * s.y + w * s.z;
 };
 
-// GGX microfacet distribution function
-func(f32, ggx_ndf)(Material mat, vec3 n, vec3 h)
+// GGX microfacet distribution $callabletion
+$callable(f32, ggx_ndf)(Material mat, vec3 n, vec3 h)
 {
 	f32 alpha = mat.roughness;
 	f32 theta = acos(clamp(dot(n, h), 0.0f, 0.999f));
@@ -82,8 +82,8 @@ func(f32, ggx_ndf)(Material mat, vec3 n, vec3 h)
 	return ret;
 };
 
-// Smith shadow-masking function (single)
-func(f32, G1)(Material mat, vec3 n, vec3 v)
+// Smith shadow-masking $callabletion (single)
+$callable(f32, G1)(Material mat, vec3 n, vec3 v)
 {
 	$if(dot(v, n) <= 0.0f);
 		$return(0.0f);
@@ -98,21 +98,21 @@ func(f32, G1)(Material mat, vec3 n, vec3 v)
 	$return(2.0f/denom);
 };
 
-// Smith shadow-masking function (double)
-func(f32, G)(Material mat, vec3 n, vec3 wi, vec3 wo)
+// Smith shadow-masking $callabletion (double)
+$callable(f32, G)(Material mat, vec3 n, vec3 wi, vec3 wo)
 {
 	return G1(mat, n, wo) * G1(mat, n, wi);
 };
 
 // Shlicks approximation to the Fresnel reflectance
-func(f32, ggx_fresnel)(Material mat, vec3 wi, vec3 h)
+$callable(f32, ggx_fresnel)(Material mat, vec3 wi, vec3 h)
 {
 	f32 k = pow(1.0f - dot(wi, h), 5);
 	return mat.specular + (1 - mat.specular) * k;
 };
 
 // GGX specular brdf
-func(vec3, ggx_brdf)(Material mat, vec3 n, vec3 wi, vec3 wo)
+$callable(vec3, ggx_brdf)(Material mat, vec3 n, vec3 wi, vec3 wo)
 {
 	$if(dot(wi, n) <= 0.0f || dot(wo, n) <= 0.0f);
 		$return(vec3(0.0f));
@@ -131,7 +131,7 @@ func(vec3, ggx_brdf)(Material mat, vec3 n, vec3 wi, vec3 wo)
 };
 
 // GGX PDF
-func(f32, ggx_pdf)(Material mat, vec3 n, vec3 wi, vec3 wo)
+$callable(f32, ggx_pdf)(Material mat, vec3 n, vec3 wi, vec3 wo)
 {
 	$if(dot(wi, n) <= 0.0f || dot(wo, n) < 0.0f);
 		$return(0.0f);
@@ -153,7 +153,7 @@ func(f32, ggx_pdf)(Material mat, vec3 n, vec3 wi, vec3 wo)
 	$return((1.0f - t) * term1 + t * term2);
 };
 
-func(f32, ggx_samples)(Material mat, vec3 n, vec3 wo, inout <vec3> seed)
+$callable(f32, ggx_samples)(Material mat, vec3 n, vec3 wo, inout <vec3> seed)
 {
 	f32 avg_Kd = (mat.diffuse.x + mat.diffuse.y + mat.diffuse.z) / 3.0f;
 	f32 avg_Ks = (mat.specular.x + mat.specular.y + mat.specular.z) / 3.0f;

@@ -1,7 +1,8 @@
 #include <common/io.hpp>
 
-#include "shaders.hpp"
+#include "app.hpp"
 
+// TODO: use in main as well...
 struct Glyph {
 	vec4 bound;
 	u64 address;
@@ -13,7 +14,7 @@ struct Glyph {
 	}
 };
 
-entry(vertex)()
+$entrypoint(vertex)()
 {
 	layout_out <vec2>       uv          (0);
 	layout_out <u64, flat>  address     (1);
@@ -45,7 +46,7 @@ entry(vertex)()
 	size = extent * vec2(resolution);
 };
 
-func(i32, winding_contribution_solve)(vec2 p0, vec2 p1, vec2 p2, vec2 position)
+$callable(i32, winding_contribution_solve)(vec2 p0, vec2 p1, vec2 p2, vec2 position)
 {
 	f32 x = position.x;
 	f32 x0 = p0.x;
@@ -135,7 +136,7 @@ struct Curves {
 	}
 };
 
-func(i32, inside)(vec2 uv) -> i32
+$callable(i32, inside)(vec2 uv) -> i32
 {
 	layout_in <u64, flat> address(1);
 
@@ -158,7 +159,7 @@ func(i32, inside)(vec2 uv) -> i32
 	return i32(winding_number % 2 == 1);
 };
 
-void fragment(int32_t samples)
+$partial_entrypoint(fragment)(int32_t samples)
 {
 	layout_in  <vec2>       uv          (0);
 	layout_in  <vec2>       resolution  (2);
@@ -196,10 +197,40 @@ void fragment(int32_t samples)
 	fragment = vec4(proportion);
 };
 
-// Debugging
-void shader_debug()
+// Compile pipelines
+void Application::compile_pipeline(int32_t samples)
 {
-	auto fs = procedure("main") << std::make_tuple(1) << fragment;
+	static std::vector <vk::DescriptorSetLayoutBinding> bindings {
+		vk::DescriptorSetLayoutBinding()
+			.setBinding(0)
+			.setDescriptorCount(1)
+			.setDescriptorType(vk::DescriptorType::eStorageBuffer)
+			.setStageFlags(vk::ShaderStageFlagBits::eVertex),
+	};
+
+	// auto fs = procedure("main") << std::make_tuple(samples) << fragment;
+	auto fs = fragment(samples);
+
+	auto vs_spv = link(vertex).generate(Target::spirv_binary_via_glsl, Stage::vertex);
+	auto fs_spv = link(fs).generate(Target::spirv_binary_via_glsl, Stage::fragment);
+
+	auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
+		.code(vs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eVertex)
+		.code(fs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eFragment);
+
+	raster = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
+		(resources.device, resources.window, resources.dal)
+		.with_render_pass(render_pass, 0)
+		.with_shader_bundle(bundle)
+		.with_dsl_bindings(bindings)
+		.with_push_constant <solid_t <ivec2>> (vk::ShaderStageFlagBits::eVertex)
+		.cull_mode(vk::CullModeFlagBits::eNone);
+}
+
+// Debugging
+void Application::shader_debug()
+{
+	auto fs = fragment(1);
 
 	std::string vertex_shader = link(vertex).generate_glsl();
 	std::string winding_shader = link(winding_contribution_solve).generate_glsl();

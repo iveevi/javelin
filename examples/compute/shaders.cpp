@@ -1,10 +1,10 @@
 #include <common/io.hpp>
 
 #include "common/cmaps.hpp"
-#include "shaders.hpp"
+#include "app.hpp"
 
 // Shader kernels for the sphere rendering
-void vertex()
+$entrypoint(vertex)
 {
 	layout_in <vec3> position(0);
 
@@ -25,9 +25,9 @@ void vertex()
 	out_position = position;
 	out_speed = length(velocity);
 	out_range = vec2(view_info.smin, view_info.smax);
-}
+};
 
-void fragment(vec3 (*cmap)(f32))
+$partial_entrypoint(fragment)(ColorMap cmap)
 {
 	layout_in <vec3> position(0);
 	layout_in <f32> speed(1);
@@ -38,9 +38,9 @@ void fragment(vec3 (*cmap)(f32))
 	f32 t = (speed - range.x) / (range.y - range.x);
 
 	fragment = vec4(cmap(t), 1.0f);
-}
+};
 
-void integrator()
+$entrypoint(integrator)
 {
 	local_size group(32);
 
@@ -73,40 +73,85 @@ void integrator()
 
 	velocities[tid] = v;
 	positions[tid] = p;
+};
+
+// Pipeline compilation
+void Application::configure_render_pipeline(ColorMap cmap)
+{
+	auto vertex_layout = littlevk::VertexLayout <littlevk::rgb32f> ();
+
+	auto vs = vertex;
+	auto fs = fragment(cmap);
+
+	auto vs_spv = link(vs).generate(Target::spirv_binary_via_glsl, Stage::vertex);
+	auto fs_spv = link(fs).generate(Target::spirv_binary_via_glsl, Stage::fragment);
+
+	auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
+		.code(vs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eVertex)
+		.code(fs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eFragment);
+
+	raster = littlevk::PipelineAssembler <littlevk::PipelineType::eGraphics>
+		(resources.device, resources.window, resources.dal)
+		.with_render_pass(render_pass, 0)
+		.with_vertex_layout(vertex_layout)
+		.with_shader_bundle(bundle)
+		.with_push_constant <solid_t<MVP>> (vk::ShaderStageFlagBits::eVertex, 0)
+		.with_push_constant <solid_t<u32>> (vk::ShaderStageFlagBits::eFragment, sizeof(solid_t<MVP>))
+		.with_dsl_binding(0, vk::DescriptorType::eStorageBuffer,
+				1, vk::ShaderStageFlagBits::eVertex)
+		.with_dsl_binding(1, vk::DescriptorType::eStorageBuffer,
+				1, vk::ShaderStageFlagBits::eVertex)
+		.cull_mode(vk::CullModeFlagBits::eNone);
+}
+
+void Application::configure_compute_pipeline()
+{
+	auto cs = integrator;
+	auto cs_spv = link(cs).generate(Target::spirv_binary_via_glsl);
+	auto bundle = littlevk::ShaderStageBundle(resources.device, resources.dal)
+		.code(cs_spv.as <BinaryResult> (), vk::ShaderStageFlagBits::eCompute);
+
+	compute = littlevk::PipelineAssembler <littlevk::PipelineType::eCompute>
+		(resources.device, resources.dal)
+		.with_shader_bundle(bundle)
+		.with_push_constant <SimulationInfo> (vk::ShaderStageFlagBits::eCompute)
+		.with_dsl_binding(0, vk::DescriptorType::eStorageBuffer,
+				1, vk::ShaderStageFlagBits::eCompute)
+		.with_dsl_binding(1, vk::DescriptorType::eStorageBuffer,
+				1, vk::ShaderStageFlagBits::eCompute);
 }
 
 // Debugging
-void shader_debug()
+void Application::shader_debug()
 {
-	static const std::filesystem::path root = std::filesystem::path(__FILE__).parent_path() / ".." / "..";
-	static const std::filesystem::path local = root / "output" / "compute";
+	static const std::filesystem::path local = root() / "output" / "compute";
 	
 	std::filesystem::remove_all(local);
 	std::filesystem::create_directories(local);
 
-	auto vs_callable = procedure("main") << vertex;
-	auto fs_callable = procedure("main") << std::make_tuple(jet) << fragment;
-	auto cs_callable = procedure("main") << integrator;
+	auto vs = vertex;
+	auto fs = fragment(jet);
+	auto cs = integrator;
 
-	std::string vertex_shader = link(vs_callable).generate_glsl();
-	std::string fragment_shader = link(fs_callable).generate_glsl();
-	std::string compute_shader = link(cs_callable).generate_glsl();
+	std::string vertex_shader = link(vs).generate_glsl();
+	std::string fragment_shader = link(fs).generate_glsl();
+	std::string compute_shader = link(cs).generate_glsl();
 
 	io::display_lines("VERTEX", vertex_shader);
 	io::display_lines("FRAGMENT", fragment_shader);
 	io::display_lines("COMPUTE", compute_shader);
 
-	vs_callable.graphviz(local / "vertex.dot");
-	fs_callable.graphviz(local / "fragment.dot");
-	cs_callable.graphviz(local / "compute.dot");
+	vs.graphviz(local / "vertex.dot");
+	fs.graphviz(local / "fragment.dot");
+	cs.graphviz(local / "compute.dot");
 
-	thunder::optimize(vs_callable);
-	thunder::optimize(fs_callable);
-	thunder::optimize(cs_callable);
+	thunder::optimize(vs);
+	thunder::optimize(fs);
+	thunder::optimize(cs);
 
-	vs_callable.graphviz(local / "vertex-optimized.dot");
-	fs_callable.graphviz(local / "fragment-optimized.dot");
-	cs_callable.graphviz(local / "compute-optimized.dot");
+	vs.graphviz(local / "vertex-optimized.dot");
+	fs.graphviz(local / "fragment-optimized.dot");
+	cs.graphviz(local / "compute-optimized.dot");
 
-	link(vs_callable, fs_callable, cs_callable).write_assembly(local / "shaders.jvl.asm");
+	link(vs, fs, cs).write_assembly(local / "shaders.jvl.asm");
 }

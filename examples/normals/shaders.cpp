@@ -3,7 +3,7 @@
 #include "shaders.hpp"
 
 // Shader kernels
-entry(vertex)()
+$entrypoint(vertex)
 {
 	// Vertex inputs
 	layout_in <vec3> position(0);
@@ -21,7 +21,7 @@ entry(vertex)()
 	out_position = position;
 };
 
-entry(fragment)()
+$entrypoint(fragment)
 {
 	layout_in <vec3> position(0);
 	

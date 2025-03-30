@@ -6,7 +6,7 @@
 // Target display shaders //
 ////////////////////////////
 
-entry(quad)()
+$entrypoint(quad)
 {
 	array <vec4> locations = std::array <vec4, 6> {
 		vec4(-1, -1, 0, 0),
@@ -24,7 +24,7 @@ entry(quad)()
 	uv = v.zw();
 };
 
-entry(blit)()
+$entrypoint(blit)
 {
 	layout_in <vec2> uv(0);
 
@@ -54,7 +54,7 @@ struct Hit {
 	}
 };
 
-entry(ray_generation)()
+$entrypoint(ray_generation)
 {
 	ray_payload <Hit> hit(0);
 	ray_payload <boolean> shadow(1);
@@ -117,7 +117,7 @@ struct Vertex {
 	}
 };
 
-entry(primary_closest_hit)()
+$entrypoint(primary_closest_hit)
 {
 	using Triangles = scalar <buffer_reference <unsized_array <ivec3>>>;
 	using Vertices = scalar <buffer_reference <unsized_array <Vertex>>>;
@@ -160,7 +160,7 @@ entry(primary_closest_hit)()
 	hit.missed = false;
 };
 
-entry(primary_miss)()
+$entrypoint(primary_miss)
 {
 	ray_payload_in <Hit> hit(0);
 
@@ -169,7 +169,7 @@ entry(primary_miss)()
 	hit.missed = true;
 };
 
-entry(shadow_miss)()
+$entrypoint(shadow_miss)
 {
 	ray_payload_in <boolean> shadow(1);
 

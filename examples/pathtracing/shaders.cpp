@@ -6,7 +6,7 @@
 // Target display shaders //
 ////////////////////////////
 
-entry(quad)()
+$entrypoint(quad)
 {
 	array <vec4> locations = std::array <vec4, 6> {
 		vec4(-1, -1, 0, 0),
@@ -24,7 +24,7 @@ entry(quad)()
 	uv = v.zw();
 };
 
-entry(blit)()
+$entrypoint(blit)
 {
 	layout_in <vec2> uv(0);
 
@@ -54,7 +54,7 @@ struct Hit {
 	}
 };
 
-func(uvec3, pcg3d)(uvec3 v)
+$callable(uvec3, pcg3d)(uvec3 v)
 {
 	v = v * 1664525u + 1013904223u;
 	v.x += v.y * v.z;
@@ -67,18 +67,18 @@ func(uvec3, pcg3d)(uvec3 v)
 	return v;
 };
 
-func(vec3, random3)(inout <vec3> seed) -> vec3
+$callable(vec3, random3)(inout <vec3> seed) -> vec3
 {
 	seed = uintBitsToFloat((pcg3d(floatBitsToUint(seed)) & 0x007FFFFFu) | 0x3F800000u) - 1.0;
 	return seed;
 };
 
-func(vec3, spherical)(f32 theta, f32 phi)
+$callable(vec3, spherical)(f32 theta, f32 phi)
 {
 	return vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
 };
 
-func(vec3, randomH2)(inout <vec3> seed)
+$callable(vec3, randomH2)(inout <vec3> seed)
 {
 	vec3 eta = random3(seed);
 	f32 theta = acos(eta.x);
@@ -86,7 +86,7 @@ func(vec3, randomH2)(inout <vec3> seed)
 	return spherical(theta, phi);
 };
 
-func(vec3, rotate)(vec3 s, vec3 n)
+$callable(vec3, rotate)(vec3 s, vec3 n)
 {
         vec3 w = n;
 	vec3 ut = vec3(-w.y, w.x, 0.0);
@@ -96,7 +96,7 @@ func(vec3, rotate)(vec3 s, vec3 n)
         return u * s.x + v * s.y + w * s.z;
 };
 
-entry(ray_generation)()
+$entrypoint(ray_generation)
 {
 	ray_payload <Hit> hit(0);
 	ray_payload <boolean> shadow(1);
@@ -186,7 +186,7 @@ struct Vertex {
 	}
 };
 
-entry(primary_closest_hit)()
+$entrypoint(primary_closest_hit)
 {
 	using Triangles = scalar <buffer_reference <unsized_array <ivec3>>>;
 	using Vertices = scalar <buffer_reference <unsized_array <Vertex>>>;
@@ -229,7 +229,7 @@ entry(primary_closest_hit)()
 	hit.missed = false;
 };
 
-entry(primary_miss)()
+$entrypoint(primary_miss)
 {
 	ray_payload_in <Hit> hit(0);
 
@@ -238,7 +238,7 @@ entry(primary_miss)()
 	hit.missed = true;
 };
 
-entry(shadow_miss)()
+$entrypoint(shadow_miss)
 {
 	ray_payload_in <boolean> shadow(1);
 

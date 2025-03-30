@@ -4,7 +4,7 @@
 
 #include "shaders.hpp"
 
-entry(task)()
+$entrypoint(task)
 {
 	task_payload <Payload> payload;
 
@@ -20,7 +20,7 @@ entry(task)()
 	EmitMeshTasksEXT(1, 1, 1);
 };
 
-entry(mesh)()
+$entrypoint(mesh)
 {
 	static constexpr uint32_t GROUP_SIZE = 32;
 
@@ -80,7 +80,7 @@ array <vec3> hsl_palette(float saturation, float lightness, int N)
 	return palette;
 }
 
-entry(fragment)()
+$entrypoint(fragment)
 {
 	layout_in <vec3> position(0);
 	layout_in <u32, flat> pid(1);
