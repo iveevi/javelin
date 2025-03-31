@@ -132,7 +132,7 @@ QualifiedType Buffer::semalz_load(const Load &load, Index i)
 	{
 		auto &pd = qt.as <PlainDataType> ();
 		if (!pd.is <Index> ())
-			display_pretty();
+			display_assembly();
 		JVL_ASSERT(pd.is <Index> (), "cannot load from primitive type: {}", qt);
 
 		Index concrete = pd.as <Index> ();

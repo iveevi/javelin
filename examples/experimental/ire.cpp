@@ -30,92 +30,65 @@ MODULE(ire);
 // TODO: get line numbers for each invocation if possible?
 // using source location if available
 
-// // Type safe options: shaders as functors...
-// struct Vertex {
-// 	gl_Position_t gl_Position;
+// Type safe options: shaders as functors...
+struct Vertex {
+	gl_Position_t gl_Position;
 
-// 	void $return() {
+	void returns() {
 
-// 	}
+	}
 
-// 	virtual void operator()() = 0;
-// };
-
-// template <generic_or_void R>
-// struct Method {
-// 	// Restrict certain operations for type checking reasons...
-// 	void $return(const R &) {
-
-// 	}
-// };
-
-// struct Shader : Vertex {
-// 	void operator()() override {
-
-// 	}
-// };
-
-namespace jvl::thunder {
-
-// Since AIR is linear we only need a range to specify any scope
-struct Scope {
-	Index begin;
-	Index end;
+	virtual void operator()() = 0;
 };
 
-struct Block : Scope {};
+template <generic_or_void R>
+struct Method {
+	// Restrict certain operations for type checking reasons...
+	void returns(const R &) {
 
-} // namespace jvl::thunder
+	}
+};
+
+struct Shader : Vertex {
+	void operator()() override {
+
+	}
+};
 
 // TODO: linking raw shader (string) code as well...
 // use as a test for shader toy examples
 
-$subroutine(uvec3, pcg3d)(uvec3 v)
+$subroutine(i32, demo)(i32 samples)
 {
-	v = v * 1664525u + 1013904223u;
-	v.x += v.y * v.z;
-	v.y += v.z * v.x;
-	v.z += v.x * v.y;
-	v ^= v >> 16u;
-	v.x += v.y * v.z;
-	v.y += v.z * v.x;
-	v.z += v.x * v.y;
-	return v;
-};
+	i32 count;
+	f32 ratios;
 
-$subroutine(vec3, random3)(inout <vec3> seed)
-{
-	seed = uintBitsToFloat((pcg3d(floatBitsToUint(seed)) & 0x007FFFFFu) | 0x3F800000u) - 1.0;
-	return seed;
-};
+	$for (i, range(0, samples)) {
+		$for (j, range(0, samples)) {
+			count += i32(i != j);
+			ratios += f32(i) / f32(samples);
+		};
+	};
 
-$subroutine(vec3, spherical)(f32 theta, f32 phi)
-{
-	return vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
-};
-
-$subroutine(vec3, randomH2)(inout <vec3> seed)
-{
-	vec3 eta = random3(seed);
-	f32 theta = acos(eta.x);
-	f32 phi = float(2 * M_PI) * eta.y;
-	return spherical(theta, phi);
+	$return count;
 };
 
 int main()
 {
-	auto ftn = randomH2;
-
 	{
-		auto glsl = link(ftn).generate_glsl();
+		auto glsl = link(demo).generate_glsl();
 		io::display_lines("FTN", glsl);
 	}
 
-	Legalizer::stable.storage(ftn);
-	Optimizer::stable.apply(ftn);
+	Legalizer::stable.storage(demo);
+	Optimizer::stable.apply(demo);
 	
 	{
-		auto glsl = link(ftn).generate_glsl();
+		auto glsl = link(demo).generate_glsl();
 		io::display_lines("FTN POST", glsl);
 	}
+
+	// demo.graphviz("ire.dot");
+
+	demo.display_assembly();
 }

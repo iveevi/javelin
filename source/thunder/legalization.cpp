@@ -38,6 +38,39 @@ std::pair <Index, uint8_t> type_of(const Buffer &buffer, Index i)
 		return { ctor.type, eRetrieved };
 	}
 
+	variant_case(Atom, Operation):
+	{
+		// Results of operations are necessarily primitives:
+		//     since operation overloads exist, it is annoying
+		//     to derive the resulting type from the types
+		//     of the operands
+		auto &qt = buffer.types[i];
+
+		JVL_ASSERT(qt.is_primitive(), "result type of operation is expected to be a primitive");
+
+		auto primitive = qt
+			.as <PlainDataType> ()
+			.as <PrimitiveType> ();
+
+		auto type = em.emit_type_information(-1, -1, primitive);
+		return { type, eConstructed };
+	}
+
+	variant_case(Atom, Load):
+	{
+		auto &qt = buffer.types[i];
+
+		if (qt.is <PlainDataType> ()) {
+			auto &pd = qt.as <PlainDataType> ();
+			if (auto primitive = pd.get <PrimitiveType> ()) {
+				auto type = em.emit_type_information(-1, -1, primitive.value());
+				return { type, eConstructed };
+			}
+		}
+
+		JVL_ABORT("unfinished implementation for load with result type {}:\n{}", qt, atom);
+	}
+
 	default:
 		break;
 	}

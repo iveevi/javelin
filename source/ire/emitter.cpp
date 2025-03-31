@@ -272,7 +272,7 @@ void Emitter::display_assembly()
 	auto &buf = buffer();
 
 	fmt::println("__emitter.{}:", scopes.size());
-	buf.display_pretty();
+	buf.display_assembly();
 }
 
 void Emitter::display_pretty()

@@ -133,15 +133,15 @@ std::string Primitive::to_assembly_string() const
 {
         switch (type) {
         case boolean:
-                return fmt::format(".bool {}", bdata);
+                return fmt::format("bool {}", bdata);
         case i32:
-                return fmt::format(".i32 {}", idata);
+                return fmt::format("i32 {}", idata);
         case u32:
-                return fmt::format(".u32 {}", udata);
+                return fmt::format("u32 {}", udata);
         case u64:
-                return fmt::format(".u64 {}", udata);
+                return fmt::format("u64 {}", udata);
         case f32:
-                return fmt::format(".f32 {}", fdata);
+                return fmt::format("f32 {}", fdata);
         default:
                 break;
         }
@@ -214,7 +214,7 @@ Addresses Swizzle::addresses()
 
 std::string Swizzle::to_assembly_string() const
 {
-        return fmt::format(".{} {}", tbl_swizzle_code[code], fmtaddr(src));
+        return fmt::format("!{} {}", tbl_swizzle_code[code], fmtaddr(src));
 }
 
 std::string Swizzle::to_pretty_string() const
@@ -239,7 +239,7 @@ Addresses Operation::addresses()
 
 std::string Operation::to_assembly_string() const
 {
-        return fmt::format(".{} {} {}",
+        return fmt::format("!{} {} {}",
                 tbl_operation_code[code],
                 fmtaddr(a),
                 fmtaddr(b));
@@ -266,7 +266,7 @@ Addresses Intrinsic::addresses()
 
 std::string Intrinsic::to_assembly_string() const
 {
-        return fmt::format(".{} {}",
+        return fmt::format("!{} {}",
                 tbl_intrinsic_operation[opn],
                 fmtaddr(args));
 }

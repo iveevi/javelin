@@ -117,13 +117,15 @@ R operation_from_args(thunder::OperationCode type, const A &a, const B &b)
 
 	auto &em = Emitter::active;
 
-	size_t size = em.scopes.top().get().pointer;
+	auto aid = a.synthesize().id;
+	auto size = em.scopes.top().get().pointer;
 
-	thunder::Index aid = a.synthesize().id;
+	if (aid < 0 || (size_t) aid > size)
+		em.display_assembly();
 
 	JVL_ASSERT(aid >= 0 && (size_t) aid <= size,
-		"invalid index ({}) synthesized for operation (type: {})",
-		aid, thunder::tbl_operation_code[type]);
+		"invalid index ({} of {}) synthesized for operation (type: {})",
+		aid, size, thunder::tbl_operation_code[type]);
 
 	thunder::Index bid = b.synthesize().id;
 	thunder::Index rit = em.emit_operation(aid, bid, type);
