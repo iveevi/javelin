@@ -18,6 +18,7 @@
 #include "ire/solidify.hpp"
 #include "ire/special.hpp"
 #include "ire/std.hpp"
+#include "ire/transformations.hpp"
 #include "ire/vector.hpp"
 
 #include "ire/procedure/ordinary.hpp"
@@ -31,5 +32,3 @@
 // TODO: organize into different targets, i.e. core/glsl.hpp, core/spirv.hpp, etc.
 // TODO: debug only
 #include "ire/guarantees.hpp"
-
-#include "thunder/optimization.hpp"

@@ -53,6 +53,7 @@ add_library(javelin SHARED
 	source/thunder/enumerations.cpp
 	source/thunder/gcc.cpp
 	source/thunder/graphviz.cpp
+	source/thunder/legalization.cpp
 	source/thunder/legalize_cc.cpp
 	source/thunder/linkage/common.cpp
 	source/thunder/linkage/core.cpp

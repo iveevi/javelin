@@ -3,14 +3,11 @@
 #include "../common/flags.hpp"
 
 #include "buffer.hpp"
+#include "relocation.hpp"
 #include "tracked_buffer.hpp"
 #include "usage.hpp"
 
 namespace jvl::thunder {
-
-// Utility
-void refine_relocation(reindex <Index> &);
-void buffer_relocation(Buffer &, const reindex <Index> &);
 
 // Flags for optimization passes
 enum class OptimizationFlags : uint8_t {
@@ -29,25 +26,39 @@ enum class OptimizationFlags : uint8_t {
 
 flag_operators(OptimizationFlags, uint8_t);
 
-// Optimization transformation passes
-bool optimize_dead_code_elimination_iteration(Buffer &);
-bool optimize_dead_code_elimination(Buffer &);
-
-uint32_t optimize_deduplicate_iteration(Buffer &);
-bool optimize_deduplicate(Buffer &);
-
-bool optimize_casting_elision(Buffer &);
-
-bool optimize_store_elision(Buffer &);
-
-// Full optimization pass
-void optimize(Buffer &, const OptimizationFlags = OptimizationFlags::eStable);
-void optimize(TrackedBuffer &, const OptimizationFlags = OptimizationFlags::eStable);
-
 // Legalizing instructions for C-family compiled targets
 void legalize_for_cc(Buffer &);
 
 // Stitching mapped instruction blocks
 void stitch_mapped_instructions(Buffer &, std::vector <mapped_instruction_t> &);
+
+// Optimizer class
+struct Optimizer {
+	using HashMap = std::map <uint64_t, Index>;
+
+	OptimizationFlags flags;
+
+	// Instruction distillation (deduplication)
+	uint32_t distill_types_once(Buffer &) const;
+	void distill_types(Buffer &) const;
+	void distill(Buffer &) const;
+
+	// Instruction disolving (removal and elision)
+	void disolve_casting(Relocation &, const Buffer &, const Intrinsic &) const;
+	void disolve_constructor(Relocation &, const Buffer &, const Construct &, Index) const;
+	void disolve_once(Buffer &) const;
+	void disolve(Buffer &) const;
+
+	// Dead code elimination
+	bool strip_buffer(Buffer &, const std::vector <bool> &) const;
+	bool strip_once(Buffer &) const;
+	bool strip(Buffer &) const;
+
+	// Full pass
+	void apply(Buffer &) const;
+	void apply(TrackedBuffer &) const;
+
+	static Optimizer stable;
+};
 
 } // namespace jvl::thunder

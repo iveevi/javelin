@@ -145,9 +145,9 @@ void Application::shader_debug()
 	fs.graphviz(local / "fragment.dot");
 	cs.graphviz(local / "compute.dot");
 
-	thunder::optimize(vs);
-	thunder::optimize(fs);
-	thunder::optimize(cs);
+	Optimizer::stable.apply(vs);
+	Optimizer::stable.apply(fs);
+	Optimizer::stable.apply(cs);
 
 	vs.graphviz(local / "vertex-optimized.dot");
 	fs.graphviz(local / "fragment-optimized.dot");

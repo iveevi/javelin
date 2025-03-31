@@ -204,12 +204,12 @@ void shader_debug()
 	quad.graphviz(local / "quad.dot");
 	blit.graphviz(local / "blit.dot");
 
-	thunder::optimize(ray_generation);
-	thunder::optimize(primary_closest_hit);
-	thunder::optimize(primary_miss);
-	thunder::optimize(shadow_miss);
-	thunder::optimize(quad);
-	thunder::optimize(blit);
+	Optimizer::stable.apply(ray_generation);
+	Optimizer::stable.apply(primary_closest_hit);
+	Optimizer::stable.apply(primary_miss);
+	Optimizer::stable.apply(shadow_miss);
+	Optimizer::stable.apply(quad);
+	Optimizer::stable.apply(blit);
 	
 	ray_generation.graphviz(local / "ray-generation-optimized.dot");
 	primary_closest_hit.graphviz(local / "primary-closest-hit-optimized.dot");

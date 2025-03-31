@@ -54,8 +54,8 @@ void shader_debug()
 	vertex.graphviz(local / "vertex.dot");
 	fragment.graphviz(local / "fragment.dot");
 
-	thunder::optimize(vertex);
-	thunder::optimize(fragment);
+	Optimizer::stable.apply(vertex);
+	Optimizer::stable.apply(fragment);
 
 	vertex.graphviz(local / "vertex-optimized.dot");
 	fragment.graphviz(local / "fragment-optimized.dot");
