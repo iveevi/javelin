@@ -9,7 +9,7 @@ namespace jvl::thunder {
 
 MODULE(optimization);
 
-bool casting_intrinsic(const Intrinsic &intr)
+bool is_casting_intrinsic(const Intrinsic &intr)
 {
 	switch (intr.opn) {
 	case cast_to_int:
@@ -64,8 +64,6 @@ uint32_t Optimizer::distill_types_once(Buffer &buffer) const
 				buffer.marked.erase(i);
 			}
 
-			fmt::println("distilling types: %{} ==> %{}", i, it->second);
-
 			return it->second;
 		}
 
@@ -107,21 +105,32 @@ void Optimizer::distill_types(Buffer &buffer) const
 void Optimizer::distill(Buffer &buffer) const {}
 
 // Instruction disolving
-void Optimizer::disolve_casting(Relocation &relocation, const Buffer &buffer, const Intrinsic &intr) const
+bool Optimizer::disolve_casting_intrinsic(Relocation &relocation, const Buffer &buffer, const Intrinsic &intr, Index i) const
 {
+	JVL_ASSERT_PLAIN(is_casting_intrinsic(intr));
+
 	fmt::println("casting instruction: {}", intr.to_assembly_string());
 
 	auto list = buffer.atoms[intr.args].as <List> ();
-	auto qt = buffer.types[list.item];
+	if (list.next == -1) {
+		auto type_this = buffer.types[i];
+		auto type_arg = buffer.types[list.item];
 
-	fmt::println("\ttype is {}", qt);
+		if (type_this == type_arg) {
+			fmt::println("\tvacous cast!");
+			relocation.emplace(i, list.item);
+			return true;
+		}
+	}
+
+	return false;
 }
 
-void Optimizer::disolve_constructor(Relocation &relocation, const Buffer &buffer, const Construct &ctor, Index i) const
+bool Optimizer::disolve_casting_constructor(Relocation &relocation, const Buffer &buffer, const Construct &ctor, Index i) const
 {
 	fmt::println("constructor instruction: {}", ctor.to_assembly_string());
 	if (ctor.args == -1)
-		return;
+		return false;
 	
 	auto list = buffer.atoms[ctor.args].as <List> ();
 	if (list.next == -1) {
@@ -131,17 +140,19 @@ void Optimizer::disolve_constructor(Relocation &relocation, const Buffer &buffer
 		if (type_this == type_arg) {
 			fmt::println("\tvacous construction!");
 			relocation.emplace(i, list.item);
+			return true;
 		}
 	}
 
-	// TODO: elision through element-wise forwarding
+	return false;
 }
 
-void Optimizer::disolve_once(Buffer &buffer) const
+void Optimizer::disolve_once(Buffer &buffer, DisolveFlags dflags) const
 {
 	Relocation relocation;
 
 	// Collection phase
+	// TODO: flags to controll which ones are allowed...
 	for (size_t i = 0; i < buffer.pointer; i++) {
 		auto &atom = buffer.atoms[i];
 
@@ -150,14 +161,21 @@ void Optimizer::disolve_once(Buffer &buffer) const
 		variant_case(Atom, Construct):
 		{
 			auto &ctor = atom.as <Construct> ();
-			disolve_constructor(relocation, buffer, ctor, i);
+
+			bool enable_cast = has(dflags, DisolveFlags::eCasting);
+			if (enable_cast && disolve_casting_constructor(relocation, buffer, ctor, i))
+				break;
+
+			// TODO: elision through element-wise forwarding if above fails...
 		} break;
 
 		variant_case(Atom, Intrinsic):
 		{
 			auto &intr = atom.as <Intrinsic> ();
-			if (casting_intrinsic(intr))
-				disolve_casting(relocation, buffer, intr);
+
+			bool enable_cast = has(dflags, DisolveFlags::eCasting) && is_casting_intrinsic(intr);
+			if (enable_cast && disolve_casting_intrinsic(relocation, buffer, intr, i))
+				break;
 		} break;
 
 		default:
@@ -169,19 +187,21 @@ void Optimizer::disolve_once(Buffer &buffer) const
 	relocation.apply(buffer);
 }
 
-void Optimizer::disolve(Buffer &buffer) const
+void Optimizer::disolve(Buffer &buffer, DisolveFlags dflags) const
 {
 	uint32_t counter = 0;
 
 	bool changed;
 	do {
-		disolve_once(buffer);
+		disolve_once(buffer, dflags);
 		changed = strip(buffer);
 		counter++;
 	} while (changed);
 
 	JVL_INFO("ran disolve pass {} times", counter);
 }
+
+// TODO: disolve_spurious (which includes at least casting... maybe also types anyway)
 
 // Dead code elimination
 bool Optimizer::strip_buffer(Buffer &buffer, const std::vector <bool> &include) const

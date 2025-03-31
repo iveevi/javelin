@@ -11,20 +11,30 @@ namespace jvl::thunder {
 
 // Flags for optimization passes
 enum class OptimizationFlags : uint8_t {
-	eNone = 0b0,
-	eDeadCodeElimination = 0b1,
-	eDeduplication = 0b10,
-	eCastingElision = 0b100,
-	eStoreElision = 0b1000,
-	eStable = eDeadCodeElimination
-		| eCastingElision,
-	eAll = eDeadCodeElimination
-		| eDeduplication
-		| eCastingElision
-		| eStoreElision,
+	eNone			= 0b0,
+	eDeadCodeElimination	= 0b1,
+	eDeduplication		= 0b10,
+	eCastingElision		= 0b100,
+	eStoreElision		= 0b1000,
+	eStable			= eDeadCodeElimination
+				| eCastingElision,
+	eAll			= eDeadCodeElimination
+				| eDeduplication
+				| eCastingElision
+				| eStoreElision,
 };
 
 flag_operators(OptimizationFlags, uint8_t);
+
+// Flags for disolve optimization pass
+enum class DisolveFlags : uint8_t {
+	eNone			= 0b0,
+	eCasting		= 0b1,
+	eStores			= 0b10,
+	eAll			= eCasting | eStores,
+};
+
+flag_operators(DisolveFlags, uint8_t);
 
 // Legalizing instructions for C-family compiled targets
 void legalize_for_cc(Buffer &);
@@ -44,10 +54,10 @@ struct Optimizer {
 	void distill(Buffer &) const;
 
 	// Instruction disolving (removal and elision)
-	void disolve_casting(Relocation &, const Buffer &, const Intrinsic &) const;
-	void disolve_constructor(Relocation &, const Buffer &, const Construct &, Index) const;
-	void disolve_once(Buffer &) const;
-	void disolve(Buffer &) const;
+	bool disolve_casting_intrinsic(Relocation &, const Buffer &, const Intrinsic &, Index) const;
+	bool disolve_casting_constructor(Relocation &, const Buffer &, const Construct &, Index) const;
+	void disolve_once(Buffer &, DisolveFlags) const;
+	void disolve(Buffer &, DisolveFlags = DisolveFlags::eAll) const;
 
 	// Dead code elimination
 	bool strip_buffer(Buffer &, const std::vector <bool> &) const;

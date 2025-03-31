@@ -51,6 +51,7 @@ add_library(javelin SHARED
 	source/thunder/buffer.cpp
 	source/thunder/c_like_generator.cpp
 	source/thunder/enumerations.cpp
+	source/thunder/expansion.cpp
 	source/thunder/gcc.cpp
 	source/thunder/graphviz.cpp
 	source/thunder/legalization.cpp
