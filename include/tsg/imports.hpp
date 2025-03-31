@@ -28,8 +28,8 @@ using ire::mat2;
 using ire::mat3;
 using ire::mat4;
 
-using ire::$end;
-using ire::$if;
+using ire::_end;
+using ire::_if;
 using ire::_for;
 
 using ire::solid_t;

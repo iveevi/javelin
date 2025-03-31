@@ -51,9 +51,9 @@ $entrypoint(integrator)
 
 	u32 tid = gl_GlobalInvocationID.x;
 
-	$if(tid >= info.count);
-		$return();
-	$end();
+	$if (tid >= info.count) {
+		$return $void;
+	};
 
 	vec3 p = positions[tid];
 	vec3 v = velocities[tid];

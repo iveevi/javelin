@@ -102,7 +102,7 @@ struct ProcedureBuilder {
 	auto operator<<(F ftn) const {
 		using S = detail::signature <F>;
 
-		typename S::procedure result;
+		typename S::template manual_prodecure <R> result;
 
 		auto &em = Emitter::active;
 
@@ -112,7 +112,7 @@ struct ProcedureBuilder {
 
 			result.call(args);
 			auto values = std::apply(ftn, args);
-			$return(values);
+			_return(values);
 		}
 		em.pop();
 
@@ -143,8 +143,8 @@ struct ProcedureBuilder {
 };
 
 // Short-hand macro for writing shader functions
-#define $subroutine(R, name)	jvl::ire::Procedure name = jvl::ire::ProcedureBuilder <R> (#name) << []
+#define $subroutine(R, name)	::jvl::ire::Procedure name = ::jvl::ire::ProcedureBuilder <R> (#name) << []
 
-#define $entrypoint(name)	jvl::ire::Procedure <void> name = jvl::ire::ProcedureBuilder("main") << []
+#define $entrypoint(name)	::jvl::ire::Procedure <void> name = ::jvl::ire::ProcedureBuilder("main") << []
 
 } // namespace jvl::ire

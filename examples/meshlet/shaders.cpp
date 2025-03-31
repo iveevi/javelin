@@ -44,9 +44,9 @@ $entrypoint(mesh)
 
 	SetMeshOutputsEXT(3 * low, low);
 
-	$if(gl_LocalInvocationIndex >= payload.size);
-		$return();
-	$end();
+	$if (gl_LocalInvocationIndex >= payload.size) {
+		$return $void;
+	};
 
 	u32 local_base = 3u * gl_LocalInvocationID.x;
 	u32 global_base = 3u * (gl_LocalInvocationID.x + payload.offset);

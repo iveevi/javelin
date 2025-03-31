@@ -67,7 +67,7 @@ $subroutine(uvec3, pcg3d)(uvec3 v)
 	return v;
 };
 
-$subroutine(vec3, random3)(inout <vec3> seed) -> vec3
+$subroutine(vec3, random3)(inout <vec3> seed)
 {
 	seed = uintBitsToFloat((pcg3d(floatBitsToUint(seed)) & 0x007FFFFFu) | 0x3F800000u) - 1.0;
 	return seed;
@@ -148,14 +148,11 @@ $entrypoint(ray_generation)
 			ray, 1e10,
 			0);
 
-		$if (hit.missed);
-		{
+		$if (hit.missed) {
 			// Missing hits the background light
 			color += beta * vec3(2, 2, 1.8);
-			$break();
-		}
-		$else();
-		{
+			_break();
+		} $else {
 			origin = hit.position + 1e-3 * hit.normal;
 
 			vec3 s = randomH2(seed);
@@ -163,8 +160,7 @@ $entrypoint(ray_generation)
 			ray = s;
 
 			beta *= vec3(1.0) * max(dot(hit.normal, s), 0.0f);
-		}
-		$end();
+		};
 	};
 
 	// TODO: tone mapping
@@ -219,9 +215,9 @@ $entrypoint(primary_closest_hit)
 	vec3 n = b.x * v0.normal + b.y * v1.normal + b.z * v2.normal;
 	n = normalize((n * gl_ObjectToWorldEXT).xyz());
 
-	$if (dot(n, gl_WorldRayDirectionEXT) > 0);
+	$if (dot(n, gl_WorldRayDirectionEXT) > 0) {
 		n = -n;
-	$end();
+	};
 
 	hit.position = p;
 	hit.normal = n;

@@ -9,7 +9,7 @@ namespace jvl::ire {
 // Any function beginning with $ is a control-flow related
 // operation specific to the Javelin IRE system
 
-inline void $if(const boolean &b)
+inline void _if(const boolean &b)
 {
 	auto &em = Emitter::active;
 	thunder::Branch branch;
@@ -18,7 +18,7 @@ inline void $if(const boolean &b)
 	em.emit(branch);
 }
 
-inline void $elif(const boolean &b)
+inline void _elif(const boolean &b)
 {
 	auto &em = Emitter::active;
 	thunder::Branch branch;
@@ -27,7 +27,7 @@ inline void $elif(const boolean &b)
 	em.emit(branch);
 }
 
-inline void $else()
+inline void _else()
 {
 	auto &em = Emitter::active;
 	thunder::Branch branch;
@@ -36,7 +36,7 @@ inline void $else()
 	em.emit(branch);
 }
 
-inline void $while(const boolean &b)
+inline void _while(const boolean &b)
 {
 	auto &em = Emitter::active;
 	thunder::Branch branch;
@@ -87,30 +87,32 @@ inline T _for(const _range <T> &range)
 }
 
 [[gnu::always_inline]]
-inline void $break()
+inline void _break()
 {
 	Emitter::active.emit_branch(-1, -1, thunder::control_flow_stop);
 }
 
 [[gnu::always_inline]]
-inline void $continue()
+inline void _continue()
 {
 	Emitter::active.emit_branch(-1, -1, thunder::control_flow_skip);
 }
 
 [[gnu::always_inline]]
-inline void $end()
+inline void _end()
 {
 	Emitter::active.emit_branch(-1, -1, thunder::control_flow_end);
 }
+
+// TODO: match/match_case statements
 
 template <builtin T>
 inline T $select(const boolean &b, const T &vt, const T &vf)
 {
 	T v = vf;
-	$if (b);
+	_if (b);
 		v = vt;
-	$end();
+	_end();
 	return v;
 }
 
@@ -122,27 +124,27 @@ inline native_t <T> $select(const boolean &b, const T &vt, const T &vf)
 	return $select(b, nvt, nvf);
 }
 
-// TODO: match/match_case statements
-inline void $return()
+// Returning values
+inline void _return()
 {
 	Emitter::active.emit_return(-1);
 }
 
 template <native T>
-inline void $return(const T &value)
+inline void _return(const T &value)
 {
 	auto nvalue = native_t <T> (value);
 	Emitter::active.emit_return(nvalue.synthesize().id);
 }
 
 template <builtin T>
-inline void $return(const T &value)
+inline void _return(const T &value)
 {
 	Emitter::active.emit_return(value.synthesize().id);
 }
 
 template <aggregate T>
-inline void $return(T &value)
+inline void _return(T &value)
 {
 	auto &em = Emitter::active;
 	auto layout = value.layout();
@@ -152,7 +154,116 @@ inline void $return(T &value)
 	em.emit_return(rv);
 }
 
-// Macros for syntactic sugar
+////////////////////////////////
+// Macros for syntactic sugar //
+////////////////////////////////
+
+// Branch conditions
+using branch_body = std::function <void ()>;
+
+struct _if_holder {
+	boolean cond;
+	branch_body handle = nullptr;
+
+	template <typename F>
+	_if_holder operator*(const F &passed) const {
+		return _if_holder(cond, std::function(passed));
+	}
+};
+
+struct _else_if_holder {
+	boolean cond;
+	branch_body handle = nullptr;
+
+	template <typename F>
+	_else_if_holder operator*(const F &passed) const {
+		return _else_if_holder(cond, std::function(passed));
+	}
+};
+
+struct _else_holder {
+	branch_body handle = nullptr;
+
+	template <typename F>
+	_else_holder operator*(const F &passed) const {
+		return _else_holder(std::function(passed));
+	}
+};
+
+// TODO: template bool on whether the end has been reached
+struct _branch_holder {
+	std::optional <_if_holder>    hif;
+	std::optional <_else_holder>  helse;
+	std::vector <_else_if_holder> helifs;
+
+	_branch_holder() = default;
+
+	_branch_holder(const _branch_holder &) = delete;
+	_branch_holder &operator=(const _branch_holder &) = delete;
+
+	_branch_holder(_branch_holder &&other) {
+		hif = other.hif;
+		helifs = other.helifs;
+		helse = other.helse;
+
+		other.hif.reset();
+		other.helifs.clear();
+		other.helse.reset();
+	}
+
+	~_branch_holder() {
+		if (!hif.has_value())
+			return;
+
+		// Generate full branch source
+		auto _ifv = hif.value();
+
+		_if(_ifv.cond);
+			_ifv.handle();
+
+		for (auto &_elifv : helifs) {
+			_elif(_elifv.cond);
+				_elifv.handle();	
+		}
+
+		if (helse) {
+			auto _elsev = helse.value();
+
+			_else();
+				_elsev.handle();
+		}
+		
+		_end();
+	}
+};
+
+// TODO: move to source
+inline _branch_holder operator+(_branch_holder &&body, const _if_holder &_if)
+{
+	auto result = std::move(body);
+	result.hif = _if;
+	return result;
+}
+
+inline _branch_holder operator+(_branch_holder &&body, const _else_if_holder &_elif)
+{
+	auto result = std::move(body);
+	result.helifs.emplace_back(_elif);
+	return result;
+}
+
+inline _branch_holder operator+(_branch_holder &&body, const _else_holder &_else)
+{
+	auto result = std::move(body);
+	result.helse = _else;
+	return result;
+}
+
+#define $if(cond)	_branch_holder() + _if_holder(cond) * [&]()
+#define $elif(cond)	+ _else_if_holder(cond) * [&]()
+#define $else		+ _else_holder() * [&]()
+
+// For loops
 template <builtin T>
 struct _for_igniter {
 	_range <T> it;
@@ -160,10 +271,29 @@ struct _for_igniter {
 	void operator<<(const std::function <void (T)> &hold) {
 		auto i = _for(it);
 			hold(i);
-		$end();
+		_end();
 	}
 };
 
-#define $for(id, it) _for_igniter(it) << [&](auto id) -> void
+#define $for(id, it)	_for_igniter(it) << [&](auto id) -> void
+#define $continue	_continue()
+#define $break		_break()
+
+// Returns
+struct _void {};
+
+struct _return_igniter {
+	void operator<<(auto value) const {
+		using T = decltype(value);
+
+		if constexpr (std::same_as <T, _void>)
+			return _return();
+		else
+			return _return(value);
+	}
+};
+
+#define $return	_return_igniter() <<
+#define $void	_void()
 
 } // namespace jvl::ire

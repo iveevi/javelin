@@ -78,8 +78,7 @@ $entrypoint(ray_generation)
 		0);
 
 	// Shadow testing
-	$if (!hit.missed);
-	{
+	$if (!hit.missed) {
 		hit.color = vec3(max(dot(hit.normal, constants.light), 0.0f));
 
 		shadow = true;
@@ -97,8 +96,7 @@ $entrypoint(ray_generation)
 			1);
 
 		hit.color *= 0.25 + 0.75 * f32(!shadow);
-	}
-	$end();
+	};
 
 	// TODO: more semantic traceRaysEXT...
 	// traceRayEXT(tlas, flags, mask, nullptr, ..., shadow_miss, ray..., shadow)
@@ -150,9 +148,9 @@ $entrypoint(primary_closest_hit)
 	vec3 n = b.x * v0.normal + b.y * v1.normal + b.z * v2.normal;
 	n = normalize((n * gl_ObjectToWorldEXT).xyz());
 
-	$if (dot(n, gl_WorldRayDirectionEXT) > 0);
+	$if (dot(n, gl_WorldRayDirectionEXT) > 0) {
 		n = -n;
-	$end();
+	};
 
 	hit.position = p;
 	hit.normal = n;

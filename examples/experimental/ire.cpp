@@ -546,6 +546,9 @@ uint32_t Optimizer::distill_types(Buffer &buffer) const
 
 } // namespace jvl::thunder
 
+// TODO: linking raw shader (string) code as well...
+// use as a test for shader toy examples
+
 $subroutine(i32, ftn)(i32 samples)
 {
 	i32 count;
@@ -556,7 +559,7 @@ $subroutine(i32, ftn)(i32 samples)
 		};
 	};
 
-	$return(count);
+	$return count;
 };
 
 $partial_subroutine(i32, partial_ftn)(int32_t stride, i32 samples)
@@ -570,8 +573,20 @@ $partial_subroutine(i32, partial_ftn)(int32_t stride, i32 samples)
 			count += i32(i != j);
 		};
 	};
+	
+	$if (count == 1) {
+		$return 12;
+	} $elif (count == 2) {
+		$return 13;
+	} $elif (count == 3) {
+		$return 15;
+	} $elif (count == 4) {
+		$return 16;
+	} $else {
+		$return 14;
+	};
 
-	$return(count);
+	$return count;
 };
 
 int main()
@@ -582,29 +597,29 @@ int main()
 	io::display_lines("FTN", glsl);
 	ftn.graphviz("ire.dot");
 
-	// TODO: fix deduplication by doing l-value propogation...
-	// TODO: fix optimization around blocks...
-	// thunder::optimize(ftn, thunder::OptimizationFlags::eDeadCodeElimination);
+	// // TODO: fix deduplication by doing l-value propogation...
+	// // TODO: fix optimization around blocks...
+	// // thunder::optimize(ftn, thunder::OptimizationFlags::eDeadCodeElimination);
 
-	thunder::Legalizer().storage(ftn);
+	// thunder::Legalizer().storage(ftn);
 
-	auto glsl_leg = link(ftn).generate_glsl();
-	io::display_lines("FTN LEGALIZED", glsl_leg);
-	ftn.graphviz("ire-legalized.dot");
+	// auto glsl_leg = link(ftn).generate_glsl();
+	// io::display_lines("FTN LEGALIZED", glsl_leg);
+	// ftn.graphviz("ire-legalized.dot");
 
-	auto optimizer = thunder::Optimizer();
-	optimizer.distill_types(ftn);
-	optimizer.strip(ftn);
-	optimizer.distill_types(ftn);
-	optimizer.strip(ftn);
-	optimizer.disolve(ftn);
-	optimizer.strip(ftn);
-	optimizer.disolve(ftn);
-	optimizer.strip(ftn);
+	// auto optimizer = thunder::Optimizer();
+	// optimizer.distill_types(ftn);
+	// optimizer.strip(ftn);
+	// optimizer.distill_types(ftn);
+	// optimizer.strip(ftn);
+	// optimizer.disolve(ftn);
+	// optimizer.strip(ftn);
+	// optimizer.disolve(ftn);
+	// optimizer.strip(ftn);
 	
-	auto glsl_opt = link(ftn).generate_glsl();
-	io::display_lines("FTN OPTIMIZED", glsl_opt);
-	ftn.graphviz("ire-optimized.dot");
+	// auto glsl_opt = link(ftn).generate_glsl();
+	// io::display_lines("FTN OPTIMIZED", glsl_opt);
+	// ftn.graphviz("ire-optimized.dot");
 
-	ftn.display_assembly();
+	// ftn.display_assembly();
 }

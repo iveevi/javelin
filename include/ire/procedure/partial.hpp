@@ -88,8 +88,8 @@ struct PartialProcedureBuilder {
 };
 
 // Short-hand macro for writing specializable shader functions
-#define $partial_subroutine(R, name)	auto name = jvl::ire::PartialProcedureBuilder <R> (#name) << []
+#define $partial_subroutine(R, name)	auto name = ::jvl::ire::PartialProcedureBuilder <R> (#name) << []
 
-#define $partial_entrypoint(name)	auto name = jvl::ire::PartialProcedureBuilder <void> ("main") << []
+#define $partial_entrypoint(name)	auto name = ::jvl::ire::PartialProcedureBuilder <void> ("main") << []
 
 } // namespace jvl::ire

@@ -58,7 +58,7 @@ TEST(callable, returns)
 	$subroutine(f32, arithmetic)(f32 x, f32 y, f32 z) {
 		f32 a = x + y * z;
 		f32 b = a / (x - y) * z * z;
-		$return(a / b);
+		_return(a / b);
 	};
 
 	auto glsl = link(arithmetic).generate_glsl();
@@ -85,14 +85,13 @@ TEST(callable, conditional_returns)
 {
 	$subroutine(f32, conditional)(f32 x, f32 y, f32 z) {
 		f32 a = x + y * z;
-		$if (a < 0);
-		{
-			f32 b = a / (x - y) * z * z;
-			$return(a / b);
-		}
-		$end();
 
-		return a;
+		$if (a < 0) {
+			f32 b = a / (x - y) * z * z;
+			$return a / b;
+		};
+
+		$return a;
 	};
 
 	auto glsl = link(conditional).generate_glsl();

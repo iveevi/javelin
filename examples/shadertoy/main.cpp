@@ -68,13 +68,14 @@ struct Creation : Shadertoy {
 			uv += p / l * (sin(z) + 1.0) * abs(sin(l * 9.0 - z - z));
 
 			f32 val = 0.01 / length(mod(uv, 1.0f) - 0.5);
-			$if(i == 0);
+			
+			$if (i == 0) {
 				c.x = val;
-			$elif(i == 1);
+			} $elif (i == 1) {
 				c.y = val;
-			$else();
+			} $else {
 				c.z = val;
-			$end();
+			};
 		};
 
 		fragColor = vec4(c / l, 1);

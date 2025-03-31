@@ -54,9 +54,9 @@ $subroutine(i32, winding_contribution_solve)(vec2 p0, vec2 p1, vec2 p2, vec2 pos
 	f32 x2 = p2.x;
 
 	// Quick rejection: if the ray is completely to the right of the curve
-	$if (x > max(x0, max(x1, x2)));
-		$return(0);
-	$end();
+	$if (x > max(x0, max(x1, x2))) {
+		$return 0;
+	};
 
 	f32 y = position.y;
 	f32 y0 = p0.y;
@@ -64,9 +64,9 @@ $subroutine(i32, winding_contribution_solve)(vec2 p0, vec2 p1, vec2 p2, vec2 pos
 	f32 y2 = p2.y;
 
 	// Quick rejection: if the ray is completely above or below the curve
-	$if (y < min(y0, min(y1, y2)) || y > max(y0, max(y1, y2)));
-		$return(0);
-	$end();
+	$if (y < min(y0, min(y1, y2)) || y > max(y0, max(y1, y2))) {
+		$return 0;
+	};
 
 	// Solve the quadratic equation a*t^2 + b*t + c = 0 for intersections
 	f32 a = y0 - 2.0 * y1 + y2; // Quadratic coefficient
@@ -74,28 +74,26 @@ $subroutine(i32, winding_contribution_solve)(vec2 p0, vec2 p1, vec2 p2, vec2 pos
 	f32 c = y0 - y;            // Constant term
 
 	// Handle degenerate case: if the curve is effectively linear in the y-direction
-	$if (abs(a) < 1e-6);
-	{
-		$if (abs(b) < 1e-6);
-			$return(0); // The curve is horizontal; no contribution
-		$end();
+	$if (abs(a) < 1e-6) {
+		$if (abs(b) < 1e-6) {
+			$return 0; // The curve is horizontal; no contribution
+		};
 
 		f32 t = -c / b;
-		$if (t < 0.0 || t > 1.0);
-			$return(0); // Intersection is outside the curve
-		$end();
+		$if (t < 0.0 || t > 1.0) {
+			$return 0; // Intersection is outside the curve
+		};
 
 		f32 xt = (1.0 - t) * (1.0 - t) * x0 + 2.0 * (1.0 - t) * t * x1 + t * t * x2;
 
-		$return($select(xt >= x, 1, 0));
-	}
-	$end();
+		$return $select(xt >= x, 1, 0);
+	};
 
 	// Compute the discriminant of the quadratic equation
 	f32 discriminant = b * b - 4.0 * a * c;
-	$if (discriminant < 0.0);
-		$return(0); // No real roots, no intersection
-	$end();
+	$if (discriminant < 0.0) {
+		$return 0; // No real roots, no intersection
+	};
 
 	f32 sqrt_d = sqrt(discriminant);
 
@@ -106,23 +104,19 @@ $subroutine(i32, winding_contribution_solve)(vec2 p0, vec2 p1, vec2 p2, vec2 pos
 	// Check the range of the roots and their contributions
 	i32 contribution = 0;
 
-	$if (t0 >= 0.0 && t0 <= 1.0);
-	{
+	$if (t0 >= 0.0 && t0 <= 1.0) {
 		f32 tt0 = 1.0 - t0;
 		f32 xt0 = tt0 * tt0 * x0 + 2.0 * tt0 * t0 * x1 + t0 * t0 * x2;
 		contribution += i32(xt0 >= x);
-	}
-	$end();
+	};
 
-	$if (t1 >= 0.0 && t1 <= 1.0);
-	{
+	$if (t1 >= 0.0 && t1 <= 1.0) {
 		f32 tt1 = 1.0 - t1;
 		f32 xt1 = tt1 * tt1 * x0 + 2.0 * tt1 * t1 * x1 + t1 * t1 * x2;
 		contribution += i32(xt1 >= x);
-	}
-	$end();
+	};
 
-	$return(contribution);
+	$return contribution;
 };
 
 struct Curves {

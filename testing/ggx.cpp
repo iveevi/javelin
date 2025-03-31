@@ -61,9 +61,9 @@ $subroutine(vec3, rotate)(vec3 s, vec3 n)
 	vec3 w = n;
 	vec3 a = vec3(0.0f, 1.0f, 0.0f);
 
-	$if(dot(w, a) > 0.999f);
+	$if (dot(w, a) > 0.999f) {
 		a = vec3(0.0f, 0.0f, 1.0f);
-	$end();
+	};
 
 	vec3 u = normalize(cross(w, a));
 	vec3 v = normalize(cross(w, u));
@@ -85,9 +85,9 @@ $subroutine(f32, ggx_ndf)(Material mat, vec3 n, vec3 h)
 // Smith shadow-masking $subroutinetion (single)
 $subroutine(f32, G1)(Material mat, vec3 n, vec3 v)
 {
-	$if(dot(v, n) <= 0.0f);
-		$return(0.0f);
-	$end();
+	$if (dot(v, n) <= 0.0f) {
+		$return 0.0f;
+	};
 
 	f32 alpha = mat.roughness;
 	f32 theta = acos(clamp(dot(n, v), 0.0f, 0.999f));
@@ -95,7 +95,8 @@ $subroutine(f32, G1)(Material mat, vec3 n, vec3 v)
 	f32 tan_theta = tan(theta);
 
 	f32 denom = 1.0f + sqrt(1.0f + alpha * alpha * tan_theta * tan_theta);
-	$return(2.0f/denom);
+
+	$return 2.0f / denom;
 };
 
 // Smith shadow-masking $subroutinetion (double)
@@ -114,9 +115,9 @@ $subroutine(f32, ggx_fresnel)(Material mat, vec3 wi, vec3 h)
 // GGX specular brdf
 $subroutine(vec3, ggx_brdf)(Material mat, vec3 n, vec3 wi, vec3 wo)
 {
-	$if(dot(wi, n) <= 0.0f || dot(wo, n) <= 0.0f);
-		$return(vec3(0.0f));
-	$end();
+	$if (dot(wi, n) <= 0.0f || dot(wo, n) <= 0.0f) {
+		$return vec3(0.0f);
+	};
 
 	vec3 h = normalize(wi + wo);
 
@@ -127,15 +128,15 @@ $subroutine(vec3, ggx_brdf)(Material mat, vec3 n, vec3 wi, vec3 wo)
 	vec3 num = f * g * d;
 	f32 denom = 4.0f * dot(wi, n) * dot(wo, n);
 
-	$return(num / denom);
+	$return num / denom;
 };
 
 // GGX PDF
 $subroutine(f32, ggx_pdf)(Material mat, vec3 n, vec3 wi, vec3 wo)
 {
-	$if(dot(wi, n) <= 0.0f || dot(wo, n) < 0.0f);
-		$return(0.0f);
-	$end();
+	$if (dot(wi, n) <= 0.0f || dot(wo, n) < 0.0f) {
+		$return 0.0f;
+	};
 
 	vec3 h = normalize(wi + wo);
 
@@ -143,14 +144,14 @@ $subroutine(f32, ggx_pdf)(Material mat, vec3 n, vec3 wi, vec3 wo)
 	f32 avg_Ks = (mat.specular.x + mat.specular.y + mat.specular.z) / 3.0f;
 
 	f32 t = 1.0f;
-	$if(avg_Kd + avg_Ks > 0.0f);
+	$if (avg_Kd + avg_Ks > 0.0f) {
 		t = max(avg_Ks/(avg_Kd + avg_Ks), 0.25f);
-	$end();
+	};
 
 	f32 term1 = dot(n, wi)/PI;
 	f32 term2 = ggx_ndf(mat, n, h) * dot(n, h)/(4.0f * dot(wi, h));
 
-	$return((1.0f - t) * term1 + t * term2);
+	$return (1.0f - t) * term1 + t * term2;
 };
 
 $subroutine(f32, ggx_samples)(Material mat, vec3 n, vec3 wo, inout <vec3> seed)
@@ -159,14 +160,13 @@ $subroutine(f32, ggx_samples)(Material mat, vec3 n, vec3 wo, inout <vec3> seed)
 	f32 avg_Ks = (mat.specular.x + mat.specular.y + mat.specular.z) / 3.0f;
 
 	f32 t = 1.0f;
-	$if(avg_Kd + avg_Ks > 0.0f);
+	$if (avg_Kd + avg_Ks > 0.0f) {
 		t = max(avg_Ks/(avg_Kd + avg_Ks), 0.25f);
-	$end();
+	};
 
 	vec3 eta = fract(random3(seed));
 
-	$if(eta.x < t);
-	{
+	$if (eta.x < t) {
 		// Specular sampling
 		f32 k = sqrt(eta.y/(1.0f - eta.y));
 		f32 theta = atan(k * mat.roughness);
@@ -175,9 +175,8 @@ $subroutine(f32, ggx_samples)(Material mat, vec3 n, vec3 wo, inout <vec3> seed)
 		vec3 h = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
 		h = rotate(h, n);
 
-		$return(reflect(-wo, h));
-	}
-	$end();
+		$return reflect(-wo, h);
+	};
 
 	// Diffuse sampling
 	f32 theta = acos(sqrt(eta.y));
@@ -185,5 +184,5 @@ $subroutine(f32, ggx_samples)(Material mat, vec3 n, vec3 wo, inout <vec3> seed)
 
 	vec3 s = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
 
-	$return(rotate(s, n));
+	$return rotate(s, n);
 };

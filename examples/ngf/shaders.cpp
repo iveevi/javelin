@@ -95,13 +95,11 @@ $subroutine(vec3, eval)(const vec2 &uv)
 	// Layer 0
 	$for (i, range(0, 16)) {
 		// Load matrix row into shared memory
-		$if(tid == 0);
-		{
+		$if (tid == 0) {
 			$for (j, range(0, FFIN)) {
 				row[j] = texelFetch(w0, ivec2(i, j), 0);
 			};
-		}
-		$end();
+		};
 
 		barrier();
 
@@ -185,9 +183,9 @@ $entrypoint(mesh)
 	u32 trix = res - 1;
 	u32 triy = res - 1;
 
-	$if(gl_LocalInvocationIndex >= res * res);
-		$return();
-	$end();
+	$if (gl_LocalInvocationIndex >= res * res) {
+		$return $void;
+	};
 
 	uvec2 local = uvec2(gl_LocalInvocationIndex / res, gl_LocalInvocationIndex % res);
 
@@ -203,13 +201,11 @@ $entrypoint(mesh)
 	positions[gli] = v;
 	gl_MeshVerticesEXT[gli].gl_Position = pc.project(v);
 
-	$if(local.x < trix && local.y < triy);
-	{
+	$if (local.x < trix && local.y < triy) {
 		u32 tri = 2 * (local.x + trix * local.y);
 		gl_PrimitiveTriangleIndicesEXT[tri] = uvec3(gli, gli + 1, gli + res);
 		gl_PrimitiveTriangleIndicesEXT[tri + 1] = uvec3(gli + 1, gli + res + 1, gli + res);
-	}
-	$end();
+	};
 };
 
 $entrypoint(fragment)
