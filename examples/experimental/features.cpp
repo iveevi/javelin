@@ -293,6 +293,7 @@ struct _vshader : Vertex <
 	// which will respect the resource constraints...
 	$subroutine(vec4, project, vec3 p) {
 		$return $constants.project(p);
+		// $return $void;
 	};
 
 	$entrypoint(main) {
@@ -318,17 +319,17 @@ struct _vshader : Vertex <
 // TODO: linking raw shader (string) code as well...
 // use as a test for shader toy examples
 
-template <integral_arithmetic T>
-$subroutine(T, ftn, T x)
-{
-	$return (x << 2 | x & 0b10);
-};
+// template <integral_arithmetic T>
+// $subroutine(T, ftn, T x)
+// {
+// 	$return (x << 2 | x & 0b10);
+// };
 
-template <integral_arithmetic T>
-$partial_subroutine(T, partial_ftn, int32_t shamt, T x)
-{
-	$return (x << shamt | x & 0b10);
-};
+// template <integral_arithmetic T>
+// $partial_subroutine(T, partial_ftn, int32_t shamt, T x)
+// {
+// 	$return (x << shamt | x & 0b10);
+// };
 
 // TODO: type checking for return statements...
 
@@ -341,23 +342,17 @@ using collection = resource_collection <
 using layout_inputs = filter_layout_in <collection> ::group;
 using layout_outputs = filter_layout_out <collection> ::group;
 
-$subroutine(f32, name, f32 x)
-{
-	$return x * x;
-};
-
 int main()
 {
-	// auto glsl = link(vshader.main).generate_glsl();
-	// auto glsl = link(name).generate_glsl();
+	auto glsl = link(vshader.main).generate_glsl();
 
-	// io::display_lines("GLSL", glsl);
+	io::display_lines("GLSL", glsl);
 
-	// vshader.main.display_assembly();
+	vshader.main.display_assembly();
 
-	ftn <i32> .display_assembly();
-	ftn <u32> .display_assembly();
+	// ftn <i32> .display_assembly();
+	// ftn <u32> .display_assembly();
 	
-	partial_ftn <i32> (1).display_assembly();
-	partial_ftn <u32> (3).display_assembly();
+	// partial_ftn <i32> (1).display_assembly();
+	// partial_ftn <u32> (3).display_assembly();
 }

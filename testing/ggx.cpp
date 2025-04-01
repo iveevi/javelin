@@ -106,7 +106,7 @@ $subroutine(f32, G, Material mat, vec3 n, vec3 wi, vec3 wo)
 };
 
 // Shlicks approximation to the Fresnel reflectance
-$subroutine(f32, ggx_fresnel, Material mat, vec3 wi, vec3 h)
+$subroutine(vec3, ggx_fresnel, Material mat, vec3 wi, vec3 h)
 {
 	f32 k = pow(1.0f - dot(wi, h), 5);
 	$return mat.specular + (1 - mat.specular) * k;
@@ -154,7 +154,7 @@ $subroutine(f32, ggx_pdf, Material mat, vec3 n, vec3 wi, vec3 wo)
 	$return (1.0f - t) * term1 + t * term2;
 };
 
-$subroutine(f32, ggx_samples, Material mat, vec3 n, vec3 wo, inout <vec3> seed)
+$subroutine(vec3, ggx_samples, Material mat, vec3 n, vec3 wo, inout <vec3> seed)
 {
 	f32 avg_Kd = (mat.diffuse.x + mat.diffuse.y + mat.diffuse.z) / 3.0f;
 	f32 avg_Ks = (mat.specular.x + mat.specular.y + mat.specular.z) / 3.0f;

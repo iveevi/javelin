@@ -14,7 +14,7 @@ struct Glyph {
 	}
 };
 
-$entrypoint(vertex)()
+$entrypoint(vertex)
 {
 	layout_out <vec2>       uv          (0);
 	layout_out <u64, flat>  address     (1);

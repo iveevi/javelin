@@ -279,18 +279,29 @@ struct _for_igniter {
 // Returns
 struct _void {};
 
-struct _return_igniter {
-	void operator<<(auto value) const {
-		using T = decltype(value);
+template <generic_or_void T>
+struct _return_igniter {};
 
-		if constexpr (std::same_as <T, _void>)
-			return _return();
-		else
-			return _return(value);
+template <generic T>
+struct _return_igniter <T> {
+	template <typename U>
+	void operator<<(U value) const {
+		static_assert(std::is_convertible_v <U, T>, "attempting to return a value of incorrect type");
+		return _return(value);
 	}
 };
 
-#define $return	_return_igniter() <<
+template <>
+struct _return_igniter <void> {
+	template <typename U>
+	void operator<<(U value) const {
+		static_assert(std::same_as <U, _void>, "attempting to return a value in a void function");
+		return _return();
+	}
+};
+
+// To use $return the code must be inside a subroutine/etc. context
+#define $return	_returner <<
 #define $void	_void()
 
 } // namespace jvl::ire

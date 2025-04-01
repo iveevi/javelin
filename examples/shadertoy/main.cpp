@@ -3,7 +3,7 @@
 
 #include "shaders.hpp"
 
-$entrypoint(blit)()
+$entrypoint(blit)
 {
 	layout_out <vec2> uv(0);
 
@@ -172,7 +172,7 @@ struct Warping : Shadertoy {
 template <typename T>
 auto display()
 {
-	$entrypoint(main)() {
+	$entrypoint(main) {
 		layout_in  <vec2>  uv       (0);
 		layout_out <vec4>  fragment (0);
 
