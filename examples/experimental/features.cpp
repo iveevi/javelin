@@ -320,6 +320,8 @@ $rexec_vertex(VShader, $layout_in(vec3, 0), $push_constant(MVP, 0))
 	};
 };
 
+// TODO: automatic pipeline generation...
+
 // TODO: linking raw shader (string) code as well...
 // use as a test for shader toy examples
 
