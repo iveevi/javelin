@@ -25,6 +25,8 @@ MODULE(ire);
 // TODO: get line numbers for each invocation if possible?
 // using source location if available
 
+// TOOD: move to `rexec` module
+
 // Resource implementations
 #define DEFINE_RESOURCE_N2(name, concept_suffix, Ta, Tb)			\
 	template <Ta A, Tb B>							\
@@ -161,47 +163,90 @@ struct resource_manifestion :
 #define $lout(I)	layout_out <I> ()
 #define $constants	push_constant()
 
-// TODO: manifest <resource_group> adds all the necessary members...
-// then it becomes
-// 
-// vec3 p = layout_in <0> (); // or $lin(0)
-// 
-// layout_out <0> () = vec4(color, 1); // or $lout(0)
-//
-// and likewise for buffers, textures, etc.resource Resources
+// Resource compatiblity
+template <typename Super, typename Sub>
+struct is_resource_subset : std::false_type {};
+
+template <resource ... Supers, resource ... Subs>
+struct is_resource_subset <
+	resource_collection <Supers...>,
+	resource_collection <Subs...>
+> {
+	template <resource S>
+	static constexpr bool contained = (std::same_as <S, Supers> || ...);
+
+	static constexpr bool value = (contained <Subs> && ...);
+};
+
+template <typename T, typename U>
+concept resource_subset = is_resource_subset <T, U> ::value;
 
 // Resource and execution context
 enum class ExecutionFlag : uint8_t {
+	eInvalid,
 	eSubroutine,
 	eVertex,
 	eFragment,
 };
 
-template <ExecutionFlag, resource ... Resources>
-struct ResourceExecutionContext {};
+template <ExecutionFlag Flag, resource ... Resources>
+struct ResourceExecutionContext : resource_manifestion <Resources...> {
+	static constexpr ExecutionFlag flag = Flag;
+
+	using collection = resource_collection <Resources...>;
+};
+
+template <ExecutionFlag Flag, resource ... Resources>
+bool rexec_pass(const ResourceExecutionContext <Flag, Resources...> &);
+
+template <typename T>
+concept rexec = requires(const T &x) {
+	{ rexec_pass(x) } -> std::same_as <bool>;
+};
+
+template <resource ... Resources>
+struct Callable : ResourceExecutionContext <ExecutionFlag::eSubroutine, Resources...> {
+	// Nothing extra here...
+	// can only import other callables
+	
+	template <rexec T>
+	static T _use() {
+		using collection = resource_collection <Resources...>;
+
+		// Ensure execution compatibility
+		static_assert(T::flag == ExecutionFlag::eSubroutine,
+			"only subroutines are allowed as sub-RECs");
+
+		// Ensure resource compatibility
+		static_assert(resource_subset <collection, typename T::collection>,
+			"imported scope uses resource not specified in the current REC");
+
+		return T();
+	}
+};
 
 // Type safe options: shaders as functors...
 template <resource ... Resources>
-struct Vertex : resource_manifestion <Resources...> {
+struct Vertex : ResourceExecutionContext <ExecutionFlag::eVertex, Resources...> {
 	static gl_Position_t gl_Position;
+	// TODO: import the rest of the instrinsics here...
 
 	// TODO: specify rasterization options here as well?
 
-	// // Override return capabilities
-	// struct _return_igniter {
-	// 	void operator<<(_void) const {
-	// 		fmt::println("Vertex return!");
-	// 		return _return();
-	// 	}
-	// };
+	template <rexec T>
+	static T _use() {
+		using collection = resource_collection <Resources...>;
 
-	const auto &_import() {
+		// Ensure execution compatibility
+		static_assert(T::flag == ExecutionFlag::eSubroutine,
+			"only subroutines are allowed as sub-RECs");
 
+		// Ensure resource compatibility
+		static_assert(resource_subset <collection, typename T::collection>,
+			"imported scope uses resource not specified in the current REC");
+
+		return T();
 	}
-
-	// TODO: import other scopes...
-	// i.e. $import(object) ftn(args...)
-	//    -> _import(object).ftn(args...);
 };
 
 template <resource ... Resources>
@@ -210,39 +255,34 @@ gl_Position_t Vertex <Resources...> ::gl_Position;
 struct Fragment {
 };
 
-template <generic_or_void R, resource ... Resources>
-struct Subroutine : resource_manifestion <Resources...> {
-	// // Override return capabilities
-	// struct _return_igniter {
-	// 	void operator<<(R x) const {
-	// 		fmt::println("Subroutine return!");
-	// 		return _return(x);
-	// 	}
-	// };
-};
-
-// Examples...
-
-// In a separate module, author a shader module
-// which defines an environment of available
-// resources and the corresponding methods under that scope...
-
-// struct Method : Subroutine <vec3> {
-// 	// void operator()() {
-// 	// 	$return vec3(1);
-// 	// };
-// } method;
-
-// REC -- resource and execution (i.e. stage) context
-
-// TODO: macrofy to $rec(Vertex, resources...)
-// #define $rec_subroutine(R, ...)		struct : Subroutine <R, __VA_ARGS__>
-// #define $rec_vertex(...)		struct : Vertex <__VA_ARGS__>
+#define $rexec_callable(name, ...)	struct name : Callable <__VA_ARGS__>
+#define $rexec_vertex(name, ...)	struct name : Vertex <__VA_ARGS__>
 
 #define $layout_in(T, B, ...)	LayoutIn <T, B>
 #define $layout_out(T, B)	LayoutOut <T, B>
 #define $push_constant(T, O)	PushConstant <T, O>
 
+#define $use(id) _use <id> ()
+
+// $rec_... variants are simply static inline qualified
+#define $rexec_subroutine(...)	static inline $subroutine(__VA_ARGS__)
+#define $rexec_entrypoint(...)	static inline $entrypoint(__VA_ARGS__)
+
+#define $declare_subroutine(R, name, ...)					\
+	::jvl::ire::manifest_skeleton <R, void (*)(__VA_ARGS__)> ::proc name
+
+#define $declare_rexec_subroutine(...)	static $declare_subroutine(__VA_ARGS__)
+
+#define $implement_rexec_subroutine(rexec, R, name, ...)				\
+	::jvl::ire::manifest_skeleton <R, void (*)(__VA_ARGS__)> ::proc rexec::name	\
+		= ::jvl::ire::ProcedureBuilder <R> (#name)				\
+		<< [_returner = _return_igniter <R> ()](__VA_ARGS__) -> void
+
+// In a separate module, author a shader module
+// which defines an environment of available
+// resources and the corresponding methods under that scope...
+
+// Example:
 struct MVP {
 	mat4 model;
 	mat4 view;
@@ -260,99 +300,34 @@ struct MVP {
 	}
 };
 
-// TODO: template offset parameter?
-// $rec_subroutine
-// (
-// 	// Return type for all subsequent methods
-// 	vec3,
-// 	// Resources used in this context
-// 	$push_constant(MVP, 0)
-// )
-
-
-struct _projection : Subroutine <vec4, $push_constant(MVP, 0)>
+$rexec_callable(Projection, $push_constant(MVP, 0))
 {
-	$subroutine(vec4, project, vec3 p) {
-		$return $constants.project(p);
-	};
-} projection;
+	// Forward declaring to define an interface...
+	$declare_rexec_subroutine(vec4, project, vec3);
+};
 
-// $rec_vertex
-// (
-// 	// Resources used in this context
-// 	$layout_in(vec3, 0),
-// 	$push_constant(MVP, 0)
-// )
-
-struct _vshader : Vertex <
-	$layout_in(vec3, 0),
-	$push_constant(MVP, 0)
->
+// ...and write the implementation internally...
+$implement_rexec_subroutine(Projection, vec4, project, vec3 p)
 {
-	// Subroutines can be specified inside
-	// which will respect the resource constraints...
-	$subroutine(vec4, project, vec3 p) {
-		$return $constants.project(p);
-		// $return $void;
+	$return $constants.project(p);
+};
+
+$rexec_vertex(VShader, $layout_in(vec3, 0), $push_constant(MVP, 0))
+{
+	$rexec_entrypoint(main) {
+		// ...such that the REXEC can still be used appropriately
+		gl_Position = $use(Projection).project($lin(0));
 	};
-
-	$entrypoint(main) {
-		gl_Position = $constants.project($lin(0));
-		// gl_Position = projection.project($lin(0));
-	};
-} vshader;
-
-// TODO: above becomes
-// $method(name, resources) {
-//      void operator()(args...) override {
-//      }
-// }
-// 
-// with a call operator which is partial specializable...
-// TODO: some way to check that resources are available when
-// calling subsequent methods...
-// 
-// ultimately this become procedure level abstraction and modularity...
-
-// TODO: and then partial specializable strong procedures ones...
+};
 
 // TODO: linking raw shader (string) code as well...
 // use as a test for shader toy examples
 
-// template <integral_arithmetic T>
-// $subroutine(T, ftn, T x)
-// {
-// 	$return (x << 2 | x & 0b10);
-// };
-
-// template <integral_arithmetic T>
-// $partial_subroutine(T, partial_ftn, int32_t shamt, T x)
-// {
-// 	$return (x << shamt | x & 0b10);
-// };
-
-// TODO: type checking for return statements...
-
-using collection = resource_collection <
-	LayoutIn <vec3, 0>,
-	LayoutOut <vec3, 0>,
-	LayoutIn <vec3, 1>
->;
-
-using layout_inputs = filter_layout_in <collection> ::group;
-using layout_outputs = filter_layout_out <collection> ::group;
-
 int main()
 {
-	auto glsl = link(vshader.main).generate_glsl();
+	auto glsl = link(VShader::main).generate_glsl();
 
 	io::display_lines("GLSL", glsl);
 
-	vshader.main.display_assembly();
-
-	// ftn <i32> .display_assembly();
-	// ftn <u32> .display_assembly();
-	
-	// partial_ftn <i32> (1).display_assembly();
-	// partial_ftn <u32> (3).display_assembly();
+	VShader::main.display_assembly();
 }
