@@ -54,7 +54,7 @@ struct Hit {
 	}
 };
 
-$subroutine(uvec3, pcg3d)(uvec3 v)
+$subroutine(uvec3, pcg3d, uvec3 v)
 {
 	v = v * 1664525u + 1013904223u;
 	v.x += v.y * v.z;
@@ -64,36 +64,36 @@ $subroutine(uvec3, pcg3d)(uvec3 v)
 	v.x += v.y * v.z;
 	v.y += v.z * v.x;
 	v.z += v.x * v.y;
-	return v;
+	$return v;
 };
 
-$subroutine(vec3, random3)(inout <vec3> seed)
+$subroutine(vec3, random3, inout <vec3> seed)
 {
 	seed = uintBitsToFloat((pcg3d(floatBitsToUint(seed)) & 0x007FFFFFu) | 0x3F800000u) - 1.0;
-	return seed;
+	$return seed;
 };
 
-$subroutine(vec3, spherical)(f32 theta, f32 phi)
+$subroutine(vec3, spherical, f32 theta, f32 phi)
 {
-	return vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
+	$return vec3(cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta));
 };
 
-$subroutine(vec3, randomH2)(inout <vec3> seed)
+$subroutine(vec3, randomH2, inout <vec3> seed)
 {
 	vec3 eta = random3(seed);
 	f32 theta = acos(eta.x);
 	f32 phi = float(2 * M_PI) * eta.y;
-	return spherical(theta, phi);
+	$return spherical(theta, phi);
 };
 
-$subroutine(vec3, rotate)(vec3 s, vec3 n)
+$subroutine(vec3, rotate, vec3 s, vec3 n)
 {
         vec3 w = n;
 	vec3 ut = vec3(-w.y, w.x, 0.0);
 	vec3 uf = vec3(0.0, -w.z, w.y);
 	vec3 u = $select(abs(w.z) < 0.999f, ut, uf);
         vec3 v = cross(w, u);
-        return u * s.x + v * s.y + w * s.z;
+        $return u * s.x + v * s.y + w * s.z;
 };
 
 $entrypoint(ray_generation)

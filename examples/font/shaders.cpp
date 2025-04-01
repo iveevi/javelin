@@ -46,7 +46,7 @@ $entrypoint(vertex)()
 	size = extent * vec2(resolution);
 };
 
-$subroutine(i32, winding_contribution_solve)(vec2 p0, vec2 p1, vec2 p2, vec2 position)
+$subroutine(i32, winding_contribution_solve, vec2 p0, vec2 p1, vec2 p2, vec2 position)
 {
 	f32 x = position.x;
 	f32 x0 = p0.x;
@@ -130,7 +130,7 @@ struct Curves {
 	}
 };
 
-$subroutine(i32, inside)(vec2 uv) -> i32
+$subroutine(i32, inside, vec2 uv)
 {
 	layout_in <u64, flat> address(1);
 
@@ -146,7 +146,7 @@ $subroutine(i32, inside)(vec2 uv) -> i32
 		winding_number += winding_contribution_solve(p0, p1, p2, uv);
 	};
 
-	return i32(winding_number % 2 == 1);
+	$return i32(winding_number % 2 == 1);
 };
 
 $partial_entrypoint(fragment)(int32_t samples)

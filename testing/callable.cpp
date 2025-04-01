@@ -18,8 +18,8 @@ int sum(int _arg0, int _arg1)
 
 TEST(callable, sum)
 {
-	$subroutine(i32, sum)(i32 x, i32 y) {
-		return x + y;
+	$subroutine(i32, sum, i32 x, i32 y) {
+		$return x + y;
 	};
 
 	auto glsl = link(sum).generate_glsl();
@@ -40,10 +40,10 @@ float arithmetic(float _arg0, float _arg1, float _arg2)
 
 TEST(callable, arithmetic)
 {
-	$subroutine(f32, arithmetic)(f32 x, f32 y, f32 z) {
+	$subroutine(f32, arithmetic, f32 x, f32 y, f32 z) {
 		f32 a = x + y * z;
 		f32 b = a / (x - y) * z * z;
-		return a / b;
+		$return a / b;
 	};
 
 	auto glsl = link(arithmetic).generate_glsl();
@@ -55,10 +55,10 @@ TEST(callable, arithmetic)
 
 TEST(callable, returns)
 {
-	$subroutine(f32, arithmetic)(f32 x, f32 y, f32 z) {
+	$subroutine(f32, arithmetic, f32 x, f32 y, f32 z) {
 		f32 a = x + y * z;
 		f32 b = a / (x - y) * z * z;
-		_return(a / b);
+		$return a / b;
 	};
 
 	auto glsl = link(arithmetic).generate_glsl();
@@ -83,7 +83,7 @@ float conditional(float _arg0, float _arg1, float _arg2)
 
 TEST(callable, conditional_returns)
 {
-	$subroutine(f32, conditional)(f32 x, f32 y, f32 z) {
+	$subroutine(f32, conditional, f32 x, f32 y, f32 z) {
 		f32 a = x + y * z;
 
 		$if (a < 0) {
@@ -135,12 +135,12 @@ TEST(callable, struct_parameter)
 		}
 	};
 
-	$subroutine(vec4, project)(const MVP &mvp, const vec3 &v) {
+	$subroutine(vec4, project, MVP mvp, vec3 v) {
 		vec4 vh = vec4(v, 1);
 		vh = mvp.model * vh;
 		vh = mvp.view * vh;
 		vh = mvp.proj * vh;
-		return vh;
+		$return vh;
 	};
 
 	auto glsl = link(project).generate_glsl();
@@ -177,10 +177,10 @@ TEST(callable, struct_return)
 		}
 	};
 
-	$subroutine(Seed, shift_seed)(Seed seed) {
+	$subroutine(Seed, shift_seed, Seed seed) {
 		u32 a = seed.root << seed.shifted;
 		u32 b = seed.shifted | seed.root;
-		return Seed(a & b, b);
+		$return Seed(a & b, b);
 	};
 
 	auto glsl = link(shift_seed).generate_glsl();

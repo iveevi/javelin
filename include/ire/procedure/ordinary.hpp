@@ -142,9 +142,21 @@ struct ProcedureBuilder {
 	}
 };
 
-// Short-hand macro for writing shader functions
-#define $subroutine(R, name)	::jvl::ire::Procedure name = ::jvl::ire::ProcedureBuilder <R> (#name) << []
+// Syntactic sugar
+template <generic_or_void R, typename F>
+struct manifest_skeleton {
+	using proc = void;
+};
 
-#define $entrypoint(name)	::jvl::ire::Procedure <void> name = ::jvl::ire::ProcedureBuilder("main") << []
+template <generic_or_void R, typename ... Args>
+struct manifest_skeleton <R, void (*)(Args...)> {
+	using proc = Procedure <R, Args...>;
+};
+
+#define $subroutine(R, name, ...)							\
+	::jvl::ire::manifest_skeleton <R, void (*)(__VA_ARGS__)> ::proc name		\
+		= ::jvl::ire::ProcedureBuilder <R> (#name) << [](__VA_ARGS__) -> void
+
+#define $entrypoint(name)		::jvl::ire::Procedure <void> name = ::jvl::ire::ProcedureBuilder("main") << []
 
 } // namespace jvl::ire

@@ -21,7 +21,7 @@ auto leaky_relu(const T &v)
 	return max(v, 0.01 * v);
 }
 
-$subroutine(vec3, eval)(const vec2 &uv)
+$subroutine(vec3, eval, vec2 uv)
 {
 	task_payload <Payload> payload;
 
@@ -160,7 +160,7 @@ $subroutine(vec3, eval)(const vec2 &uv)
 	vec4 b4 = texelFetch(biases, 3 << 6, 0);
 	vec3 bias = vec3(b4.x, b4.y, b4.z);
 
-	return vertex + bias;
+	$return vertex + bias;
 };
 
 // TODO: problems with arrays of one-element structs...

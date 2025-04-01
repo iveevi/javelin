@@ -6,9 +6,6 @@
 
 namespace jvl::ire {
 
-// Any function beginning with $ is a control-flow related
-// operation specific to the Javelin IRE system
-
 inline void _if(const boolean &b)
 {
 	auto &em = Emitter::active;

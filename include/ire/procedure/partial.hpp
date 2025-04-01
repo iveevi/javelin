@@ -10,27 +10,27 @@ namespace jvl::ire {
 // Procedures with partial specialization //
 ////////////////////////////////////////////
 
-template <generic_or_void R, generic_or_void RF, typename A, typename B>
+template <generic_or_void R, typename A, typename B>
 struct PartialProcedureSpecialization {};
 
-template <generic_or_void R, generic_or_void RF, typename ... CArgs, generic ... RArgs>
-struct PartialProcedureSpecialization <R, RF, std::tuple <CArgs...>, std::tuple <RArgs...>> {
+template <generic_or_void R, typename ... CArgs, generic ... RArgs>
+struct PartialProcedureSpecialization <R, std::tuple <CArgs...>, std::tuple <RArgs...>> {
 	std::string name;
-	const std::function <RF (CArgs..., RArgs...)> &hold;
+	const std::function <void (CArgs..., RArgs...)> &hold;
 
 	auto operator()(CArgs ... cargs) {
-		return ProcedureBuilder <R> (name) << [this, cargs...](RArgs ... rargs) -> RF {
+		return ProcedureBuilder <R> (name) << [this, cargs...](RArgs ... rargs) -> void {
 			return hold(cargs..., rargs...);
 		};
 	}
 };
 
-template <generic_or_void R, generic_or_void RF, typename ... Args>
+template <generic_or_void R, typename ... Args>
 struct PartialProcedure {
 	// R  -> intended return type (shader)
 	// RT -> true return type of the invocable (c++)
 	std::string name;
-	std::function <RF (Args...)> hold;
+	std::function <void (Args...)> hold;
 
 	template <typename ... TArgs>
 	// TODO: require non generic constants...
@@ -50,7 +50,7 @@ struct PartialProcedure {
 		
 		if constexpr (slicer_eval_t::value && slicer_eval_t::generics) {
 			return PartialProcedureSpecialization <
-				R, RF,
+				R,
 				targs_t,
 				slicer_remainder_t
 			> (name, hold)(args...);
@@ -65,12 +65,12 @@ struct PartialProcedure {
 // Kickstart partial specialization procedures //
 /////////////////////////////////////////////////
 
-template <generic_or_void R, generic_or_void RF, typename ... Args>
+template <generic_or_void R, typename ... Args>
 auto build_partial_procedure(const std::string &name,
 			     const detail::type_packet <Args...> &,
-			     const std::function <RF (Args...)> &passed)
+			     const std::function <void (Args...)> &passed)
 {
-	return PartialProcedure <R, RF, Args...> (name, passed);
+	return PartialProcedure <R, Args...> (name, passed);
 }
 
 template <generic_or_void R>
@@ -82,13 +82,24 @@ struct PartialProcedureBuilder {
 		using S = detail::signature <F>;
 		using packet = typename S::packet;
 
-		return build_partial_procedure <R, typename S::return_t>
-			(name, packet(), std::function(passed));
+		return build_partial_procedure <R> (name, packet(), std::function(passed));
 	}
 };
 
 // Short-hand macro for writing specializable shader functions
-#define $partial_subroutine(R, name)	auto name = ::jvl::ire::PartialProcedureBuilder <R> (#name) << []
+template <generic_or_void R, typename F>
+struct manifest_partial_skeleton {
+	using proc = void;
+};
+
+template <generic_or_void R, typename ... Args>
+struct manifest_partial_skeleton <R, void (*)(Args...)> {
+	using proc = PartialProcedure <R, Args...>;
+};
+
+#define $partial_subroutine(R, name, ...)							\
+	::jvl::ire::manifest_partial_skeleton <R, void (*)(__VA_ARGS__)> ::proc name		\
+		= ::jvl::ire::PartialProcedureBuilder <R> (#name) << [](__VA_ARGS__) -> void
 
 #define $partial_entrypoint(name)	auto name = ::jvl::ire::PartialProcedureBuilder <void> ("main") << []
 
