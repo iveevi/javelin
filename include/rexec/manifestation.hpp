@@ -46,10 +46,51 @@ using manifest_layout_in = resource_manifestion_layout_in <
 	> ::group
 >;
 
+// Layout outputs
+template <typename T>
+struct resource_manifestion_layout_out {
+	static_assert(false, "invalid manifestion of layout outputs");
+};
+
+// TODO: validation to prevent conflicts (validation.hpp)
+template <>
+struct resource_manifestion_layout_out <resource_collection <>> {
+	template <size_t B>
+	static void layout_in() {
+		static_assert(false, "invalid binding location for layout output");
+	}
+};
+
+template <generic T, size_t B, resource_layout_out ... Outputs>
+struct resource_manifestion_layout_out <resource_collection <LayoutOut <T, B>, Outputs...>> {
+	using next = resource_manifestion_layout_in <resource_collection <Outputs...>>;
+
+	template <size_t I>
+	static auto layout_out() {
+		if constexpr (I == B)
+			return ire::layout_out <T> (B);
+		else
+			return next::template layout_out <I> ();
+	}
+};
+
+template <resource ... Resources>
+using manifest_layout_out = resource_manifestion_layout_out <
+	typename filter_layout_out <
+		resource_collection <Resources...>
+	> ::group
+>;
+
 // Push constants
 template <typename T>
 struct resource_manifestion_push_constant {
 	static_assert(false, "invalid manifestion of push constants");
+};
+
+template <>
+struct resource_manifestion_push_constant <resource_collection <>> {
+	// Having zero push constants is OK,
+	// there simply is no push constant available :)
 };
 
 template <generic T, size_t Offset>
@@ -76,12 +117,13 @@ using manifest_push_constant = resource_manifestion_push_constant <
 template <resource ... Resources>
 struct resource_manifestion :
 	manifest_layout_in <Resources...>,
+	manifest_layout_out <Resources...>,
 	manifest_push_constant <Resources...>
 	{};
 
-// Sugared accessors for resources
-#define $lin(I)		layout_in <I> ()
-#define $lout(I)	layout_out <I> ()
-#define $constants	push_constant()
+// Sugared accessors for resources (requries self defined somewhere)
+#define $lin(I)		self::layout_in <I> ()
+#define $lout(I)	self::layout_out <I> ()
+#define $constants	self::push_constant()
 
 } // namespace jvl::rexec

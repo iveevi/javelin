@@ -33,7 +33,6 @@ struct PartialProcedure {
 	std::function <void (Args...)> hold;
 
 	template <typename ... TArgs>
-	// TODO: require non generic constants...
 	auto operator()(TArgs ... args) {
 		using args_t = std::tuple <Args...>;
 		using targs_t = std::tuple <TArgs...>;

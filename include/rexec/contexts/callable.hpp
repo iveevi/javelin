@@ -11,6 +11,8 @@ namespace jvl::rexec {
 
 template <resource ... Resources>
 struct Callable : ResourceExecutionContext <ExecutionFlag::eSubroutine, Resources...> {
+	using self = Callable;
+
 	// Nothing extra here...
 	// can only import other callables
 	

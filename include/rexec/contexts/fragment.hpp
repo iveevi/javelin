@@ -12,10 +12,9 @@ namespace jvl::rexec {
 //////////////////
 
 template <resource ... Resources>
-struct Vertex : ResourceExecutionContext <ExecutionFlag::eVertex, Resources...> {
-	using self = Vertex;
+struct Fragment : ResourceExecutionContext <ExecutionFlag::eFragment, Resources...> {
+	using self = Fragment;
 
-	static ire::gl_Position_t gl_Position;
 	// TODO: import the rest of the instrinsics here...
 
 	// TODO: specify rasterization options here as well?
@@ -36,20 +35,18 @@ struct Vertex : ResourceExecutionContext <ExecutionFlag::eVertex, Resources...> 
 	}
 };
 
-// Implementing the intrinsics
-template <resource ... Resources>
-ire::gl_Position_t Vertex <Resources...> ::gl_Position;
+// TODO: Implementing the intrinsics
 
 // Concept
 template <resource ... Resources>
-bool vertex_pass(const Vertex <Resources...> &);
+bool fragment_pass(const Fragment <Resources...> &);
 
 template <typename T>
-concept vertex_class = requires(const T &value) {
-	{ vertex_pass(value) } -> std::same_as <bool>;
+concept fragment_class = requires(const T &value) {
+	{ fragment_pass(value) } -> std::same_as <bool>;
 };
 
-// Sugar for declaring Vertex REXEC contexts
-#define $rexec_vertex(name, ...)	struct name : Vertex <__VA_ARGS__>
+// Sugar for declaring Fragment REXEC contexts
+#define $rexec_fragment(name, ...)	struct name : Fragment <__VA_ARGS__>
 
 } // namespace jvl::rexec

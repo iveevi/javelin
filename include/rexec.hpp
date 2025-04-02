@@ -7,3 +7,4 @@
 #include "rexec/class.hpp"
 #include "rexec/contexts/callable.hpp"
 #include "rexec/contexts/vertex.hpp"
+#include "rexec/contexts/fragment.hpp"

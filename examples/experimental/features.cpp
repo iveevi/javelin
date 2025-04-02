@@ -48,25 +48,41 @@ struct MVP {
 	}
 };
 
-$rexec_callable(Projection, $push_constant(MVP, 0))
+template <size_t Offset>
+$rexec_callable(Projection, $push_constant(MVP, Offset))
 {
+	using self = Projection;
+
 	// Forward declaring to define an interface...
-	$declare_rexec_subroutine(vec4, project, vec3);
+	$rexec_subroutine(vec4, apply, vec3 p) {
+		$return $constants.project(p);
+	};
 };
 
-// ...and write the implementation internally...
-$implement_rexec_subroutine(Projection, vec4, project, vec3 p)
-{
-	$return $constants.project(p);
-};
-
-$rexec_vertex(VShader, $layout_in(vec3, 0), $push_constant(MVP, 0))
+$rexec_vertex(VShader,
+	$layout_in(vec3, 0),
+	$layout_in(vec3, 1),
+	$layout_out(vec3, 0),
+	$push_constant(MVP, 0)
+)
 {
 	$rexec_entrypoint(main) {
 		// ...such that the REXEC can still be used appropriately
-		gl_Position = $use(Projection).project($lin(0));
+		gl_Position = $use(Projection <0>).apply($lin(0));
 	};
 };
+
+$rexec_fragment(FShader,
+	$layout_in(vec3, 0),
+	$layout_out(vec4, 0)
+)
+{
+	$rexec_entrypoint(main) {
+		$lout(0) = vec4(0.5 + 0.5 * $lin(0), 1);
+	};
+};
+
+// auto pipeline = device << (VShader::main | FShader::main);
 
 // TODO: automatic pipeline generation...
 
@@ -75,9 +91,15 @@ $rexec_vertex(VShader, $layout_in(vec3, 0), $push_constant(MVP, 0))
 
 int main()
 {
-	auto glsl = link(VShader::main).generate_glsl();
-
-	io::display_lines("GLSL", glsl);
-
-	VShader::main.display_assembly();
+	{
+		auto glsl = link(VShader::main).generate_glsl();
+		io::display_lines("GLSL", glsl);
+		// VShader::main.display_assembly();
+	}
+	
+	{
+		auto glsl = link(FShader::main).generate_glsl();
+		io::display_lines("GLSL", glsl);
+		// FShader::main.display_assembly();
+	}
 }

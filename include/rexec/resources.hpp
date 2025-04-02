@@ -11,6 +11,17 @@ using ire::generic;
 // Resource implementations //
 //////////////////////////////
 
+/*
+TODO: something like
+
+template <...>
+struct T {
+	using self = Check <T>;
+};
+
+concept = std::same_as <T::self, Check <T>>;
+*/
+
 #define DEFINE_RESOURCE_N2(name, concept_suffix, Ta, Tb)			\
 	template <Ta A, Tb B>							\
 	struct name {};								\

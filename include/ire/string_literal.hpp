@@ -6,6 +6,8 @@ namespace jvl::ire {
 
 template <size_t N>
 struct string_literal {
+	static constexpr size_t length = N;
+	
 	constexpr string_literal(const char (&str)[N]) {
 		std::copy_n(str, N, value);
 	}
