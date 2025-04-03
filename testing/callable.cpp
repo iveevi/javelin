@@ -112,11 +112,11 @@ struct MVP {
 
 vec4 project(MVP _arg0, vec3 _arg1)
 {
-    vec4 s0 = vec4(_arg1, 1);
+    vec4 s0 = vec4(vec3(_arg1), 1);
     s0 = (_arg0.model * s0);
     s0 = (_arg0.view * s0);
     s0 = (_arg0.proj * s0);
-    return s0;
+    return vec4(s0);
 }
 )";
 

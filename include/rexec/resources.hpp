@@ -6,56 +6,60 @@ namespace jvl::rexec {
 
 // Importing definitions
 using ire::generic;
+using ire::generic_or_void;
 
 //////////////////////////////
 // Resource implementations //
 //////////////////////////////
 
-/*
-TODO: something like
-
-template <...>
-struct T {
-	using self = Check <T>;
-};
-
-concept = std::same_as <T::self, Check <T>>;
-*/
-
-#define DEFINE_RESOURCE_N2(name, concept_suffix, Ta, Tb)			\
-	template <Ta A, Tb B>							\
-	struct name {};								\
-										\
-	template <typename T>							\
-	struct is_##concept_suffix : std::false_type {};			\
-										\
-	template <Ta A, Tb B>							\
-	struct is_##concept_suffix <name <A, B>> : std::true_type {};		\
-										\
-	template <typename T>							\
-	concept resource_##concept_suffix = is_##concept_suffix <T> ::value;
-
 // Layout inputs
 // TODO: interpolation modes...
-DEFINE_RESOURCE_N2(LayoutIn, layout_in,
-	generic,	// value type
-	size_t		// binding
-)
+struct _layout_in {};
+
+template <generic T, size_t Location>
+struct LayoutIn {
+	static constexpr size_t location = Location;
+
+	using check = _layout_in;
+	using value_type = T;
+};
+
+template <typename T>
+concept resource_layout_in = std::same_as <typename T::check, _layout_in>;
 
 #define $layout_in(T, B, ...)	LayoutIn <T, B>
 
 // Layout outputs
-DEFINE_RESOURCE_N2(LayoutOut, layout_out,
-	generic,	// value type
-	size_t		// binding
-)
+struct _layout_out {};
+
+template <generic T, size_t Location>
+struct LayoutOut {
+	static constexpr size_t location = Location;
+
+	using check = _layout_out;
+	using value_type = T;
+};
+
+template <typename T>
+concept resource_layout_out = std::same_as <typename T::check, _layout_out>;
+
 #define $layout_out(T, B)	LayoutOut <T, B>
 
 // Push constants
-DEFINE_RESOURCE_N2(PushConstant, push_constant,
-	generic,	// value type
-	size_t		// offset
-)
+struct _push_constant {};
+
+// TODO: should be solid_generic (as opposed to soft_generic)
+template <generic T, size_t Offset>
+struct PushConstant {
+	static constexpr size_t offset = Offset;
+
+	using check = _push_constant;
+	using value_type = T;
+};
+
+template <typename T>
+concept resource_push_constant = std::same_as <typename T::check, _push_constant>;
+
 #define $push_constant(T, O)	PushConstant <T, O>
 
 // Resource concept
