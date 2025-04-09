@@ -142,6 +142,27 @@ struct ProcedureBuilder {
 	}
 };
 
+//////////////
+// Concepts //
+//////////////
+
+// General procedures
+template <generic_or_void R, typename ... Args>
+bool procedure_pass(const Procedure <R, Args...> &);
+
+template <typename T>
+concept procedure_class = requires(const T &value) {
+	{ procedure_pass(value) } -> std::same_as <bool>;
+};
+
+// Entrypoint procedures
+bool entrypoint_pass(const Procedure <void> &);
+
+template <typename T>
+concept entrypoint_class = requires(const T &value) {
+	{ entrypoint_pass(value) } -> std::same_as <bool>;
+};
+
 // Syntactic sugar
 template <generic_or_void R, typename F>
 struct manifest_skeleton {

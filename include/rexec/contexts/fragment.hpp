@@ -37,7 +37,10 @@ struct Fragment : ResourceExecutionContext <ExecutionFlag::eFragment, Resources.
 
 // TODO: Implementing the intrinsics
 
-// Concept
+//////////////
+// Concepts //
+//////////////
+
 template <resource ... Resources>
 bool fragment_pass(const Fragment <Resources...> &);
 
@@ -45,6 +48,12 @@ template <typename T>
 concept fragment_class = requires(const T &value) {
 	{ fragment_pass(value) } -> std::same_as <bool>;
 };
+
+template <typename T>
+concept fragment_class_method = rexec_class_method <T> && fragment_class <typename T::rexec>;
+
+template <typename T>
+concept fragment_class_entrypoint = fragment_class_method <T> && ire::entrypoint_class <T>;
 
 // Sugar for declaring Fragment REXEC contexts
 #define $rexec_fragment(name, ...)	struct name : Fragment <__VA_ARGS__>

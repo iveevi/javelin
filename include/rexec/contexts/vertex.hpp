@@ -40,7 +40,10 @@ struct Vertex : ResourceExecutionContext <ExecutionFlag::eVertex, Resources...> 
 template <resource ... Resources>
 ire::gl_Position_t Vertex <Resources...> ::gl_Position;
 
-// Concept
+//////////////
+// Concepts //
+//////////////
+
 template <resource ... Resources>
 bool vertex_pass(const Vertex <Resources...> &);
 
@@ -48,6 +51,12 @@ template <typename T>
 concept vertex_class = requires(const T &value) {
 	{ vertex_pass(value) } -> std::same_as <bool>;
 };
+
+template <typename T>
+concept vertex_class_method = rexec_class_method <T> && vertex_class <typename T::rexec>;
+
+template <typename T>
+concept vertex_class_entrypoint = vertex_class_method <T> && ire::entrypoint_class <T>;
 
 // Sugar for declaring Vertex REXEC contexts
 #define $rexec_vertex(name, ...)	struct name : Vertex <__VA_ARGS__>
