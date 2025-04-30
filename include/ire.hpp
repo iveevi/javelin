@@ -32,3 +32,5 @@
 // TODO: organize into different targets, i.e. core/glsl.hpp, core/spirv.hpp, etc.
 // TODO: debug only
 #include "ire/guarantees.hpp"
+
+#include "common/io.hpp"

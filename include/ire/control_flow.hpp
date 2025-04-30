@@ -102,6 +102,16 @@ inline void _end()
 }
 
 // TODO: match/match_case statements
+template <arithmetic T, arithmetic U>
+requires std::same_as <typename T::arithmetic_type, typename U::arithmetic_type>
+inline auto $select(const boolean &b, const T &vt, const U &vf)
+{
+	typename T::arithmetic_type v = vf;
+	_if (b);
+		v = vt;
+	_end();
+	return v;
+}
 
 template <builtin T>
 inline T $select(const boolean &b, const T &vt, const T &vf)

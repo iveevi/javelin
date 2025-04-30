@@ -9,8 +9,14 @@ find_package(Vulkan REQUIRED)
 find_package(OpenMP REQUIRED)
 
 # Dependencies
-add_subdirectory(thirdparty/fmt)
-add_subdirectory(thirdparty/freetype)
+if(NOT DEFINED JAVELIN_FMT_EXTERNAL)
+	add_subdirectory(thirdparty/fmt)
+endif()
+
+if(NOT DEFINED JAVELIN_FREETYPE_EXTERNAL)
+	add_subdirectory(thirdparty/freetype)
+endif()
+
 add_subdirectory(thirdparty/googletest EXCLUDE_FROM_ALL)
 add_subdirectory(thirdparty/glslang EXCLUDE_FROM_ALL)
 
@@ -41,7 +47,7 @@ if(ENABLE_COVERAGE)
 endif()
 
 # Intermediate Representation Emitter
-add_library(javelin SHARED
+add_library(javelin STATIC
 	source/common/io.cpp
 	source/common/logging.cpp
 	source/ire/emitter.cpp
@@ -87,7 +93,7 @@ target_compile_definitions(javelin PRIVATE
 	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
 
 # Testing suite
-add_subdirectory(testing)
+add_subdirectory(testing EXCLUDE_FROM_ALL)
 
 # Example projects
-add_subdirectory(examples)
+add_subdirectory(examples EXCLUDE_FROM_ALL)

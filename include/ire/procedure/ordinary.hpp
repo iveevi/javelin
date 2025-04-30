@@ -177,11 +177,11 @@ struct manifest_skeleton <R, void (*)(Args...)> {
 #define $subroutine(R, name, ...)							\
 	::jvl::ire::manifest_skeleton <R, void (*)(__VA_ARGS__)> ::proc name		\
 		= ::jvl::ire::ProcedureBuilder <R> (#name)				\
-		<< [_returner = _return_igniter <R> ()](__VA_ARGS__) -> void
+		<< [_returner = jvl::ire::_return_igniter <R> ()](__VA_ARGS__) -> void
 
 #define $entrypoint(name)								\
 	::jvl::ire::Procedure <void> name						\
 		= ::jvl::ire::ProcedureBuilder("main")					\
-		<< [_returner = _return_igniter <void> ()]() -> void
+		<< [_returner = jvl::ire::_return_igniter <void> ()]() -> void
 
 } // namespace jvl::ire
