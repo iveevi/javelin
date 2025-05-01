@@ -92,6 +92,8 @@ constexpr I align_up(I x, size_t a)
 // Building aggregates recursively
 // TODO: handle scalar layouts...
 // TODO: rethink model...
+struct _solidify_end {};
+
 template <size_t Offset, typename ... Args>
 struct solid_builder {};
 
@@ -103,7 +105,18 @@ struct solid_builder <Offset> {
 
 template <typename T>
 struct error_solid {
-	static_assert(false, "Solidifying the current type is currently unsupported");
+	static_assert(false, "solidifying the current type is currently unsupported");
+};
+
+// TODO: track scalar alignment...
+template <size_t Offset, typename ... Args>
+struct solid_builder <Offset, _solidify_end, Args...> {
+	static_assert(sizeof...(Args) == 0, "_end marker encountered but more elements remain");
+
+	// Always align to 16 byte boundaries, unless scalar block layout is used
+	static constexpr size_t rounded = ((Offset + 16 - 1) / 16) * 16;
+	static constexpr size_t pad = (Offset % 16 == 0) ? 0 : (rounded - Offset);
+	using type = aggregate_storage <>;
 };
 
 template <size_t Offset, generic T, typename ... Args>
@@ -192,6 +205,17 @@ struct solid_builder <Offset, uvec3, Args...> {
 };
 
 template <size_t Offset, typename ... Args>
+struct solid_builder <Offset, vec4, Args...> {
+	static constexpr size_t rounded = ((Offset + 16 - 1) / 16) * 16;
+	static constexpr size_t pad = (Offset % 16 == 0) ? 0 : (rounded - Offset);
+	static_assert(pad == 0);
+
+	using rest = solid_builder <rounded + 16, Args...>;
+	using elem = glm::vec4;
+	using type = aggregate_insert <elem, typename rest::type> ::type;
+};
+
+template <size_t Offset, typename ... Args>
 struct solid_builder <Offset, mat4, Args...> {
 	static constexpr size_t rounded = ((Offset +  64 - 1) / 64) * 64;
 	static constexpr size_t pad = (Offset % 16 == 0) ? 0 : (rounded - Offset);
@@ -201,7 +225,7 @@ struct solid_builder <Offset, mat4, Args...> {
 
 template <size_t Offset, bool Phantom, field_type ... Fields>
 struct solid_builder <Offset, Layout <Phantom, Fields...>> {
-	using type = solid_builder <Offset, typename Fields::underlying...> ::type;
+	using type = solid_builder <Offset, typename Fields::underlying..., _solidify_end> ::type;
 };
 
 template <size_t Offset, aggregate T>
