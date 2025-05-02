@@ -154,6 +154,10 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 			overload::from(i32, i32),
 			overload::from(u32, u32),
 			overload::from(f32, f32),
+			
+			overload::from(vec2, vec2),
+			overload::from(vec3, vec3),
+			overload::from(vec4, vec4),
 		} },
 
                 { clamp, {

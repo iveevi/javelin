@@ -106,7 +106,9 @@ template <arithmetic T, arithmetic U>
 requires std::same_as <typename T::arithmetic_type, typename U::arithmetic_type>
 inline auto $select(const boolean &b, const T &vt, const U &vf)
 {
-	typename T::arithmetic_type v = vf;
+	using result = typename T::arithmetic_type;
+
+	result v = result(vf);
 	_if (b);
 		v = vt;
 	_end();
@@ -116,7 +118,7 @@ inline auto $select(const boolean &b, const T &vt, const U &vf)
 template <builtin T>
 inline T $select(const boolean &b, const T &vt, const T &vf)
 {
-	T v = vf;
+	T v = clone(vf);
 	_if (b);
 		v = vt;
 	_end();

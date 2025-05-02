@@ -110,6 +110,10 @@ public:
 	explicit swizzle_base(T x_, T y_) : base(this) {
 		construct_override(x_, y_);
 	}
+	
+	swizzle_base(const native_t <T> &x_) : swizzle_base() {
+		construct_override(x_, x_);
+	}
 
 	explicit swizzle_base(const native_t <T> &x_, const native_t <T> y_) : base(this) {
 		construct_override(x_, y_);
