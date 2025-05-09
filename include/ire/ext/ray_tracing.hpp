@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../aliases.hpp"
-#include "../glsl.hpp"
+#include "../aliases.hpp"
+#include "../intrinsics/glsl.hpp"
 
 namespace jvl::ire {
 

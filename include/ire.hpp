@@ -1,5 +1,6 @@
 #pragma once
 
+// Core framework
 #include "ire/aliases.hpp"
 #include "ire/arithmetic.hpp"
 #include "ire/array.hpp"
@@ -21,16 +22,18 @@
 #include "ire/transformations.hpp"
 #include "ire/vector.hpp"
 
+// Subroutines and entrypoints
 #include "ire/procedure/ordinary.hpp"
 #include "ire/procedure/partial.hpp"
 
+// Intrinsic instructions
 #include "ire/intrinsics/common.hpp"
 #include "ire/intrinsics/glsl.hpp"
-#include "ire/intrinsics/stages/mesh.hpp"
-#include "ire/intrinsics/stages/raytracing.hpp"
 
-// TODO: organize into different targets, i.e. core/glsl.hpp, core/spirv.hpp, etc.
-// TODO: debug only
-#include "ire/guarantees.hpp"
+// Extensions
+#include "ire/ext/descriptor_indexing.hpp"
+#include "ire/ext/mesh_shading.hpp"
+#include "ire/ext/ray_tracing.hpp"
 
+// Utility methods (e.g. for debugging)
 #include "common/io.hpp"

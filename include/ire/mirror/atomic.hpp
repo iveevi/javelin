@@ -13,8 +13,8 @@ struct solid_atomic {
 	static_assert(false, "no available atomic conversion for this type");
 
 	// For each valid conversion the following are provided:
-	// 1. concrete host type
-	// 3. expected alignment of the type on device
+	// - concrete host type
+	// - expected alignment of the type on device
 };
 
 // 4-byte scalar elements
