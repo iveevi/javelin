@@ -15,6 +15,12 @@
 using namespace jvl;
 using namespace jvl::ire;
 
+struct alignas(16) aligned_vec3 : glm::vec3 {
+	using glm::vec3::vec3;
+
+	aligned_vec3(const glm::vec3 &v) : glm::vec3(v) {}
+};
+
 struct Application : CameraApplication {
 	littlevk::Pipeline raster;
 	vk::RenderPass render_pass;

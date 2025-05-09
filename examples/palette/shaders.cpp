@@ -39,7 +39,7 @@ $entrypoint(vertex)
 	out_id = u32(gl_VertexIndex / 3);
 };
 
-$partial_entrypoint(fragment)(float saturation, float lightness, int splits)
+$partial_entrypoint(fragment, float saturation, float lightness, int splits)
 {
 	layout_in <vec3> position(0);
 	layout_in <u32, flat> id(1);

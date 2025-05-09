@@ -28,7 +28,7 @@ $entrypoint(vertex)
 	out_range = vec2(view_info.smin, view_info.smax);
 };
 
-$partial_entrypoint(fragment)(ColorMap cmap)
+$partial_entrypoint(fragment, ColorMap cmap)
 {
 	layout_in <vec3> position(0);
 	layout_in <f32> speed(1);

@@ -24,7 +24,7 @@ $entrypoint(vertex)
 	out_id = u32(gl_VertexIndex / 3);
 };
 
-$partial_entrypoint(fragment)(const glm::vec3 &C)
+$partial_entrypoint(fragment, const glm::vec3 &C)
 {
 	layout_in <vec3> position(0);
 

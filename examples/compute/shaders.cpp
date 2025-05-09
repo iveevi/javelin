@@ -27,7 +27,7 @@ $entrypoint(vertex)
 	out_range = vec2(view_info.smin, view_info.smax);
 };
 
-$partial_entrypoint(fragment)(ColorMap cmap)
+$partial_entrypoint(fragment, ColorMap cmap)
 {
 	layout_in <vec3> position(0);
 	layout_in <f32> speed(1);
@@ -46,6 +46,7 @@ $entrypoint(integrator)
 
 	push_constant <SimulationInfo> info;
 	
+	// TODO: soft_t for unsized_array <vec3>
 	buffer <unsized_array <vec3>> positions(0);
 	buffer <unsized_array <vec3>> velocities(1);
 
@@ -55,6 +56,7 @@ $entrypoint(integrator)
 		$return $void;
 	};
 
+	// TODO: disable reads for writeonly buffers...
 	vec3 p = positions[tid];
 	vec3 v = velocities[tid];
 
@@ -125,6 +127,8 @@ void Application::configure_compute_pipeline()
 void Application::shader_debug()
 {
 	static const std::filesystem::path local = root() / "output" / "compute";
+
+	// TODO: dump_linkage_unit from deus...
 	
 	std::filesystem::remove_all(local);
 	std::filesystem::create_directories(local);

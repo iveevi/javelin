@@ -412,11 +412,11 @@ LinkageUnit::function_result_t LinkageUnit::process_function(const Function &ftn
 				{ thunder::scalar, "GL_EXT_scalar_block_layout" },
 				{ thunder::task_payload, "GL_EXT_mesh_shader" },
 				{ thunder::hit_attribute, "GL_EXT_ray_tracing" },
-				{ thunder::acceleration_structure, "GL_EXT_raytracing" },
-				{ thunder::ray_tracing_payload_in, "GL_EXT_raytracing" },
-				{ thunder::ray_tracing_payload, "GL_EXT_raytracing" },
-				{ thunder::glsl_LaunchIDEXT, "GL_EXT_raytracing" },
-				{ thunder::glsl_LaunchSizeEXT, "GL_EXT_raytracing" },
+				{ thunder::acceleration_structure, "GL_EXT_ray_tracing" },
+				{ thunder::ray_tracing_payload_in, "GL_EXT_ray_tracing" },
+				{ thunder::ray_tracing_payload, "GL_EXT_ray_tracing" },
+				{ thunder::glsl_LaunchIDEXT, "GL_EXT_ray_tracing" },
+				{ thunder::glsl_LaunchSizeEXT, "GL_EXT_ray_tracing" },
 				{ thunder::glsl_SubgroupInvocationID, "GL_KHR_shader_subgroup_basic" },
 			};
 			

@@ -149,7 +149,7 @@ $subroutine(i32, inside, vec2 uv)
 	$return i32(winding_number % 2 == 1);
 };
 
-$partial_entrypoint(fragment)(int32_t samples)
+$partial_entrypoint(fragment, int32_t samples)
 {
 	layout_in  <vec2>       uv          (0);
 	layout_in  <vec2>       resolution  (2);

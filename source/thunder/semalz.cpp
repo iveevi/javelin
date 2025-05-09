@@ -337,6 +337,9 @@ QualifiedType Buffer::semalz(Index i)
 	variant_case(Atom, Return):
 	{
 		auto &returns = atom.as <Return> ();
+		if (returns.value < 0)
+			return NilType();
+
 		return types[returns.value];
 	}
 	
