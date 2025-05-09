@@ -40,6 +40,9 @@ struct padded {
 	using concrete = pad_tuple_leaf <T, Padding, Index>;
 };
 
+template <size_t Padding>
+using padded_end = padded <char[Padding], 0, -1u>;
+
 template <typename T, size_t Padding, size_t Index>
 bool padded_type_pass(const padded <T, Padding, Index> &);
 

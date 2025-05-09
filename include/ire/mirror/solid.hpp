@@ -31,8 +31,7 @@ struct solid_padded <Offset, Index, Alignment, solid_padded_terminal> {
 	static constexpr size_t rounded = meta::alignup(Offset, Alignment);
 	static constexpr size_t pad = (Offset % Alignment == 0) ? 0 : (rounded - Offset);
 
-	using data = char[pad];
-	using element = padded <data, 0, -1u>;
+	using element = padded_end <pad>;
 	using result = meta::type_packet <element>;
 };
 
@@ -47,7 +46,7 @@ struct solid_padded <Offset, Index, Alignment, T, Ts...> {
 	static constexpr size_t rounded = meta::alignup(Offset, alignment);
 	static constexpr size_t pad = (Offset % alignment == 0) ? 0 : (rounded - Offset);
 
-	using next = solid_padded <Offset + sizeof(data), Index + 1, std::max(Alignment, alignment), Ts...>;
+	using next = solid_padded <rounded + sizeof(data), Index + 1, std::max(Alignment, alignment), Ts...>;
 	using element = padded <data, pad, Index>;
 	using result = next::result::template push_front <element>;
 };

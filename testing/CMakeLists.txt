@@ -8,7 +8,7 @@ add_executable(test
 	layouts_cpp.cpp
 	layouts_glsl_opengl.cpp
 	material_gcc.cpp
-	solidification.cpp
+	solid.cpp
 	../thirdparty/glad/src/gl.c)
 
 set_property(TARGET test PROPERTY ENABLE_EXPORTS ON)

@@ -25,7 +25,14 @@ TEST(solidification, proxy_A)
 		}
 	};
 
-	static_assert(std::same_as <solid_t <proxy_A>, aggregate_storage <aligned_vec3, glm::vec3>>);
+	static_assert(std::same_as <
+		solid_t <proxy_A>,
+		pad_tuple <
+			padded <glm::vec3, 0, 0>,
+			padded <glm::vec3, 4, 1>,
+			padded_end <4>
+		>
+	>);
 
 	using solid_A = solid_t <proxy_A>;
 
@@ -49,7 +56,14 @@ TEST(solidification, proxy_B)
 		}
 	};
 
-	static_assert(std::same_as <solid_t <proxy_B>, aggregate_storage <aligned_uint32_t <16>, glm::vec3>>);
+	static_assert(std::same_as <
+		solid_t <proxy_B>,
+		pad_tuple <
+			padded <uint32_t, 0, 0>,
+			padded <glm::vec3, 12, 1>,
+			padded_end <4>
+		>
+	>);
 
 	using solid_B = solid_t <proxy_B>;
 
@@ -73,7 +87,14 @@ TEST(solidification, proxy_C)
 		}
 	};
 
-	static_assert(std::same_as <solid_t <proxy_C>, aggregate_storage <glm::vec3, uint32_t>>);
+	static_assert(std::same_as <
+		solid_t <proxy_C>,
+		pad_tuple <
+			padded <glm::vec3, 0, 0>,
+			padded <uint32_t, 0, 1>,
+			padded_end <0>
+		>
+	>);
 
 	using solid_C = solid_t <proxy_C>;
 
@@ -99,7 +120,15 @@ TEST(solidification, proxy_D)
 		}
 	};
 
-	static_assert(std::same_as <solid_t <proxy_D>, aggregate_storage <aligned_vec3, glm::vec3, uint32_t>>);
+	static_assert(std::same_as <
+		solid_t <proxy_D>,
+		pad_tuple <
+			padded <glm::vec3, 0, 0>,
+			padded <glm::vec3, 4, 1>,
+			padded <uint32_t, 0, 2>,
+			padded_end <0>
+		>
+	>);
 
 	using solid_D = solid_t <proxy_D>;
 
@@ -127,7 +156,15 @@ TEST(solidification, proxy_E)
 		}
 	};
 
-	static_assert(std::same_as <solid_t <proxy_E>, aggregate_storage <glm::vec3, uint32_t, glm::vec3>>);
+	static_assert(std::same_as <
+		solid_t <proxy_E>,
+		pad_tuple <
+			padded <glm::vec3, 0, 0>,
+			padded <uint32_t, 0, 1>,
+			padded <glm::vec3, 0, 2>,
+			padded_end <4>
+		>
+	>);
 
 	using solid_E = solid_t <proxy_E>;
 
@@ -155,7 +192,15 @@ TEST(solidification, proxy_F)
 		}
 	};
 
-	static_assert(std::same_as <solid_t <proxy_F>, aggregate_storage <aligned_uint32_t <16>, aligned_vec3, glm::vec3>>);
+	static_assert(std::same_as <
+		solid_t <proxy_F>,
+		pad_tuple <
+			padded <uint32_t, 0, 0>,
+			padded <glm::vec3, 12, 1>,
+			padded <glm::vec3, 4, 2>,
+			padded_end <4>
+		>
+	>);
 
 	using solid_F = solid_t <proxy_F>;
 

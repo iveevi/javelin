@@ -34,10 +34,10 @@ struct Material {
 };
 
 struct ReferenceMaterial {
-	aligned_vec3 diffuse;
-	aligned_vec3 specular;
-	aligned_vec3 emission;
-	aligned_vec3 ambient;
+	alignas(16) glm::vec3 diffuse;
+	alignas(16) glm::vec3 specular;
+	alignas(16) glm::vec3 emission;
+	alignas(16) glm::vec3 ambient;
 
 	float shininess;
 	float roughness;
