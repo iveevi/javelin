@@ -27,10 +27,10 @@ struct GlyphInfo {
 };
 
 struct FontMetrics {
-    float ascender;
-    float descender;
-    float line_gap;
-    float units_per_EM;
+	float ascender;
+	float descender;
+	float line_gap;
+	float units_per_EM;
 };
 
 struct Font {

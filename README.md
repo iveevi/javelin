@@ -27,6 +27,8 @@ $subroutine()
 $entrypoint(...)
 ```
 
+Please see the `examples` directory for more in-depth samples.
+
 ## Features
 
 ### Interface

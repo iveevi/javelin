@@ -3,6 +3,7 @@
 #include <functional>
 #include <tuple>
 
+#include "../../common/meta.hpp"
 #include "../concepts.hpp"
 
 namespace jvl::ire {
@@ -18,14 +19,11 @@ concept acceptable_callable = std::is_function_v <F> || requires(const F &ftn) {
 	{ std::function(ftn) };
 };
 
-template <typename ... Args>
-struct type_packet {};
-
 template <generic_or_void R, typename ... Args>
 struct signature_pair {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;
-	using packet = type_packet <Args...>;
+	using packet = meta::type_packet <Args...>;
 
 	using procedure = Procedure <R, std::decay_t <Args>...>;
 
@@ -66,7 +64,7 @@ template <generic R, typename ... Args>
 struct signature <R (Args...)> {
 	using return_t = R;
 	using args_t = std::tuple <std::decay_t <Args>...>;
-	using packet = type_packet <Args...>;
+	using packet = meta::type_packet <Args...>;
 
 	using procedure = Procedure <R, std::decay_t <Args>...>;
 

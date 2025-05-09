@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "../../ire/solidify.hpp"
+#include "../../ire/mirror/solid.hpp"
 #include "../../target.hpp"
 #include "../collection.hpp"
 #include "../contexts/fragment.hpp"
@@ -301,6 +301,8 @@ struct TraditionalPipelineGroup {
 			static_assert(false, "fragment entrypoint must be from a Fragment REXEC context");
 
 		// TODO: resource compatbility check
+		// 1. layout ins/outs...
+		// 2. conflicting bindings...
 
 		return true;
 	}

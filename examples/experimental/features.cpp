@@ -4,6 +4,8 @@
 // TODO: atomics
 // TODO: fix optimization...
 
+#include <littlevk/littlevk.hpp>
+
 #include <common/io.hpp>
 
 #include <ire.hpp>
@@ -13,7 +15,7 @@ using namespace jvl;
 using namespace jvl::ire;
 using namespace jvl::rexec;
 
-MODULE(ire);
+MODULE(features);
 
 // TODO: type check for soft/concrete types... layout_from only for concrete types
 // TODO: generic is anything,
@@ -92,9 +94,28 @@ $rexec_fragment(FShader,
 
 // TODO: remake solid_t <T> and start soft_t <T>
 
-// TODO: tuple_storage which used leafs... (and padding options...)
+using S = solid_t <MVP>;
 
-#include <littlevk/littlevk.hpp>
+struct Tmp {
+	vec4 b;
+	f32 y;
+
+	auto layout() {
+		return layout_from("Tmp",
+			verbatim_field(b),
+			verbatim_field(y));
+	}
+};
+
+using U = solid_t <Tmp>;
+using V = solid_t <vec3>;
+
+// using Bytes = std::vector <uint8_t>;
+
+// template <padded_type ... Ts>
+// struct soft_padded : Bytes {
+// 	// TODO: split into solid and last type...
+// };
 
 int main()
 {
@@ -103,13 +124,13 @@ int main()
 		io::display_lines("GLSL", glsl);
 		// VShader::main.display_assembly();
 	}
-	
+
 	{
 		auto glsl = link(FShader::main).generate_glsl();
 		io::display_lines("GLSL", glsl);
 		// FShader::main.display_assembly();
 	}
-	
+
 	// Find a suitable physical device
 	auto predicate = [&](vk::PhysicalDevice phdev) {
 		return littlevk::physical_device_able(phdev, {});
@@ -128,4 +149,6 @@ int main()
 
 	auto group = TraditionalPipelineGroup(VShader::main, FShader::main);
 	group.compile(device, renderpass);
+	// TODO: group.make_vertex_buffer(...)
+	using G = decltype(group);
 }

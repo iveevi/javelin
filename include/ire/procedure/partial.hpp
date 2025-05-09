@@ -66,7 +66,7 @@ struct PartialProcedure {
 
 template <generic_or_void R, typename ... Args>
 auto build_partial_procedure(const std::string &name,
-			     const detail::type_packet <Args...> &,
+			     const meta::type_packet <Args...> &,
 			     const std::function <void (Args...)> &passed)
 {
 	return PartialProcedure <R, Args...> (name, passed);
