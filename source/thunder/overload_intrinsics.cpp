@@ -279,6 +279,11 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 				QualifiedType::primitive(i32)),
 		} },
 
+		{ nonuniformEXT, {
+			overload::from(i32, i32),
+			overload::from(u32, u32),
+		} },
+
 		// GLSL image and sampler intrinsics
 		{ glsl_image_size, {
 			overload::from(PlainDataType(i32), QualifiedType::image(ivec4, 1)),

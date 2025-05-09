@@ -100,6 +100,8 @@ struct manifest_partial_skeleton <R, void (*)(Args...)> {
 	::jvl::ire::manifest_partial_skeleton <R, void (*)(__VA_ARGS__)> ::proc name		\
 		= ::jvl::ire::PartialProcedureBuilder <R> (#name) << [](__VA_ARGS__) -> void
 
-#define $partial_entrypoint(name)	auto name = ::jvl::ire::PartialProcedureBuilder <void> ("main") << []
+#define $partial_entrypoint(name, ...)								\
+	::jvl::ire::manifest_partial_skeleton <void, void (*)(__VA_ARGS__)> ::proc name		\
+		= ::jvl::ire::PartialProcedureBuilder <void> ("main") << [](__VA_ARGS__) -> void
 
 } // namespace jvl::ire

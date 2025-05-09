@@ -299,6 +299,8 @@ enum IntrinsicOperation : uint16_t {
 	// Raytracing
 	trace_ray,
 
+	nonuniformEXT,
+
 	// GLSL image and sampler operations
 	glsl_image_size,
 	glsl_image_load,

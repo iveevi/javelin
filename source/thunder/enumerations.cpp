@@ -255,6 +255,8 @@ const char *tbl_intrinsic_operation[] = {
 
 	"traceRayEXT",
 
+	"nonuniformEXT",
+
 	"imageSize",
 	"imageLoad",
 	"imageStore",

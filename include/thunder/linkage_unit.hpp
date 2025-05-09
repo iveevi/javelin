@@ -49,6 +49,21 @@ struct local_layout_type {
 	std::set <QualifierKind> extra;
 };
 
+struct expandable_local_layout_type : local_layout_type {
+	// If valid, (-1) means unbounded
+	bestd::optional <int32_t> size;
+
+	expandable_local_layout_type() = default;
+	
+	expandable_local_layout_type(
+		size_t function,
+		Index index,
+		QualifierKind kind,
+		const std::set <QualifierKind> &extra,
+		const bestd::optional <int32_t> &size_
+	) : local_layout_type(function, index, kind, extra), size(size_) {}
+};
+
 struct special_type {
 	size_t function;
 	Index index;
@@ -95,7 +110,7 @@ struct LinkageUnit {
 		std::map <Index, local_layout_type> buffers;
 		std::map <Index, local_layout_type> references;
 		std::map <Index, local_layout_type> shared;
-		std::map <Index, local_layout_type> samplers;
+		std::map <Index, expandable_local_layout_type> samplers;
 		std::map <Index, local_layout_type> images;
 		std::map <QualifierKind, special_type_set> special;
 	} globals;

@@ -109,15 +109,12 @@ bool Optimizer::disolve_casting_intrinsic(Relocation &relocation, const Buffer &
 {
 	JVL_ASSERT_PLAIN(is_casting_intrinsic(intr));
 
-	fmt::println("casting instruction: {}", intr.to_assembly_string());
-
 	auto list = buffer.atoms[intr.args].as <List> ();
 	if (list.next == -1) {
 		auto type_this = buffer.types[i];
 		auto type_arg = buffer.types[list.item];
 
 		if (type_this == type_arg) {
-			fmt::println("\tvacous cast!");
 			relocation.emplace(i, list.item);
 			return true;
 		}
@@ -128,7 +125,6 @@ bool Optimizer::disolve_casting_intrinsic(Relocation &relocation, const Buffer &
 
 bool Optimizer::disolve_casting_constructor(Relocation &relocation, const Buffer &buffer, const Construct &ctor, Index i) const
 {
-	fmt::println("constructor instruction: {}", ctor.to_assembly_string());
 	if (ctor.args == -1)
 		return false;
 	
@@ -138,7 +134,6 @@ bool Optimizer::disolve_casting_constructor(Relocation &relocation, const Buffer
 		auto type_arg = buffer.types[list.item];
 
 		if (type_this == type_arg) {
-			fmt::println("\tvacous construction!");
 			relocation.emplace(i, list.item);
 			return true;
 		}

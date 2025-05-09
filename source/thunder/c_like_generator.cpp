@@ -5,6 +5,7 @@
 #include "thunder/atom.hpp"
 #include "thunder/c_like_generator.hpp"
 #include "thunder/enumerations.hpp"
+#include "thunder/properties.hpp"
 #include "thunder/qualified_type.hpp"
 #include "thunder/tracked_buffer.hpp"
 
@@ -87,6 +88,11 @@ static std::optional <std::string> generate_global_reference(const std::vector <
 		return fmt::format("_ray_payload{}", qualifier.numerical);
 	case acceleration_structure:
 		return fmt::format("_accel{}", qualifier.numerical);
+
+	// Arrays
+	case arrays:
+		JVL_ASSERT_PLAIN(qualifier.underlying >= 0);
+		return generate_global_reference(atoms, qualifier.underlying);
 
 	// GLSL shader stage intrinsics
 	case glsl_FragCoord:
@@ -413,7 +419,7 @@ c_like_generator_t::type_string c_like_generator_t::type_to_string(const Qualifi
 	variant_case(QualifiedType, ArrayType):
 	{
 		auto &at = qt.as <ArrayType> ();
-		auto base = type_to_string(at.base());
+		auto base = type_to_string(at.element());
 
 		std::string array = fmt::format("[{}]", at.size);
 

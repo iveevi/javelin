@@ -169,7 +169,7 @@ QualifiedType Buffer::semalz_load(const Load &load, Index i)
 
 QualifiedType Buffer::semalz_access(const ArrayAccess &access, Index i)
 {
-	QualifiedType qt = semalz(access.src);
+	auto qt = semalz(access.src);
 
 	while (true) {
 		if (auto pd = qt.get <PlainDataType> ()) {
@@ -187,18 +187,32 @@ QualifiedType Buffer::semalz_access(const ArrayAccess &access, Index i)
 	}
 
 	if (!qt.is <ArrayType> ()) {
-		JVL_BUFFER_DUMP_AND_ABORT("array accesses must operate "
-			"on array types, but source is of type {}:\n{}", qt, atoms[i]);
+		JVL_BUFFER_DUMP_AND_ABORT(
+			"array accesses must operate "
+			"on array types, but source "
+			"is of type {}:\n{}",
+			qt, atoms[i]
+		);
 	}
 
 	// Check for possible name hints
-	auto base = qt.as <ArrayType> ().base();
+	QualifiedType result;
+	PlainDataType element = qt.as <ArrayType> ().element();
+	
+	result = element;
 
-	auto concrete = base.get <Index> ();
-	if (concrete && decorations.used.contains(*concrete))
-		transfer_decorations(i, *concrete);
+	// TODO: using Concrete = Index
+	if (element.is <Index> ()) {
+		auto concrete = element.as <Index> ();
+		if (decorations.used.contains(concrete))
+			transfer_decorations(i, concrete);
 
-	return base;
+		auto eqt = semalz(concrete);
+		if (eqt.is <SamplerType> ())
+			result = eqt;
+	}
+
+	return result;
 }
 
 QualifiedType Buffer::semalz(Index i)
@@ -286,7 +300,7 @@ QualifiedType Buffer::semalz(Index i)
 		auto args = expand_list_types(intrinsic.args);
 		auto result = lookup_intrinsic_overload(intrinsic.opn, args);
 
-		JVL_ASSERT(result,
+		JVL_BUFFER_DUMP_ON_ASSERT(result,
 			"failed to find overload "
 			"for intrinsic (@{}):\n{}", i, atom);
 

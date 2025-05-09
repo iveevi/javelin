@@ -354,8 +354,19 @@ void generate_images(std::string &result, const auto &images)
 void generate_samplers(std::string &result, const auto &samplers)
 {
 	for (const auto &[binding, llt] : samplers) {
-		result += fmt::format("layout (binding = {}) uniform {} _sampler{};\n",
-			binding, sampler_string(llt.kind), binding);
+		std::string array = "";
+		if (llt.size) {
+			auto size = llt.size.value();
+			array = size >= 0 ? fmt::format("[{}]", size) : fmt::format("[]");
+		}
+
+		result += fmt::format(
+			"layout (binding = {}) uniform {} _sampler{}{};\n",
+			binding,
+			sampler_string(llt.kind),
+			binding,
+			array
+		);
 	}
 
 	if (samplers.size())

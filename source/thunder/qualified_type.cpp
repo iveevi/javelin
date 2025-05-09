@@ -91,7 +91,7 @@ std::string ArrayType::to_string() const
         return fmt::format("{}[{}]", PlainDataType::to_string(), size);
 }
 
-PlainDataType ArrayType::base() const
+PlainDataType ArrayType::element() const
 {
         return PlainDataType(*this);
 }
@@ -281,92 +281,94 @@ bool QualifiedType::operator==(const QualifiedType &other) const
 
 std::string QualifiedType::to_string() const
 {
-        auto ftn = [](const auto &x) -> std::string { return x.to_string(); };
-        return std::visit(ftn, *this);
+	auto ftn = [](const auto &x) -> std::string { return x.to_string(); };
+	return std::visit(ftn, *this);
 }
 
 bool QualifiedType::is_primitive() const
 {
-        auto pd = get <PlainDataType> ();
-        return pd && pd->is <PrimitiveType> ();
+	auto pd = get <PlainDataType> ();
+	return pd && pd->is <PrimitiveType> ();
 }
 
 bool QualifiedType::is_concrete() const
 {
-        auto pd = get <PlainDataType> ();
-        return pd && pd->is <Index> ();
+	auto pd = get <PlainDataType> ();
+	return pd && pd->is <Index> ();
 }
 
 QualifiedType QualifiedType::remove_qualifiers() const
 {
-        switch (index()) {
-                
-        variant_case(QualifiedType, StructFieldType):
-                return as <StructFieldType> ().base();
-        
-        variant_case(QualifiedType, BufferReferenceType):
-        {
-                auto &brt = as <BufferReferenceType> ();
-                return static_cast <PlainDataType> (brt);
-        }
+	switch (index()) {
 
-        variant_case(QualifiedType, InArgType):
-        {
-                auto &iat = as <InArgType> ();
-                return static_cast <PlainDataType> (iat);
-        }
-        
-        variant_case(QualifiedType, OutArgType):
-        {
-                auto &oat = as <OutArgType> ();
-                return static_cast <PlainDataType> (oat);
-        }
-        
-        variant_case(QualifiedType, InOutArgType):
-        {
-                auto &ioat = as <InOutArgType> ();
-                return static_cast <PlainDataType> (ioat);
-        }
-        default:
-                break;
-        }
+	variant_case(QualifiedType, StructFieldType):
+		return as <StructFieldType> ().base();
 
-        return *this;
+	variant_case(QualifiedType, BufferReferenceType):
+	{
+		auto &brt = as <BufferReferenceType> ();
+		return static_cast <PlainDataType> (brt);
+	}
+
+	variant_case(QualifiedType, InArgType):
+	{
+		auto &iat = as <InArgType> ();
+		return static_cast <PlainDataType> (iat);
+	}
+
+	variant_case(QualifiedType, OutArgType):
+	{
+		auto &oat = as <OutArgType> ();
+		return static_cast <PlainDataType> (oat);
+	}
+
+	variant_case(QualifiedType, InOutArgType):
+	{
+		auto &ioat = as <InOutArgType> ();
+		return static_cast <PlainDataType> (ioat);
+	}
+
+	default:
+		break;
+	}
+
+	return *this;
 }
 
 QualifiedType QualifiedType::primitive(PrimitiveType primitive)
 {
-        return PlainDataType(primitive);
+	return PlainDataType(primitive);
 }
 
 QualifiedType QualifiedType::concrete(Index concrete)
 {
-        return PlainDataType(concrete);
+	return PlainDataType(concrete);
 }
 
 QualifiedType QualifiedType::array(const QualifiedType &element, Index size)
 {
-        // Must be an unqualified type
-        JVL_ASSERT(element.is <PlainDataType> (),
-                "array element must be an unqualified type, got {} instead",
-                element.to_string());
+	if (element.is <PlainDataType> ()) {
+		return ArrayType(element.as <PlainDataType> (), size);
+	} else if (element.is <SamplerType> ()) {
+		return ArrayType(element, size);
+	}
 
-        return ArrayType(element.as <PlainDataType> (), size);
+	JVL_ABORT("unexpected type {} for array element", element.to_string());
 }
 
 QualifiedType QualifiedType::image(PrimitiveType result, Index dimension)
 {
-        return ImageType(result, dimension);
+	return ImageType(result, dimension);
 }
 
 QualifiedType QualifiedType::sampler(PrimitiveType result, Index dimension)
 {
-        return SamplerType(result, dimension);
+	return SamplerType(result, dimension);
 }
 
 QualifiedType QualifiedType::intrinsic(QualifierKind kind)
 {
-        return IntrinsicType(kind);
+	return IntrinsicType(kind);
 }
 
 } // namespace jvl::thunder

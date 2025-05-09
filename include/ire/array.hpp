@@ -3,6 +3,8 @@
 #include "native.hpp"
 #include "concepts.hpp"
 
+#include "common/logging.hpp"
+
 namespace jvl::ire {
 
 // Forward declarartions

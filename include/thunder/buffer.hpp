@@ -64,6 +64,8 @@ public:
 
 	void display_assembly() const;
 	void display_pretty() const;
+	
+	void write_assembly(const std::filesystem::path &) const;
 
 	void graphviz(const std::filesystem::path &) const;
 

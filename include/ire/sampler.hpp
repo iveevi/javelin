@@ -43,17 +43,21 @@ struct sampler_qualifiers <float> {
 // Sampler objects
 template <native T, size_t D>
 requires (D >= 1 && D <= 3)
-struct sampler {
+struct sampler : public tagged {
 	const size_t binding;
 
-	sampler(size_t binding_ = 0) : binding(binding_) {}
+	sampler(size_t binding_) : binding(binding_) {}
+	sampler(const cache_index_t &idx) : tagged(idx), binding(0) {}
 
 	cache_index_t synthesize() const {
+		if (cached())
+			return this->ref;
+
 		auto &em = Emitter::active;
-		auto type = vec <T, 4> ::type();
-		auto sampler = em.emit_qualifier(type, binding, sampler_qualifiers <T> ::table[D]);
-		auto value = em.emit_construct(sampler, -1, thunder::global);
-		return cache_index_t::from(value);
+		auto value = em.emit_construct(type(binding), -1, thunder::global);
+		this->ref = cache_index_t::from(value);
+
+		return this->ref;
 	}
 
 	// Sampling the associated texture (texture(sampler, uv))
@@ -76,6 +80,19 @@ struct sampler {
 	vec <T, 4> fetch(const native_t <int32_t> &loc, const native_t <int32_t> &lod) const
 	requires (D == 1) {
 		return platform_intrinsic_from_args <vec <T, 4>> (thunder::glsl_texelFetch, *this, loc, lod);
+	}
+
+	// Generating the qualifier
+	static auto type(size_t binding) -> thunder::Index {
+		auto &em = Emitter::active;
+		auto type = vec <T, 4> ::type();
+		auto sampler = em.emit_qualifier(
+			type,
+			binding,
+			sampler_qualifiers <T> ::table[D]
+		);
+
+		return sampler;
 	}
 };
 

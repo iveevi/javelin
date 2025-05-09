@@ -71,7 +71,15 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 
 	if (sampler_kind(qualifier.kind)) {
 		size_t binding = qualifier.numerical;
-		globals.samplers[binding] = local_layout_type(fidx, bidx, qualifier.kind);
+
+		globals.samplers[binding] = expandable_local_layout_type(
+			fidx,
+			bidx,
+			qualifier.kind,
+			{},
+			std::nullopt
+		);
+
 		return;
 	}
 
@@ -142,7 +150,6 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 	{
 		size_t binding = qualifier.numerical;
 		globals.references[binding] = local_layout_type(fidx, bidx, qualifier.kind);
-		extensions.insert("GL_EXT_buffer_reference2");
 	} break;
 
 	case shared:
@@ -160,10 +167,6 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 	case format_rgba16f:
 	{
 		// TODO: method...
-		// Manage the extensions
-		auto &kind = qualifier.kind;
-		if (kind == scalar)
-			extensions.insert("GL_EXT_scalar_block_layout");
 
 		// Find base qualifier (i.e. image or buffer)
 		auto lower = function.atoms[bidx];
@@ -187,6 +190,7 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 			readonly,
 		};
 
+		auto &kind = qualifier.kind;
 		if (auto decl = lower.get <Qualifier> ()) {
 			if (image_kind(decl->kind) && (image_compatible.contains(kind) || format_kind(kind))) {
 				globals.images[decl->numerical].extra.insert(kind);
@@ -205,64 +209,44 @@ void LinkageUnit::process_function_qualifier(Function &function, size_t fidx, In
 
 	case task_payload:
 		globals.special[task_payload][-1] = special_type(fidx, bidx);
-		extensions.insert("GL_EXT_mesh_shader");
 		break;
 
 	case hit_attribute:
 		globals.special[hit_attribute][-1] = special_type(fidx, bidx);
-		extensions.insert("GL_EXT_ray_tracing");
 		break;
 
 	case acceleration_structure:
 	case ray_tracing_payload:
 	case ray_tracing_payload_in:
 		globals.special[qualifier.kind][qualifier.numerical] = special_type(fidx, bidx);
-		extensions.insert("GL_EXT_ray_tracing");
-		break;
-
-	case glsl_LaunchIDEXT:
-	case glsl_LaunchSizeEXT:
-		extensions.insert("GL_EXT_ray_tracing");
-		break;
-
-	case glsl_SubgroupInvocationID:
-		// TODO: use (portable) enums for extensions
-		extensions.insert("GL_KHR_shader_subgroup_basic");
-		break;
-
-	// Miscellaneous
-	case qualifier_in:
-	case qualifier_out:
-	case qualifier_inout:
 		break;
 
 	case arrays:
-		break;
+	{
+		auto &lower = qualifier.underlying;
+		auto &atom = function.atoms[lower];
 
-	case glsl_GlobalInvocationID:
-	case glsl_InstanceIndex:
-	case glsl_LocalInvocationID:
-	case glsl_LocalInvocationIndex:
-	case glsl_MeshVerticesEXT:
-	case glsl_Position:
-	case glsl_PrimitiveTriangleIndicesEXT:
-	case glsl_VertexIndex:
-	case glsl_WorkGroupID:
-	case glsl_WorkGroupSize:
-		break;
+		if (atom.is <Qualifier> ()) {
+			auto &uqt = atom.as <Qualifier> ();
+
+			if (sampler_kind(uqt.kind)) {
+				JVL_INFO("array of samplers: {}", qualifier.to_assembly_string());
+
+				// Override the original sampler
+				globals.samplers[uqt.numerical].size = qualifier.numerical;
+			}
+		}
+	} break;
 
 	default:
-		JVL_WARNING("unhandled qualifier in function @{}:\n{}", bidx, qualifier);
 		break;
 	}
 }
 
 void LinkageUnit::process_function_intrinsic(Function &function, size_t index, Index i, const Intrinsic &intr)
 {
-	switch (intr.opn) {
-
-	case thunder::layout_local_size:
-	{
+	// TODO: method?
+	if (intr.opn == thunder::layout_local_size) {
 		thunder::Index args = intr.args;
 
 		glm::uvec3 size = glm::uvec3(1, 1, 1);
@@ -285,10 +269,7 @@ void LinkageUnit::process_function_intrinsic(Function &function, size_t index, I
 		}
 
 		local_size = size;
-	} break;
-
-	case thunder::layout_mesh_shader_sizes:
-	{
+	} else if (intr.opn == thunder::layout_mesh_shader_sizes) {
 		thunder::Index args = intr.args;
 
 		glm::uvec2 size = glm::uvec2(1, 1);
@@ -311,23 +292,6 @@ void LinkageUnit::process_function_intrinsic(Function &function, size_t index, I
 		}
 
 		mesh_shader_size = size;
-	} break;
-
-	case thunder::emit_mesh_tasks:
-	case thunder::set_mesh_outputs:
-		extensions.insert("GL_EXT_mesh_shader");
-		break;
-
-	case thunder::glsl_subgroupShuffle:
-		extensions.insert("GL_KHR_shader_subgroup_shuffle");
-		break;
-
-	case thunder::cast_to_uint64:
-		extensions.insert("GL_EXT_shader_explicit_arithmetic_types_int64");
-		break;
-
-	default:
-		break;
 	}
 }
 
@@ -421,6 +385,45 @@ LinkageUnit::function_result_t LinkageUnit::process_function(const Function &ftn
 			process_function_aggregate(map, function, fidx, bidx, qt);
 
 		// TODO: static initializers (e.g. arrays and constants)
+	}
+
+	// Gather extensions from instructions
+	// TODO: enums for extensions/capabilities/features
+	for (size_t i = 0; i < ftn.pointer; i++) {
+		auto &atom = ftn.atoms[i];
+
+		// From intrinsics...
+		// TODO: methods?
+		if (auto intrinsic = atom.get <Intrinsic> ()) {
+			static std::map <thunder::IntrinsicOperation, std::string> registered {
+				{ thunder::nonuniformEXT, "GL_EXT_nonuniform_qualifier" },
+				{ thunder::cast_to_uint64, "GL_EXT_shader_explicit_arithmetic_types_int64" },
+				{ thunder::glsl_subgroupShuffle, "GL_KHR_shader_subgroup_shuffle" },
+				{ thunder::set_mesh_outputs, "GL_EXT_mesh_shader" },
+				{ thunder::emit_mesh_tasks, "GL_EXT_mesh_shader" },
+			};
+
+			auto it = registered.find(intrinsic->opn);
+			if (it != registered.end())
+				extensions.insert(it->second);
+		} else if (auto qualifier = atom.get <Qualifier> ()) {
+			static std::map <thunder::QualifierKind, std::string> registered {
+				{ thunder::buffer_reference, "GL_EXT_buffer_reference" },
+				{ thunder::scalar, "GL_EXT_scalar_block_layout" },
+				{ thunder::task_payload, "GL_EXT_mesh_shader" },
+				{ thunder::hit_attribute, "GL_EXT_ray_tracing" },
+				{ thunder::acceleration_structure, "GL_EXT_raytracing" },
+				{ thunder::ray_tracing_payload_in, "GL_EXT_raytracing" },
+				{ thunder::ray_tracing_payload, "GL_EXT_raytracing" },
+				{ thunder::glsl_LaunchIDEXT, "GL_EXT_raytracing" },
+				{ thunder::glsl_LaunchSizeEXT, "GL_EXT_raytracing" },
+				{ thunder::glsl_SubgroupInvocationID, "GL_KHR_shader_subgroup_basic" },
+			};
+			
+			auto it = registered.find(qualifier->kind);
+			if (it != registered.end())
+				extensions.insert(it->second);
+		}
 	}
 
 	return std::make_pair(fidx, referenced);

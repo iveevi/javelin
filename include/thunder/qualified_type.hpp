@@ -46,7 +46,7 @@ struct ArrayType : public PlainDataType {
 
 	ArrayType(PlainDataType, Index);
 
-	PlainDataType base() const;
+	PlainDataType element() const;
 
 	bool operator==(const ArrayType &) const;
 	std::string to_string() const;

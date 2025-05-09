@@ -65,7 +65,11 @@ std::string Buffer::to_string_assembly() const
 
 	for (size_t i = 0; i < pointer; i++) {
 		std::string s = fmt::format("%{}", i);
-		result += fmt::format("{:>5} = {}\n", s, atoms[i].to_assembly_string());
+		result += fmt::format(
+			"{:>5} = {:<40} ; {}\n", s,
+			atoms[i].to_assembly_string(),
+			types[i].to_string()
+		);
 	}
 
 	return result;
@@ -104,7 +108,11 @@ void Buffer::display_assembly() const
 {
 	for (size_t i = 0; i < pointer; i++) {
 		std::string s = fmt::format("%{}", i);
-		fmt::println("{:>5} = {}", s, atoms[i].to_assembly_string());
+		fmt::println(
+			"{:>5} = {:<40} ; {}", s,
+			atoms[i].to_assembly_string(),
+			types[i].to_string()
+		);
 	}
 }
 
@@ -129,6 +137,27 @@ void Buffer::display_pretty() const
 		for (auto &s : th.fields)
 			fmt::println("             {}", s);
 	}
+}
+
+void Buffer::write_assembly(const std::filesystem::path &path) const
+{
+	FILE *fout = fopen(path.c_str(), "w");
+	if (!fout) {
+		JVL_ERROR("failed to open file '{}' for writing", path.string());
+		return;
+	}
+
+	for (size_t i = 0; i < pointer; i++) {
+		std::string s = fmt::format("%{}", i);
+		fmt::println(
+			fout,
+			"{:>5} = {:<40} ; {}", s,
+			atoms[i].to_assembly_string(),
+			types[i].to_string()
+		);
+	}
+
+	fclose(fout);
 }
 
 // Utility methods

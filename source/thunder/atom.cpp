@@ -51,7 +51,7 @@ Addresses Qualifier::addresses()
 
 std::string Qualifier::to_assembly_string() const
 {
-        return fmt::format("qualifier {} {} {}",
+        return fmt::format("qualifier {} {:<3} {}",
                 fmtaddr(underlying),
                 fmtidx(numerical),
                 tbl_qualifier_kind[kind]);
