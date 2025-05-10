@@ -192,7 +192,6 @@ void Application::compile_pipeline(int32_t samples)
 			.setStageFlags(vk::ShaderStageFlagBits::eVertex),
 	};
 
-	// auto fs = procedure("main") << std::make_tuple(samples) << fragment;
 	auto fs = fragment(samples);
 
 	auto vs_spv = link(vertex).generate(Target::spirv_binary_via_glsl, Stage::vertex);
@@ -214,15 +213,11 @@ void Application::compile_pipeline(int32_t samples)
 // Debugging
 void Application::shader_debug()
 {
-	auto fs = fragment(1);
+	set_trace_destination(root() / ".javelin");
 
-	std::string vertex_shader = link(vertex).generate_glsl();
-	std::string winding_shader = link(winding_contribution_solve).generate_glsl();
-	std::string inside_shader = link(inside).generate_glsl();
-	std::string fragment_shader = link(fs).generate_glsl();
+	auto vs = vertex;
+	auto fs = fragment(3);
 
-	io::display_lines("VERTEX", vertex_shader);
-	io::display_lines("WINDING", winding_shader);
-	io::display_lines("INSIDE", inside_shader);
-	io::display_lines("FRAGMENT", fragment_shader);
+	trace_unit("font", Stage::vertex, vs);
+	trace_unit("font", Stage::fragment, fs);
 }

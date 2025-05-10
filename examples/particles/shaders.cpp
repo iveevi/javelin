@@ -72,28 +72,11 @@ void Application::configure_pipeline(ColorMap cmap)
 // Debugging
 void Application::shader_debug()
 {
-	static const std::filesystem::path local = root() / "output" / "particles";
+	set_trace_destination(root() / ".javelin");
 	
-	std::filesystem::remove_all(local);
-	std::filesystem::create_directories(local);
-
 	auto vs = vertex;
 	auto fs = fragment(jet);
 
-	std::string vertex_shader = link(vs).generate_glsl();
-	std::string fragment_shader = link(fs).generate_glsl();
-
-	io::display_lines("VERTEX", vertex_shader);
-	io::display_lines("FRAGMENT", fragment_shader);
-	
-	vs.graphviz(local / "vertex.dot");
-	fs.graphviz(local / "fragment.dot");
-
-	Optimizer::stable.apply(vs);
-	Optimizer::stable.apply(fs);
-
-	vs.graphviz(local / "vertex-optimized.dot");
-	fs.graphviz(local / "fragment-optimized.dot");
-
-	link(vs, fs).write_assembly(local / "shaders.jvl.asm");
+	trace_unit("particles_raster", Stage::vertex, vs);
+	trace_unit("particles_raster", Stage::fragment, fs);
 }

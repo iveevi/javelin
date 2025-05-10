@@ -18,7 +18,7 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P)/.."
 ./build/examples/font/font --frames 300 --auto
 
 # Generate PDF outputs for all .dot files in the output directory
-find output -name '*.dot' | while read -r dotfile; do
+find .javelin -name '*.dot' | while read -r dotfile; do
     pdffile="${dotfile%.dot}.pdf"
     dot -Tpdf "$dotfile" -o "$pdffile"
 done

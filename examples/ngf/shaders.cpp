@@ -231,36 +231,10 @@ $entrypoint(fragment)
 void shader_debug()
 {
 	static const std::filesystem::path root = std::filesystem::path(__FILE__).parent_path() / ".." / "..";
-	static const std::filesystem::path local = root / "output" / "ngf";
-	
-	std::filesystem::remove_all(local);
-	std::filesystem::create_directories(local);
 
-	std::string task_shader = link(task).generate_glsl();
-	std::string mesh_shader = link(mesh).generate_glsl();
-	std::string eval_shader = link(eval).generate_glsl();
-	std::string fragment_shader = link(fragment).generate_glsl();
+	set_trace_destination(root / ".javelin");
 
-	io::display_lines("TASK", task_shader);
-	io::display_lines("MESH", mesh_shader);
-	io::display_lines("EVAL", eval_shader);
-	io::display_lines("FRAGMENT", fragment_shader);
-
-	task.graphviz(local / "task.dot");
-	mesh.graphviz(local / "mesh.dot");
-	eval.graphviz(local / "eval.dot");
-	fragment.graphviz(local / "fragment.dot");
-
-	Optimizer::stable.apply(task);
-	Optimizer::stable.apply(mesh);
-	Optimizer::stable.apply(eval);
-
-	Optimizer::stable.apply(fragment);
-
-	task.graphviz(local / "task-optimize.dot");
-	mesh.graphviz(local / "mesh-optimize.dot");
-	eval.graphviz(local / "eval-optimize.dot");
-	fragment.graphviz(local / "fragment-optimize.dot");
-
-	link(task, mesh, eval, fragment).write_assembly(local / "shaders.jvl.asm");
+	trace_unit("ngf", Stage::task, task);
+	trace_unit("ngf", Stage::mesh, mesh);
+	trace_unit("ngf", Stage::fragment, fragment);
 }

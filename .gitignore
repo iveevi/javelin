@@ -4,11 +4,11 @@
 *.dot
 *.jvlx
 .cache/
+.javelin
 .vscode/
 build/
 compile_commands.json
 gcc_jit_result*.c
 graph*.pdf
 imgui.ini
-output/
 vgcore.*

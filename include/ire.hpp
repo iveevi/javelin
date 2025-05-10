@@ -36,4 +36,5 @@
 #include "ire/ext/ray_tracing.hpp"
 
 // Utility methods (e.g. for debugging)
+#include "common/debug.hpp"
 #include "common/io.hpp"

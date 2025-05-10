@@ -48,6 +48,7 @@ endif()
 
 # Intermediate Representation Emitter
 add_library(javelin STATIC
+	source/common/debug.cpp
 	source/common/io.cpp
 	source/common/logging.cpp
 	source/ire/emitter.cpp

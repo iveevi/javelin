@@ -126,36 +126,13 @@ void Application::configure_compute_pipeline()
 // Debugging
 void Application::shader_debug()
 {
-	static const std::filesystem::path local = root() / "output" / "compute";
-
-	// TODO: dump_linkage_unit from deus...
+	set_trace_destination(root() / ".javelin");
 	
-	std::filesystem::remove_all(local);
-	std::filesystem::create_directories(local);
-
 	auto vs = vertex;
 	auto fs = fragment(jet);
 	auto cs = integrator;
 
-	std::string vertex_shader = link(vs).generate_glsl();
-	std::string fragment_shader = link(fs).generate_glsl();
-	std::string compute_shader = link(cs).generate_glsl();
-
-	io::display_lines("VERTEX", vertex_shader);
-	io::display_lines("FRAGMENT", fragment_shader);
-	io::display_lines("COMPUTE", compute_shader);
-
-	vs.graphviz(local / "vertex.dot");
-	fs.graphviz(local / "fragment.dot");
-	cs.graphviz(local / "compute.dot");
-
-	Optimizer::stable.apply(vs);
-	Optimizer::stable.apply(fs);
-	Optimizer::stable.apply(cs);
-
-	vs.graphviz(local / "vertex-optimized.dot");
-	fs.graphviz(local / "fragment-optimized.dot");
-	cs.graphviz(local / "compute-optimized.dot");
-
-	link(vs, fs, cs).write_assembly(local / "shaders.jvl.asm");
+	trace_unit("compute_raster", Stage::vertex, vs);
+	trace_unit("compute_raster", Stage::fragment, fs);
+	trace_unit("compute_integrator", Stage::compute, cs);
 }

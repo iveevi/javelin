@@ -245,61 +245,27 @@ $entrypoint(shadow_miss)
 void shader_debug()
 {
 	static const std::filesystem::path root = std::filesystem::path(__FILE__).parent_path() / ".." / "..";
-	static const std::filesystem::path local = root / "output" / "pathtracing";
 
-	std::filesystem::remove_all(local);
-	std::filesystem::create_directories(local);
+	set_trace_destination(root / ".javelin");
 
-	std::string rgen_shader = link(ray_generation).generate_glsl();
-	std::string rchit_shader = link(primary_closest_hit).generate_glsl();
-	std::string rmiss_shader = link(primary_miss).generate_glsl();
-	std::string smiss_shader = link(shadow_miss).generate_glsl();
-	std::string pcg3d_shader = link(pcg3d).generate_glsl();
-	std::string random3_shader = link(random3).generate_glsl();
-	std::string quad_shader = link(quad).generate_glsl();
-	std::string blit_shader = link(blit).generate_glsl();
-
-	io::display_lines("RAY GENERATION", rgen_shader);
-	io::display_lines("PRIMARY CLOSEST HIT", rchit_shader);
-	io::display_lines("PRIMARY MISS", rmiss_shader);
-	io::display_lines("SHADOW MISS", smiss_shader);
-	io::display_lines("PCG3D", pcg3d_shader);
-	io::display_lines("RANDOM3", random3_shader);
-	io::display_lines("QUAD", quad_shader);
-	io::display_lines("BLIT", blit_shader);
-
-	ray_generation.graphviz(local / "ray-generation.dot");
-	primary_closest_hit.graphviz(local / "primary-closest-hit.dot");
-	primary_miss.graphviz(local / "primary-miss.dot");
-	shadow_miss.graphviz(local / "shadow-miss.dot");
-	pcg3d.graphviz(local / "pcg3d.dot");
-	random3.graphviz(local / "random3.dot");
-	quad.graphviz(local / "quad.dot");
-	blit.graphviz(local / "blit.dot");
-
-	Optimizer::stable.apply(ray_generation);
+	// TODO: legalization step...
+	// Optimizer::stable.apply(ray_generation);
+	Optimizer::stable.disolve(ray_generation);
+	
 	Optimizer::stable.apply(primary_closest_hit);
 	Optimizer::stable.apply(primary_miss);
 	Optimizer::stable.apply(shadow_miss);
 	Optimizer::stable.apply(pcg3d);
 	Optimizer::stable.apply(random3);
 	Optimizer::stable.apply(quad);
+	Optimizer::stable.apply(blit);
 	Optimizer::stable.apply(randomH2);
 	Optimizer::stable.apply(pcg3d);
 
-	ray_generation.graphviz(local / "ray-generation-optimized.dot");
-	primary_closest_hit.graphviz(local / "primary-closest-hit-optimized.dot");
-	primary_miss.graphviz(local / "primary-miss-optimized.dot");
-	shadow_miss.graphviz(local / "shadow-miss-optimized.dot");
-	pcg3d.graphviz(local / "pcg3d-optimized.dot");
-	random3.graphviz(local / "random3-optimized.dot");
-	quad.graphviz(local / "quad-optimized.dot");
-	blit.graphviz(local / "blit-optimized.dot");
-
-	link(ray_generation,
-		primary_closest_hit,
-		primary_miss,
-		shadow_miss,
-		pcg3d, random3,
-		quad, blit).write_assembly(local / "shaders.jvl.asm");
+	trace_unit("pathtracing_radiance", Stage::ray_generation, ray_generation);
+	trace_unit("pathtracing_radiance", Stage::closest_hit, primary_closest_hit);
+	trace_unit("pathtracing_radiance", Stage::miss, primary_miss);
+	trace_unit("pathtracing_shadow", Stage::miss, shadow_miss);
+	trace_unit("pathtracing_blit", Stage::vertex, quad);
+	trace_unit("pathtracing_blit", Stage::fragment, blit);
 }

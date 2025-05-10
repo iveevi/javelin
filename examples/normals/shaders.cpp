@@ -40,25 +40,9 @@ $entrypoint(fragment)
 void shader_debug()
 {
 	static const std::filesystem::path root = std::filesystem::path(__FILE__).parent_path() / ".." / "..";
-	static const std::filesystem::path local = root / "output" / "normals";
-	
-	std::filesystem::remove_all(local);
-	std::filesystem::create_directories(local);
 
-	std::string vertex_shader = link(vertex).generate_glsl();
-	std::string fragment_shader = link(fragment).generate_glsl();
+	set_trace_destination(root / ".javelin");
 
-	io::display_lines("VERTEX", vertex_shader);
-	io::display_lines("FRAGMENT", fragment_shader);
-
-	vertex.graphviz(local / "vertex.dot");
-	fragment.graphviz(local / "fragment.dot");
-
-	Optimizer::stable.apply(vertex);
-	Optimizer::stable.apply(fragment);
-
-	vertex.graphviz(local / "vertex-optimized.dot");
-	fragment.graphviz(local / "fragment-optimized.dot");
-
-	link(vertex, fragment).write_assembly(local / "shaders.jvl.asm");
+	trace_unit("normals", Stage::vertex, vertex);
+	trace_unit("normals", Stage::vertex, fragment);
 }
