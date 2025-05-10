@@ -13,10 +13,6 @@ if(NOT DEFINED JAVELIN_FMT_EXTERNAL)
 	add_subdirectory(thirdparty/fmt)
 endif()
 
-if(NOT DEFINED JAVELIN_FREETYPE_EXTERNAL)
-	add_subdirectory(thirdparty/freetype)
-endif()
-
 add_subdirectory(thirdparty/googletest EXCLUDE_FROM_ALL)
 add_subdirectory(thirdparty/glslang EXCLUDE_FROM_ALL)
 
@@ -95,6 +91,3 @@ target_compile_definitions(javelin PRIVATE
 
 # Testing suite
 add_subdirectory(testing EXCLUDE_FROM_ALL)
-
-# Example projects
-add_subdirectory(examples EXCLUDE_FROM_ALL)

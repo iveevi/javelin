@@ -1,33 +1,12 @@
-[submodule "thirdparty/tinyobjloader"]
-	path = thirdparty/tinyobjloader
-	url = https://github.com/tinyobjloader/tinyobjloader
-[submodule "thirdparty/littlevk"]
-	path = thirdparty/littlevk
-	url = https://github.com/iveevi/littlevk.git
-[submodule "thirdparty/imgui"]
-	path = thirdparty/imgui
-	url = https://github.com/ocornut/imgui
 [submodule "thirdparty/glslang"]
 	path = thirdparty/glslang
 	url = https://github.com/KhronosGroup/glslang.git
-[submodule "thirdparty/stb"]
-	path = thirdparty/stb
-	url = https://github.com/nothings/stb.git
-[submodule "thirdparty/freetype"]
-	path = thirdparty/freetype
-	url = https://github.com/freetype/freetype
-[submodule "thirdparty/tinyexr"]
-	path = thirdparty/tinyexr
-	url = https://github.com/syoyo/tinyexr
 [submodule "thirdparty/fmt"]
 	path = thirdparty/fmt
 	url = https://github.com/fmtlib/fmt.git
 [submodule "thirdparty/googletest"]
 	path = thirdparty/googletest
 	url = https://github.com/google/googletest.git
-[submodule "thirdparty/argparse"]
-	path = thirdparty/argparse
-	url = https://github.com/p-ranav/argparse.git
 [submodule "thirdparty/glm"]
 	path = thirdparty/glm
 	url = https://github.com/g-truc/glm.git
