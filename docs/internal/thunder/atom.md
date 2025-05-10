@@ -1,5 +1,0 @@
-# Qualifier
-
-# Type information
-
-# Primitive
