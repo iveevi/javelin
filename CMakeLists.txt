@@ -6,13 +6,9 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 project(javelin C CXX)
 
 find_package(Vulkan REQUIRED)
-find_package(OpenMP REQUIRED)
+find_package(fmt    REQUIRED)
 
 # Dependencies
-if(NOT DEFINED JAVELIN_FMT_EXTERNAL)
-	add_subdirectory(thirdparty/fmt)
-endif()
-
 add_subdirectory(thirdparty/googletest EXCLUDE_FROM_ALL)
 add_subdirectory(thirdparty/glslang EXCLUDE_FROM_ALL)
 
@@ -27,17 +23,7 @@ include_directories(PRIVATE .
 	thirdparty/imgui
 	thirdparty/tinyobjloader)
 
-# Bundle Vulkan necessities
-set(VULKAN_LIBRARY_SET
-	glfw
-	Vulkan::Vulkan
-	SPIRV
-	glslang
-	glslang-default-resource-limits)
-
 # Options for coverage
-set(STATIC_ANALYSIS)
-
 if(ENABLE_COVERAGE)
 	set(COVERAGE_FLAGS --coverage)
 endif()
@@ -75,9 +61,7 @@ add_library(javelin STATIC
 	source/thunder/tracked_buffer.cpp
 	source/thunder/usage.cpp)
 
-target_compile_options(javelin PRIVATE
-	${STATIC_ANALYSIS}
-	$<$<CONFIG:Debug>:-Wall;-Werror;${COVERAGE_FLAGS}>)
+target_compile_options(javelin PRIVATE $<$<CONFIG:Debug>:-Wall;-Werror;${COVERAGE_FLAGS}>)
 
 target_link_libraries(javelin
 	fmt::fmt
@@ -86,8 +70,7 @@ target_link_libraries(javelin
 	glslang::glslang-default-resource-limits
 	$<$<CONFIG:Debug>:${COVERAGE_FLAGS}>)
 
-target_compile_definitions(javelin PRIVATE
-	$<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
+target_compile_definitions(javelin PRIVATE $<$<CONFIG:DEBUG>:JVL_DEBUG=1>)
 
 # Testing suite
 add_subdirectory(testing EXCLUDE_FROM_ALL)
