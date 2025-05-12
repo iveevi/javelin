@@ -131,6 +131,11 @@ struct array : public array_base <T> {
 	}
 };
 
+template <generic T, size_t N>
+struct static_array : array <T> {
+	static_array() : array <T> (N) {}
+};
+
 template <generic T>
 struct unsized_array : array <T> {
 	unsized_array() : array <T> (-1) {}
@@ -157,6 +162,24 @@ struct type_info_generator <array <T>> {
 	}
 };
 
+template <typename T, size_t N>
+struct type_info_generator <static_array <T, N>> {
+	type_info_generator(const static_array <T, N> &) {}
+
+	intermediate_type synthesize() const {
+		auto &em = Emitter::active;
+
+		auto v = T();
+		auto underlying = type_info_generator <T> (v)
+			.synthesize()
+			.concrete();
+
+		auto qualifier = em.emit_qualifier(underlying, N, thunder::arrays);
+
+		return composite_type(qualifier);
+	}
+};
+
 template <typename T>
 struct type_info_generator <unsized_array <T>> {
 	type_info_generator(const unsized_array <T> &) {}
@@ -174,7 +197,5 @@ struct type_info_generator <unsized_array <T>> {
 		return composite_type(qualifier);
 	}
 };
-
-// TODO: static array type...
 
 } // namespace jvl::ire

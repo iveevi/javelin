@@ -6,11 +6,12 @@
 namespace jvl::ire {
 
 // Padded elements (backward)
+// TODO: derive from padded type
 template <typename T, size_t Padding, size_t Index>
-struct alignas(4) pad_tuple_leaf {
+class alignas(4) pad_tuple_leaf {
 	char _padding[Padding];
 	T data;
-
+public:
 	// Accessors
 	operator T &() {
 		return data;
@@ -19,12 +20,15 @@ struct alignas(4) pad_tuple_leaf {
 	operator const T &() const {
 		return data;
 	}
+
+	template <typename ... Ts>
+	friend struct pad_tuple;
 };
 
 template <typename T, size_t Index>
-struct alignas(4) pad_tuple_leaf <T, 0, Index> {
+class alignas(4) pad_tuple_leaf <T, 0, Index> {
 	T data;
-
+public:
 	// Accessors
 	operator T &() {
 		return data;
@@ -33,6 +37,9 @@ struct alignas(4) pad_tuple_leaf <T, 0, Index> {
 	operator const T &() const {
 		return data;
 	}
+	
+	template <typename ... Ts>
+	friend struct pad_tuple;
 };
 
 template <typename T, size_t Padding, size_t Index>
@@ -62,8 +69,10 @@ struct tuple_element <0, T, Ts...> {
 	using type = typename T::concrete;
 };
 
-template <padded_type ... Ts>
-struct pad_tuple : Ts::concrete ... {
+template <typename ... Ts>
+struct pad_tuple : public Ts::concrete ... {
+	static_assert((padded_type <Ts> && ...));
+
 	template <size_t I>
 	auto &get() {
 		if constexpr (I < sizeof...(Ts)) {

@@ -2,9 +2,11 @@
 
 #include <glm/glm.hpp>
 
-#include "../concepts.hpp"
+#include "../../common/meta.hpp"
+#include "../array.hpp"
 #include "../matrix.hpp"
 #include "../vector.hpp"
+#include "pad_tuple.hpp"
 
 namespace jvl::ire {
 
@@ -51,6 +53,33 @@ struct solid_atomic <vec <T, 4>> {
 template <native_4b T>
 struct solid_atomic <mat <T, 4, 4>> {
 	using type = glm::tmat4x4 <T>;
+	static constexpr size_t alignment = 16u;
+};
+
+// Array types
+template <typename T, size_t Padding>
+class padded_element {
+	char _padding[Padding];
+	T data;
+public:
+	padded_element() = default;
+	padded_element(const T &value) : data(value) {}
+
+	operator T &() {
+		return data;
+	}
+
+	operator const T &() const {
+		return data;
+	}
+};
+
+template <builtin T, size_t N>
+struct solid_atomic <static_array <T, N>> {
+	using raw = solid_atomic <T> ::type;
+	static constexpr size_t padding = meta::alignup(sizeof(raw), 16) - sizeof(raw);
+	using element = padded_element <raw, padding>;
+	using type = std::array <element, N>;
 	static constexpr size_t alignment = 16u;
 };
 

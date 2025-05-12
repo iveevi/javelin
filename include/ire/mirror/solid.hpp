@@ -2,8 +2,9 @@
 
 #include "../../common/meta.hpp"
 #include "../concepts.hpp"
-#include "pad_tuple.hpp"
 #include "atomic.hpp"
+#include "pad_tuple.hpp"
+#include "solidifiable.hpp"
 
 namespace jvl::ire {
 
@@ -67,20 +68,37 @@ struct solid_padded_builder {};
 
 template <builtin T>
 struct solid_padded_builder <T> {
-	using type = solid_atomic <T> ::type;
+	static auto eval() {
+		if constexpr (solidifiable <T>) {
+			return typename solid_atomic <T> ::type();
+		} else {
+			static_assert(false, "built-in type is not solidifiable");
+			return int();
+		}
+	}
+	
+	using type = decltype(eval());
 };
 
 template <bool Phantom, field_type ... Fields>
 struct solid_padded_builder <Layout <Phantom, Fields...>> {
-	// TODO: scan fields to ensure solidifiable property...
 	using packet = solid_padded <0, 0, 0, typename Fields::underlying..., solid_padded_terminal> ::result;
 	using type = pad_tuple_conversion_t <packet>;
 };
 
 template <aggregate T>
 struct solid_padded_builder <T> {
-	using layout = decltype(T().layout());
-	using type = typename solid_padded_builder <layout> ::type;
+	static auto eval() {
+		if constexpr (solidifiable <T>) {
+			using layout = decltype(T().layout());
+			return typename solid_padded_builder <layout> ::type();
+		} else {
+			static_assert(false, "aggregate type is not solidifiable");
+			return int();
+		}
+	}
+	
+	using type = decltype(eval());
 };
 
 // One liner shortcut
