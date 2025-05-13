@@ -57,8 +57,19 @@ struct solid_atomic <mat <T, 4, 4>> {
 };
 
 // Array types
+// TODO: move to padding.hpp
+template <size_t Padding>
+struct padding {
+	char _padding[Padding];
+};
+
 template <typename T, size_t Padding>
-class padded_element {
+struct padded_element;
+
+// Non-inheritable data
+template <typename T, size_t Padding>
+requires std::is_fundamental_v <std::decay_t <T>>
+class padded_element <T, Padding> {
 	char _padding[Padding];
 	T data;
 public:
@@ -72,6 +83,14 @@ public:
 	operator const T &() const {
 		return data;
 	}
+};
+
+// Inheritable data
+template <typename T, size_t Padding>
+requires (!std::is_fundamental_v <std::decay_t <T>>)
+struct padded_element <T, Padding> : padding <Padding>, T {
+	padded_element() = default;
+	padded_element(const T &value) : T(value) {}
 };
 
 template <builtin T, size_t N>

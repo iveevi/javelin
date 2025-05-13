@@ -12,6 +12,7 @@
 #include "ire/linking.hpp"
 #include "ire/matrix.hpp"
 #include "ire/memory.hpp"
+#include "ire/mirror/soft.hpp"
 #include "ire/mirror/solid.hpp"
 #include "ire/push_constant.hpp"
 #include "ire/qualified_wrapper.hpp"

@@ -14,6 +14,9 @@ template <typename ... Args>
 struct type_packet {
 	template <typename T>
 	using push_front = type_packet <T, Args...>;
+	
+	template <typename T>
+	using push_back = type_packet <Args..., T>;
 };
 
 } // namespace jvl::meta
