@@ -6,6 +6,13 @@ namespace jvl::thunder {
 // Overload table for intrinsics
 QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std::vector <QualifiedType> &args)
 {
+	static const overload_list vectorizable_floating_overloads {
+		overload::from(f32, f32),
+		overload::from(vec2, vec2),
+		overload::from(vec3, vec3),
+		overload::from(vec4, vec4),
+	};
+
         static const overload_table <IntrinsicOperation> table {
 		// Global startus
 		{ layout_local_size, {
@@ -107,47 +114,33 @@ QualifiedType lookup_intrinsic_overload(const IntrinsicOperation &key, const std
 		} },
 
 		// Trigonometric functions
-                { sin, {
-			overload::from(f32, f32),
-			overload::from(vec2, vec2),
-			overload::from(vec3, vec3),
-			overload::from(vec4, vec4),
-		} },
-                
-		{ cos, {
-			overload::from(f32, f32),
-			overload::from(vec2, vec2),
-			overload::from(vec3, vec3),
-			overload::from(vec4, vec4),
-		} },
-                
-		{ tan, {
-			overload::from(f32, f32),
-			overload::from(vec2, vec2),
-			overload::from(vec3, vec3),
-			overload::from(vec4, vec4),
-		} },
+                { sin, vectorizable_floating_overloads },
+		{ cos, vectorizable_floating_overloads },
+		{ tan, vectorizable_floating_overloads },
 
 		// Inverse trigonometric functions
-                { asin, { overload::from(f32, f32) } },
-                { acos, { overload::from(f32, f32) } },
-                { atan, {
+		{ asin, { overload::from(f32, f32) } },
+		{ acos, { overload::from(f32, f32) } },
+		{ atan, {
 			overload::from(f32, f32),
 			overload::from(f32, f32, f32),
 		} },
+  
+		// Hyperbolic trigonometry functions
+		{ sinh, vectorizable_floating_overloads },
+		{ cosh, vectorizable_floating_overloads },
+		{ tanh, vectorizable_floating_overloads },
 
 		// Powering functions
-                { sqrt, { overload::from(f32, f32) } },
-                { exp, { overload::from(f32, f32) } },
-  
+		{ sqrt, vectorizable_floating_overloads },
+		{ exp, vectorizable_floating_overloads },
 		{ pow, {
 			overload::from(f32, f32, f32),
 			overload::from(vec2, vec2, vec2),
 			overload::from(vec3, vec3, vec3),
 			overload::from(vec4, vec4, vec4),
 		} },
-
-                { log, { overload::from(f32, f32) } },
+		{ log, vectorizable_floating_overloads },
 
 		// Limiting functions
 		{ abs, {

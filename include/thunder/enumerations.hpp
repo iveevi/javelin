@@ -269,6 +269,11 @@ enum IntrinsicOperation : uint16_t {
 	acos,
 	atan,
 
+	// Hyperbolic trigonometry
+	sinh,
+	cosh,
+	tanh,
+
 	// Powering functions
 	sqrt,
 	exp,

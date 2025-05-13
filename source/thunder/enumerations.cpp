@@ -230,6 +230,10 @@ const char *tbl_intrinsic_operation[] = {
 	"acos",
 	"atan",
 
+	"sinh",
+	"cosh",
+	"tanh",
+
 	"sqrt",
 	"exp",
 	"pow",

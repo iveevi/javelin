@@ -137,6 +137,24 @@ auto atan(const T &x, const U &y)
 	return platform_intrinsic_from_args <arithmetic_base <T>> (thunder::atan, x, y);
 }
 
+template <floating_arithmetic T>
+auto sinh(const T &x)
+{
+	return platform_intrinsic_from_args <arithmetic_base <T>> (thunder::sinh, x);
+}
+
+template <floating_arithmetic T>
+auto cosh(const T &x)
+{
+	return platform_intrinsic_from_args <arithmetic_base <T>> (thunder::cosh, x);
+}
+
+template <floating_arithmetic T>
+auto tanh(const T &x)
+{
+	return platform_intrinsic_from_args <arithmetic_base <T>> (thunder::tanh, x);
+}
+
 // Logarithm
 template <floating_arithmetic T>
 auto log(const T &x)
