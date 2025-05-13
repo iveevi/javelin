@@ -3,6 +3,7 @@
 #include <chrono>
 
 #include <fmt/color.h>
+#include <fmt/printf.h>
 
 namespace jvl::io {
 

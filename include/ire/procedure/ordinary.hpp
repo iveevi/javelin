@@ -72,15 +72,20 @@ struct Procedure : thunder::TrackedBuffer {
 		}
 
 		// For primitives
+		// TODO: tidy up!
 		thunder::Call call;
-
-		auto r = R();
 
 		call.cid = cid;
 		call.args = list_from_args(args...);
-		call.type = type_info_generator <R> (r)
-			.synthesize()
-			.concrete();
+		
+		if constexpr (std::is_same_v <R, void>) {
+			call.type = -1;
+		} else {
+			auto r = R();
+			call.type = type_info_generator <R> (r)
+				.synthesize()
+				.concrete();
+		}
 
 		cache_index_t cit;
 		cit = em.emit(call);

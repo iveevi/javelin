@@ -261,11 +261,16 @@ QualifiedType Buffer::semalz(Index i)
 	variant_case(Atom, Call):
 	{
 		auto &call = atom.as <Call> ();
-		auto &qt = types[call.type];
-		if (qt.is_primitive())
-			return qt;
 
-		return QualifiedType::concrete(call.type);
+		if (call.type >= 0) {
+			auto &qt = types[call.type];
+			if (qt.is_primitive())
+				return qt;
+
+			return QualifiedType::concrete(call.type);
+		}
+
+		return NilType();
 	}
 
 	variant_case(Atom, Operation):

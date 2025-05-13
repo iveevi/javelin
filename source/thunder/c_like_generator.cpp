@@ -594,7 +594,10 @@ void c_like_generator_t::generate(const Call &call, Index index)
 	if (call.args != -1)
 		args = arguments_to_string(arguments(call.args));
 
-	define(index, buffer.name + args);
+	if (call.type >= 0)
+		define(index, buffer.name + args);
+	else
+		finish(buffer.name + args);
 }
 
 template <>

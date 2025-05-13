@@ -59,8 +59,9 @@ void Buffer::mark_children(Index i)
 	variant_case(Atom, Call):
 	{
 		auto &type = atom.as <Call> ().type;
-		return mark(type, true);
-	}
+		if (type >= 0)
+			return mark(type, true);
+	} break;
 
 	// Array access' source is required
 	variant_case(Atom, ArrayAccess):
