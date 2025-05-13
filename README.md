@@ -1,5 +1,3 @@
-![](resources/media/logo.svg)
-
 ![GoogleTest](https://github.com/iveevi/javelin/actions/workflows/ci.yml/badge.svg)
 
 # Javelin

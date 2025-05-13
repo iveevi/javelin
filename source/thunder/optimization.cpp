@@ -218,16 +218,19 @@ bool Optimizer::strip_buffer(Buffer &buffer, const std::vector <bool> &include) 
 	}
 
 	// Transfer decorations
-	doubled.decorations.all = buffer.decorations.all;
-
-	for (auto &[i, j] : buffer.decorations.used) {
+	for (auto &[i, hint] : buffer.decorations.type) {
 		auto k = relocation[i];
-		doubled.decorations.used[k] = j;
+		doubled.decorations.type[k] = hint;
 	}
 	
 	for (auto &i : buffer.decorations.phantom) {
 		auto k = relocation[i];
 		doubled.decorations.phantom.insert(k);
+	}
+	
+	for (auto &i : buffer.decorations.materialize) {
+		auto k = relocation[i];
+		doubled.decorations.materialize.insert(k);
 	}
 
 	std::swap(buffer, doubled);
@@ -302,6 +305,8 @@ bool Optimizer::strip(Buffer &buffer) const
 // Full passes
 void Optimizer::apply(Buffer &buffer) const
 {
+	JVL_STAGE_SECTION(optimizer apply);
+
 	distill_types(buffer);
 	disolve(buffer);
 }

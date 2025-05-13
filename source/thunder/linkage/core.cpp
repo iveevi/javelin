@@ -322,11 +322,12 @@ void LinkageUnit::process_function_aggregate(TypeMap &map, const Function &funct
 	auto &decorations = function.decorations;
 
 	std::string name = fmt::format("s{}_t", aggregates.size());
-	if (decorations.used.contains(bidx)) {
-		auto &id = decorations.used.at(bidx);
-		auto &decoration = decorations.all.at(id);
-		name = decoration.name;
 
+	auto it = decorations.type.find(bidx);
+	if (it != decorations.type.end()) {
+		auto &decoration = it->second;
+		
+		name = decoration.name;
 		for (size_t i = 0; i < fields.size(); i++)
 			fields[i].name = decoration.fields[i];
 	}

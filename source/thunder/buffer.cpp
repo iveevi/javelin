@@ -10,6 +10,37 @@ MODULE(buffer);
 
 static constexpr size_t BUFFER_STARTUP_SIZE = 64;
 
+std::string Buffer::Decorations::to_string(Index idx) const
+{
+	std::vector <std::string> properties;
+	if (type.contains(idx)) {
+		auto &hint = type.at(idx);
+
+		std::string seq;
+		for (size_t i = 0; i < hint.fields.size(); i++) {
+			seq += hint.fields[i];
+			if (i + 1 < hint.fields.size())
+				seq += "; ";
+		}
+
+		properties.push_back("!type " + hint.name + "[" + seq + "]");
+	}
+
+	if (phantom.contains(idx))
+		properties.push_back("!phantom");
+	if (materialize.contains(idx))
+		properties.push_back("!materialize");
+
+	std::string concatted;
+	for (size_t i = 0; i < properties.size(); i++) {
+		concatted += properties[i];
+		if (i + 1 < properties.size())
+			concatted += ", ";
+	}
+
+	return concatted;
+}
+
 // TODO: provide parameters to control startup size...
 Buffer::Buffer()
 	: pointer(0),
@@ -66,9 +97,10 @@ std::string Buffer::to_string_assembly() const
 	for (size_t i = 0; i < pointer; i++) {
 		std::string s = fmt::format("%{}", i);
 		result += fmt::format(
-			"{:>5} = {:<40} ; {}\n", s,
+			"{:>5} = {:<40} ; {:<15}; {}\n", s,
 			atoms[i].to_assembly_string(),
-			types[i].to_string()
+			types[i].to_string(),
+			decorations.to_string(i)
 		);
 	}
 
@@ -86,18 +118,18 @@ std::string Buffer::to_string_pretty() const
 			i, atoms[i],
 			fmt::format(fmt::emphasis::underline, "{}", types[i]),
 			marked.contains(i) ? 's' : '-',
-			decorations.used.contains(i) ? 't' : '-',
+			decorations.type.contains(i) ? 't' : '-',
 			decorations.phantom.contains(i) ? 'p' : '-');
 	}
 
 	// Decorations
 	result += fmt::format("   [   X] {}\n", fmt::format(fmt::emphasis::bold, "{}", "DECORATIONS"));
 
-	for (auto &[i, th] : decorations.all) {
+	for (auto &[i, hint] : decorations.type) {
 		result += fmt::format("          :: {} (#{})\n",
-			fmt::format(fmt::emphasis::underline, "{}", th.name), i);
+			fmt::format(fmt::emphasis::underline, "{}", hint.name), i);
 
-		for (auto &s : th.fields)
+		for (auto &s : hint.fields)
 			result += fmt::format("             {}\n", s);
 	}
 
@@ -109,9 +141,10 @@ void Buffer::display_assembly() const
 	for (size_t i = 0; i < pointer; i++) {
 		std::string s = fmt::format("%{}", i);
 		fmt::println(
-			"{:>5} = {:<40} ; {}", s,
+			"{:>5} = {:<40} ; {:<15}; {}", s,
 			atoms[i].to_assembly_string(),
-			types[i].to_string()
+			types[i].to_string(),
+			decorations.to_string(i)
 		);
 	}
 }
@@ -125,16 +158,16 @@ void Buffer::display_pretty() const
 			i, atoms[i],
 			fmt::format(fmt::emphasis::underline, "{}", types[i]),
 			marked.contains(i) ? 's' : '-',
-			decorations.used.contains(i) ? 't' : '-',
+			decorations.type.contains(i) ? 't' : '-',
 			decorations.phantom.contains(i) ? 'p' : '-');
 	}
 
 	// Decorations
 	fmt::println("   [   X] {}", fmt::format(fmt::emphasis::bold, "{}", "DECORATIONS"));
 
-	for (auto &[i, th] : decorations.all) {
-		fmt::println("          :: {} (#{})", fmt::format(fmt::emphasis::underline, "{}", th.name), i);
-		for (auto &s : th.fields)
+	for (auto &[i, hint] : decorations.type) {
+		fmt::println("          :: {} (#{})", fmt::format(fmt::emphasis::underline, "{}", hint.name), i);
+		for (auto &s : hint.fields)
 			fmt::println("             {}", s);
 	}
 }
@@ -151,9 +184,10 @@ void Buffer::write_assembly(const std::filesystem::path &path) const
 		std::string s = fmt::format("%{}", i);
 		fmt::println(
 			fout,
-			"{:>5} = {:<40} ; {}", s,
+			"{:>5} = {:<40} ; {:<15}; {}", s,
 			atoms[i].to_assembly_string(),
-			types[i].to_string()
+			types[i].to_string(),
+			decorations.to_string(i)
 		);
 	}
 

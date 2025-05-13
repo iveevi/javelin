@@ -284,13 +284,11 @@ std::string c_like_generator_t::reference(Index index) const
 		std::string accessor = fmt::format(".f{}", load.idx);
 
 		// Check for name hints for the field
-		if (decorations.used.contains(load.src)) {
-			auto id = decorations.used.at(load.src);
-			auto th = decorations.all.at(id);
-			accessor = "." + th.fields[load.idx];
-		} else {
-			fmt::println("no decoration for load (@{}) source (@{})", index, load.src);
-		}
+		auto it = decorations.type.find(load.src);
+		if (it == decorations.type.end())
+			JVL_WARNING("no decoration for load (@{}) source (@{})", index, load.src);
+		else
+			accessor = "." + it->second.fields[load.idx];
 
 		return ref + accessor;
 	}
@@ -694,7 +692,7 @@ void c_like_generator_t::generate(Index i)
 std::string c_like_generator_t::generate()
 {
 	for (size_t i = 0; i < pointer; i++) {
-		if (marked.count(i)) {
+		if (marked.count(i) || decorations.materialize.contains(i)) {
 			// TODO: comment
 			// TODO: option for debug info...
 			// fmt::println("  generating: {}", atoms[i]);

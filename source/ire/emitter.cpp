@@ -239,16 +239,9 @@ Emitter::Index Emitter::emit_list_chain(const std::vector <Index> &atoms)
 }
 
 // Emitting type hints
-void Emitter::add_type_hint(Index idx, uint64_t id, const std::string &name, const std::vector <std::string> &fields)
+void Emitter::add_type_hint(Index idx, uint32_t uuid, const std::string &name, const std::vector <std::string> &fields)
 {
-	auto &buf = buffer();
-	// TODO: sanity check for type related?
-	if (!buf.decorations.all.contains(id)) {
-		auto th = thunder::Buffer::type_hint(name, fields);
-		buf.decorations.all[id] = th;
-	}
-
-	buf.decorations.used[idx] = id;
+	buffer().decorations.type[idx] = thunder::Buffer::TypeHint(uuid, name, fields);
 }
 
 // Emitting type phantoms hints

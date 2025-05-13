@@ -10,6 +10,16 @@
 
 namespace jvl::ire {
 
+// Retrieving indices corresponding to arbitrary values
+struct _index_unsupported {};
+
+template <typename T>
+struct buffer_index {
+	static _index_unsupported of(const T &) {
+		return _index_unsupported();
+	}
+};
+
 // More advanced pool which manages control flow as well as scopes of pools
 class Emitter {
 	thunder::Buffer &buffer();
@@ -97,8 +107,21 @@ public:
 		return emit_list_chain(std::initializer_list <Index> { args... });
 	}
 
+	// Forcing variables to be synthesized
+	template <typename T>
+	void materialize(const T &value) {
+		auto r = buffer_index <T> ::of(value);
+
+		using R = decltype(r);
+		if constexpr (std::is_same_v <std::decay_t <R>, thunder::Index>) {
+			buffer().decorations.materialize.insert(r);
+		} else {
+			static_assert(false, "materialization for this type is not implemented");
+		}
+	}
+
 	// Emitting type hints
-	void add_type_hint(Index, uint64_t, const std::string &, const std::vector <std::string> &);
+	void add_type_hint(Index, uint32_t, const std::string &, const std::vector <std::string> &);
 	void add_phantom_hint(Index);
 	
 	// Printing the active buffer

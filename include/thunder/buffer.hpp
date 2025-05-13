@@ -30,7 +30,8 @@ class Buffer {
 	void mark_children(Index);
 	void mark(Index, bool = false);
 public:
-	struct type_hint {
+	struct TypeHint {
+		uint32_t uuid;
 		std::string name;
 		std::vector <std::string> fields;
 	};
@@ -40,11 +41,12 @@ public:
 	std::vector <Atom> atoms;
 	std::vector <QualifiedType> types;
 
-	struct {
-		std::map <uint64_t, type_hint> all;
-		std::map <Index, uint64_t> used;
-		// TODO: vector <hint> and variant for hints... or multimap?
+	struct Decorations {
+		std::map <Index, TypeHint> type;
 		std::set <Index> phantom;
+		std::set <Index> materialize;
+
+		std::string to_string(Index) const;
 	} decorations;
 
 	Buffer();
