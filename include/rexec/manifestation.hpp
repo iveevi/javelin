@@ -28,7 +28,7 @@ struct resource_manifestion_layout_in <resource_collection <>> {
 	}
 };
 
-template <generic T, size_t B, resource_layout_in ... Inputs>
+template <ire::generic T, size_t B, resource_layout_in ... Inputs>
 struct resource_manifestion_layout_in <resource_collection <LayoutIn <T, B>, Inputs...>> {
 	using next = resource_manifestion_layout_in <resource_collection <Inputs...>>;
 
@@ -70,7 +70,7 @@ struct resource_manifestion_layout_out <resource_collection <>> {
 	}
 };
 
-template <generic T, size_t B, resource_layout_out ... Outputs>
+template <ire::generic T, size_t B, resource_layout_out ... Outputs>
 struct resource_manifestion_layout_out <resource_collection <LayoutOut <T, B>, Outputs...>> {
 	using next = resource_manifestion_layout_out <resource_collection <Outputs...>>;
 
@@ -109,7 +109,7 @@ struct resource_manifestion_push_constant <resource_collection <>> {
 	static void _initializer() {}
 };
 
-template <generic T, size_t Offset>
+template <ire::generic T, size_t Offset>
 struct resource_manifestion_push_constant <resource_collection <PushConstant <T, Offset>>> {
 	static void _initializer() {
 		ire::push_constant <T> pc(Offset);

@@ -67,12 +67,12 @@ concept rexec_class_method = requires(const T &value) {
 		<< typename self::_initializer()			\
 		* [_returner = _return_igniter <void> ()]() -> void
 
-template <typename R, generic_or_void Ret, typename F>
+template <typename R, ire::generic_or_void Ret, typename F>
 struct rexec_manifest_skeleton {
 	using proc = void;
 };
 
-template <typename R, generic_or_void Ret, typename ... Args>
+template <typename R, ire::generic_or_void Ret, typename ... Args>
 struct rexec_manifest_skeleton <R, Ret, void (*)(Args...)> {
 	using proc = rexec_method <R, Ret, Args...>;
 };

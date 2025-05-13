@@ -83,7 +83,7 @@ constexpr bool verify_in_set_from_out_set(const resource_collection <Required...
 	return (verify_in_from_out_set <Required> (given) && ...);
 }
 
-template <generic Symbolic>
+template <ire::generic Symbolic>
 constexpr vk::Format format_lookup()
 {
 	// TODO: format is not necessarily same as type... for now its fine
@@ -144,10 +144,11 @@ concept vertex_buffer_class = true;
 template <typename T>
 concept push_constant_class = true;
 
-template <vertex_buffer_class VB, push_constant_class PC>
-struct TraditionalPipeline {
-	using vertices_t = VB;
-};
+// TODO: other resources...
+// template <vertex_buffer_class VB, push_constant_class PC>
+// struct TraditionalPipeline {
+// 	using vertices_t = VB;
+// };
 
 template <typename V, typename F>
 struct TraditionalPipelineGroup {
@@ -197,6 +198,7 @@ struct TraditionalPipelineGroup {
 		using fragment_inputs = filter_layout_in <fresources> ::group;
 		using fragment_outputs = filter_layout_out <fresources> ::group;
 
+		// TODO: should be in verify...
 		static constexpr bool layout_compatibility = verify_in_set_from_out_set(fragment_inputs(), vertex_outputs());
 
 		static_assert(layout_compatibility,

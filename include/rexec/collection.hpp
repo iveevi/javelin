@@ -28,7 +28,7 @@ struct resource_collection {
 													\
 	template <resource R, resource ... Rest>							\
 	struct filter_##concept_suffix <resource_collection <R, Rest...>> {				\
-		using upper = filter_##concept_suffix <resource_collection <Rest...>> ::group;			\
+		using upper = filter_##concept_suffix <resource_collection <Rest...>> ::group;		\
 		using fixed = typename upper::template append_front <R>;				\
 		using group = std::conditional_t <resource_##concept_suffix <R>, fixed, upper>;		\
 	};
