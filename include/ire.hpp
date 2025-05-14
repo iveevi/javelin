@@ -39,3 +39,15 @@
 // Utility methods (e.g. for debugging)
 #include "common/debug.hpp"
 #include "common/io.hpp"
+
+// Additional miscellaneous specializations
+namespace jvl::ire {
+	
+template <builtin T>
+struct buffer_index <T> {
+	static thunder::Index of(const T &value) {
+		return value.synthesize().id;
+	}
+};
+
+} // namespace jvl::ire

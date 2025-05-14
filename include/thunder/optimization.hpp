@@ -24,7 +24,7 @@ enum class OptimizationFlags : uint8_t {
 				| eStoreElision,
 };
 
-flag_operators(OptimizationFlags, uint8_t);
+DEFINE_FLAG_OPERATORS(OptimizationFlags, uint8_t);
 
 // Flags for disolve optimization pass
 enum class DisolveFlags : uint8_t {
@@ -34,7 +34,7 @@ enum class DisolveFlags : uint8_t {
 	eAll			= eCasting | eStores,
 };
 
-flag_operators(DisolveFlags, uint8_t);
+DEFINE_FLAG_OPERATORS(DisolveFlags, uint8_t);
 
 // Legalizing instructions for C-family compiled targets
 void legalize_for_cc(Buffer &);

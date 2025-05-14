@@ -8,11 +8,33 @@ namespace jvl::rexec {
 // Resource collections and filters //
 //////////////////////////////////////
 
+struct _resource_collection {};
+
 template <resource ... Resources>
 struct resource_collection {
 	template <resource ... More>
 	using append_front = resource_collection <Resources..., More...>;
+
+	static constexpr size_t size = sizeof...(Resources);
+
+	using check = _resource_collection;
 };
+
+template <resource Current, resource ... Rest>
+struct resource_collection <Current, Rest...> {
+	using head = Current;
+	using tail = resource_collection <Rest...>;
+
+	template <resource ... More>
+	using append_front = resource_collection <Current, Rest..., More...>;
+
+	static constexpr size_t size = 1 + sizeof...(Rest);
+	
+	using check = _resource_collection;
+};
+
+template <typename T>
+concept resource_collection_class = std::same_as <typename T::check, _resource_collection>;
 
 // Filtering resources
 #define DEFINE_RESOURCE_FILTER(concept_suffix)								\

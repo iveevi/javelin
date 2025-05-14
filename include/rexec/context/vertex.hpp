@@ -18,7 +18,7 @@ struct Vertex : ResourceExecutionContext <ExecutionFlag::eVertex, Resources...> 
 	static ire::gl_Position_t gl_Position;
 	// TODO: import the rest of the instrinsics here...
 
-	// TODO: specify rasterization options here as well?
+	// TODO: specify rasterization options here...
 
 	template <rexec_class T>
 	static T _use() {
@@ -51,12 +51,6 @@ template <typename T>
 concept vertex_class = requires(const T &value) {
 	{ vertex_pass(value) } -> std::same_as <bool>;
 };
-
-template <typename T>
-concept vertex_class_method = rexec_class_method <T> && vertex_class <typename T::rexec>;
-
-template <typename T>
-concept vertex_class_entrypoint = vertex_class_method <T> && ire::entrypoint_class <T>;
 
 // Sugar for declaring Vertex REXEC contexts
 #define $rexec_vertex(name, ...)	struct name : Vertex <__VA_ARGS__>

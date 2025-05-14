@@ -7,6 +7,20 @@
 
 namespace jvl::rexec {
 
+#define DEFINE_RESOURCE_MANIFESTION(concept_suffix)						\
+	template <typename T>									\
+	struct resource_manifestion_wrapper_##concept_suffix					\
+			: resource_manifestion_##concept_suffix <T> {				\
+		using concept_suffix##s = T;							\
+	};											\
+												\
+	template <resource ... Resources>							\
+	using manifest_##concept_suffix = resource_manifestion_wrapper_##concept_suffix <	\
+		typename filter_##concept_suffix <						\
+			resource_collection <Resources...>					\
+		> ::group									\
+	>;
+
 ////////////////////////////////////////////
 // Resource collection method manifestion //
 ////////////////////////////////////////////
@@ -46,12 +60,7 @@ struct resource_manifestion_layout_in <resource_collection <LayoutIn <T, B>, Inp
 	}
 };
 
-template <resource ... Resources>
-using manifest_layout_in = resource_manifestion_layout_in <
-	typename filter_layout_in <
-		resource_collection <Resources...>
-	> ::group
->;
+DEFINE_RESOURCE_MANIFESTION(layout_in)
 
 // Layout outputs
 template <typename T>
@@ -88,12 +97,7 @@ struct resource_manifestion_layout_out <resource_collection <LayoutOut <T, B>, O
 	}
 };
 
-template <resource ... Resources>
-using manifest_layout_out = resource_manifestion_layout_out <
-	typename filter_layout_out <
-		resource_collection <Resources...>
-	> ::group
->;
+DEFINE_RESOURCE_MANIFESTION(layout_out)
 
 // Push constants
 template <typename T>
@@ -125,13 +129,7 @@ struct resource_manifestion_push_constant <resource_collection <Resources...>> {
 	static_assert(false, "only one push constant is allowed per context");
 };
 
-// TODO: macro define_manifestation
-template <resource ... Resources>
-using manifest_push_constant = resource_manifestion_push_constant <
-	typename filter_push_constant <
-		resource_collection <Resources...>
-	> ::group
->;
+DEFINE_RESOURCE_MANIFESTION(push_constant)
 
 // Full resource manifestation
 template <resource ... Resources>
@@ -142,7 +140,6 @@ struct resource_manifestion :
 {
 	// TODO: resource conflict verification...
 
-	// static int _initializer() {
 	struct _initializer {
 		template <typename ... Args>
 		auto operator*(const std::function <void (Args...)> &lambda) const {
